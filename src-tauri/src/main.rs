@@ -1,57 +1,55 @@
-// NOTE: Prevents additional console window on Windows in release, DO NOT REMOVE!!
+// src-tauri/src/main.rs
+
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-/* Import the necessary modules from the Tauri crate. */
+use tauri::menu::{MenuBuilder, PredefinedMenuItem};
+
 use tauri::{
-    image::Icon,
-    tray::{CustomMenuItem, SystemTray, SystemTrayEvent, SystemTrayMenu},
-    Manager,
+    menu::{Menu, MenuItem},
+    tray::TrayIconBuilder,
 };
 
 fn main() {
-    /* Initialize menu items. */
-    let hide = CustomMenuItem::new("hide".to_string(), "Hide");
-    let quit = CustomMenuItem::new("quit".to_string(), "Quit");
-
-    /* Create system tray menu. */
-    let tray_menu = SystemTrayMenu::new()
-        .add_item(hide)
-        .add_item(quit);
-
-    // --- 3. Create the system tray ---
-    let system_tray = SystemTray::new()
-        .with_menu(tray_menu)
-        // Note: We are using the Icon from the `tauri::image` module here
-        .with_icon(Icon::Raw(include_bytes!("../icons/icon.png").to_vec()))
-        .with_icon_as_template(true);
-
-    /* Build and run application. */
     tauri::Builder::default()
-        .system_tray(system_tray)
-        .on_system_tray_event(|app, event| match event {
-            SystemTrayEvent::MenuItemClick { id, .. } => {
-                match id.as_str() {
-                    "quit" => {
-                        std::process::exit(0);
-                    }
-                    "hide" => {
-                        if let Some(window) = app.get_webview_window("main") {
-                           let _ = window.hide();
-                        }
-                    }
+        .setup(|app| {
+            let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&quit_i])?;
+
+            /* Create a tray icon. */
+            let tray = TrayIconBuilder::new()
+                .menu(&menu)
+                .menu_on_left_click(true)
+                .build(app)?;
+
+            // Create standard edit menu items
+            let mut edit_menu = MenuBuilder::new(app);
+            edit_menu = edit_menu
+                .undo()
+                .redo()
+                .separator()
+                .cut()
+                .copy()
+                .paste()
+                .select_all();
+
+            // Add custom item
+            edit_menu = edit_menu.text("custom_action", "Custom Action");
+
+            let menu = edit_menu.build()?;
+
+            // Set the menu
+            app.set_menu(menu)?;
+
+            // Handle menu events
+            app.on_menu_event(|_app_handle, event| {
+                match event.id().0.as_str() {
+                    "your_menu_id" => { /* handle event */ }
                     _ => {}
                 }
-            }
-            SystemTrayEvent::LeftClick { .. } => {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                }
-            }
-            _ => {}
+            });
+
+            Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("Oh no! There was an error while running EvoNext");
-
-    // evonext_desktop_lib::run()
+        .expect("error while running Tauri application");
 }

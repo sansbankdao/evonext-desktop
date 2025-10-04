@@ -1,5 +1,5 @@
 <template>
-    <aside class="w-64 flex-shrink-0 bg-slate-800 p-4 flex flex-col justify-between">
+    <aside class="w-80 px-10 flex-shrink-0 bg-slate-800 p-4 flex flex-col justify-between">
         <div>
             <!-- Logo -->
             <div class="flex items-center gap-3 mb-8">
@@ -8,7 +8,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
 
-                <span class="text-3xl font-bold text-yellw-400 tracking-widest">
+                <span class="text-3xl font-bold text-yellow-400 tracking-widest">
                     EvoNext
                 </span>
             </div>

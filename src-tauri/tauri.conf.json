@@ -31,5 +31,15 @@
             "icons/icon.icns",
             "icons/icon.ico"
         ]
+    },
+    "plugins": {
+        "permission": {
+            "all": false,
+            "permissions": [
+                "core:default",
+                "app:default",
+                "plugin:opener:allow-open"
+            ]
+        }
     }
 }

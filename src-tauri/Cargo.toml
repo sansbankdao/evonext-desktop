@@ -4,18 +4,20 @@ version = "25.10.2"
 description = "Free Your Inhibitions — Discover safe and enjoyable spaces to Explore. Curate. Share YOUR Truth Fearlessly!"
 authors = ["Sansbank DAO developers"]
 edition = "2021"
+build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
 # Use the v2 beta version for tauri-build
-tauri-build = { version = "2.0.0-beta", features = [] }
+tauri-build = { version = "2.4.1", features = [] }
 
 [dependencies]
 # Use the v2 beta version for tauri and enable the correct v2 features
-tauri = { version = "2.0.0-beta", features = ["tray-icon", "image-png"] }
+tauri = { version = "2.4.1", features = ["tray-icon", "image-png"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+tauri-plugin-opener = { version = "2.4.1" }
 
 [features]
 # This section is used for custom features. You can leave it as is.
