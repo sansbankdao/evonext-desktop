@@ -2,8 +2,8 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::menu::{MenuBuilder, PredefinedMenuItem};
-
+use tauri::Manager;
+use tauri::menu::{MenuBuilder};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
@@ -16,9 +16,16 @@ fn main() {
             let menu = Menu::with_items(app, &[&quit_i])?;
 
             /* Create a tray icon. */
-            let tray = TrayIconBuilder::new()
+            let icon_path = app.handle().path().resolve("icons/icon.png", tauri::path::BaseDirectory::Resource)?;
+            let _tray = TrayIconBuilder::new()
+                .icon(tauri::image::Image::from_path(icon_path)?)
                 .menu(&menu)
-                .menu_on_left_click(true)
+                .show_menu_on_left_click(true)
+                .on_menu_event(|app, event| {
+                    if event.id.as_ref() == "quit" {
+                        app.exit(0);
+                    }
+                })
                 .build(app)?;
 
             // Create standard edit menu items
