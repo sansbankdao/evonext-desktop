@@ -66,53 +66,68 @@ fn main() {
 
             let identities_menu = SubmenuBuilder::new(app, "Identities")
                 // .submenu_icon(menu_image) // Optional: Add an icon to the submenu
-                .text("new", "Create")
-                .text("open", "Open")
-                .text("recent", "Recent")
-                .text("quit", "Quit")
+                .text("new", "New Identity...")
+                .text("open", "Open Identity...")
+                .text("recent", "Open Recent")
+                .separator()
+                .text("lock", "Lock")
+                .text("disconnect", "Disconnect")
+                .separator()
+                .text("exit", "Exit")
                 .build()?;
 
-            let option_str = "en";
-            let check_options_item_1 = CheckMenuItemBuilder::new("Show balances")
+            let privacy_str = "show";
+            let check_privacy_item = CheckMenuItemBuilder::new("Show balances")
                 .id("balance")
-                .checked(option_str == "balance")
+                .checked(privacy_str == "show")
                 .build(app)?;
 
-            let check_options_item_2 = CheckMenuItemBuilder::new("Testnet")
+            let network_str = "testnet";
+            let check_network_item = CheckMenuItemBuilder::new("Mainnet")
                 .id("testnet")
-                .checked(option_str == "testnet")
+                .checked(network_str == "mainnet")
                 .enabled(false)
                 .build(app)?;
 
-            let options_item = SubmenuBuilder::new(app, "Options")
-                .item(&check_options_item_1)
-                .item(&check_options_item_2)
+            let settings_menu = SubmenuBuilder::new(app, "Settings")
+                .item(&check_privacy_item)
+                .item(&check_network_item)
                 .build()?;
 
-            let lang_str = "en";
-            let check_sub_item_1 = CheckMenuItemBuilder::new("English")
+            let i18n_str = "en";
+            let check_en_item = CheckMenuItemBuilder::new("English")
                 .id("en")
-                .checked(lang_str == "en")
+                .checked(i18n_str == "en")
                 .build(app)?;
 
-            let check_sub_item_2 = CheckMenuItemBuilder::new("Chinese")
-                .id("en")
-                .checked(lang_str == "en")
+            let check_cn_item = CheckMenuItemBuilder::new("Chinese")
+                .id("cn")
+                .checked(i18n_str == "cn")
                 .enabled(false)
                 .build(app)?;
 
-            let lang_item = SubmenuBuilder::new(app, "Language")
-                .item(&check_sub_item_1)
-                .item(&check_sub_item_2)
+            let check_tr_item = CheckMenuItemBuilder::new("Turkish")
+                .id("tr")
+                .checked(i18n_str == "tr")
+                .enabled(false)
+                .build(app)?;
+
+            let i18n_menu = SubmenuBuilder::new(app, "Language")
+                .item(&check_en_item)
+                .item(&check_cn_item)
+                .item(&check_tr_item)
                 .build()?;
 
             /* Configure application menu. */
-            let menu = MenuBuilder::new(app)
-                .items(&[&identities_menu, &options_item, &lang_item])
-                .build()?;
+            let app_menu = MenuBuilder::new(app)
+                .items(&[
+                    &identities_menu,
+                    &settings_menu,
+                    &i18n_menu
+                ]).build()?;
 
             /* Set application menu. */
-            app.set_menu(menu)?;
+            app.set_menu(app_menu)?;
 
             Ok(())
         })
