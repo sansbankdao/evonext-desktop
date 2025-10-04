@@ -3,7 +3,7 @@
     <main>
         <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
             <h1 class="text-3xl font-bold text-white mb-4 sm:mb-0">
-                Evo (Mini) Apps
+                Mini Apps
             </h1>
 
             <div class="flex items-center gap-4 bg-slate-800 p-2 rounded-lg">

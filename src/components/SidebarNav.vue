@@ -46,7 +46,7 @@
                 <RouterLink to="/apps" class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
                     <Squares2X2Icon class="size-5" />
                     <span>
-                        Apps
+                        Mini Apps
                     </span>
                 </RouterLink>
 
@@ -65,7 +65,7 @@
                 </RouterLink>
 
                 <RouterLink to="/identities" class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
-                    <UserIcon class="size-5" />
+                    <UsersIcon class="size-5" />
                     <span>
                         Identities
                     </span>
@@ -108,7 +108,7 @@ import {
     // SparklesIcon,
     Squares2X2Icon,
     UserGroupIcon,
-    UserIcon,
+    UsersIcon,
     WalletIcon,
 } from '@heroicons/vue/24/solid'
 

@@ -2,16 +2,11 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tauri::{
-    menu::{Menu, MenuItem},
+    menu::{CheckMenuItemBuilder, MenuBuilder, Menu, MenuItem, SubmenuBuilder},
     tray::TrayIconBuilder,
 };
-use tauri::{
-    image::Image,
-    menu::{CheckMenuItemBuilder, IconMenuItemBuilder, MenuBuilder, SubmenuBuilder},
-};
-// use tauri::menu::{MenuBuilder};
 
 fn main() {
     tauri::Builder::default()
@@ -111,12 +106,26 @@ fn main() {
                 .item(&check_tr_item)
                 .build()?;
 
+            /* Initialize Help menu. */
+            let help_menu = SubmenuBuilder::new(app, "Help")
+                // .submenu_icon(menu_image) // Optional: Add an icon to the submenu
+                .text("bootstrap", "Bootstrap Campaign")
+                // .text("register", "Register a New Identity...")
+                // .text("recent", "Recently Used")
+                .separator()
+                // .text("lock", "Lock")
+                // .text("disconnect", "Disconnect")
+                // .separator()
+                .text("about", "About")
+                .build()?;
+
             /* Configure application menu. */
             let app_menu = MenuBuilder::new(app)
                 .items(&[
                     &identities_menu,
                     &settings_menu,
-                    &i18n_menu
+                    &i18n_menu,
+                    &help_menu
                 ]).build()?;
 
             /* Set application menu. */
@@ -124,6 +133,22 @@ fn main() {
 
             Ok(())
         })
+        .plugin(tauri_plugin_opener::init())
+        /* Handle menu events. */
+        .on_menu_event(|app, event| {
+            match event.id().0.as_str() {
+                "open" => {
+                    // Handle open action, e.g., create a new window
+                }
+                "bootstrap" => {
+                    println!("bootstrap menu item was clicked");
+
+                    let window = app.get_webview_window("main").unwrap();
+                    window.emit("navigate", "/bootstrap").unwrap();
+                }
+                _ => {}
+            }
+        })
         .run(tauri::generate_context!())
-        .expect("error while running Tauri application");
+        .expect("Oops! There was an error while running EvoNext.");
 }
