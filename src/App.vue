@@ -1,6 +1,6 @@
 <template>
-    <div class="flex h-screen bg-slate-900 text-slate-300 font-sans">
-        <Sidebar class="px-5 py-3" />
+    <div class="w-screen h-screen overflow-x-hidden overflow-y-hidden flex bg-slate-900 text-slate-300 font-sans">
+        <Sidebar class="h-full overflow-y-scroll px-8 py-3" />
 
         <!-- ## Main Content ## -->
         <main class="flex-1 p-6 lg:p-8 overflow-y-auto">
