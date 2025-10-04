@@ -7,16 +7,16 @@
             <!-- Header -->
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
                 <h1 class="text-3xl font-bold text-white mb-4 sm:mb-0">
-                    Dashboard
+                    Platform Overview
                 </h1>
 
                 <div class="flex items-center gap-4 bg-slate-800 p-2 rounded-lg">
                     <span class="w-[300px]">
-                        <span class="text-slate-200 text-lg font-mono px-2 tracking-wider">
+                        <span class="text-sky-100 text-lg font-mono px-2 tracking-wider">
                             BetaTesterExtraordinaire
                         </span>
 
-                        <span class="text-slate-400 text-xs font-mono px-2 tracking-tighter">
+                        <span class="text-sky-300/70 text-xs font-mono px-2 tracking-tighter">
                             v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5
                         </span>
                     </span>
@@ -80,16 +80,16 @@
                 </div>
 
                 <div class="bg-slate-800 p-6 rounded-xl flex flex-col justify-center items-center text-center">
-                    <p class="text-lg font-semibold text-white">
-                        My NFTs
+                    <p class="text-3xl font-semibold text-white">
+                        Collectibles
                     </p>
 
-                    <p class="text-sm text-slate-400 mt-1">
-                        Your unique digital collectibles.
+                    <p class="text-xs text-slate-400 mt-1 uppercase tracking-widest">
+                        unique digital assets
                     </p>
 
-                    <button class="mt-4 bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg hover:bg-slate-600 transition-colors text-sm">
-                        View Collection
+                    <button class="mt-4 bg-slate-700 text-white font-semibold py-2 px-4 rounded-lg hover:bg-slate-600 transition-colors text-sm tracking-wide">
+                        Open My Collection
                     </button>
                 </div>
             </div>
@@ -109,12 +109,12 @@
                                 <img
                                     src="/icons/dash.svg"
                                     alt="DASH"
-                                    class="w-10 h-10 rounded-full bg-slate-700 p-1"
+                                    class="size-10 rounded-full bg-slate-700 p-1"
                                 />
 
                                 <div>
                                     <p class="font-semibold text-white">
-                                        Dash
+                                        Dash Credits
                                     </p>
 
                                     <p class="text-sm text-slate-400">
@@ -125,11 +125,11 @@
 
                             <div class="text-right">
                                 <p class="font-semibold text-white">
-                                    1.25 DASH
+                                    112.55 DASH
                                 </p>
 
                                 <p class="text-sm text-slate-400">
-                                    $3,750.00
+                                    $2,750.00
                                 </p>
                             </div>
                         </div>
@@ -138,29 +138,29 @@
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-4">
                                 <img
-                                    src="/icons/btc.svg"
-                                    alt="WBTC"
-                                    class="w-10 h-10 rounded-full bg-slate-700 p-1"
+                                    src="/icons/sans.svg"
+                                    alt="SANS"
+                                    class="size-10 rounded-full bg-slate-700 p-1"
                                 />
 
                                 <div>
                                     <p class="font-semibold text-white">
-                                        Wrapped Bitcoin
+                                        Sansnote
                                     </p>
 
                                     <p class="text-sm text-slate-400">
-                                        WBTC
+                                        SANS
                                     </p>
                                 </div>
                             </div>
 
                             <div class="text-right">
                                 <p class="font-semibold text-white">
-                                    0.05 WBTC
+                                    1337.88 SANS
                                 </p>
 
                                 <p class="text-sm text-slate-400">
-                                    $3,500.00
+                                    $28.64
                                 </p>
                             </div>
                         </div>
@@ -169,29 +169,29 @@
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-4">
                                 <img
-                                    src="/icons/usdc.svg"
-                                    alt="USDC"
-                                    class="w-10 h-10 rounded-full bg-slate-700 p-1"
+                                    src="/icons/dusd.svg"
+                                    alt="DUSD"
+                                    class="size-10 rounded-full bg-slate-700 p-1"
                                 />
 
                                 <div>
                                     <p class="font-semibold text-white">
-                                        USD Coin
+                                        Dash USD
                                     </p>
 
                                     <p class="text-sm text-slate-400">
-                                        USDC
+                                        DUSD
                                     </p>
                                 </div>
                             </div>
 
                             <div class="text-right">
                                 <p class="font-semibold text-white">
-                                    5,100.67 USDC
+                                    1,100.67 DUSD
                                 </p>
 
                                 <p class="text-sm text-slate-400">
-                                    $5,100.67
+                                    $1,100.67
                                 </p>
                             </div>
                         </div>
@@ -216,18 +216,18 @@
 
                                 <div>
                                     <p class="font-semibold text-white">
-                                        Sent ETH
+                                        Sent DASH
                                     </p>
 
                                     <p class="text-sm text-slate-400 font-mono">
-                                        To: 0x9f5b...3a1e
+                                        To: EWSqsaghuw...AkJWRTpY
                                     </p>
                                 </div>
                             </div>
 
                             <div class="text-right">
                                 <p class="font-semibold text-white">
-                                    -0.1 ETH
+                                    -0.1 DASH
                                 </p>
 
                                 <p class="text-sm text-slate-400">
@@ -247,18 +247,18 @@
 
                                 <div>
                                     <p class="font-semibold text-white">
-                                        Received USDC
+                                        Received DUSD
                                     </p>
 
                                     <p class="text-sm text-slate-400 font-mono">
-                                        From: 0x4d2a...8c7f
+                                        From: 6Eb4tQdp24...cj1m87sj
                                     </p>
                                 </div>
                             </div>
 
                             <div class="text-right">
                                 <p class="font-semibold text-white">
-                                    +500.00 USDC
+                                    +500.00 DUSD
                                 </p>
 
                                 <p class="text-sm text-slate-400">
@@ -278,22 +278,22 @@
 
                                 <div>
                                     <p class="font-semibold text-white">
-                                        Swap ETH to USDC
+                                        Swap DASH to DUSD
                                     </p>
 
                                     <p class="text-sm text-slate-400">
-                                        Uniswap Router
+                                        DashSwap Router
                                     </p>
                                 </div>
                             </div>
 
                             <div class="text-right">
                                 <p class="font-semibold text-white">
-                                    0.025 ETH
+                                    1.025 DASH
                                 </p>
 
                                 <p class="text-sm text-yellow-400">
-                                    Pending
+                                    Pending...
                                 </p>
                             </div>
                         </div>

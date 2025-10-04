@@ -16,9 +16,16 @@ use tauri::{
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
-            let connect_i = MenuItem::with_id(app, "connect", "Connect", true, None::<&str>)?;
-            let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&connect_i, &quit_i])?;
+            let connect_i = MenuItem::with_id(app, "connect", "Connect an Identity...", true, None::<&str>)?;
+            let switch_i = MenuItem::with_id(app, "switch", "Switch Identity...", true, None::<&str>)?;
+            let lock_i = MenuItem::with_id(app, "lock", "Lock", true, None::<&str>)?;
+            let exit_i = MenuItem::with_id(app, "exit", "Exit", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[
+                &connect_i,
+                &switch_i,
+                &lock_i,
+                &exit_i
+            ])?;
 
             /* Create a tray icon. */
             let icon_path = app.handle().path().resolve("icons/icon.png", tauri::path::BaseDirectory::Resource)?;
@@ -31,8 +38,8 @@ fn main() {
                         "open" => {
                             // Handle open action, e.g., create a new window
                         }
-                        "quit" => {
-                            println!("quit menu item was clicked");
+                        "exit" => {
+                            println!("exit menu item was clicked");
                             app.exit(0);
                         }
                         _ => {}
@@ -40,35 +47,12 @@ fn main() {
                 })
                 .build(app)?;
 
-            // Create standard edit menu items
-            // let mut edit_menu = MenuBuilder::new(app);
-            // edit_menu = edit_menu
-            //     .text("get_connected", "Connect")
-            //     .text("manage_ids", "Identities")
-            //     .separator()
-            //     .quit();
-
-            // // Add custom item
-            // edit_menu = edit_menu.text("help", "Need help?");
-
-            // let menu = edit_menu.build()?;
-
-            // // Set the menu
-            // app.set_menu(menu)?;
-
-            // // Handle menu events
-            // app.on_menu_event(|_app_handle, event| {
-            //     match event.id().0.as_str() {
-            //         "your_menu_id" => { /* handle event */ }
-            //         _ => {}
-            //     }
-            // });
-
-            let identities_menu = SubmenuBuilder::new(app, "Identities")
+            /* Initialize Identities menu. */
+            let identities_menu = SubmenuBuilder::new(app, "Identity")
                 // .submenu_icon(menu_image) // Optional: Add an icon to the submenu
-                .text("new", "New Identity...")
-                .text("open", "Open Identity...")
-                .text("recent", "Open Recent")
+                .text("connect", "Connect an Identity...")
+                .text("register", "Register a New Identity...")
+                .text("recent", "Recently Used")
                 .separator()
                 .text("lock", "Lock")
                 .text("disconnect", "Disconnect")
@@ -76,42 +60,51 @@ fn main() {
                 .text("exit", "Exit")
                 .build()?;
 
-            let privacy_str = "show";
-            let check_privacy_item = CheckMenuItemBuilder::new("Show balances")
+            /* Initialize (local) settings. */
+            let privacy_str = "visible";
+            let network_str = "testnet";
+            let i18n_str = "en";
+
+            /* Initialize privacy menu (item). */
+            let check_privacy_item = CheckMenuItemBuilder::new("Display balances")
                 .id("balance")
-                .checked(privacy_str == "show")
+                .checked(privacy_str == "visible")
                 .build(app)?;
 
-            let network_str = "testnet";
+            /* Initialize network menu (item). */
             let check_network_item = CheckMenuItemBuilder::new("Mainnet")
                 .id("testnet")
                 .checked(network_str == "mainnet")
                 .enabled(false)
                 .build(app)?;
 
+            /* Initialize settings menu. */
             let settings_menu = SubmenuBuilder::new(app, "Settings")
                 .item(&check_privacy_item)
                 .item(&check_network_item)
                 .build()?;
 
-            let i18n_str = "en";
+            /* Initialize i18n menu (item). */
             let check_en_item = CheckMenuItemBuilder::new("English")
                 .id("en")
                 .checked(i18n_str == "en")
                 .build(app)?;
 
+            /* Initialize i18n menu (item). */
             let check_cn_item = CheckMenuItemBuilder::new("Chinese")
                 .id("cn")
                 .checked(i18n_str == "cn")
                 .enabled(false)
                 .build(app)?;
 
+            /* Initialize i18n menu (item). */
             let check_tr_item = CheckMenuItemBuilder::new("Turkish")
                 .id("tr")
                 .checked(i18n_str == "tr")
                 .enabled(false)
                 .build(app)?;
 
+            /* Initialize i18n menu. */
             let i18n_menu = SubmenuBuilder::new(app, "Language")
                 .item(&check_en_item)
                 .item(&check_cn_item)
