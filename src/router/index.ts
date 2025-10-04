@@ -36,7 +36,7 @@ const routes = [
             { path: 'explorer', component: PREMIUM_SANS_IDENTITY ? Explorer : Stakehouse },
             { path: 'favorites', component: PREMIUM_SANS_IDENTITY ? Favorites : Stakehouse },
             { path: 'identities', component: Identities },
-            { path: 'posts', component: PREMIUM_SANS_IDENTITY ? Posts : Stakehouse },
+            { path: 'posts', component: Posts },
             { path: 'settings', component: Settings },
             { path: 'wallet', component: Wallet },
         ]

@@ -52,7 +52,7 @@
                 </div>
 
                 <div class="mt-6 flex flex-col sm:flex-row gap-3">
-                    <button class="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-indigo-500 transition-colors">
+                    <button @click="send" class="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-indigo-500 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
                         </svg>
@@ -298,3 +298,79 @@
         </div>
     </main>
 </template>
+
+<script setup lang="ts">
+import { onMounted, onUnmounted, ref } from 'vue'
+// import { useRouter } from 'vue-router'
+
+import init, {
+    WasmSdkBuilder,
+    identity_fetch,
+    dpns_resolve_name,
+    get_dpns_usernames,
+    get_documents,
+    get_identity_token_balances,
+    prefetch_trusted_quorums_mainnet,
+} from '../libs/dash/wasm_sdk.js'
+
+import { DashPlatformSDK } from 'dash-platform-sdk'
+import { GasFeesPaidByWASM, PrivateKeyWASM } from 'pshenmic-dpp'
+
+/* Initialize app router. */
+// const router = useRouter()
+
+/* Set top-level domain. */
+const TOP_LEVEL_DOMAIN = '.dash'
+
+const greeting = ref()
+
+const startup = async () => {
+    greeting.value = 'hi there'
+
+    /* Request an Identity. */
+    /* Initialize WASM module. */
+    await init()
+
+    /* Pre-fretch trusted quorums. */
+    await prefetch_trusted_quorums_mainnet()
+
+    /* Initialize SDK. */
+    const sdk = await WasmSdkBuilder
+        .new_mainnet_trusted()
+        .build()
+
+    const username = 'shomari'
+
+    /* Resolve username. */
+    const identityid = await dpns_resolve_name(sdk, username)
+        .catch(err => {
+            console.error(err)
+            console.error('NAME NOT FOUND!!')
+        })
+
+console.log('GET IDENTITY (response)', identityid)
+}
+
+const send = async () => {
+    console.log('SENDING ASSETS...')
+
+    const sdk = new DashPlatformSDK({ network: 'testnet' })
+
+    const myUsername = 'tranquil-untaken-sultry'
+
+    const label = myUsername + TOP_LEVEL_DOMAIN
+    console.log('\nLABEL', label)
+    const normalized = sdk.utils.convertToHomographSafeChars(label)
+    console.log('\nNORMALIZED', normalized)
+}
+
+// 2. Set up the listener when the component is mounted
+onMounted(async () => {
+    startup()
+})
+
+// 4. Clean up the listener when the component is unmounted
+onUnmounted(() => {
+    // TODO
+})
+</script>

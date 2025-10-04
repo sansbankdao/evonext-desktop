@@ -22,17 +22,17 @@
                     </span>
                 </RouterLink>
 
-                <RouterLink to="/explorer" class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
-                    <MagnifyingGlassIcon class="size-5" />
-                    <span>
-                        Explorer
-                    </span>
-                </RouterLink>
-
                 <RouterLink to="/posts" class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
                     <HashtagIcon class="size-5" />
                     <span>
                         Posts | Remix
+                    </span>
+                </RouterLink>
+
+                <RouterLink to="/explorer" class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
+                    <MagnifyingGlassIcon class="size-5" />
+                    <span>
+                        Explorer
                     </span>
                 </RouterLink>
 
