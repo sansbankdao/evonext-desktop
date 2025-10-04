@@ -1,13 +1,11 @@
 <template>
-    <div class="w-screen h-screen overflow-x-hidden overflow-y-hidden flex bg-slate-900 text-slate-300 font-sans">
-        <SidebarNav class="h-full overflow-y-scroll px-8 py-3" />
+    <main class="w-screen h-screen overflow-x-hidden overflow-y-hidden flex bg-slate-900 text-slate-300 font-sans">
+        <SidebarNav class="h-full overflow-y-scroll px-6 py-3" />
 
-        <!-- ## Main Content ## -->
-        <main class="flex-1 p-6 lg:p-8 overflow-y-auto">
-            <!-- The current page component will be rendered here -->
+        <div class="flex-1 p-6 lg:p-8 overflow-y-auto">
             <RouterView />
-        </main>
-    </div>
+        </div>
+    </main>
 </template>
 
 <script setup lang="ts">
