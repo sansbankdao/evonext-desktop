@@ -1,10 +1,9 @@
 <!-- src/pages/Home.vue -->
 <template>
     <main class="">
-        <!-- Header -->
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
             <h1 class="text-3xl font-bold text-white mb-4 sm:mb-0">
-                Platform Overview
+                Wallet Dashboard
             </h1>
 
             <div class="flex items-center gap-4 bg-slate-800 p-2 rounded-lg">
@@ -24,7 +23,7 @@
                     </svg>
                 </button>
             </div>
-        </div>
+        </header>
 
         <!-- Balance Card & Actions -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

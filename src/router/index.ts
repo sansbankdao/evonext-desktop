@@ -4,7 +4,7 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 /* Import your layout and pages. */
 import AppLayout from '../layouts/AppLayout.vue'
 import Home from '../pages/Home.vue'
-import Explore from '../pages/Explore.vue'
+import Explorer from '../pages/Explorer.vue'
 import Posts from '../pages/Posts.vue'
 import Community from '../pages/Community.vue'
 import Apps from '../pages/Apps.vue'
@@ -20,7 +20,7 @@ const routes = [
         component: AppLayout, // NOTE: layout wraps all pages
         children: [
             { path: '', component: Home }, // NOTE: default child route
-            { path: 'explore', component: Explore },
+            { path: 'explorer', component: Explorer },
             { path: 'posts', component: Posts },
             { path: 'community', component: Community },
             { path: 'apps', component: Apps },
