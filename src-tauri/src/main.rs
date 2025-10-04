@@ -12,8 +12,9 @@ use tauri::{
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
+            let connect_i = MenuItem::with_id(app, "connect", "Connect", true, None::<&str>)?;
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&quit_i])?;
+            let menu = Menu::with_items(app, &[&connect_i, &quit_i])?;
 
             /* Create a tray icon. */
             let icon_path = app.handle().path().resolve("icons/icon.png", tauri::path::BaseDirectory::Resource)?;
@@ -25,22 +26,25 @@ fn main() {
                     if event.id.as_ref() == "quit" {
                         app.exit(0);
                     }
+                    match event.id().0.as_str() {
+                        "open" => {
+                            // Handle open action, e.g., create a new window
+                        }
+                        _ => {}
+                    }
                 })
                 .build(app)?;
 
             // Create standard edit menu items
             let mut edit_menu = MenuBuilder::new(app);
             edit_menu = edit_menu
-                .undo()
-                .redo()
+                .text("get_connected", "Connect")
+                .text("manage_ids", "Identities")
                 .separator()
-                .cut()
-                .copy()
-                .paste()
-                .select_all();
+                .quit();
 
             // Add custom item
-            edit_menu = edit_menu.text("custom_action", "Custom Action");
+            edit_menu = edit_menu.text("help", "Need help?");
 
             let menu = edit_menu.build()?;
 
