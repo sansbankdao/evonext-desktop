@@ -1,6 +1,6 @@
 [package]
-name = "evonext-desktop"
-version = "25.10.2"
+name = "evonext"
+version = "25.10.4"
 description = "Free Your Inhibitions — Discover safe and enjoyable spaces to Explore. Curate. Share YOUR Truth Fearlessly!"
 authors = ["Sansbank DAO developers"]
 edition = "2021"

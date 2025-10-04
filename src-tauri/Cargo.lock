@@ -912,8 +912,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "evonext-desktop"
-version = "25.10.2"
+name = "evonext"
+version = "25.10.4"
 dependencies = [
  "serde",
  "serde_json",
