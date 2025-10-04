@@ -1,8 +1,8 @@
 {
-  "identifier": "listen",
-  "description": "Allows listening to events",
-  "permissions": [
-    "core:event:allow-listen"
-  ],
-  "windows": ["main"]
+    "identifier": "listen",
+    "description": "Allows listening to events",
+    "permissions": [
+        "core:event:allow-listen"
+    ],
+    "windows": ["main"]
 }

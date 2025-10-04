@@ -136,14 +136,16 @@ fn main() {
         .plugin(tauri_plugin_opener::init())
         /* Handle menu events. */
         .on_menu_event(|app, event| {
+            let window = app.get_webview_window("main").unwrap();
+
             match event.id().0.as_str() {
                 "open" => {
                     // Handle open action, e.g., create a new window
                 }
+                "about" => {
+                    window.emit("navigate", "/about").unwrap();
+                }
                 "bootstrap" => {
-                    println!("bootstrap menu item was clicked");
-
-                    let window = app.get_webview_window("main").unwrap();
                     window.emit("navigate", "/bootstrap").unwrap();
                 }
                 _ => {}
