@@ -25,7 +25,11 @@
             </div>
         </header>
 
-        <section></section>
-        <p>Let's find something interesting for you to do!</p>
+        <section>
+            <p>
+                Let's find something interesting for you to do!
+            </p>
+        </section>
+
     </main>
 </template>

@@ -27,7 +27,7 @@ const routes = [
         component: AppLayout, // NOTE: layout wraps all pages
         children: [
             { path: '', component: Home }, // NOTE: default child route
-            { path: 'apps', component: PREMIUM_SANS_IDENTITY ? Favorites : Apps },
+            { path: 'apps', component: PREMIUM_SANS_IDENTITY ? Apps : Bootstrap },
             { path: 'bootstrap', component: Bootstrap },
             { path: 'community', component: PREMIUM_SANS_IDENTITY ? Community : Bootstrap },
             { path: 'explorer', component: PREMIUM_SANS_IDENTITY ? Explorer : Bootstrap },
