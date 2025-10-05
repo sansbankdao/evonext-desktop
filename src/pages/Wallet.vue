@@ -306,16 +306,16 @@ import { onMounted, onUnmounted, ref } from 'vue'
 
 import init, {
     WasmSdkBuilder,
-    identity_fetch,
+    // identity_fetch,
     dpns_resolve_name,
-    get_dpns_usernames,
-    get_documents,
-    get_identity_token_balances,
+    // get_dpns_usernames,
+    // get_documents,
+    // get_identity_token_balances,
     prefetch_trusted_quorums_mainnet,
 } from '../libs/dash/wasm_sdk.js'
 
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { GasFeesPaidByWASM, PrivateKeyWASM } from 'pshenmic-dpp'
+// import { GasFeesPaidByWASM, PrivateKeyWASM } from 'pshenmic-dpp'
 
 /* Initialize app router. */
 // const router = useRouter()
