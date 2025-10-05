@@ -1,7 +1,7 @@
 # EvoNext Desktop
 
 <div align="center">
-  <img src="src/assets/logo.png" alt="EvoNext Logo" width="150"/>
+  <img src="src/assets/icon.svg" alt="EvoNext Logo" width="150"/>
   <h1>EvoNext</h1>
   <p><strong>Free Your Inhibitions ⛓️‍💥 Discover safe and enjoyable spaces to Explore. Curate. Share YOUR Truth Fearlessly ✊</strong></p>
   <p>A decentralized social platform secured by Dash Platform v2 🛡️</p>
