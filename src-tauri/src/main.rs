@@ -112,7 +112,7 @@ fn main() {
                 .text("bootstrap", "Bootstrap Campaign")
                 // .text("register", "Register a New Identity...")
                 // .text("recent", "Recently Used")
-                .separator()
+                // .separator()
                 // .text("lock", "Lock")
                 // .text("disconnect", "Disconnect")
                 // .separator()

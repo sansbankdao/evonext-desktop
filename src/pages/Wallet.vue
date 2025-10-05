@@ -35,7 +35,8 @@
                         </p>
 
                         <p class="text-4xl font-bold text-white mt-1">
-                            $12,345.67
+                            <!-- $12,345.67 -->
+                            {{Wallet.totalUsdValue}}
                         </p>
 
                         <p class="text-sm text-green-400 mt-1">
@@ -318,6 +319,9 @@ import { GasFeesPaidByWASM, PrivateKeyWASM } from 'pshenmic-dpp'
 
 /* Initialize app router. */
 // const router = useRouter()
+
+import { useWalletStore } from '@/stores/wallet'
+const Wallet = useWalletStore()
 
 /* Set top-level domain. */
 const TOP_LEVEL_DOMAIN = '.dash'
