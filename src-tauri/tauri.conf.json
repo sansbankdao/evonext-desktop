@@ -34,7 +34,8 @@
             "icons/icon.icns",
             "icons/icon.ico"
         ],
-        "resources": ["icons/icon.png"]
+        "resources": ["icons/icon.png"],
+        "createUpdaterArtifacts": true
     },
     "plugins": {
         "permission": {
@@ -44,6 +45,11 @@
                 "app:default",
                 "plugin:opener:allow-open"
             ]
+        },
+        "updater": {
+            "active": true,
+            "endpoints": ["https://releases.evonext.app/{{target}}/{{arch}}/{{current_version}}"],
+            "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc4NTlBMEM1NUUzOTI5NwpSV1NYa3VOVkRKcUZCeTBXODUxOWkraXJsLzgweGVHSGljelMzSXlTRDYxaUpmRnNETmxVZEdnYQo="
         }
     }
 }
