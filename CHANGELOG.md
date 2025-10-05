@@ -1,5 +1,18 @@
     # EvoNext Changelog
 
+
+    ## v25.10.5
+
+    ### ✨ New Features
+    - Add automatic updater support.
+
+    ### 🐛 Bug Fixes
+    - n/a
+
+    ### ⚙️ Improvements
+    - Will prompt user to update when a new release is published.
+
+
     ## v25.10.4
 
     ### ✨ New Features
