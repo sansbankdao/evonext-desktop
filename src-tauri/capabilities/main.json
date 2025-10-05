@@ -1,6 +1,0 @@
-{
-    "permissions": [
-        "updater:allow-check",
-        "updater:allow-download-and-install"
-    ]
-}

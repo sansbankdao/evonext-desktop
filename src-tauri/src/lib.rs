@@ -1,6 +1,6 @@
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager, Wry};
-use tauri_plugin_store::{Store, StoreBuilder};
+use tauri::{AppHandle, Wry};
+use tauri_plugin_store::{StoreBuilder};
 
 // 1. Define a Rust struct that MIRRORS your TypeScript interface.
 //    The `Serialize` and `Deserialize` traits are essential for converting
@@ -9,12 +9,12 @@ use tauri_plugin_store::{Store, StoreBuilder};
 struct NotificationSettings {
     messages: bool,
     mentions: bool,
-    contactRequests: bool,
+    contact_requests: bool,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct ProfileSettings {
-    displayName: String,
+    display_name: String,
     username: String,
     bio: String,
 }
@@ -53,7 +53,7 @@ fn greet(name: &str) -> String {
 #[tauri::command]
 fn save_settings_to_backend(app_handle: AppHandle<Wry>, settings: AppSettings) -> Result<(), String> {
     let path = SETTINGS_FILE.parse::<PathBuf>().unwrap();
-    let mut store = StoreBuilder::new(&app_handle, path)
+    let store = StoreBuilder::new(&app_handle, path)
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -70,7 +70,7 @@ fn save_settings_to_backend(app_handle: AppHandle<Wry>, settings: AppSettings) -
 fn load_settings_from_backend(app_handle: AppHandle<Wry>) -> Result<Option<AppSettings>, String> {
     // --- FIX 1: Provide a type hint for .parse() ---
     let path = SETTINGS_FILE.parse::<PathBuf>().unwrap();
-    let mut store = StoreBuilder::new(&app_handle, path)
+    let store = StoreBuilder::new(&app_handle, path)
         .build()
         .map_err(|e| e.to_string())?;
 
