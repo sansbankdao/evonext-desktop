@@ -1,6 +1,18 @@
     # EvoNext Changelog
 
 
+    ## v25.10.15
+
+    ### ✨ New Features
+    - Add Universal macOS Binary support.
+
+    ### 🐛 Bug Fixes
+    - n/a
+
+    ### ⚙️ Improvements
+    - Will support Intel-based mac systems.
+
+
     ## v25.10.5
 
     ### ✨ New Features
