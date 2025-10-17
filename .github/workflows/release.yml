@@ -67,7 +67,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
-          macosUniversalBinary: true
+          macos-universal-binary: true
 
   publish-release:
     runs-on: ubuntu-latest
