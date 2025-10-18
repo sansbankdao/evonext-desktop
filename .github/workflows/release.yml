@@ -58,7 +58,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: latest-json-linux
-          path: src-tauri/target/release/bundle/updater/latest.json
+          path: src-tauri/target/release/bundle/appimage/latest.json
           if-no-files-found: error
 
   build-macos:
@@ -94,7 +94,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: latest-json-macos
-          path: src-tauri/target/universal-apple-darwin/release/bundle/latest.json
+          path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/latest.json
           if-no-files-found: error
 
   build-windows:
@@ -131,7 +131,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: latest-json-windows
-          path: src-tauri/target/release/bundle/updater/latest.json
+          path: src-tauri/target/release/bundle/msi/latest.json
           if-no-files-found: error
 
   merge-json:
