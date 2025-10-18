@@ -56,8 +56,9 @@ jobs:
           tag_name: ${{ github.ref_name }}
           # Use glob patterns to find the correct files, regardless of name or version
           files: |
-            src-tauri/target/release/bundle/deb/*.deb
             src-tauri/target/release/bundle/appimage/*.AppImage
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/rpm/*.rpm
 
   build-macos:
     needs: create-release
