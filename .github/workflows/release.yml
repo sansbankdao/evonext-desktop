@@ -53,6 +53,8 @@ jobs:
         uses: tauri-apps/tauri-action@v0.4.5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           releaseId: ${{ needs.create-release.outputs.release_id }}
 
@@ -67,8 +69,8 @@ jobs:
           node-version: 20
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
-      - name: Install x86_64-apple-darwin target for Universal Binaries
-        run: rustup target add x86_64-apple-darwin
+      - name: Install x86_64-apple-darwin and aarch64-apple-darwin target for Universal Binaries
+        run: rustup target add x86_64-apple-darwin aarch64-apple-darwin
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
