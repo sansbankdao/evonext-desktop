@@ -1,9 +1,9 @@
-<!-- src/pages/Home.vue -->
+<!-- src/screens/_Blank.vue -->
 <template>
     <main>
         <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
             <h1 class="text-3xl font-bold text-white mb-4 sm:mb-0">
-                Identity Manager
+                Blank
             </h1>
 
             <div class="flex items-center gap-4 bg-slate-800 p-2 rounded-lg">
@@ -32,3 +32,27 @@
         </section>
     </main>
 </template>
+
+<script setup lang="ts">
+import { onMounted, onUnmounted, ref } from 'vue'
+// import { useRouter } from 'vue-router'
+
+/* Initialize app router. */
+// const router = useRouter()
+
+const greeting = ref()
+
+const init = async () => {
+    greeting.value = 'hi there'
+}
+
+// 2. Set up the listener when the component is mounted
+onMounted(async () => {
+    init()
+})
+
+// 4. Clean up the listener when the component is unmounted
+onUnmounted(() => {
+    // TODO
+})
+</script>

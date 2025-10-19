@@ -1,21 +1,21 @@
 /* Import modules. */
 import { createRouter, createWebHashHistory } from 'vue-router'
 
-/* Import your layout and pages. */
+/* Import your layout and screens. */
 import AppLayout from '../layouts/AppLayout.vue'
-import Home from '../pages/Home.vue'
+import Home from '../screens/Home.vue'
 
-import About from '../pages/About.vue'
-import Apps from '../pages/Apps.vue'
-import Bootstrap from '../pages/Bootstrap.vue'
-import Community from '../pages/Community.vue'
-import Explorer from '../pages/Explorer.vue'
-import Favorites from '../pages/Favorites.vue'
-import Identities from '../pages/Identities.vue'
-import Posts from '../pages/Posts.vue'
-import Settings from '../pages/Settings.vue'
-import Stakehouse from '../pages/Stakehouse.vue'
-import Wallet from '../pages/Wallet.vue'
+import About from '../screens/About.vue'
+import Apps from '../screens/Apps.vue'
+import Bootstrap from '../screens/Bootstrap.vue'
+import Community from '../screens/Community.vue'
+import Explorer from '../screens/Explorer.vue'
+import Favorites from '../screens/Favorites.vue'
+import Identities from '../screens/Identities.vue'
+import Posts from '../screens/Posts.vue'
+import Settings from '../screens/Settings.vue'
+import Stakehouse from '../screens/Stakehouse.vue'
+import Wallet from '../screens/Wallet.vue'
 
 /* Set Premium SANS Identity flag. */
 // NOTE: FIVE HUNDRED (500) STAKED SANS IS REQUIRED

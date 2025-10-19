@@ -1,7 +1,19 @@
     # EvoNext Changelog
 
 
-    ## v25.10.15
+    ## v25.10.18
+
+    ### ✨ New Features
+    - Add all Core App screens.
+
+    ### 🐛 Bug Fixes
+    - n/a
+
+    ### ⚙️ Improvements
+    - Enable FULL UI exploration.
+
+
+    ## v25.10.16
 
     ### ✨ New Features
     - Add Universal macOS Binary support.

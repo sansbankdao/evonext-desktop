@@ -6,8 +6,46 @@
 import { onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { listen } from '@tauri-apps/api/event'
-import type { UnlistenFn } from '@tauri-apps/api/event'
+import { listen, UnlistenFn } from '@tauri-apps/api/event'
+import { check } from '@tauri-apps/plugin-updater'
+import { relaunch } from '@tauri-apps/plugin-process'
+
+const manageUpdater = async () => {
+    /* Request check. */
+    const update = await check()
+
+    /* Handle update. */
+    if (update) {
+        console.log(
+            `Found update ${update.version} from ${update.date} with notes ${update.body}.`
+        )
+
+        let downloaded = 0
+        let contentLength = 0
+
+        // alternatively we could also call update.download() and update.install() separately
+        await update.downloadAndInstall((event) => {
+            switch (event.event) {
+            case 'Started':
+                contentLength = Number(event.data.contentLength)
+                console.log(`started downloading ${event.data.contentLength} bytes`)
+                break
+            case 'Progress':
+                downloaded += event.data.chunkLength
+                console.log(`downloaded ${downloaded} from ${contentLength}`)
+                break
+            case 'Finished':
+                console.log('download finished')
+                break
+            }
+        })
+
+        console.log('Update installed successfully!')
+        await relaunch()
+    } else {
+        console.log('NO updates found.')
+    }
+}
 
 // 1. Get access to the vue-router instance
 const router = useRouter()
@@ -25,6 +63,8 @@ onMounted(async () => {
             router.push(event.payload)
         }
     })
+
+    manageUpdater()
 })
 
 // 4. Clean up the listener when the component is unmounted

@@ -1,4 +1,4 @@
-<!-- src/pages/Home.vue -->
+<!-- src/screens/Favorites.vue -->
 <template>
     <main>
         <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
