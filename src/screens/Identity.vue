@@ -32,8 +32,13 @@
                     <!-- Page Header and Create Action -->
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div class="space-y-2">
-                            <h1 class="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Manage Identities</h1>
-                            <p class="text-lg text-slate-400">Switch between your profiles or create a new one.</p>
+                            <h1 class="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                                Choose An Identity
+                            </h1>
+
+                            <p class="text-lg text-slate-400">
+                                Easily switch between your Identities or register a new one.
+                            </p>
                         </div>
 
                         <RouterLink to="/identity-register" class="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-500 py-2 px-6 text-sm font-semibold text-white shadow-sm hover:bg-cyan-600 transition">
