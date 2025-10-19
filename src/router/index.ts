@@ -9,6 +9,7 @@ import About from '../screens/About.vue'
 import Apps from '../screens/Apps.vue'
 import Bootstrap from '../screens/Bootstrap.vue'
 import Community from '../screens/Community.vue'
+import Connect from '../screens/Connect.vue'
 import Explorer from '../screens/Explorer.vue'
 import Favorites from '../screens/Favorites.vue'
 
@@ -45,6 +46,9 @@ const routes = [
             { path: 'posts', component: Posts },
             { path: 'settings', component: Settings },
             { path: 'wallet', component: Wallet },
+
+            { path: 'connect', component: Connect },
+            { path: 'disconnect', component: Connect },
         ]
     }
 ]

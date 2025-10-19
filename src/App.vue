@@ -47,7 +47,7 @@ const manageUpdater = async () => {
     }
 }
 
-// 1. Get access to the vue-router instance
+/* Initialize (navigation) router. */
 const router = useRouter()
 
 let unlisten: UnlistenFn | undefined

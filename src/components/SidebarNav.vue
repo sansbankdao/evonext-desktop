@@ -98,6 +98,7 @@
 // import { invoke } from '@tauri-apps/api/tauri'
 // import { ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
+import { useRouter } from 'vue-router'
 
 import {
     AdjustmentsHorizontalIcon,
@@ -112,14 +113,17 @@ import {
     WalletIcon,
 } from '@heroicons/vue/24/solid'
 
+/* Initialize (navigation) router. */
+const router = useRouter()
+
 const handleDisconnect = async () => {
     console.log('Disconnecting...')
     // Optional: Call a Rust command if you need backend logic
-    await invoke('disconnect_user')
+    // await invoke('disconnect_user')
     // Logic to clear user state, redirect to login, etc.
 
     /* Return home. */
-    // router.push('/')
+    router.push('/connect')
 }
 
 // const greetMsg = ref('')
