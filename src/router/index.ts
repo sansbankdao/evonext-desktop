@@ -11,7 +11,10 @@ import Bootstrap from '../screens/Bootstrap.vue'
 import Community from '../screens/Community.vue'
 import Explorer from '../screens/Explorer.vue'
 import Favorites from '../screens/Favorites.vue'
-import Identities from '../screens/Identities.vue'
+
+import Identity from '../screens/Identity.vue'
+import IdentityRegister from '../screens/Identity/Register.vue'
+
 import Posts from '../screens/Posts.vue'
 import Settings from '../screens/Settings.vue'
 import Stakehouse from '../screens/Stakehouse.vue'
@@ -35,7 +38,10 @@ const routes = [
             { path: 'community', component: PREMIUM_SANS_IDENTITY ? Community : Stakehouse },
             { path: 'explorer', component: PREMIUM_SANS_IDENTITY ? Explorer : Stakehouse },
             { path: 'favorites', component: PREMIUM_SANS_IDENTITY ? Favorites : Stakehouse },
-            { path: 'identities', component: Identities },
+
+            { path: 'identity', component: Identity },
+            { path: 'identity-register', component: IdentityRegister },
+
             { path: 'posts', component: Posts },
             { path: 'settings', component: Settings },
             { path: 'wallet', component: Wallet },
