@@ -67,7 +67,7 @@
 
                         <!-- Seed Phrase Input Grid -->
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                            <div v-for="(word, index) in seedWords" :key="index" class="relative">
+                            <div v-for="(_word, index) in seedWords" :key="index" class="relative">
                                 <span class="absolute top-2 left-2 text-xs text-slate-500 font-mono">{{ index + 1 }}</span>
                                 <input
                                     v-model="seedWords[index]"
@@ -100,8 +100,8 @@
 
 <!-- src/screens/Connect.vue -->
 <script setup lang="ts">
-import { ref, reactive, watch, computed } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
+import { ref, reactive, watch, computed } from 'vue'
+// import { invoke } from '@tauri-apps/api/core'
 
 // --- Component State ---
 
@@ -140,7 +140,7 @@ const connectWithSeed = async () => {
     error.value = null;
 
     // Join the array into a single space-separated string
-    const mnemonic = seedWords.join(' ');
+    // const mnemonic = seedWords.join(' ')
     console.log(`Attempting to connect with a ${wordCount.value}-word mnemonic.`);
 
     try {

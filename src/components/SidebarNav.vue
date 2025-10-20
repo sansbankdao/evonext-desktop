@@ -43,7 +43,7 @@
 /* Import modules. */
 // import { invoke } from '@tauri-apps/api/tauri'
 import { computed, ref } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
+// import { invoke } from '@tauri-apps/api/core'
 import { useRoute, useRouter } from 'vue-router'
 
 import {
@@ -63,6 +63,7 @@ import {
 /* Initialize (navigation) router. */
 const router = useRouter()
 
+// @ts-ignore
 const path = computed(() => useRoute().path)
 
 const navLinks = ref([
