@@ -8,7 +8,6 @@
                 <span class="text-3xl font-bold text-blue-400 tracking-widest">
                     ΞvoNext
                 </span>
-                <h3>path:{{path}}</h3>
             </RouterLink>
 
             <!-- Navigation -->
