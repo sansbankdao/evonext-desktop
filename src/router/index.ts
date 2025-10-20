@@ -41,7 +41,7 @@ const routes = [
             { path: 'favorites', component: PREMIUM_SANS_IDENTITY ? Favorites : Stakehouse },
 
             { path: 'identity', component: Identity },
-            { path: 'identity-register', component: IdentityRegister },
+            { path: 'identity/register', component: IdentityRegister },
 
             { path: 'posts', component: Posts },
             { path: 'settings', component: Settings },

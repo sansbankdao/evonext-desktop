@@ -8,74 +8,21 @@
                 <span class="text-3xl font-bold text-blue-400 tracking-widest">
                     ΞvoNext
                 </span>
+                <h3>path:{{path}}</h3>
             </RouterLink>
 
             <!-- Navigation -->
             <nav class="flex flex-col gap-2">
-                <RouterLink to="/" class="flex items-center gap-3 px-4 py-2 rounded-lg bg-slate-700 text-white font-medium">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                    </svg>
-
-                    <span>
-                        Home
-                    </span>
-                </RouterLink>
-
-                <RouterLink to="/posts" class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
-                    <HashtagIcon class="size-5" />
-                    <span>
-                        Posts | Remix
-                    </span>
-                </RouterLink>
-
-                <RouterLink to="/explorer" class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
-                    <MagnifyingGlassIcon class="size-5" />
-                    <span>
-                        Explorer
-                    </span>
-                </RouterLink>
-
-                <RouterLink to="/community" class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
-                    <UserGroupIcon class="size-5" />
-                    <span>
-                        Community
-                    </span>
-                </RouterLink>
-
-                <RouterLink to="/apps" class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
-                    <Squares2X2Icon class="size-5" />
-                    <span>
-                        Mini Apps
-                    </span>
-                </RouterLink>
-
-                <RouterLink to="/wallet" class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
-                    <WalletIcon class="size-5" />
-                    <span>
-                        Wallet
-                    </span>
-                </RouterLink>
-
-                <RouterLink to="/favorites" class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
-                    <BookmarkSquareIcon class="size-5" />
-                    <span>
-                        Favorites
-                    </span>
-                </RouterLink>
-
-                <RouterLink to="/identity" class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
-                    <UsersIcon class="size-5" />
-                    <span>
-                        Identity
-                    </span>
-                </RouterLink>
-
-                <RouterLink to="/settings" class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors">
-                    <AdjustmentsHorizontalIcon class="size-5" />
-                    <span>
-                        Settings
-                    </span>
+                <RouterLink
+                    v-for="link in navLinks"
+                    :key="link.to"
+                    :to="link.to"
+                    class="flex items-center gap-3 px-4 py-2 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white transition-colors font-medium
+                            [&.router-link-exact-active]:bg-slate-700
+                            [&.router-link-exact-active]:text-white"
+                >
+                    <component :is="link.icon" class="size-5" />
+                    <span>{{ link.text }}</span>
                 </RouterLink>
             </nav>
         </div>
@@ -96,15 +43,16 @@
 <script setup lang="ts">
 /* Import modules. */
 // import { invoke } from '@tauri-apps/api/tauri'
-// import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import {
     AdjustmentsHorizontalIcon,
     ArrowLeftStartOnRectangleIcon,
     BookmarkSquareIcon,
     HashtagIcon,
+    HomeIcon,
     MagnifyingGlassIcon,
     // SparklesIcon,
     Squares2X2Icon,
@@ -115,6 +63,56 @@ import {
 
 /* Initialize (navigation) router. */
 const router = useRouter()
+
+const path = computed(() => useRoute().path)
+
+const navLinks = ref([
+    {
+        to: '/',
+        text: 'Home',
+        icon: HomeIcon,
+    },
+    {
+        to: '/posts',
+        text: 'Posts | Remix',
+        icon: HashtagIcon,
+    },
+    {
+        to: '/explorer',
+        text: 'Explorer',
+        icon: MagnifyingGlassIcon,
+    },
+    {
+        to: '/community',
+        text: 'Community',
+        icon: UserGroupIcon,
+    },
+    {
+        to: '/apps',
+        text: 'Mini Apps',
+        icon: Squares2X2Icon,
+    },
+    {
+        to: '/wallet',
+        text: 'Wallet',
+        icon: WalletIcon,
+    },
+    {
+        to: '/favorites',
+        text: 'Favorites',
+        icon: BookmarkSquareIcon,
+    },
+    {
+        to: '/identity',
+        text: 'Identity',
+        icon: UsersIcon,
+    },
+    {
+        to: '/settings',
+        text: 'Settings',
+        icon: AdjustmentsHorizontalIcon,
+    },
+])
 
 const handleDisconnect = async () => {
     console.log('Disconnecting...')

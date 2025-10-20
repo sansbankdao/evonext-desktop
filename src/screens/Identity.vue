@@ -41,7 +41,7 @@
                             </p>
                         </div>
 
-                        <RouterLink to="/identity-register" class="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-500 py-2 px-6 text-sm font-semibold text-white shadow-sm hover:bg-cyan-600 transition">
+                        <RouterLink to="/identity/register" class="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-500 py-2 px-6 text-sm font-semibold text-white shadow-sm hover:bg-cyan-600 transition">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                             <span>Register New Identity</span>
                         </RouterLink>
