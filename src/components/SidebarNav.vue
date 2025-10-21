@@ -104,7 +104,7 @@ const navLinks = ref([
     },
     {
         to: '/identity',
-        text: 'Identity',
+        text: 'Identities',
         icon: UsersIcon,
     },
     {

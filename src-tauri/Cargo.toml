@@ -1,6 +1,6 @@
 [package]
 name = "evonext"
-version = "25.10.20"
+version = "25.10.21"
 description = "Free and Fearless — Discover safe spaces to Explore. Curate. Share YOUR Truth — secured by Dash Platform."
 authors = ["Sansbank DAO developers"]
 edition = "2021"
@@ -17,6 +17,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 tauri-plugin-opener = { version = "2.4.0" }
 tauri-plugin-store = { version = "2.4.0" }
+tauri-plugin-updater = { version = "2.4.0" }
 
 # tauri-plugin-stronghold = { version = "2.3.0", features = ["full"] }
 # tokio = { version = "1.47.1", features = ["full"] } # Stronghold is async

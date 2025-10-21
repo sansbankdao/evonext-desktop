@@ -1,8 +1,9 @@
 {
-    "identifier": "listen",
-    "description": "Allows listening to events",
-    "permissions": [
-        "core:event:allow-listen"
-    ],
-    "windows": ["main"]
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "listen-capability",
+  "description": "Allows listening to events",
+  "windows": ["main"],
+  "permissions": [
+    "core:event:allow-listen"
+  ]
 }

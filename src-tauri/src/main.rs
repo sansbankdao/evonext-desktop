@@ -133,7 +133,7 @@ fn main() {
 
             Ok(())
         })
-        .plugin(tauri_plugin_opener::init())
+// .plugin(tauri_plugin_opener::init())
         /* Handle menu events. */
         .on_menu_event(|app, event| {
             let window = app.get_webview_window("main").unwrap();

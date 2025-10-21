@@ -1,7 +1,7 @@
 {
   "name": "evonext-desktop",
   "description": "Free and Fearless — Discover safe spaces to Explore. Curate. Share YOUR Truth — secured by Dash Platform.",
-  "version": "25.10.20",
+  "version": "25.10.21",
   "license": "MIT",
   "type": "module",
   "scripts": {
