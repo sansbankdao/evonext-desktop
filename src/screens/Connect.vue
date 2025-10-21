@@ -34,10 +34,25 @@
                         <h1 class="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
                             Connect to Dash Platform
                         </h1>
-
                         <p class="text-lg text-slate-400">
-                            Enter your seed phrase to securely access your identity.
+                            Securely access your identity using one of the methods below.
                         </p>
+                    </div>
+
+                    <!-- Connection Method Tabs -->
+                    <div class="flex border-b border-slate-700">
+                        <button
+                            @click="connectionMethod = 'seed'"
+                            :class="['flex-1 py-3 text-center font-semibold transition-colors', connectionMethod === 'seed' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400 hover:text-white']"
+                        >
+                            Seed Phrase
+                        </button>
+                        <button
+                            @click="connectionMethod = 'privateKey'"
+                            :class="['flex-1 py-3 text-center font-semibold transition-colors', connectionMethod === 'privateKey' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-slate-400 hover:text-white']"
+                        >
+                            Private Key
+                        </button>
                     </div>
 
                     <!-- Security Warning -->
@@ -45,37 +60,44 @@
                         <svg class="h-6 w-6 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126z" /></svg>
                         <div>
                             <h3 class="font-semibold">Security Notice</h3>
-                            <p class="text-sm">Your seed phrase will be handled locally and will never be sent to a server. Ensure you are in a private location.</p>
+                            <p class="text-sm">Your credentials are handled locally and will never be sent to a server. Ensure you are in a private location.</p>
                         </div>
                     </div>
 
-                    <form @submit.prevent="connectWithSeed" class="bg-slate-800 p-8 rounded-xl space-y-6">
-                        <!-- Word Count Toggle -->
-                        <div>
-                            <label class="block text-sm font-medium text-slate-300 mb-2">Phrase Length</label>
-                            <fieldset class="grid grid-cols-2 gap-4">
-                                <label :class="['text-center p-3 rounded-lg border-2 cursor-pointer transition', wordCount === '12' ? 'bg-cyan-500/20 border-cyan-500 text-white' : 'border-slate-600 text-slate-400 hover:border-slate-500']">
-                                    <input type="radio" value="12" v-model="wordCount" class="sr-only">
-                                    <span class="font-semibold">12 Words</span>
-                                </label>
-                                <label :class="['text-center p-3 rounded-lg border-2 cursor-pointer transition', wordCount === '24' ? 'bg-cyan-500/20 border-cyan-500 text-white' : 'border-slate-600 text-slate-400 hover:border-slate-500']">
-                                    <input type="radio" value="24" v-model="wordCount" class="sr-only">
-                                    <span class="font-semibold">24 Words</span>
-                                </label>
-                            </fieldset>
+                    <!-- Form Container -->
+                    <form @submit.prevent="connect" class="bg-slate-800 p-8 rounded-xl space-y-6">
+                        <!-- SEED PHRASE FORM -->
+                        <div v-if="connectionMethod === 'seed'" class="space-y-6">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-300 mb-2">Phrase Length</label>
+                                <fieldset class="grid grid-cols-2 gap-4">
+                                    <label :class="['text-center p-3 rounded-lg border-2 cursor-pointer transition', wordCount === '12' ? 'bg-cyan-500/20 border-cyan-500 text-white' : 'border-slate-600 text-slate-400 hover:border-slate-500']">
+                                        <input type="radio" value="12" v-model="wordCount" class="sr-only">
+                                        <span class="font-semibold">12 Words</span>
+                                    </label>
+                                    <label :class="['text-center p-3 rounded-lg border-2 cursor-pointer transition', wordCount === '24' ? 'bg-cyan-500/20 border-cyan-500 text-white' : 'border-slate-600 text-slate-400 hover:border-slate-500']">
+                                        <input type="radio" value="24" v-model="wordCount" class="sr-only">
+                                        <span class="font-semibold">24 Words</span>
+                                    </label>
+                                </fieldset>
+                            </div>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                                <div v-for="(_word, index) in seedWords" :key="index" class="relative">
+                                    <span class="absolute top-2 left-2 text-xs text-slate-500 font-mono">{{ index + 1 }}</span>
+                                    <input v-model="seedWords[index]" type="text" autocomplete="off" spellcheck="false" class="w-full bg-slate-700 border-slate-600 rounded-lg pt-6 pb-2 px-2 text-center text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition">
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Seed Phrase Input Grid -->
-                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                            <div v-for="(_word, index) in seedWords" :key="index" class="relative">
-                                <span class="absolute top-2 left-2 text-xs text-slate-500 font-mono">{{ index + 1 }}</span>
-                                <input
-                                    v-model="seedWords[index]"
-                                    type="text"
-                                    autocomplete="off"
-                                    spellcheck="false"
-                                    class="w-full bg-slate-700 border-slate-600 rounded-lg pt-6 pb-2 px-2 text-center text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition"
-                                >
+                        <!-- PRIVATE KEY FORM -->
+                        <div v-if="connectionMethod === 'privateKey'" class="space-y-6">
+                            <div>
+                                <label for="identityId" class="block text-sm font-medium text-slate-300 mb-1">Identity ID</label>
+                                <input id="identityId" type="text" v-model="identityId" placeholder="e.g., 5DbLwAxGBzUzo81VewMUwn4b5P4bpv9FNFybi25XB5Bk" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-colors" required>
+                            </div>
+                            <div>
+                                <label for="privateKey" class="block text-sm font-medium text-slate-300 mb-1">Private Key (WIF format)</label>
+                                <input id="privateKey" type="password" v-model="privateKey" placeholder="e.g., XK6CFyvYUMvY9FVQLeYBZBF..." class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-colors" required>
                             </div>
                         </div>
 
@@ -101,69 +123,84 @@
 <!-- src/screens/Connect.vue -->
 <script setup lang="ts">
 import { ref, reactive, watch, computed } from 'vue'
-// import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@tauri-apps/api/core'
 
 // --- Component State ---
+const connectionMethod = ref<'seed' | 'privateKey'>('seed')
 
 // Controls whether we show 12 or 24 input fields
-const wordCount = ref<'12' | '24'>('12');
+const wordCount = ref<'12' | '24'>('12')
 
-// An array to hold the words from the input fields.
-// We use `reactive` because we will be changing its size.
-const seedWords = reactive<string[]>(Array(12).fill(''));
+/* Initialize an array to hold the words from the input fields. */
+// NOTE: We use `reactive` because we will be changing its size.
+const seedWords = reactive<string[]>(Array(12).fill(''))
+
+/* Initailize local handlers. */
+const identityId = ref('')
+const privateKey = ref('')
 
 // State for loading and error feedback
-const isLoading = ref(false);
-const error = ref<string | null>(null);
+const isLoading = ref(false)
+const error = ref<string | null>(null)
 
 // --- Logic ---
 
 // Watch for changes in the word count and resize the seedWords array accordingly.
 watch(wordCount, (newCount) => {
-    const count = parseInt(newCount, 10);
-    seedWords.length = 0; // Clear the array
+    const count = parseInt(newCount, 10)
+    seedWords.length = 0 // NOTE: Clear the array.
     for (let i = 0; i < count; i++) {
-        seedWords.push('');
+        seedWords.push('')
     }
-});
+})
 
 // A computed property to check if all inputs are filled, used to disable the button.
 const isFormValid = computed(() => {
-    return seedWords.every(word => word.trim() !== '');
-});
+    return seedWords.every(word => word.trim() !== '') || (identityId.value !== '' && privateKey.value !== '')
+})
 
 // The main function to handle the connection process.
-const connectWithSeed = async () => {
-    if (!isFormValid.value) return;
+const connect = async () => {
+    /* Validate form values. */
+    if (!isFormValid.value) return
 
-    isLoading.value = true;
-    error.value = null;
+    /* Set flags. */
+    isLoading.value = true
+    error.value = null
 
-    // Join the array into a single space-separated string
-    // const mnemonic = seedWords.join(' ')
-    console.log(`Attempting to connect with a ${wordCount.value}-word mnemonic.`);
+    /* Initialize locals. */
+    let payload
 
     try {
-        // --- TAURI INTEGRATION ---
-        // This is where you would invoke your secure Rust command.
-        // The command would validate the mnemonic and create the user's session.
-        // It might return user data or just a success status.
-        // Example:
-        // await invoke('connect_with_mnemonic', { mnemonic });
+        if (connectionMethod.value === 'seed') {
+console.log(`Attempting to connect with a ${wordCount.value}-word mnemonic.`)
+            /* Join the array into a single space-separated string. */
+            const mnemonic = seedWords.join(' ')
 
-        // Simulate a network/processing delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
+            /* Set payload. */
+            payload = { mnemonic }
 
-        // On success, you would typically navigate the user to the main app screen.
-        // For example: router.push('/home');
-        alert('Connection Successful! Navigating to home screen...');
+            /* Save mnemonic. */
+            await invoke('save_mnemonic', { payload })
+        } else { // privateKey
+console.log(`Attempting to connect with a private key.`)
+            /* Set payload. */
+            payload = {
+                identity_id: identityId.value,
+                private_key: privateKey.value
+            }
 
+            /* Save private key. */
+            await invoke('save_private_key', { payload })
+        }
+
+        alert('Connection Successful! Navigating to home screen...')
+        // Example: router.push('/wallet')
     } catch (err: any) {
-        console.error('Connection failed:', err);
-        // Provide a user-friendly error message
-        error.value = err.message || 'Invalid seed phrase. Please check your words and try again.';
+        console.error('Connection failed:', err)
+        error.value = typeof err === 'string' ? err : 'An unknown error occurred.'
     } finally {
-        isLoading.value = false;
+        isLoading.value = false
     }
 }
 </script>

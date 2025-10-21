@@ -101,7 +101,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
 
 // Define the TypeScript interface for an Identity
 interface Identity {
@@ -111,6 +112,16 @@ interface Identity {
     username: string;
     bio: string;
 }
+
+interface IMnemonic {
+    mnemonic: string;
+}
+
+interface IPrivateKey {
+    identity_id: string;
+    private_key: string;
+}
+
 
 // Sample data representing the user's identities
 const identities = ref<Identity[]>([
@@ -140,6 +151,9 @@ const identities = ref<Identity[]>([
 // A ref to track the currently active identity ID
 const activeIdentityId = ref<string>('BkEqcgfmNFY5TEy2atDhhFsDY1NZ6oPa4XPrDGuuWLVT')
 
+const identityId = ref<string | null>(null)
+const privateKey = ref<string | null>(null)
+
 // Function to handle switching identities
 const switchToIdentity = (id: string) => {
     console.log(`Switching active identity to: ${id}`)
@@ -153,4 +167,46 @@ const copyToClipboard = (text: string) => {
     console.log(`Copied to clipboard: ${text}`)
 }
 
+const init = async () => {
+    try {
+        /* Request mnemonic. */
+        const mnemonicStore = await invoke<IMnemonic | null>('load_mnemonic')
+console.log('MNEMONIC (store)', mnemonicStore)
+
+        /* Request private key. */
+        const privateKeyStore = await invoke<IPrivateKey | null>('load_private_key')
+console.log('PRIVATE KEY (store)', privateKeyStore)
+
+        /* Validate authentication. */
+        if (mnemonicStore) {
+            // 3. Access the properties of the object
+            const mnemonic = mnemonicStore.mnemonic
+
+            identityId.value = mnemonic.slice(0, 10) + mnemonic.slice(-10)
+
+            console.log('MNEMONIC IS', mnemonic)
+        } else if (privateKeyStore) {
+            // 3. Access the properties of the object
+            identityId.value = privateKeyStore.identity_id
+            privateKey.value = privateKeyStore.private_key
+
+            console.log('User is logged in. Identity ID:', identityId.value)
+            console.log('PRIVATE KEY IS', privateKey.value)
+        } else {
+            console.log('User is not logged in.')
+        }
+    } catch (error) {
+        console.error('Failed to get credentials:', error)
+    }
+}
+
+// 2. Set up the listener when the component is mounted
+onMounted(async () => {
+    init()
+})
+
+// 4. Clean up the listener when the component is unmounted
+onUnmounted(() => {
+    // TODO
+})
 </script>
