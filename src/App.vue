@@ -13,6 +13,7 @@ import { relaunch } from '@tauri-apps/plugin-process'
 const manageUpdater = async () => {
     /* Request check. */
     const update = await check()
+console.log('AUTO UPDATER', update)
 
     /* Handle update. */
     if (update) {
