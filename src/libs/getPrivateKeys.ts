@@ -1,9 +1,9 @@
 /* Import modules. */
-import {
-    WasmSdkBuilder,
+import init, {
+    // WasmSdkBuilder,
     derive_key_from_seed_with_path,
-    get_identities_token_balances_with_proof_info,
-} from './dash/wasm_sdk'
+    // prefetch_trusted_quorums_mainnet,
+} from './dash/wasm_sdk.js'
 import getMnemonic from './getMnemonic'
 
 /* Get Private Keys. */
@@ -13,6 +13,9 @@ export default async (
 ) => {
     /* Request mnemonic. */
     const mnemonic = await getMnemonic()
+
+    /* Initialize WASM module. */
+    await init()
 
     /* Master Authentication */
     const masterKeyPath = `m/9'/${_currentNetwork === 'mainnet' ? 5 : 1}'/5'/0'/0'/${_identityIdx}'/0'`

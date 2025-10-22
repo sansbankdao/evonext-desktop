@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@heroicons/vue": "2.2.0",
+    "@nexajs/crypto": "24.9.5",
+    "@nexajs/utils": "24.7.15",
     "@tauri-apps/api": "2.8.0",
     "@tauri-apps/plugin-opener": "2.5.0",
     "@tauri-apps/plugin-process": "2.3.0",

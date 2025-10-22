@@ -1,12 +1,23 @@
 /* Import modules. */
 // import { getPrivateKeys, getPublicKeys } from './wallet-manager'
 // import { wasmSdkService } from '@/lib/services/wasm-sdk-service'
-import { WasmSdkBuilder } from './dash/wasm_sdk'
+// import { WasmSdkBuilder } from './dash/wasm_sdk'
+import init, {
+    WasmSdkBuilder,
+    // identity_fetch,
+    // dpns_resolve_name,
+    // get_dpns_usernames,
+    // get_documents,
+    // get_identity_token_balances,
+    prefetch_trusted_quorums_mainnet,
+    prefetch_trusted_quorums_testnet,
+} from '@/libs/dash/wasm_sdk.js'
+
 import getPrivateKeys from './getPrivateKeys'
 // import getPublicKeys from './getPublicKeys'
 import {
-    dpns_is_contested_username,
-    dpns_register_name,
+    // dpns_is_contested_username,
+    // dpns_register_name,
     get_identity_by_public_key_hash,
     get_identity_by_non_unique_public_key_hash,
 } from './dash/wasm_sdk'
@@ -59,9 +70,7 @@ const decodeBase64ToHex = (_base64String: string) => {
  * Will search ALL keys and signature schemes for an Identity's
  * registered public keys.
  */
-export const getIdentities = async (
-    _network: string
-): Promise<IIdentity[] | null> => {
+export default async (_network: string): Promise<IIdentity[] | null> => {
     /* Initialize Identities handler. */
     const identities: IIdentity[] = []
 
@@ -137,12 +146,20 @@ export const searchByHash160 = async (_network: string, _identityIdx: number) =>
     let regPubKeys
 
     /* Initialize SDK. */
+    await init()
     // const sdk = await wasmSdkService.getSdk()
+
     let sdk
     if (_network === 'mainnet') {
+        /* Pre-fetch (trusted) quorums. */
+        await prefetch_trusted_quorums_mainnet()
+
         /* Initialize SDK. */
         sdk = await WasmSdkBuilder.new_mainnet_trusted().build()
     } else {
+        /* Pre-fetch (trusted) quorums. */
+        await prefetch_trusted_quorums_testnet()
+
         /* Initialize SDK. */
         sdk = await WasmSdkBuilder.new_testnet_trusted().build()
     }
@@ -155,14 +172,14 @@ export const searchByHash160 = async (_network: string, _identityIdx: number) =>
 
     /* Calculate public key hash. */
     const publicKeyHash = binToHex(hash160(hexToBin(publicKey)))
-
+console.log('HASH160 PKH', publicKeyHash)
     /* Request (HASH160) Identity. */
     const result = await get_identity_by_non_unique_public_key_hash(
         sdk,
         publicKeyHash,
         undefined
     ).catch(err => console.error(err))
-
+console.log('HASH160 RESULT FOR', publicKeyHash, result)
     /* Handle ECDSA_HASH160 signature scheme. */
     if (result && result.length > 0 && typeof result === 'object') {
         /* Set Identity ID. */
@@ -201,12 +218,20 @@ export const searchBySecp256k1 = async (_network: string, _identityIdx: number) 
     let regPubKeys
 
     /* Initialize SDK. */
+    await init()
     // const sdk = await wasmSdkService.getSdk()
+
     let sdk
     if (_network === 'mainnet') {
+        /* Pre-fetch (trusted) quorums. */
+        await prefetch_trusted_quorums_mainnet()
+
         /* Initialize SDK. */
         sdk = await WasmSdkBuilder.new_mainnet_trusted().build()
     } else {
+        /* Pre-fetch (trusted) quorums. */
+        await prefetch_trusted_quorums_testnet()
+
         /* Initialize SDK. */
         sdk = await WasmSdkBuilder.new_testnet_trusted().build()
     }
@@ -219,7 +244,7 @@ export const searchBySecp256k1 = async (_network: string, _identityIdx: number) 
 
     /* Calculate public key hash. */
     const publicKeyHash = binToHex(hash160(hexToBin(publicKey)))
-
+console.log('SECP256K1 PKH', publicKeyHash)
     /* Request (SECP256k1) Identity. */
     const result = await get_identity_by_public_key_hash(
         sdk,

@@ -10,13 +10,14 @@ export default async (
     const network = (_currentNetwork === 'mainnet') ? 'mainnet' : 'testnet'
 
     /* Request private keys. */
-    const generatedkeys = getPrivateKeys(network, _identityIdx)
-console.log('GENERATED KEYS', generatedkeys)
+    const generatedkeys = await getPrivateKeys(network, _identityIdx)
+// console.log('GENERATED KEYS (getTransferKey)', generatedkeys)
 
 // FIXME -- ONLY SEARCH IF (STANDARD) KEYS DO NOT WORK
     const response = await getIdentities(network)
+
     const registeredKeys = response![0].publicKeys
-console.log('REGISTERED KEYS', registeredKeys)
+console.log('REGISTERED KEYS (getTransferKey)', registeredKeys)
 // FIXME WE WANT TO SUPPORT ALTERNATIVE KEY CONFIGURATIONS
 
 /*

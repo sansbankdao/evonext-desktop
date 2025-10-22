@@ -1,10 +1,11 @@
 /* Import modules. */
-import {
+import init, {
     WasmSdkBuilder,
-    derive_key_from_seed_with_path,
+    // derive_key_from_seed_with_path,
     get_identities_token_balances_with_proof_info,
+    prefetch_trusted_quorums_mainnet,
+    prefetch_trusted_quorums_testnet,
 } from './dash/wasm_sdk'
-import { WasmSdk } from './services'
 
 export default async (
     identityIds: [string],
@@ -12,16 +13,23 @@ export default async (
     _network: string,
 ): Promise<bigint> => {
     /* Initialize SDK. */
+    await init()
     // const sdk = await wasmSdkService.getSdk()
+
     let sdk
     if (_network === 'mainnet') {
+        /* Pre-fetch (trusted) quorums. */
+        await prefetch_trusted_quorums_mainnet()
+
         /* Initialize SDK. */
         sdk = await WasmSdkBuilder.new_mainnet_trusted().build()
     } else {
+        /* Pre-fetch (trusted) quorums. */
+        await prefetch_trusted_quorums_testnet()
+
         /* Initialize SDK. */
         sdk = await WasmSdkBuilder.new_testnet_trusted().build()
     }
-
 
     /* Request TOKEN balance. */
     const response = await get_identities_token_balances_with_proof_info(

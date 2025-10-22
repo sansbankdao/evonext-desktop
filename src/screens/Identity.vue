@@ -45,6 +45,11 @@
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                             <span>Register New Identity</span>
                         </RouterLink>
+
+                        <button @click="sendCreditsTest" class="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-500 py-2 px-6 text-sm font-semibold text-white shadow-sm hover:bg-cyan-600 transition">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                            <span>Test Credits</span>
+                        </button>
                     </div>
 
                     <!-- Grid of Identity Cards -->
@@ -104,7 +109,9 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 
-import getMnemonic from '../libs/getMnemonic'
+import getMnemonic from '@/libs/getMnemonic'
+import sendCredit from '@/libs/sendCredit'
+import sendToken from '@/libs/sendToken'
 
 // Define the TypeScript interface for an Identity
 interface Identity {
@@ -192,6 +199,26 @@ console.log('MNEMONIC IS', mnemonic)
     } catch (error) {
         console.error('Failed to get credentials:', error)
     }
+}
+
+const sendCreditsTest = async () => {
+    console.log('SENDING CREDITS')
+
+    const response = await sendCredit(
+        'testnet',
+        'ADtgYG2MHikwv4UiZeY8faUsEkH1YDjEnJFhGbuXLfFB',
+        1, // identityIdx
+        '34vkjdeUTP2z798SiXqoB6EAuobh51kXYURqVa9xkujf', // safeReceiver
+        13370000n
+    ).catch(err => {
+        console.error(err)
+        // setErrorMsgs(err?.message)
+    })
+console.log('SEND (CREDIT response)', typeof response, response)
+}
+
+const sendTokensTest = async () => {
+    console.log('SENDING TOKENS')
 }
 
 // 2. Set up the listener when the component is mounted

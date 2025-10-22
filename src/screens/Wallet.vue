@@ -312,7 +312,7 @@ import init, {
     // get_documents,
     // get_identity_token_balances,
     prefetch_trusted_quorums_mainnet,
-} from '../libs/dash/wasm_sdk.js'
+} from '@/libs/dash/wasm_sdk.js'
 
 import { DashPlatformSDK } from 'dash-platform-sdk'
 // import { GasFeesPaidByWASM, PrivateKeyWASM } from 'pshenmic-dpp'

@@ -1,6 +1,18 @@
     # EvoNext Changelog
 
 
+    ## v25.10.19
+
+    ### ✨ New Features
+    - Enable LIVE (onchain) Testnet transactions.
+
+    ### 🐛 Bug Fixes
+    - n/a
+
+    ### ⚙️ Improvements
+    - Enable connection + initial onchain functions.
+
+
     ## v25.10.18
 
     ### ✨ New Features
