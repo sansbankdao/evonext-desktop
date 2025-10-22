@@ -1,14 +1,14 @@
 /* Import modules. */
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { GasFeesPaidByWASM, PrivateKeyWASM } from 'pshenmic-dpp'
+import { PrivateKeyWASM } from 'pshenmic-dpp'
 
 import getAuthKey from './getAuthKey'
 import getTransferKey from './getTransferKey'
 import {
-    IKeyTypes,
+    // IKeyTypes,
     ITxError,
     ITxSuccess,
-    ITokenPaymentInfo,
+    // ITokenPaymentInfo,
 } from './types'
 
 export const sendToken = async (

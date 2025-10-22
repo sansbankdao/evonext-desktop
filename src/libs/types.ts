@@ -1,5 +1,5 @@
 /* Import types. */
-import { GasFeesPaidByWASM, PrivateKeyWASM } from 'pshenmic-dpp'
+import { GasFeesPaidByWASM } from 'pshenmic-dpp'
 
 export interface IApp {
     id: string;

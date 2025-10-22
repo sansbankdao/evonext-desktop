@@ -1,10 +1,10 @@
 /* Import modules. */
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { GasFeesPaidByWASM, PrivateKeyWASM } from 'pshenmic-dpp'
+import { PrivateKeyWASM } from 'pshenmic-dpp'
 
 import getTransferKey from './getTransferKey'
 import {
-    IKeyTypes,
+    // IKeyTypes,
     ITxError,
     ITxSuccess,
     ITokenPaymentInfo,
@@ -50,12 +50,12 @@ export default async (
 // FIXME IS THIS STILL NECESSARY??
     const identityContractNonce = BigInt(1)
 
-    const tokenPaymentInfo = {
-        tokenContractId: '...',
-        tokenContractPosition: 0,
-        maximumTokenCost: BigInt(10),
-        gasFeesPaidBy: GasFeesPaidByWASM.ContractOwner,
-    }
+    // const tokenPaymentInfo = {
+    //     tokenContractId: '...',
+    //     tokenContractPosition: 0,
+    //     maximumTokenCost: BigInt(10),
+    //     gasFeesPaidBy: GasFeesPaidByWASM.ContractOwner,
+    // }
 
     /* Create state transition. */
     const stateTransition = sdk.documents.createStateTransition(

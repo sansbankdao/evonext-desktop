@@ -111,7 +111,7 @@ import { invoke } from '@tauri-apps/api/core'
 
 import getMnemonic from '@/libs/getMnemonic'
 import sendCredit from '@/libs/sendCredit'
-import sendToken from '@/libs/sendToken'
+// import sendToken from '@/libs/sendToken'
 
 // Define the TypeScript interface for an Identity
 interface Identity {
@@ -122,9 +122,9 @@ interface Identity {
     bio: string;
 }
 
-interface IMnemonic {
-    mnemonic: string;
-}
+// interface IMnemonic {
+//     mnemonic: string;
+// }
 
 interface IPrivateKey {
     identity_id: string;
@@ -217,9 +217,9 @@ const sendCreditsTest = async () => {
 console.log('SEND (CREDIT response)', typeof response, response)
 }
 
-const sendTokensTest = async () => {
-    console.log('SENDING TOKENS')
-}
+// const sendTokensTest = async () => {
+//     console.log('SENDING TOKENS')
+// }
 
 // 2. Set up the listener when the component is mounted
 onMounted(async () => {

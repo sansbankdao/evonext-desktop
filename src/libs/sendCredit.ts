@@ -1,9 +1,9 @@
 import getTransferKey from './getTransferKey'
 import {
-    IKeyTypes,
+    // IKeyTypes,
     ITxError,
     ITxSuccess,
-    ITokenPaymentInfo,
+    // ITokenPaymentInfo,
 } from './types'
 import {
     WasmSdkBuilder,
@@ -19,10 +19,10 @@ export default async (
     _credits: bigint,
 ): Promise<ITxSuccess | ITxError> => {
     /* Initialize locals. */
-    let error
-    let response
+    // let error
+    // let response
     let sdk
-    let txid
+    // let txid
 
     /* Set receiver. */
     // TODO ADD FINAL RECEIVER VALIDATION
