@@ -1,7 +1,7 @@
 {
   "name": "evonext-desktop",
   "description": "Free and Fearless — Discover safe spaces to Explore. Curate. Share YOUR Truth — secured by Dash Platform.",
-  "version": "25.10.21",
+  "version": "25.11.7",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -19,6 +19,7 @@
     "@tauri-apps/plugin-process": "2.3.0",
     "@tauri-apps/plugin-updater": "2.9.0",
     "dash-platform-sdk": "1.2.0",
+    "monaco-editor": "0.54.0",
     "pinia": "3.0.3",
     "pshenmic-dpp": "1.0.23-rc.7",
     "vue": "3.5.22",

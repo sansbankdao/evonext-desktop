@@ -19,6 +19,7 @@ import IdentityRegister from '../screens/Identity/Register.vue'
 import Posts from '../screens/Posts.vue'
 import Settings from '../screens/Settings.vue'
 import Stakehouse from '../screens/Stakehouse.vue'
+import Studio from '../screens/Studio.vue'
 import Wallet from '../screens/Wallet.vue'
 
 /* Set Premium SANS Identity flag. */
@@ -45,6 +46,7 @@ const routes = [
 
             { path: 'posts', component: Posts },
             { path: 'settings', component: Settings },
+            { path: 'studio', component: Studio },
             { path: 'wallet', component: Wallet },
 
             { path: 'connect', component: Connect },

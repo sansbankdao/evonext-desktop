@@ -87,6 +87,7 @@ pub fn run() {
 
             let help_menu = SubmenuBuilder::new(app, "Help")
                 .text("bootstrap", "Bootstrap Campaign")
+                .text("studio", "Mini App Studio")
                 .text("about", "About")
                 .build()?;
 
@@ -132,6 +133,9 @@ pub fn run() {
                     }
                     "bootstrap" => {
                         window.emit("navigate", "/bootstrap").unwrap();
+                    }
+                    "studio" => {
+                        window.emit("navigate", "/studio").unwrap();
                     }
                     _ => {}
                 }
