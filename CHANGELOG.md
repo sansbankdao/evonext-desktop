@@ -1,63 +1,19 @@
-    # EvoNext Changelog
+Introducing the newest versions of the EvoNext Desktop Editions!
 
+We are excited to announce the release of the EvoNext Desktop v25.10.20.
 
-    ## v25.10.19
+This latest version of EvoNext introduces Mainnet (onchain) transactions support + SQLite database management.
 
-    ### ✨ New Features
-    - Enable LIVE (onchain) Testnet transactions.
+# Changelog
 
-    ### 🐛 Bug Fixes
-    - n/a
+## Latest Features:
 
-    ### ⚙️ Improvements
-    - Enable connection + initial onchain functions.
+- Network: Added support for Mainnet (onchain) functions.
+- DB: Added support for SQLite database management.
 
+## Bugfixes:
 
-    ## v25.10.18
+- WASM SDK: Always prefetch trusted quorums before initializing the SDK for onchain requests.
 
-    ### ✨ New Features
-    - Add all Core App screens.
-
-    ### 🐛 Bug Fixes
-    - n/a
-
-    ### ⚙️ Improvements
-    - Enable FULL UI exploration.
-
-
-    ## v25.10.16
-
-    ### ✨ New Features
-    - Add Universal macOS Binary support.
-
-    ### 🐛 Bug Fixes
-    - n/a
-
-    ### ⚙️ Improvements
-    - Will support Intel-based mac systems.
-
-
-    ## v25.10.5
-
-    ### ✨ New Features
-    - Add automatic updater support.
-
-    ### 🐛 Bug Fixes
-    - n/a
-
-    ### ⚙️ Improvements
-    - Will prompt user to update when a new release is published.
-
-
-    ## v25.10.4
-
-    ### ✨ New Features
-    - Initial public release of EvoNext Desktop!
-    - Secure, decentralized social feed powered by Dash Platform.
-    - Cross-platform support for Windows, macOS, and Linux.
-
-    ### 🐛 Bug Fixes
-    - *No bug fixes in this initial release.*
-
-    ### ⚙️ Improvements
-    - Configured automated release pipeline with GitHub Actions.
+We would especially like to thank all the contributors that made this release possible:
+TBD...

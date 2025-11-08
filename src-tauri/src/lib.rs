@@ -18,9 +18,16 @@ struct AppSettings {
 
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
-struct IPrivateKey {
+struct INetwork {
+    network: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+struct IPrivateKeys {
     identity_id: String,
-    private_key: String,
+    auth_key: String,
+    encryption_key: String,
+    transfer_key: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
@@ -54,10 +61,11 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
-            greet,
-
             load_mnemonic,
             save_mnemonic,
+
+            load_network_settings,
+            save_network_settings,
 
             load_private_key,
             save_private_key,
@@ -133,12 +141,6 @@ pub fn run() {
         .expect("Oops! There was an error while running EvoNext.");
 }
 
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
-
 #[tauri::command]
 fn save_mnemonic(app_handle: AppHandle<Wry>, payload: IMnemonic) -> Result<(), String> {
     let path = SAFU_FILE.parse::<PathBuf>().unwrap();
@@ -175,7 +177,7 @@ fn load_mnemonic(app_handle: AppHandle<Wry>) -> Result<Option<IMnemonic>, String
 }
 
 #[tauri::command]
-fn save_private_key(app_handle: AppHandle<Wry>, payload: IPrivateKey) -> Result<(), String> {
+fn save_private_key(app_handle: AppHandle<Wry>, payload: IPrivateKeys) -> Result<(), String> {
     let path = SAFU_FILE.parse::<PathBuf>().unwrap();
 
     let store = StoreBuilder::new(&app_handle, path)
@@ -191,7 +193,7 @@ fn save_private_key(app_handle: AppHandle<Wry>, payload: IPrivateKey) -> Result<
 }
 
 #[tauri::command]
-fn load_private_key(app_handle: AppHandle<Wry>) -> Result<Option<IPrivateKey>, String> {
+fn load_private_key(app_handle: AppHandle<Wry>) -> Result<Option<IPrivateKeys>, String> {
     let path = SAFU_FILE.parse::<PathBuf>().unwrap();
 
     let store = StoreBuilder::new(&app_handle, path)
@@ -199,12 +201,47 @@ fn load_private_key(app_handle: AppHandle<Wry>) -> Result<Option<IPrivateKey>, S
         .map_err(|e| e.to_string())?;
 
     if let Some(json_value) = store.get("keys") {
-        let payload: IPrivateKey = serde_json::from_value(json_value.clone())
+        let payload: IPrivateKeys = serde_json::from_value(json_value.clone())
             .map_err(|e| e.to_string())?;
         println!("Private keys loaded successfully.");
         Ok(Some(payload))
     } else {
         println!("NO private keys found, returning default.");
+        Ok(None)
+    }
+}
+
+#[tauri::command]
+fn save_network_settings(app_handle: AppHandle<Wry>, payload: INetwork) -> Result<(), String> {
+    let path = SETTINGS_FILE.parse::<PathBuf>().unwrap();
+
+    let store = StoreBuilder::new(&app_handle, path)
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    store.set("network".to_string(), serde_json::to_value(payload).unwrap());
+
+    store.save().map_err(|e| e.to_string())?;
+
+    println!("Network settings saved successfully.");
+    Ok(())
+}
+
+#[tauri::command]
+fn load_network_settings(app_handle: AppHandle<Wry>) -> Result<Option<INetwork>, String> {
+    let path = SETTINGS_FILE.parse::<PathBuf>().unwrap();
+
+    let store = StoreBuilder::new(&app_handle, path)
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    if let Some(json_value) = store.get("network") {
+        let payload: INetwork = serde_json::from_value(json_value.clone())
+            .map_err(|e| e.to_string())?;
+        println!("Private keys loaded successfully.");
+        Ok(Some(payload))
+    } else {
+        println!("NO network settings found, returning default.");
         Ok(None)
     }
 }

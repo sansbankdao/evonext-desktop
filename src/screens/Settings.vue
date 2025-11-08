@@ -96,6 +96,22 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <div class="bg-slate-800 p-6 rounded-xl">
+                                <h2 class="text-xl font-semibold text-white">Security</h2>
+                                <p class="mt-1 text-slate-400">Protect your sensitive data with an encryption password.</p>
+                                <div class="mt-6 grid grid-cols-1 gap-y-6">
+                                    <div>
+                                        <label for="new-password" class="block text-sm font-medium text-slate-300">New Password</label>
+                                        <input v-model="localPassword.new" type="password" name="new-password" id="new-password" placeholder="Enter a strong password" class="mt-1 block w-full bg-slate-700 border-slate-600 rounded-lg p-3 text-white placeholder-slate-400 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition">
+                                    </div>
+                                    <div>
+                                        <label for="confirm-password" class="block text-sm font-medium text-slate-300">Confirm Password</label>
+                                        <input v-model="localPassword.confirm" type="password" name="confirm-password" id="confirm-password" placeholder="Confirm your new password" class="mt-1 block w-full bg-slate-700 border-slate-600 rounded-lg p-3 text-white placeholder-slate-400 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition">
+                                    </div>
+                                    <p v-if="localPassword.new && localPassword.new !== localPassword.confirm" class="text-sm text-red-400">Passwords do not match.</p>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Action Bar -->
@@ -127,6 +143,7 @@ const Settings = useSettingsStore()
 // This also makes a "Reset" or "Cancel" feature possible.
 const localProfile = ref<ProfileSettings>({ ...Settings.profile })
 const localNotifications = ref<NotificationSettings>({ ...Settings.notifications })
+const localPassword = ref({ new: '', confirm: '' })
 
 // Keep local state in sync if the store changes from another source
 watch(() => Settings.profile, (newProfile) => {
