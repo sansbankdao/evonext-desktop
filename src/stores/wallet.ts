@@ -11,100 +11,106 @@ import init, {
     prefetch_trusted_quorums_mainnet,
 } from '@/libs/dash/wasm_sdk.js'
 
-// Define the structure of a single asset
-interface Asset {
-    id: string;
-    name: string;
-    ticker: string;
-    icon: string;
-    balance: number;
-    usdValue: number;
+// In a real app, you would import these from a shared types file
+// e.g., import { User, Asset, Transaction, BalanceChange } from '@/types'
+
+// ### Data Structures ###
+
+interface User {
+    name: string
+    address: string
 }
 
-// Define the state for the wallet store
+interface Asset {
+    ticker: string
+    name: string
+    amount: number
+    usdValue: number
+}
+
+interface Transaction {
+    id: string
+    type: 'sent' | 'received' | 'swap'
+    title: string
+    subtitle: string
+    amount: string // Formatted amount with +/- and ticker
+    status: 'Completed' | 'Pending...' | 'Failed'
+}
+
+interface BalanceChange {
+    isPositive: boolean
+    percent: number
+    amount: number
+}
+
 interface WalletState {
-    assets: Asset[];
-    isLoading: boolean;
+    user: User | null
+    assets: Asset[]
+    transactions: Transaction[]
+    balanceChange: BalanceChange | null
+    isLoading: boolean
 }
 
 export const useWalletStore = defineStore('wallet', {
     state: (): WalletState => ({
-        assets: [
-            {
-                id: 'dash',
-                name: 'Dash Credits',
-                ticker: 'DASH',
-                icon: '/icons/dash.svg',
-                balance: 112.55,
-                usdValue: 2750.00,
-            },
-            {
-                id: 'sans',
-                name: 'Sansnote',
-                ticker: 'SANS',
-                icon: '/icons/sans.svg',
-                balance: 1337.88,
-                usdValue: 28.64,
-            },
-            {
-                id: 'dusd',
-                name: 'Dash USD',
-                ticker: 'DUSD',
-                icon: '/icons/dusd.svg',
-                balance: 1100.67,
-                usdValue: 1100.67,
-            },
-        ],
+        user: null,
+        assets: [],
+        transactions: [],
+        balanceChange: null,
         isLoading: false,
     }),
 
     getters: {
-        // totalUsdValue: (state) => {
-        totalUsdValue: () => {
-            return '$1,337.88'
-            // return state.assets.reduce((total, asset) => total + asset.usdValue, 0)
+        /**
+         * Calculates the total USD value of all assets in the wallet.
+         */
+        totalUsdValue: (state): number => {
+            return state.assets.reduce((total, asset) => total + asset.usdValue, 0)
         },
+        /**
+         * Finds an asset by its ticker symbol.
+         */
         getAssetByTicker: (state) => {
-            return (ticker: string) => state.assets.find(asset => asset.ticker === ticker)
+            return (ticker: string): Asset | undefined => state.assets.find(asset => asset.ticker === ticker)
         },
     },
 
     actions: {
-        async refreshBalances() {
-            this.isLoading = true
-            // In a real app, you would call your backend here to get fresh data
-            // For example: const freshAssets = await invoke('get_wallet_balances');
-            // this.assets = freshAssets;
-            console.log('Refreshing balances...')
+        /**
+         * Populates the store with mock data for development.
+         */
+        initializeMockData() {
+            this.user = {
+                name: 'BetaTesterExtraordinaire',
+                address: 'v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5',
+            }
 
-            setTimeout(() => { // Simulating a network delay
-                this.isLoading = false
-                console.log('Balances refreshed.')
-            }, 1000)
+            this.assets = [
+                { ticker: 'DASH', name: 'Dash Credits', amount: 112.55, usdValue: 2750.00 },
+                { ticker: 'SANS', name: 'Sansnote', amount: 1337.88, usdValue: 28.64 },
+                { ticker: 'DUSD', name: 'Dash USD', amount: 1100.67, usdValue: 1100.67 },
+            ]
+
+            this.transactions = [
+                { id: 'tx1', type: 'sent', title: 'Sent DASH', subtitle: 'To: EWSqsaghuw...AkJWRTpY', amount: '-0.1 DASH', status: 'Completed' },
+                { id: 'tx2', type: 'received', title: 'Received DUSD', subtitle: 'From: 6Eb4tQdp24...cj1m87sj', amount: '+500.00 DUSD', status: 'Completed' },
+                { id: 'tx3', type: 'swap', title: 'Swap DASH to DUSD', subtitle: 'DashSwap Router', amount: '1.025 DASH', status: 'Pending...' },
+            ]
+
+            this.balanceChange = {
+                isPositive: true,
+                percent: 1.25,
+                amount: 152.34,
+            }
         },
 
-        async wasmTest() {
-            /* Initialize WASM module. */
-            await init()
-
-            /* Pre-fretch trusted quorums. */
-            await prefetch_trusted_quorums_mainnet()
-
-            /* Initialize SDK. */
-            const sdk = await WasmSdkBuilder
-                .new_mainnet_trusted()
-                .build()
-
-            const username = 'shomari'
-
-            /* Resolve username. */
-            const identityid = await dpns_resolve_name(sdk, username)
-                .catch(err => {
-                    console.error(err)
-                    console.error('NAME NOT FOUND!!')
-                })
-console.log('GET IDENTITY (response)', identityid)
-        }
-
+        async refreshBalances() {
+            this.isLoading = true
+            console.log('Refreshing balances...')
+            // In a real app, you would fetch fresh data here
+            await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate network delay
+            this.isLoading = false
+            console.log('Balances refreshed.')
+        },
     },
 })
