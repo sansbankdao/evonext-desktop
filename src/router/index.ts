@@ -20,7 +20,11 @@ import Posts from '../screens/Posts.vue'
 import Settings from '../screens/Settings.vue'
 import Stakehouse from '../screens/Stakehouse.vue'
 import Studio from '../screens/Studio.vue'
-import Wallet from '../screens/Wallet.vue'
+
+import WalletOverview from '../screens/wallet/Overview.vue'
+import WalletReceive from '../screens/wallet/Receive.vue'
+import WalletSend from '../screens/wallet/Send.vue'
+import WalletSwap from '../screens/wallet/Swap.vue'
 
 /* Set Premium SANS Identity flag. */
 // NOTE: FIVE HUNDRED (500) STAKED SANS IS REQUIRED
@@ -47,7 +51,11 @@ const routes = [
             { path: 'posts', component: Posts },
             { path: 'settings', component: Settings },
             { path: 'studio', component: Studio },
-            { path: 'wallet', component: Wallet },
+
+            { path: 'wallet', component: WalletOverview },
+            { path: 'wallet/receive', component: WalletReceive },
+            { path: 'wallet/send', component: WalletSend },
+            { path: 'wallet/swap', component: WalletSwap },
 
             { path: 'connect', component: Connect },
             { path: 'disconnect', component: Connect },

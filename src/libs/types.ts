@@ -1,3 +1,5 @@
+// src/libs/types.ts
+
 /* Import types. */
 import { GasFeesPaidByWASM } from 'pshenmic-dpp'
 

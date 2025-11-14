@@ -41,6 +41,9 @@ importers:
       pshenmic-dpp:
         specifier: 1.1.0-dev.7
         version: 1.1.0-dev.7
+      qrcode.vue:
+        specifier: 3.6.0
+        version: 3.6.0(vue@3.5.22(typescript@5.6.3))
       vue:
         specifier: 3.5.22
         version: 3.5.22(typescript@5.6.3)
@@ -1181,6 +1184,11 @@ packages:
 
   pshenmic-dpp@1.1.0-dev.7:
     resolution: {integrity: sha512-99Hdy48OE2T+dZjp2XscHS+59RA82fqpJub53APuONO51xHwFsP9tWWAd/0vB3TW3jwEJUnVjkgPrbyuOOhlKw==}
+
+  qrcode.vue@3.6.0:
+    resolution: {integrity: sha512-vQcl2fyHYHMjDO1GguCldJxepq2izQjBkDEEu9NENgfVKP6mv/e2SU62WbqYHGwTgWXLhxZ1NCD1dAZKHQq1fg==}
+    peerDependencies:
+      vue: ^3.0.0
 
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
@@ -2398,6 +2406,10 @@ snapshots:
   pshenmic-dpp@1.1.0-dev.7:
     dependencies:
       fflate: 0.8.2
+
+  qrcode.vue@3.6.0(vue@3.5.22(typescript@5.6.3)):
+    dependencies:
+      vue: 3.5.22(typescript@5.6.3)
 
   queue-microtask@1.2.3: {}
 

@@ -1,3 +1,5 @@
+// src/libs/getMnemonic.ts
+
 /* Import modules. */
 import { invoke } from '@tauri-apps/api/core'
 import { IMnemonic }  from './types.ts'
