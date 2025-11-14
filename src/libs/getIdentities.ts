@@ -1,23 +1,12 @@
 /* Import modules. */
-// import { getPrivateKeys, getPublicKeys } from './wallet-manager'
-// import { wasmSdkService } from '@/lib/services/wasm-sdk-service'
-// import { WasmSdkBuilder } from './dash/wasm_sdk'
 import init, {
     WasmSdkBuilder,
-    // identity_fetch,
-    // dpns_resolve_name,
-    // get_dpns_usernames,
-    // get_documents,
-    // get_identity_token_balances,
     prefetch_trusted_quorums_mainnet,
     prefetch_trusted_quorums_testnet,
 } from '@/libs/dash/wasm_sdk.js'
 
 import getPrivateKeys from './getPrivateKeys'
-// import getPublicKeys from './getPublicKeys'
 import {
-    // dpns_is_contested_username,
-    // dpns_register_name,
     get_identity_by_public_key_hash,
     get_identity_by_non_unique_public_key_hash,
 } from './dash/wasm_sdk'
@@ -26,7 +15,6 @@ import { IIdentity, IPublicKey } from './types'
 import { hash160 } from '@nexajs/crypto'
  // @ts-ignore
 import { binToHex, hexToBin } from '@nexajs/utils'
-
 
 /* Initialize constants. */
 const MIN_INDEX_SEARCH = 3
@@ -98,6 +86,8 @@ export default async (_network: string): Promise<IIdentity[] | null> => {
                     }
                 }),
             })
+
+            break // exit for-loop
         }
 
         /* Request query by Secp256k1. */
@@ -123,6 +113,8 @@ export default async (_network: string): Promise<IIdentity[] | null> => {
                     }
                 }),
             })
+
+            break // exit for-loop
         }
     }
 

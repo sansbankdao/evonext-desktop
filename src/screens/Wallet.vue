@@ -302,23 +302,15 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
-// import { useRouter } from 'vue-router'
 
-import init, {
-    WasmSdkBuilder,
-    // identity_fetch,
-    dpns_resolve_name,
-    // get_dpns_usernames,
-    // get_documents,
-    // get_identity_token_balances,
-    prefetch_trusted_quorums_mainnet,
-} from '@/libs/dash/wasm_sdk.js'
+import { GasFeesPaidByWASM, KeyType, Purpose, SecurityLevel, PrivateKeyWASM } from 'pshenmic-dpp'
+import { DashPlatformSDK,  } from 'dash-platform-sdk'
 
-import { DashPlatformSDK } from 'dash-platform-sdk'
-// import { GasFeesPaidByWASM, PrivateKeyWASM } from 'pshenmic-dpp'
+import getMnemonic from '@/libs/getMnemonic'
+import getTransferKey from '@/libs/getTransferKey'
 
-/* Initialize app router. */
-// const router = useRouter()
+import sendCredit from '@/libs/sendCredit'
+// import sendToken from '@/libs/sendToken'
 
 import { useWalletStore } from '@/stores/wallet'
 const Wallet = useWalletStore()
@@ -328,49 +320,82 @@ const TOP_LEVEL_DOMAIN = '.dash'
 
 const greeting = ref()
 
-const startup = async () => {
-    greeting.value = 'hi there'
-
-    /* Request an Identity. */
-    /* Initialize WASM module. */
-    await init()
-
-    /* Pre-fretch trusted quorums. */
-    await prefetch_trusted_quorums_mainnet()
-
-    /* Initialize SDK. */
-    const sdk = await WasmSdkBuilder
-        .new_mainnet_trusted()
-        .build()
-
-    const username = 'shomari'
-
-    /* Resolve username. */
-    const identityid = await dpns_resolve_name(sdk, username)
-        .catch(err => {
-            console.error(err)
-            console.error('NAME NOT FOUND!!')
-        })
-
-console.log('GET IDENTITY (response)', identityid)
-}
-
 const send = async () => {
     console.log('SENDING ASSETS...')
 
-    const sdk = new DashPlatformSDK({ network: 'testnet' })
+    const transferKey = await getTransferKey('testnet', 0)
+console.log('TRANSFER KEY', transferKey)
 
-    const myUsername = 'tranquil-untaken-sultry'
+    const identityid = 'ADtgYG2MHikwv4UiZeY8faUsEkH1YDjEnJFhGbuXLfFB'
+    const receiver = 'v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5'
+    const credits = BigInt(1337000000)
+    const result = await sendCredit('testnet', identityid, 1, receiver, credits)
+console.log('SEND CREDIT (result)', result)
 
-    const label = myUsername + TOP_LEVEL_DOMAIN
-    console.log('\nLABEL', label)
-    const normalized = sdk.utils.convertToHomographSafeChars(label)
-    console.log('\nNORMALIZED', normalized)
+//     const sdk = new DashPlatformSDK({ network: 'testnet' })
+
+//     const ownerIdentifier = 'ADtgYG2MHikwv4UiZeY8faUsEkH1YDjEnJFhGbuXLfFB' // identifier of your identity
+//     const identityNonce = (await sdk.identities.getIdentityNonce(ownerIdentifier)) + 1n // nonce
+// console.log('IDENTITY NONCE', identityNonce)
+
+//     const myUsername = 'tranquil-untaken-sultry'
+
+//     const label = myUsername + TOP_LEVEL_DOMAIN
+//     console.log('\nLABEL', label)
+//     const normalized = sdk.utils.convertToHomographSafeChars(label)
+//     console.log('\nNORMALIZED', normalized)
+
+//     const mnemonic = await getMnemonic()
+// console.log('MNEMONIC IS', mnemonic)
+
+//     const schema = {
+//         note: {
+//             type: 'object',
+//             properties: {
+//                 message: {
+//                     type: 'string',
+//                     position: 0
+//                 }
+//             },
+//             additionalProperties: false
+//         }
+//     }
+
+//     const dataContract = await sdk.dataContracts.create(
+//         ownerIdentifier,
+//         identityNonce,
+//         schema,
+//     )
+
+//     const stateTransition = await sdk.dataContracts.createStateTransition(
+//         dataContract,
+//         'create',
+//         identityNonce
+//     )
+
+//     const identity = await sdk.identities.getIdentityByIdentifier(ownerIdentifier)
+//     const identityPublicKeys = identity.getPublicKeys()
+
+//     const privKey = PrivateKeyWASM.fromWIF(AUTH_WIF)
+//     const publicKeyId = 1 // 01 => Authentication (Critical)
+//     const pubKey = identityPublicKeys[publicKeyId]
+//     stateTransition.sign(privKey, pubKey)
+// console.log('STATE TRANSITION', stateTransition)
+
+//     // Broadcast in the network
+//     await sdk.stateTransitions.broadcast(stateTransition)
+
+//     const result = await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+// console.log('STATE TRANSITION RESULT', result)
+// console.log('STATE TRANSITION', stateTransition)
+// console.log('STATE TRANSITION (hash null)', stateTransition.hash())
+// console.log('STATE TRANSITION (hash true)', stateTransition.hash(true))
+
 }
 
 // 2. Set up the listener when the component is mounted
 onMounted(async () => {
-    startup()
+    // startup()
 })
 
 // 4. Clean up the listener when the component is unmounted

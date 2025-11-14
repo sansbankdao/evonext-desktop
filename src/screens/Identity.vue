@@ -109,9 +109,8 @@
 import { onMounted, onUnmounted, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 
+import getIdentities from '@/libs/getIdentities'
 import getMnemonic from '@/libs/getMnemonic'
-import sendCredit from '@/libs/sendCredit'
-// import sendToken from '@/libs/sendToken'
 
 // Define the TypeScript interface for an Identity
 interface Identity {
@@ -178,12 +177,19 @@ const copyToClipboard = (text: string) => {
 
 const init = async () => {
     try {
+        /* Request mnemonic. */
+//         const mnemonic = await invoke<IPrivateKey | null>('load_mnemonic')
+// console.log('PRIVATE KEY (store)', privateKeyStore)
+        const mnemonic = await getMnemonic()
+console.log('MNEMONIC IS', mnemonic)
+
+    const identities = await getIdentities('testnet')
+console.log('IDENTITIES', identities)
+
+return
         /* Request private key. */
         const privateKeyStore = await invoke<IPrivateKey | null>('load_private_key')
 console.log('PRIVATE KEY (store)', privateKeyStore)
-
-        const mnemonic = await getMnemonic()
-console.log('MNEMONIC IS', mnemonic)
 
         /* Validate authentication. */
         if (privateKeyStore) {

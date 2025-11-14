@@ -1,5 +1,15 @@
 // src/stores/wallet.ts
-import { defineStore } from 'pinia';
+import { defineStore } from 'pinia'
+
+import init, {
+    WasmSdkBuilder,
+    // identity_fetch,
+    dpns_resolve_name,
+    // get_dpns_usernames,
+    // get_documents,
+    // get_identity_token_balances,
+    prefetch_trusted_quorums_mainnet,
+} from '@/libs/dash/wasm_sdk.js'
 
 // Define the structure of a single asset
 interface Asset {
@@ -72,5 +82,29 @@ export const useWalletStore = defineStore('wallet', {
                 console.log('Balances refreshed.')
             }, 1000)
         },
+
+        async wasmTest() {
+            /* Initialize WASM module. */
+            await init()
+
+            /* Pre-fretch trusted quorums. */
+            await prefetch_trusted_quorums_mainnet()
+
+            /* Initialize SDK. */
+            const sdk = await WasmSdkBuilder
+                .new_mainnet_trusted()
+                .build()
+
+            const username = 'shomari'
+
+            /* Resolve username. */
+            const identityid = await dpns_resolve_name(sdk, username)
+                .catch(err => {
+                    console.error(err)
+                    console.error('NAME NOT FOUND!!')
+                })
+console.log('GET IDENTITY (response)', identityid)
+        }
+
     },
 })
