@@ -163,3 +163,34 @@ export interface IUser {
     joinedAt: Date;
     revision: number;
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+export interface IUser2 {
+    name: string
+    address: string
+}
+
+export interface IAsset {
+    ticker: string
+    name: string
+    amount: number
+    usdValue: number
+}
+
+export interface ITransaction {
+    id: string
+    type: 'sent' | 'received' | 'swap'
+    title: string
+    subtitle: string
+    amount: string // Formatted amount with +/- and ticker
+    status: 'Completed' | 'Pending...' | 'Failed'
+}
+
+export interface IBalanceChange {
+    isPositive: boolean
+    percent: number
+    amount: number
+}

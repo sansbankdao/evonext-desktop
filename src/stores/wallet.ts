@@ -12,47 +12,18 @@ import init, {
 } from '@/libs/dash/wasm_sdk.js'
 
 // In a real app, you would import these from a shared types file
-// e.g., import { User, Asset, Transaction, BalanceChange } from '@/types'
+import { IUser2, IAsset, ITransaction, IBalanceChange } from '@/libs/types'
 
-// ### Data Structures ###
-
-interface User {
-    name: string
-    address: string
-}
-
-interface Asset {
-    ticker: string
-    name: string
-    amount: number
-    usdValue: number
-}
-
-interface Transaction {
-    id: string
-    type: 'sent' | 'received' | 'swap'
-    title: string
-    subtitle: string
-    amount: string // Formatted amount with +/- and ticker
-    status: 'Completed' | 'Pending...' | 'Failed'
-}
-
-interface BalanceChange {
-    isPositive: boolean
-    percent: number
-    amount: number
-}
-
-interface WalletState {
-    user: User | null
-    assets: Asset[]
-    transactions: Transaction[]
-    balanceChange: BalanceChange | null
+interface IWalletState {
+    user: IUser2 | null
+    assets: IAsset[]
+    transactions: ITransaction[]
+    balanceChange: IBalanceChange | null
     isLoading: boolean
 }
 
 export const useWalletStore = defineStore('wallet', {
-    state: (): WalletState => ({
+    state: (): IWalletState => ({
         user: null,
         assets: [],
         transactions: [],
@@ -71,7 +42,7 @@ export const useWalletStore = defineStore('wallet', {
          * Finds an asset by its ticker symbol.
          */
         getAssetByTicker: (state) => {
-            return (ticker: string): Asset | undefined => state.assets.find(asset => asset.ticker === ticker)
+            return (ticker: string): IAsset | undefined => state.assets.find(asset => asset.ticker === ticker)
         },
     },
 
