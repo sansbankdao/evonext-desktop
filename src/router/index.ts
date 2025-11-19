@@ -22,14 +22,14 @@ import Stakehouse from '../screens/Stakehouse.vue'
 import Studio from '../screens/Studio.vue'
 
 import WalletOverview from '../screens/wallet/Overview.vue'
-import WalletReceive from '../screens/wallet/Receive.vue'
+import WalletDeposit from '../screens/wallet/Deposit.vue'
 import WalletSend from '../screens/wallet/Send.vue'
 import WalletSwap from '../screens/wallet/Swap.vue'
 
 /* Set Premium SANS Identity flag. */
 // NOTE: FIVE HUNDRED (500) STAKED SANS IS REQUIRED
 //       to unlock early access to PREMIUM features.
-const PREMIUM_SANS_IDENTITY = false
+const PREMIUM_SANS_IDENTITY = true
 
 /* Initialize routes. */
 const routes = [
@@ -53,7 +53,7 @@ const routes = [
             { path: 'studio', component: Studio },
 
             { path: 'wallet', component: WalletOverview },
-            { path: 'wallet/receive', component: WalletReceive },
+            { path: 'wallet/deposit', component: WalletDeposit },
             { path: 'wallet/send', component: WalletSend },
             { path: 'wallet/swap', component: WalletSwap },
 

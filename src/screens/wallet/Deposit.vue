@@ -1,9 +1,9 @@
-<!-- src/screens/Receive.vue -->
+<!-- src/screens/Deposit.vue -->
 <template>
     <main class="max-w-md mx-auto">
         <header class="flex items-center justify-between mb-8">
             <h1 class="text-3xl font-bold text-white">
-                Receive Assets
+                Deposit Assets
             </h1>
 
             <button @click="router.back()" class="text-slate-400 hover:text-white transition-colors">
