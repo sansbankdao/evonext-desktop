@@ -131,30 +131,40 @@
                                     type="text"
                                     autocomplete="off"
                                     spellcheck="false"
-                                    :placeholder="index + 1"
+                                    :placeholder="(index + 1).toString()"
                                     class="w-full bg-slate-900/50 border border-slate-700/50 rounded-lg pt-8 pb-2 px-3 text-center text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:bg-slate-900 transition-all duration-200 font-mono text-sm tracking-wide"
                                 >
                             </div>
                         </div>
                     </div>
 
-                    <!-- PRIVATE KEYS FORM (updated placeholders for WIF/HEX support) -->
+                    <!-- PRIVATE KEYS FORM (updated label and divider) -->
                     <div v-if="connectionMethod === 'privateKey'" class="space-y-6">
                         <div>
                             <label for="identityId" class="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
                                 <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                 </svg>
-                                Identity ID
+                                Username or Identity ID
                             </label>
                             <input
                                 id="identityId"
                                 type="text"
                                 v-model="identityId"
-                                placeholder="e.g., 5DbLwAxGBzUzo81VewMUwn4b5P4bpv9FNFybi25XB5Bk"
+                                placeholder="e.g., username.dash or 5DbLwAxGBzUzo81VewMUwn4b5P4bpv9FNFybi25XB5Bk"
                                 class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:bg-slate-900 transition-all duration-200 font-mono text-sm"
                                 required
                             />
+                        </div>
+
+                        <!-- Divider Separator (updated label) -->
+                        <div class="relative">
+                            <div class="absolute inset-0 flex items-center">
+                                <div class="w-full border-t border-slate-700/50"></div>
+                            </div>
+                            <div class="relative flex justify-center text-xs">
+                                <span class="px-3 bg-slate-800/80 text-slate-400">Platform Private Keys</span>
+                            </div>
                         </div>
 
                         <div class="space-y-4">
@@ -211,12 +221,12 @@
                         </div>
                     </div>
 
-                    <!-- Helper Text for Private Keys (new addition) -->
+                    <!-- Helper Text for Private Keys (unchanged) -->
                     <div v-if="connectionMethod === 'privateKey'" class="text-xs text-slate-500 text-center italic p-3 bg-slate-900/50 rounded-lg">
                         <svg class="w-4 h-4 inline mr-1 -ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        At least one key is required. The backend will handle WIF (compressed/uncompressed) or raw HEX private keys (64 hex characters). Empty fields will be ignored.
+                        Username will be resolved to Identity ID via DPNS (if valid). At least one key is required. WIF (compressed/uncompressed) or raw HEX private keys are supported.
                     </div>
 
                     <!-- Error Message Display (unchanged) -->
@@ -265,7 +275,7 @@ const wordCount = ref<'12' | '24'>('12')
 const seedWords = reactive<string[]>(Array(12).fill(''))
 
 /* Initialize local handlers. */
-const identityId = ref('')
+const identityId = ref('') // Username or Identity ID
 const authKey = ref('') // Authorization Key (WIF or HEX)
 const transferKey = ref('') // Transfer Key (WIF or HEX)
 const encryptionKey = ref('') // Encryption Key (WIF or HEX)
@@ -303,12 +313,12 @@ watch(wordCount, (newCount) => {
 
 // A computed property to check if all inputs are filled, used to disable the button.
 // For seed: All words must be filled.
-// For private keys: Identity ID + at least one key (WIF or HEX) non-empty.
+// For private keys: Identity ID (username or ID) + at least one key (WIF or HEX) non-empty.
 const isFormValid = computed(() => {
     if (connectionMethod.value === 'seed') {
         return seedWords.every(word => word.trim() !== '')
     } else {
-        // Trim to check non-empty; no format validation in UI (backend handles WIF/HEX parsing)
+        // Trim to check non-empty; no format validation in UI (backend handles username resolution and WIF/HEX parsing)
         return identityId.value.trim() !== '' &&
                (authKey.value.trim() !== '' || transferKey.value.trim() !== '' || encryptionKey.value.trim() !== '')
     }
@@ -338,17 +348,17 @@ const connect = async () => {
             /* Save mnemonic. */
             await invoke('save_mnemonic', { payload })
         } else { // privateKey
-            console.log(`Attempting to connect with private keys (WIF or HEX).`)
-            /* Set payload with all three keys (empty strings if not provided). */
-            /* Backend should parse WIF (if starts with cN/Kw/KL) or accept raw HEX (64 chars). */
+            console.log(`Attempting to connect with private keys (username/ID + WIF or HEX).`)
+            /* Set payload with all three keys (empty strings if not provided). Backend resolves username to ID if needed. */
+            /* Backend should check: If username (e.g., "user.dash") → Use dpns_resolve_name; else treat as ID. */
             payload = {
-                identity_id: identityId.value.trim(),
+                identity: identityId.value.trim(), // Renamed from 'identity_id' to 'identity' for username/ID support
                 auth_key: authKey.value.trim(), // Authorization Key (WIF or HEX)
                 transfer_key: transferKey.value.trim(), // Transfer Key (WIF or HEX)
                 encryption_key: encryptionKey.value.trim() // Encryption Key (WIF or HEX)
             }
 
-            /* Save private keys (backend handles format: WIF decode or HEX as-is). */
+            /* Save private keys (backend handles username resolution, WIF decode or HEX). */
             await invoke('save_private_keys', { payload })
         }
 
@@ -357,7 +367,7 @@ const connect = async () => {
         router.push('/') // Navigate to home after success
     } catch (err: any) {
         console.error('Connection failed:', err)
-        error.value = typeof err === 'string' ? err : 'An unknown error occurred. Check key formats (WIF or 64-char HEX).'
+        error.value = typeof err === 'string' ? err : 'An unknown error occurred. Check formats (username.dash or ID; WIF or 64-char HEX).'
     } finally {
         isLoading.value = false
     }
