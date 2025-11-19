@@ -48,7 +48,7 @@
                     </p>
                 </div>
 
-                <!-- Connection Method Tabs (updated label for private keys) -->
+                <!-- Connection Method Tabs (unchanged) -->
                 <div class="bg-slate-800/80 backdrop-blur-sm p-1 rounded-lg border border-slate-700 flex">
                     <button
                         @click="connectionMethod = 'seed'"
@@ -138,7 +138,7 @@
                         </div>
                     </div>
 
-                    <!-- PRIVATE KEYS FORM (updated with three inputs) -->
+                    <!-- PRIVATE KEYS FORM (updated placeholders for WIF/HEX support) -->
                     <div v-if="connectionMethod === 'privateKey'" class="space-y-6">
                         <div>
                             <label for="identityId" class="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
@@ -163,13 +163,14 @@
                                     <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.413a2.7 2.7 0 001.946-.661 2.7 2.7 0 014.438 0 2.7 2.7 0 001.946.661 2.7 2.7 0 012.611 2.611v3.686a2.7 2.7 0 002.611 2.611h2.064a2.7 2.7 0 001.946.661 2.704 2.704 0 01.682 2.15 2.7 2.7 0 00.661 2.146 2.7 2.7 0 000 3.806 2.7 2.7 0 00-.661 2.146 2.7 2.7 0 01-.946 1.946 2.7 2.7 0 01-2.146.682 2.7 2.7 0 01-1.946-.661V23a2.7 2.7 0 01-2.611-2.611H4.413a2.7 2.7 0 01-2.611-2.611 2.7 2.7 0 00-.661-1.946 2.7 2.7 0 010-3.806 2.7 2.7 0 00.661-2.146 2.7 2.7 0 01.946-1.946 2.7 2.7 0 012.146-.682h3.686z" />
                                     </svg>
-                                    Authorization Key (WIF)
+                                    Authorization Key (WIF or HEX)
                                 </label>
+                                <p class="text-xs text-slate-500 mb-2">Enter as WIF (starts with cN/Kw) or raw HEX (64 characters).</p>
                                 <input
                                     id="authKey"
                                     type="password"
                                     v-model="authKey"
-                                    placeholder="e.g., cN... (Authorization Private Key)"
+                                    placeholder="e.g., cN... (WIF) or a1b2c3d4... (HEX)"
                                     class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:bg-slate-900 transition-all duration-200 font-mono text-sm"
                                 />
                             </div>
@@ -179,13 +180,14 @@
                                     <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    Transfer Key (WIF)
+                                    Transfer Key (WIF or HEX)
                                 </label>
+                                <p class="text-xs text-slate-500 mb-2">Enter as WIF (starts with cN/Kw) or raw HEX (64 characters).</p>
                                 <input
                                     id="transferKey"
                                     type="password"
                                     v-model="transferKey"
-                                    placeholder="e.g., cN... (Transfer Private Key)"
+                                    placeholder="e.g., cN... (WIF) or a1b2c3d4... (HEX)"
                                     class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:bg-slate-900 transition-all duration-200 font-mono text-sm"
                                 />
                             </div>
@@ -195,17 +197,26 @@
                                     <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2h10a2 2 0 012 2v2m0 0V9a2 2 0 00-2-2M5 11a2 2 0 012-2h10a2 2 0 012 2" />
                                     </svg>
-                                    Encryption Key (WIF)
+                                    Encryption Key (WIF or HEX)
                                 </label>
+                                <p class="text-xs text-slate-500 mb-2">Enter as WIF (starts with cN/Kw) or raw HEX (64 characters).</p>
                                 <input
                                     id="encryptionKey"
                                     type="password"
                                     v-model="encryptionKey"
-                                    placeholder="e.g., cN... (Encryption Private Key)"
+                                    placeholder="e.g., cN... (WIF) or a1b2c3d4... (HEX)"
                                     class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:bg-slate-900 transition-all duration-200 font-mono text-sm"
                                 />
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Helper Text for Private Keys (new addition) -->
+                    <div v-if="connectionMethod === 'privateKey'" class="text-xs text-slate-500 text-center italic p-3 bg-slate-900/50 rounded-lg">
+                        <svg class="w-4 h-4 inline mr-1 -ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        At least one key is required. The backend will handle WIF (compressed/uncompressed) or raw HEX private keys (64 hex characters). Empty fields will be ignored.
                     </div>
 
                     <!-- Error Message Display (unchanged) -->
@@ -255,9 +266,9 @@ const seedWords = reactive<string[]>(Array(12).fill(''))
 
 /* Initialize local handlers. */
 const identityId = ref('')
-const authKey = ref('') // Authorization Key
-const transferKey = ref('') // Transfer Key
-const encryptionKey = ref('') // Encryption Key
+const authKey = ref('') // Authorization Key (WIF or HEX)
+const transferKey = ref('') // Transfer Key (WIF or HEX)
+const encryptionKey = ref('') // Encryption Key (WIF or HEX)
 
 // State for loading and error feedback
 const isLoading = ref(false)
@@ -292,12 +303,14 @@ watch(wordCount, (newCount) => {
 
 // A computed property to check if all inputs are filled, used to disable the button.
 // For seed: All words must be filled.
-// For private keys: Any one of the three keys must be entered (per request).
+// For private keys: Identity ID + at least one key (WIF or HEX) non-empty.
 const isFormValid = computed(() => {
     if (connectionMethod.value === 'seed') {
         return seedWords.every(word => word.trim() !== '')
     } else {
-        return identityId.value.trim() !== '' && (authKey.value.trim() !== '' || transferKey.value.trim() !== '' || encryptionKey.value.trim() !== '')
+        // Trim to check non-empty; no format validation in UI (backend handles WIF/HEX parsing)
+        return identityId.value.trim() !== '' &&
+               (authKey.value.trim() !== '' || transferKey.value.trim() !== '' || encryptionKey.value.trim() !== '')
     }
 })
 
@@ -325,17 +338,18 @@ const connect = async () => {
             /* Save mnemonic. */
             await invoke('save_mnemonic', { payload })
         } else { // privateKey
-            console.log(`Attempting to connect with private keys.`)
-            /* Set payload with all three keys. */
+            console.log(`Attempting to connect with private keys (WIF or HEX).`)
+            /* Set payload with all three keys (empty strings if not provided). */
+            /* Backend should parse WIF (if starts with cN/Kw/KL) or accept raw HEX (64 chars). */
             payload = {
-                identity_id: identityId.value,
-                auth_key: authKey.value, // Authorization Key
-                transfer_key: transferKey.value, // Transfer Key
-                encryption_key: encryptionKey.value // Encryption Key
+                identity_id: identityId.value.trim(),
+                auth_key: authKey.value.trim(), // Authorization Key (WIF or HEX)
+                transfer_key: transferKey.value.trim(), // Transfer Key (WIF or HEX)
+                encryption_key: encryptionKey.value.trim() // Encryption Key (WIF or HEX)
             }
 
-            /* Save private keys (updated invoke; adjust Tauri backend as needed). */
-            await invoke('save_private_keys', { payload }) // Changed to plural; was 'save_private_key'
+            /* Save private keys (backend handles format: WIF decode or HEX as-is). */
+            await invoke('save_private_keys', { payload })
         }
 
         alert('Connection Successful! Navigating to home screen...')
@@ -343,7 +357,7 @@ const connect = async () => {
         router.push('/') // Navigate to home after success
     } catch (err: any) {
         console.error('Connection failed:', err)
-        error.value = typeof err === 'string' ? err : 'An unknown error occurred.'
+        error.value = typeof err === 'string' ? err : 'An unknown error occurred. Check key formats (WIF or 64-char HEX).'
     } finally {
         isLoading.value = false
     }
