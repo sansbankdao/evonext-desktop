@@ -33,7 +33,7 @@
             </div>
         </header>
 
-        <!-- Balance Card & Actions (unchanged) -->
+        <!-- Balance Card & Actions -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div class="lg:col-span-2 bg-gradient-to-br from-slate-800/90 to-slate-900/50 backdrop-blur-sm p-6 rounded-xl shadow-xl border border-slate-700">
                 <div class="flex justify-between items-start mb-4">
@@ -68,21 +68,21 @@
                 </div>
 
                 <div class="flex flex-col sm:flex-row gap-3">
-                    <button @click="router.push('/wallet/deposit')" class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-green-500 text-white font-semibold py-3 px-4 rounded-lg hover:from-green-500 hover:to-green-400 transition-all shadow-lg hover:shadow-green-500/25">
+                    <button @click="router.push('/wallet/deposit')" class="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-green-500 text-white font-semibold py-3 px-4 rounded-lg hover:from-green-500 hover:to-green-400 transition-all shadow-lg hover:shadow-green-500/25">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <span>Deposit</span>
                     </button>
 
-                    <button @click="router.push('/wallet/send')" class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-lg hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg hover:shadow-indigo-500/25 flex-1 sm:flex-none">
+                    <button @click="router.push('/wallet/send')" class="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-lg hover:from-indigo-500 hover:to-purple-500 transition-all shadow-lg hover:shadow-indigo-500/25">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                         </svg>
                         <span>Send</span>
                     </button>
 
-                    <button @click="router.push('/wallet/swap')" class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-600 to-amber-500 text-white font-semibold py-3 px-4 rounded-lg hover:from-amber-500 hover:to-amber-400 transition-all shadow-lg hover:shadow-amber-500/25 sm:flex-1">
+                    <button @click="router.push('/wallet/swap')" class="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-amber-600 to-amber-500 text-white font-semibold py-3 px-4 rounded-lg hover:from-amber-500 hover:to-amber-400 transition-all shadow-lg hover:shadow-amber-500/25">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                         </svg>
@@ -91,6 +91,7 @@
                 </div>
             </div>
 
+            <!-- Collectibles (unchanged) -->
             <div class="bg-gradient-to-br from-slate-800/90 to-slate-900/50 backdrop-blur-sm p-6 rounded-xl shadow-xl border border-slate-700 flex flex-col justify-center items-center text-center">
                 <div class="w-12 h-12 bg-slate-700/50 rounded-full flex items-center justify-center mb-3">
                     <svg class="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -111,7 +112,7 @@
             </div>
         </div>
 
-        <!-- Assets & Transactions -->
+        <!-- Assets & Transactions (with icon mapping fix) -->
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <!-- Assets List -->
             <div class="bg-slate-800/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-slate-700">
@@ -136,7 +137,7 @@
                             <div class="relative size-12 bg-white/10 rounded-full p-2 flex items-center justify-center border border-slate-600/50 group-hover:scale-105 transition-transform duration-200 ease-in-out">
                                 <img
                                     v-if="assetIconExists(asset.ticker.toLowerCase())"
-                                    :src="`/icons/${asset.ticker.toLowerCase()}.svg`"
+                                    :src="getIconSrc(asset.ticker)"
                                     :alt="asset.ticker"
                                     class="size-8"
                                 />
@@ -163,7 +164,7 @@
                 </div>
             </div>
 
-            <!-- Recent Transactions -->
+            <!-- Recent Transactions (unchanged except icon if needed; no assets here) -->
             <div class="bg-slate-800/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-slate-700">
                 <h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
                     <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -259,10 +260,20 @@ const getStatusClasses = (status: string) => {
     }
 }
 
-// Simple check if icon file exists (in real app, use dynamic imports or asset handling)
+// Updated to handle 'credits' by mapping to 'dash.svg' (or fallback)
+const getIconSrc = (ticker: string) => {
+    const lower = ticker.toLowerCase()
+    if (lower === 'credits') {
+        return '/icons/dash.svg' // Map Dash Credits to DASH icon; adjust if needed
+    }
+    return `/icons/${lower}.svg`
+}
+
 const assetIconExists = (ticker: string) => {
-    // For demo, assume all icons exist; in production, check via webpack or preload
-    return true
+    const lower = ticker.toLowerCase()
+    // Assume common icons exist; return false for unmapped to trigger fallback
+    const commonIcons = ['dash', 'sans', 'dusd']
+    return commonIcons.includes(lower) || lower === 'credits' // 'credits' now mapped, so true
 }
 
 onMounted(() => {
