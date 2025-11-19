@@ -1,7 +1,7 @@
 <!-- src/screens/Connect.vue -->
 <template>
     <main class="min-h-screen bg-slate-900">
-        <!-- Header -->
+        <!-- Header (unchanged) -->
         <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 pb-4 border-b border-slate-700 p-4">
             <div class="flex items-center gap-3">
                 <svg class="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -35,7 +35,7 @@
 
         <section class="flex items-center justify-center min-h-[calc(100vh-120px)] px-4">
             <div class="max-w-2xl w-full mx-auto space-y-8">
-                <!-- Page Header -->
+                <!-- Page Header (unchanged) -->
                 <div class="text-center space-y-3">
                     <h2 class="text-2xl font-bold text-white flex items-center justify-center gap-2 mb-2">
                         <svg class="w-6 h-6 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,7 +48,7 @@
                     </p>
                 </div>
 
-                <!-- Connection Method Tabs -->
+                <!-- Connection Method Tabs (updated label for private keys) -->
                 <div class="bg-slate-800/80 backdrop-blur-sm p-1 rounded-lg border border-slate-700 flex">
                     <button
                         @click="connectionMethod = 'seed'"
@@ -76,11 +76,11 @@
                         <svg v-if="connectionMethod === 'privateKey'" class="w-4 h-4 inline ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743A6 6 0 0110 17v4a2 2 0 012 2H7a2 2 0 01-2-2v-4a6 6 0 01-5.743-5.743A6 6 0 014 11a2 2 0 012-2" />
                         </svg>
-                        <span>Private Key</span>
+                        <span>Private Keys</span>
                     </button>
                 </div>
 
-                <!-- Security Warning -->
+                <!-- Security Warning (unchanged) -->
                 <div class="bg-amber-900/20 border border-amber-800/50 text-amber-300 p-4 rounded-xl flex items-start gap-3 shadow-lg">
                     <svg class="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -93,7 +93,7 @@
 
                 <!-- Form Container -->
                 <form @submit.prevent="connect" class="bg-slate-800/80 backdrop-blur-sm p-6 rounded-xl space-y-6 shadow-lg border border-slate-700">
-                    <!-- SEED PHRASE FORM -->
+                    <!-- SEED PHRASE FORM (unchanged) -->
                     <div v-if="connectionMethod === 'seed'" class="space-y-6">
                         <div>
                             <label class="block text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
@@ -138,7 +138,7 @@
                         </div>
                     </div>
 
-                    <!-- PRIVATE KEY FORM -->
+                    <!-- PRIVATE KEYS FORM (updated with three inputs) -->
                     <div v-if="connectionMethod === 'privateKey'" class="space-y-6">
                         <div>
                             <label for="identityId" class="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
@@ -156,25 +156,59 @@
                                 required
                             />
                         </div>
-                        <div>
-                            <label for="privateKey" class="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
-                                <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743A6 6 0 0110 17v4a2 2 0 012 2H7a2 2 0 01-2-2v-4a6 6 0 01-5.743-5.743A6 6 0 014 11a2 2 0 012-2" />
-                                </svg>
-                                Private Key (WIF)
-                            </label>
-                            <input
-                                id="privateKey"
-                                type="password"
-                                v-model="privateKey"
-                                placeholder="e.g., XK6CFyvYUMvY9FVQLeYBZBF..."
-                                class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:bg-slate-900 transition-all duration-200 font-mono text-sm"
-                                required
-                            />
+
+                        <div class="space-y-4">
+                            <div>
+                                <label for="authKey" class="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.413a2.7 2.7 0 001.946-.661 2.7 2.7 0 014.438 0 2.7 2.7 0 001.946.661 2.7 2.7 0 012.611 2.611v3.686a2.7 2.7 0 002.611 2.611h2.064a2.7 2.7 0 001.946.661 2.704 2.704 0 01.682 2.15 2.7 2.7 0 00.661 2.146 2.7 2.7 0 000 3.806 2.7 2.7 0 00-.661 2.146 2.7 2.7 0 01-.946 1.946 2.7 2.7 0 01-2.146.682 2.7 2.7 0 01-1.946-.661V23a2.7 2.7 0 01-2.611-2.611H4.413a2.7 2.7 0 01-2.611-2.611 2.7 2.7 0 00-.661-1.946 2.7 2.7 0 010-3.806 2.7 2.7 0 00.661-2.146 2.7 2.7 0 01.946-1.946 2.7 2.7 0 012.146-.682h3.686z" />
+                                    </svg>
+                                    Authorization Key (WIF)
+                                </label>
+                                <input
+                                    id="authKey"
+                                    type="password"
+                                    v-model="authKey"
+                                    placeholder="e.g., cN... (Authorization Private Key)"
+                                    class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:bg-slate-900 transition-all duration-200 font-mono text-sm"
+                                />
+                            </div>
+
+                            <div>
+                                <label for="transferKey" class="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Transfer Key (WIF)
+                                </label>
+                                <input
+                                    id="transferKey"
+                                    type="password"
+                                    v-model="transferKey"
+                                    placeholder="e.g., cN... (Transfer Private Key)"
+                                    class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:bg-slate-900 transition-all duration-200 font-mono text-sm"
+                                />
+                            </div>
+
+                            <div>
+                                <label for="encryptionKey" class="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2h10a2 2 0 012 2v2m0 0V9a2 2 0 00-2-2M5 11a2 2 0 012-2h10a2 2 0 012 2" />
+                                    </svg>
+                                    Encryption Key (WIF)
+                                </label>
+                                <input
+                                    id="encryptionKey"
+                                    type="password"
+                                    v-model="encryptionKey"
+                                    placeholder="e.g., cN... (Encryption Private Key)"
+                                    class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:bg-slate-900 transition-all duration-200 font-mono text-sm"
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Error Message Display -->
+                    <!-- Error Message Display (unchanged) -->
                     <div v-if="error" class="bg-red-900/30 border border-red-800/50 text-red-300 p-4 rounded-lg text-sm font-medium text-center shadow-md">
                         <svg class="w-4 h-4 inline mr-2 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -182,7 +216,7 @@
                         {{ error }}
                     </div>
 
-                    <!-- Action Button -->
+                    <!-- Action Button (unchanged) -->
                     <div class="pt-4">
                         <button
                             type="submit"
@@ -219,9 +253,11 @@ const wordCount = ref<'12' | '24'>('12')
 // NOTE: We use `reactive` because we will be changing its size.
 const seedWords = reactive<string[]>(Array(12).fill(''))
 
-/* Initailize local handlers. */
+/* Initialize local handlers. */
 const identityId = ref('')
-const privateKey = ref('')
+const authKey = ref('') // Authorization Key
+const transferKey = ref('') // Transfer Key
+const encryptionKey = ref('') // Encryption Key
 
 // State for loading and error feedback
 const isLoading = ref(false)
@@ -255,8 +291,14 @@ watch(wordCount, (newCount) => {
 })
 
 // A computed property to check if all inputs are filled, used to disable the button.
+// For seed: All words must be filled.
+// For private keys: Any one of the three keys must be entered (per request).
 const isFormValid = computed(() => {
-    return seedWords.every(word => word.trim() !== '') || (identityId.value !== '' && privateKey.value !== '')
+    if (connectionMethod.value === 'seed') {
+        return seedWords.every(word => word.trim() !== '')
+    } else {
+        return identityId.value.trim() !== '' && (authKey.value.trim() !== '' || transferKey.value.trim() !== '' || encryptionKey.value.trim() !== '')
+    }
 })
 
 // The main function to handle the connection process.
@@ -283,15 +325,17 @@ const connect = async () => {
             /* Save mnemonic. */
             await invoke('save_mnemonic', { payload })
         } else { // privateKey
-            console.log(`Attempting to connect with a private key.`)
-            /* Set payload. */
+            console.log(`Attempting to connect with private keys.`)
+            /* Set payload with all three keys. */
             payload = {
                 identity_id: identityId.value,
-                private_key: privateKey.value
+                auth_key: authKey.value, // Authorization Key
+                transfer_key: transferKey.value, // Transfer Key
+                encryption_key: encryptionKey.value // Encryption Key
             }
 
-            /* Save private key. */
-            await invoke('save_private_key', { payload })
+            /* Save private keys (updated invoke; adjust Tauri backend as needed). */
+            await invoke('save_private_keys', { payload }) // Changed to plural; was 'save_private_key'
         }
 
         alert('Connection Successful! Navigating to home screen...')
