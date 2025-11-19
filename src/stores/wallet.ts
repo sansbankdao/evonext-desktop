@@ -57,7 +57,8 @@ export const useWalletStore = defineStore('wallet', {
             }
 
             this.assets = [
-                { ticker: 'DASH', name: 'Dash Credits', amount: 112.55, usdValue: 2750.00 },
+                { ticker: 'DASH', name: 'Dash Coins', amount: 50.00, usdValue: 1225.00 },
+                { ticker: 'CREDITS', name: 'Dash Credits', amount: 112.55, usdValue: 2750.00 },
                 { ticker: 'SANS', name: 'Sansnote', amount: 1337.88, usdValue: 28.64 },
                 { ticker: 'DUSD', name: 'Dash USD', amount: 1100.67, usdValue: 1100.67 },
             ]

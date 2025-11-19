@@ -32,10 +32,10 @@
                 <select
                     id="currency"
                     v-model="selectedCurrency"
-                    class="w-full bg-slate-800/50 border border-slate-600 rounded-lg p-3 text-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:bg-slate-800"
+                    class="w-full bg-slate-700/50 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:bg-slate-700"
                 >
                     <option value="dash-coins">Dash Coins (DASH)</option>
-                    <option value="dash-credits">Dash Credits (DASH)</option>
+                    <option value="dash-credits">Dash Credits (CREDITS)</option>
                     <option value="dusd">Dash USD (DUSD)</option>
                     <option value="sans">Sansnote (SANS)</option>
                 </select>
@@ -148,12 +148,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWalletStore } from '@/stores/wallet'
 import sendCredit from '@/libs/sendCredit'
-// import sendDash from '@/libs/sendDash'
-// import sendToken from '@/libs/sendToken'
+// import sendDash from '@/libs/sendDash' // For native DASH coins
+// import sendToken from '@/libs/sendToken' // For DUSD/SANS
 
 const router = useRouter()
 const Wallet = useWalletStore()
@@ -187,6 +187,13 @@ const setMaxAmount = () => {
     }
 }
 
+// Ensure mock data is initialized if not already done elsewhere in the app
+onMounted(() => {
+    if (!Wallet.user) {
+        Wallet.initializeMockData()
+    }
+})
+
 const handleSend = async () => {
     if (!isFormValid.value || !selectedAsset.value) {
         error.value = 'Please complete the form with valid details.'
@@ -194,7 +201,7 @@ const handleSend = async () => {
     }
 
     // Basic Validation
-    if (amount.value > selectedAsset.value.amount) {
+    if (amount.value! > selectedAsset.value.amount) {
         error.value = 'Insufficient balance for this transaction.'
         return
     }
@@ -205,22 +212,23 @@ const handleSend = async () => {
     try {
         console.log(`Preparing to send ${amount.value} ${selectedAsset.value.ticker} to ${recipient.value} (${selectedCurrency.value})`)
 
-        // Integrate sending logic based on currency
-        if (selectedCurrency.value === 'dash-credits') {
-            if (amount.value) {
-                const credits = BigInt(Math.floor(amount.value * 1000000000)) // Example conversion
-                const identityId = Wallet.user.address // The sender's identity
+        // Integrate sending logic based on currency/ticker
+        if (selectedAsset.value.ticker === 'CREDITS' && amount.value) {
+            // Send Dash Credits using the platform SDK
+            const credits = BigInt(Math.floor(amount.value * 1000000000)) // Example conversion (adjust based on actual units)
+            const identityId = Wallet.user?.address // The sender's identity
+            if (identityId) {
                 const result = await sendCredit('testnet', identityId, 1, recipient.value, credits)
                 console.log('Send Credit Result:', result)
             }
-        } else if (selectedCurrency.value === 'dash-coins') {
+        } else if (selectedAsset.value.ticker === 'DASH') {
             // TODO: Implement sendDash for native DASH coins
-            // e.g., const result = await sendDash('testnet', Wallet.user.address, recipient.value, amount.value * 1e8)
+            // e.g., const result = await sendDash('testnet', Wallet.user?.address!, recipient.value, amount.value! * 1e8) // Satoshis conversion
             console.log('Dash coins sending logic pending implementation.')
             await new Promise(resolve => setTimeout(resolve, 2000)) // Simulate network delay
         } else {
             // TODO: Implement sendToken for DUSD/SANS
-            // e.g., await sendToken(selectedAsset.value.ticker, amount.value, recipient.value)
+            // e.g., await sendToken(selectedAsset.value.ticker, amount.value!, recipient.value)
             console.log(`${selectedAsset.value.ticker} token sending logic pending implementation.`)
             await new Promise(resolve => setTimeout(resolve, 2000)) // Simulate network delay
         }
