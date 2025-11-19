@@ -25,6 +25,8 @@ import WalletOverview from '../screens/wallet/Overview.vue'
 import WalletDeposit from '../screens/wallet/Deposit.vue'
 import WalletSend from '../screens/wallet/Send.vue'
 import WalletSwap from '../screens/wallet/Swap.vue'
+import WalletAssetDetails from '../screens/wallet/AssetDetails.vue'
+import WalletTransactionDetails from '../screens/wallet/TransactionDetails.vue'
 
 /* Set Premium SANS Identity flag. */
 // NOTE: FIVE HUNDRED (500) STAKED SANS IS REQUIRED
@@ -56,6 +58,8 @@ const routes = [
             { path: 'wallet/deposit', component: WalletDeposit },
             { path: 'wallet/send', component: WalletSend },
             { path: 'wallet/swap', component: WalletSwap },
+            { path: 'wallet/asset/:ticker', component: WalletAssetDetails },
+            { path: 'wallet/transaction/:id', component: WalletTransactionDetails },
 
             { path: 'connect', component: Connect },
             { path: 'disconnect', component: Connect },
