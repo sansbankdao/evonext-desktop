@@ -11,7 +11,6 @@
                     Connect to Dash
                 </h1>
             </div>
-
             <div class="flex items-center gap-3 bg-slate-800/80 backdrop-blur-sm p-3 rounded-lg border border-slate-700 w-full sm:w-auto mt-4 sm:mt-0">
                 <div class="flex-grow flex flex-col overflow-hidden">
                     <span class="text-cyan-100 text-base font-semibold px-2 tracking-wide truncate">
@@ -21,7 +20,6 @@
                         v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5
                     </span>
                 </div>
-
                 <button @click="copyAddress" class="p-2 rounded-md hover:bg-slate-700/50 transition-colors flex-shrink-0 relative">
                     <svg v-if="!isCopied" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -32,7 +30,6 @@
                 </button>
             </div>
         </header>
-
         <section class="flex items-center justify-center min-h-[calc(100vh-120px)] px-4">
             <div class="max-w-2xl w-full mx-auto space-y-8">
                 <!-- Page Header (unchanged) -->
@@ -47,7 +44,6 @@
                         Securely access your identity using one of the methods below. Your data stays local.
                     </p>
                 </div>
-
                 <!-- Connection Method Tabs (unchanged) -->
                 <div class="bg-slate-800/80 backdrop-blur-sm p-1 rounded-lg border border-slate-700 flex">
                     <button
@@ -79,7 +75,6 @@
                         <span>Private Keys</span>
                     </button>
                 </div>
-
                 <!-- Security Warning (unchanged) -->
                 <div class="bg-amber-900/20 border border-amber-800/50 text-amber-300 p-4 rounded-xl flex items-start gap-3 shadow-lg">
                     <svg class="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,7 +85,6 @@
                         <p class="text-sm leading-relaxed">Your credentials are processed locally and never sent to any server. Always connect in a secure, private environment.</p>
                     </div>
                 </div>
-
                 <!-- Form Container -->
                 <form @submit.prevent="connect" class="bg-slate-800/80 backdrop-blur-sm p-6 rounded-xl space-y-6 shadow-lg border border-slate-700">
                     <!-- SEED PHRASE FORM (unchanged) -->
@@ -137,7 +131,6 @@
                             </div>
                         </div>
                     </div>
-
                     <!-- PRIVATE KEYS FORM (updated label and divider) -->
                     <div v-if="connectionMethod === 'privateKey'" class="space-y-6">
                         <div>
@@ -156,7 +149,6 @@
                                 required
                             />
                         </div>
-
                         <!-- Divider Separator (updated label) -->
                         <div class="relative">
                             <div class="absolute inset-0 flex items-center">
@@ -166,14 +158,13 @@
                                 <span class="px-3 bg-slate-800/80 text-slate-400">Platform Private Keys</span>
                             </div>
                         </div>
-
                         <div class="space-y-4">
                             <div>
                                 <label for="authKey" class="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
                                     <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.413a2.7 2.7 0 001.946-.661 2.7 2.7 0 014.438 0 2.7 2.7 0 001.946.661 2.7 2.7 0 012.611 2.611v3.686a2.7 2.7 0 002.611 2.611h2.064a2.7 2.7 0 001.946.661 2.704 2.704 0 01.682 2.15 2.7 2.7 0 00.661 2.146 2.7 2.7 0 000 3.806 2.7 2.7 0 00-.661 2.146 2.7 2.7 0 01-.946 1.946 2.7 2.7 0 01-2.146.682 2.7 2.7 0 01-1.946-.661V23a2.7 2.7 0 01-2.611-2.611H4.413a2.7 2.7 0 01-2.611-2.611 2.7 2.7 0 00-.661-1.946 2.7 2.7 0 010-3.806 2.7 2.7 0 00.661-2.146 2.7 2.7 0 01.946-1.946 2.7 2.7 0 012.146-.682h3.686z" />
                                     </svg>
-                                    Authorization Key (WIF or HEX)
+                                    Authentication Key (WIF or HEX)
                                 </label>
                                 <p class="text-xs text-slate-500 mb-2">Enter as WIF (starts with cN/Kw) or raw HEX (64 characters).</p>
                                 <input
@@ -184,7 +175,6 @@
                                     class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:bg-slate-900 transition-all duration-200 font-mono text-sm"
                                 />
                             </div>
-
                             <div>
                                 <label for="transferKey" class="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
                                     <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,7 +191,6 @@
                                     class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:bg-slate-900 transition-all duration-200 font-mono text-sm"
                                 />
                             </div>
-
                             <div>
                                 <label for="encryptionKey" class="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
                                     <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -220,7 +209,6 @@
                             </div>
                         </div>
                     </div>
-
                     <!-- Helper Text for Private Keys (unchanged) -->
                     <div v-if="connectionMethod === 'privateKey'" class="text-xs text-slate-500 text-center italic p-3 bg-slate-900/50 rounded-lg">
                         <svg class="w-4 h-4 inline mr-1 -ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -228,27 +216,25 @@
                         </svg>
                         Username will be resolved to Identity ID via DPNS (if valid). At least one key is required. WIF (compressed/uncompressed) or raw HEX private keys are supported.
                     </div>
-
-                    <!-- Error Message Display (unchanged) -->
-                    <div v-if="error" class="bg-red-900/30 border border-red-800/50 text-red-300 p-4 rounded-lg text-sm font-medium text-center shadow-md">
+                    <!-- Error Message Display (now from store) -->
+                    <div v-if="identityStore.connectionError" class="bg-red-900/30 border border-red-800/50 text-red-300 p-4 rounded-lg text-sm font-medium text-center shadow-md">
                         <svg class="w-4 h-4 inline mr-2 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
-                        {{ error }}
+                        {{ identityStore.connectionError }}
                     </div>
-
-                    <!-- Action Button (unchanged) -->
+                    <!-- Action Button (now uses store's isConnecting) -->
                     <div class="pt-4">
                         <button
                             type="submit"
-                            :disabled="!isFormValid || isLoading"
+                            :disabled="!isFormValid || identityStore.isConnecting"
                             class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-600 to-cyan-500 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-200 shadow-lg hover:from-cyan-500 hover:to-cyan-400 hover:shadow-cyan-500/25 disabled:from-slate-700 disabled:to-slate-600 disabled:cursor-not-allowed disabled:shadow-none focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-slate-800"
                         >
-                            <svg v-if="isLoading" class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                            <svg v-if="identityStore.isConnecting" class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            <span>{{ isLoading ? 'Connecting...' : 'Connect Securely' }}</span>
+                            <span>{{ identityStore.isConnecting ? 'Connecting...' : 'Connect Securely' }}</span>
                         </button>
                     </div>
                 </form>
@@ -256,34 +242,24 @@
         </section>
     </main>
 </template>
-
 <script setup lang="ts">
 import { ref, reactive, watch, computed } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
 import { useRouter } from 'vue-router'
-
+import { useIdentityStore } from '@/stores/identity' // Import the updated store
 const router = useRouter()
-
+const identityStore = useIdentityStore()
 // --- Component State ---
 const connectionMethod = ref<'seed' | 'privateKey'>('seed')
-
 // Controls whether we show 12 or 24 input fields
 const wordCount = ref<'12' | '24'>('12')
-
 /* Initialize an array to hold the words from the input fields. */
 // NOTE: We use `reactive` because we will be changing its size.
 const seedWords = reactive<string[]>(Array(12).fill(''))
-
 /* Initialize local handlers. */
 const identityId = ref('') // Username or Identity ID
-const authKey = ref('') // Authorization Key (WIF or HEX)
+const authKey = ref('') // Authentication Key (WIF or HEX)
 const transferKey = ref('') // Transfer Key (WIF or HEX)
 const encryptionKey = ref('') // Encryption Key (WIF or HEX)
-
-// State for loading and error feedback
-const isLoading = ref(false)
-const error = ref<string | null>(null)
-
 // Copy address state (from wallet pattern)
 const isCopied = ref(false)
 const copyAddress = async () => {
@@ -299,9 +275,7 @@ const copyAddress = async () => {
         console.error('Failed to copy address: ', err)
     }
 }
-
 // --- Logic ---
-
 // Watch for changes in the word count and resize the seedWords array accordingly.
 watch(wordCount, (newCount) => {
     const count = parseInt(newCount, 10)
@@ -310,7 +284,6 @@ watch(wordCount, (newCount) => {
         seedWords.push('')
     }
 })
-
 // A computed property to check if all inputs are filled, used to disable the button.
 // For seed: All words must be filled.
 // For private keys: Identity ID (username or ID) + at least one key (WIF or HEX) non-empty.
@@ -323,53 +296,39 @@ const isFormValid = computed(() => {
                (authKey.value.trim() !== '' || transferKey.value.trim() !== '' || encryptionKey.value.trim() !== '')
     }
 })
-
-// The main function to handle the connection process.
+// The main function to handle the connection process (now delegates to store).
 const connect = async () => {
     /* Validate form values. */
     if (!isFormValid.value) return
-
-    /* Set flags. */
-    isLoading.value = true
-    error.value = null
-
-    /* Initialize locals. */
-    let payload
-
+    // Clear any previous errors
+    identityStore.clearConnectionError()
+    let result
     try {
         if (connectionMethod.value === 'seed') {
-            console.log(`Attempting to connect with a ${wordCount.value}-word mnemonic.`)
-            /* Join the array into a single space-separated string. */
-            const seed_phrase = seedWords.join(' ')
-
-            /* Set payload. */
-            payload = { seed_phrase }
-
-            /* Save mnemonic (seed phrase). */
-            await invoke('save_mnemonic', { payload })
+            // Join the array into a single space-separated string.
+            const seedPhrase = seedWords.join(' ')
+            // Call store action (assume mainnet; make configurable if needed)
+            result = await identityStore.connectWithSeed(seedPhrase, 'mainnet')
         } else { // privateKey
-            console.log(`Attempting to connect with private keys (username/ID + WIF or HEX).`)
-            /* Set payload with all three keys (empty strings if not provided). Backend resolves username to ID if needed. */
-            /* Backend should check: If username (e.g., "user.dash") → Use dpns_resolve_name; else treat as ID. */
-            payload = {
-                identity_id: identityId.value.trim(),
-                auth_key: authKey.value.trim(), // Authorization Key (WIF or HEX)
-                transfer_key: transferKey.value.trim(), // Transfer Key (WIF or HEX)
-                encryption_key: encryptionKey.value.trim() // Encryption Key (WIF or HEX)
-            }
-
-            /* Save private keys (backend handles username resolution, WIF decode or HEX). */
-            await invoke('save_private_keys', { payload })
+            // Trim inputs before passing
+            const trimmedId = identityId.value.trim()
+            const trimmedAuth = authKey.value.trim()
+            const trimmedTransfer = transferKey.value.trim()
+            const trimmedEncryption = encryptionKey.value.trim()
+            // Call store action
+            result = await identityStore.connectWithPrivateKeys(trimmedId, trimmedAuth, trimmedTransfer, trimmedEncryption, 'mainnet')
         }
-
-        alert('Connection Successful! Navigating to home screen...')
-        // Example: router.push('/wallet')
-        router.push('/') // Navigate to home after success
+        if (result.success) {
+            alert('Connection Successful! Navigating to home screen...')
+            // Navigate to home after success (store handles auth state)
+            router.push('/')
+        } else {
+            // Error is already set in store
+            console.error('Connection failed:', result.error)
+        }
     } catch (err: any) {
-        console.error('Connection failed:', err)
-        error.value = typeof err === 'string' ? err : 'An unknown error occurred. Check formats (username.dash or ID; WIF or 64-char HEX).'
-    } finally {
-        isLoading.value = false
+        console.error('Unexpected error in connect:', err)
+        identityStore.connectionError = 'An unexpected error occurred during connection.'
     }
 }
 </script>

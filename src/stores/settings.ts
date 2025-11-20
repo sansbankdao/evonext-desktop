@@ -1,22 +1,18 @@
 // src/stores/settings.ts
-
 /* Import modules. */
 import { defineStore } from 'pinia'
 import { invoke } from '@tauri-apps/api/core'
-
 // Define the shape of our settings
 export interface ProfileSettings {
     display_name: string;
     username: string;
     bio: string;
 }
-
 export interface NotificationSettings {
     messages: boolean;
     mentions: boolean;
     contact_requests: boolean;
 }
-
 export interface SettingsState {
     theme: 'system' | 'light' | 'dark';
     notifications: NotificationSettings;
@@ -25,7 +21,6 @@ export interface SettingsState {
     error: string | null;
     lastSaved: Date | null;
 }
-
 export const useSettingsStore = defineStore('settings', {
     state: (): SettingsState => ({
         theme: 'system',
@@ -43,7 +38,6 @@ export const useSettingsStore = defineStore('settings', {
         error: null,
         lastSaved: null,
     }),
-
     actions: {
         /**
          * Fetches settings from the Rust backend.
@@ -56,10 +50,8 @@ export const useSettingsStore = defineStore('settings', {
                 // --- TAURI INTEGRATION ---
                 // Replace this with a real call to your Rust backend
                 const loadedState = await invoke<Partial<SettingsState>>('load_settings_from_backend');
-
                 // Merge loaded state with defaults
                 this.$patch({ ...loadedState });
-
                 console.log('Settings loaded successfully from backend.');
             } catch (err) {
                 this.error = 'Failed to load settings from backend.';
@@ -68,7 +60,6 @@ export const useSettingsStore = defineStore('settings', {
                 this.isLoading = false;
             }
         },
-
         /**
          * Saves the current settings to the Rust backend.
          */
@@ -78,7 +69,6 @@ export const useSettingsStore = defineStore('settings', {
             try {
                 // Update the store's state immediately for a snappy UI
                 this.$patch(newSettings);
-
                 // --- TAURI INTEGRATION ---
                 // Create a payload of the current state to send to Rust
                 const settingsPayload = {
@@ -86,9 +76,7 @@ export const useSettingsStore = defineStore('settings', {
                     notifications: this.notifications,
                     profile: this.profile,
                 };
-
                 await invoke('save_settings_to_backend', { settings: settingsPayload });
-
                 this.lastSaved = new Date();
                 console.log('Settings saved successfully to backend.');
             } catch (err) {
@@ -98,7 +86,6 @@ export const useSettingsStore = defineStore('settings', {
                 this.isLoading = false;
             }
         },
-
         setTheme(theme: 'system' | 'light' | 'dark') {
             this.theme = theme;
             // Optionally auto-save when a simple setting like this changes
