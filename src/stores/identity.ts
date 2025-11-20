@@ -5,71 +5,157 @@ import { defineStore } from 'pinia'
 import { invoke } from '@tauri-apps/api/core'
 import initWasm, {
     WasmSdkBuilder,
-    // identity_fetch,
     dpns_resolve_name,
-    // get_dpns_usernames,
-    // get_documents,
-    // get_identity_token_balances,
     prefetch_trusted_quorums_mainnet,
 } from '@/libs/dash/wasm_sdk.js'
-import getIdentities from '@/libs/getIdentities' // Import getIdentities for WASM
-import getIdentityBalance from '@/libs/getIdentityBalance' // Import for balance fetching
-// Import shared types to avoid redefinition and mismatches
-import { IIdentity, IPublicKey } from '@/libs/types' // Adjust path if needed (matches getIdentities.ts import)
-// Optional: If the returned publicKeys from getIdentities needs an extended type,
-// define it here (includes base IPublicKey + computed fields from mapping)
+import getIdentities from '@/libs/getIdentities'
+import getIdentityBalance from '@/libs/getIdentityBalance'
+import { IIdentity, IPublicKey } from '@/libs/types'
+
 export interface IExtendedPublicKey extends IPublicKey {
-    keyType: string; // Computed from getKeyType(_key.type)
-    dataBytes: string; // Computed from decodeBase64ToHex(_key.data)
+    keyType: string;
+    dataBytes: string;
 }
+
+interface IdentityData {
+    username: string;
+    identity_id: string;
+    balance: string | null;
+    is_authenticated: boolean;
+}
+
 export const useIdentityStore = defineStore('identity', {
     state: () => ({
         username: null as string | null,
-        identity: null as IIdentity | null, // Now uses the shared/full IIdentity type
+        identity: null as IIdentity | null,
         balance: null as string | null,
         isAuthenticated: false,
         isConnecting: false,
         connectionError: null as string | null,
         premiumAccess: false,
     }),
+
     actions: {
+        async saveToStorage() {
+            try {
+                const identityData: IdentityData = {
+                    username: this.username || '',
+                    identity_id: this.identity?.id || '',
+                    balance: this.balance,
+                    is_authenticated: this.isAuthenticated,
+                }
+                await invoke('save_identity_data', { payload: identityData })
+                console.log('Identity data saved to storage')
+            } catch (err) {
+                console.error('Failed to save identity data to storage:', err)
+            }
+        },
+
+        async loadFromStorage() {
+            try {
+                const identityData = await invoke('load_identity_data') as IdentityData | null
+                if (identityData) {
+                    console.log('Loaded identity data from storage:', identityData)
+
+                    this.username = identityData.username || null
+                    this.balance = identityData.balance
+                    this.isAuthenticated = identityData.is_authenticated
+
+                    // Note: We don't restore the full identity object from storage
+                    // as it contains complex nested data. Instead, we'll re-fetch it
+                    // if needed using the stored identity_id
+                }
+            } catch (err) {
+                console.error('Failed to load identity data from storage:', err)
+            }
+        },
+
+        async initFromStorage() {
+            try {
+                // Load identity state from storage
+                await this.loadFromStorage()
+
+                const [mnemonicData, keysData] = await Promise.all([
+                    invoke('load_mnemonic').catch(() => null),
+                    invoke('load_private_keys').catch(() => null)
+                ])
+
+                console.log('Loaded from storage - identity:', this.isAuthenticated, 'mnemonic:', !!mnemonicData, 'keys:', !!keysData)
+
+                // If we have stored identity data and credentials, ensure everything is in sync
+                if (this.isAuthenticated && (mnemonicData || keysData)) {
+                    console.log('Found stored identity and credentials, verifying state...')
+                    // Refresh the identity data to ensure it's current
+                    await this.searchUserIdentities('mainnet')
+                }
+                // If we have credentials but no stored identity, try to re-authenticate
+                else if (!this.isAuthenticated && (mnemonicData || keysData)) {
+                    console.log('Found stored credentials but no identity, re-authenticating...')
+                    if (mnemonicData) {
+                        await this.connectWithSeed((mnemonicData as any).seed_phrase, 'mainnet')
+                    } else if (keysData) {
+                        const keys = keysData as any
+                        await this.connectWithPrivateKeys(
+                            keys.identity_id,
+                            keys.auth_key,
+                            keys.transfer_key,
+                            keys.encryption_key,
+                            'mainnet'
+                        )
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to initialize identity from storage:', err)
+            }
+        },
+
         async fetchBalance(): Promise<string | null> {
+            console.log('fetchBalance called, identity:', this.identity?.id)
             if (!this.identity?.id) {
+                console.log('No identity ID available for balance fetch')
                 this.balance = null
+                await this.saveToStorage()
                 return null
             }
             try {
+                console.log('Fetching balance for identity:', this.identity.id)
                 const balance = await getIdentityBalance(this.identity.id)
+                console.log('Balance result:', balance)
                 this.balance = balance
+                await this.saveToStorage()
                 return balance
             } catch (err) {
                 console.error('Failed to fetch identity balance:', err)
                 this.balance = null
+                await this.saveToStorage()
                 return null
             }
         },
+
         async searchUserIdentities(network: 'mainnet' | 'testnet' = 'mainnet'): Promise<IIdentity | null> {
             try {
-                // Initialize WASM if not already done
-                // await initWasm()
-                // Search for identities derived from the saved mnemonic/keys
+                console.log('Searching for user identities...')
                 const identities = await getIdentities(network === 'mainnet' ? 'mainnet' : 'testnet', false)
+                console.log('Identities found:', identities)
+
                 if (!identities || identities.length === 0) {
                     console.warn('No identities found for the provided credentials.')
                     return null
                 }
-                // For simplicity, take the first identity found (assuming primary one from derivation index 0+)
-                // In a real app, you might iterate and select based on additional criteria (e.g., active keys)
+
                 const primaryIdentity = identities[0]
-                console.log('Found identity:', primaryIdentity)
-                // TODO: Optionally resolve DPNS name here if needed (using dpns_resolve_name from WASM)
-                // For now, use the identity ID as the username fallback
-                const username = primaryIdentity.id // Now safe: id is part of shared IIdentity
-                // Update internal state
+                console.log('Primary identity:', primaryIdentity)
+
+                const username = primaryIdentity.id
                 this.username = username
-                this.identity = primaryIdentity // Now matches the shared IIdentity type exactly
+                this.identity = primaryIdentity
+                this.isAuthenticated = true
+
                 // Fetch balance after setting identity
                 await this.fetchBalance()
+                // Save to storage after successful identity resolution
+                await this.saveToStorage()
+
                 return primaryIdentity
             } catch (err) {
                 console.error('Failed to search for identities:', err)
@@ -77,21 +163,20 @@ export const useIdentityStore = defineStore('identity', {
                 return null
             }
         },
+
         async connectWithSeed(seedPhrase: string, network: 'mainnet' | 'testnet' = 'mainnet') {
             this.isConnecting = true
             this.connectionError = null
             try {
                 console.log(`Attempting to connect with a mnemonic.`)
-                /* Set payload. */
                 const payload = { seed_phrase: seedPhrase }
-                /* Save mnemonic (seed phrase). */
                 await invoke('save_mnemonic', { payload })
-                // After saving, search for existing identities derived from the mnemonic
+
                 const identity = await this.searchUserIdentities(network)
                 if (identity) {
                     this.isAuthenticated = true
-                    this.login(this.username!) // Ensure username is set
-                    console.log('Seed connection successful.')
+                    console.log('Seed connection successful. isAuthenticated:', this.isAuthenticated)
+                    await this.saveToStorage()
                     return { success: true, identity }
                 } else {
                     this.connectionError = 'No identity found for the provided seed phrase.'
@@ -105,6 +190,7 @@ export const useIdentityStore = defineStore('identity', {
                 this.isConnecting = false
             }
         },
+
         async connectWithPrivateKeys(
             identityId: string,
             authKey: string,
@@ -115,43 +201,69 @@ export const useIdentityStore = defineStore('identity', {
             this.isConnecting = true
             this.connectionError = null
             try {
-                console.log(`Attempting to connect with private keys (username/ID + WIF or HEX).`)
-                /* Set payload with all three keys (empty strings if not provided). Backend resolves username to ID if needed. */
-                /* Backend should check: If username (e.g., "user.dash") → Use dpns_resolve_name; else treat as ID. */
+                console.log(`Attempting to connect with private keys.`)
                 const payload = {
                     identity_id: identityId.trim(),
-                    auth_key: authKey.trim(), // Authorization Key (WIF or HEX)
-                    transfer_key: transferKey.trim(), // Transfer Key (WIF or HEX)
-                    encryption_key: encryptionKey.trim() // Encryption Key (WIF or HEX)
+                    auth_key: authKey.trim(),
+                    transfer_key: transferKey.trim(),
+                    encryption_key: encryptionKey.trim()
                 }
-                /* Save private keys (backend handles username resolution, WIF decode or HEX). */
                 await invoke('save_private_keys', { payload })
-                // Optionally search for the identity to validate/load details (if keys allow derivation)
-                // For direct keys, we can assume connection success and use provided ID
-                const resolvedIdentityId = identityId.trim() // Backend should have resolved if username
+
+                const resolvedIdentityId = identityId.trim()
                 this.username = resolvedIdentityId
                 this.isAuthenticated = true
-                this.login(resolvedIdentityId)
-                // If needed, search to load full identity details
+
                 const identity = await this.searchUserIdentities(network)
                 if (identity) {
                     this.identity = identity
                 }
-                console.log('Private keys connection successful.')
+
+                console.log('Private keys connection successful. isAuthenticated:', this.isAuthenticated)
+                await this.saveToStorage()
                 return { success: true, identity: this.identity }
             } catch (err: any) {
                 console.error('Private keys connection failed:', err)
-                this.connectionError = typeof err === 'string' ? err : 'Failed to connect with private keys. Check formats (username.dash or ID; WIF or 64-char HEX).'
+                this.connectionError = typeof err === 'string' ? err : 'Failed to connect with private keys.'
                 return { success: false, error: this.connectionError }
             } finally {
                 this.isConnecting = false
             }
         },
+
         login(username: string) {
             this.username = username
             this.isAuthenticated = true
+            this.saveToStorage()
         },
-        logout() {
+
+        async logout() {
+            // Clear all storage
+            try {
+                await Promise.all([
+                    invoke('save_mnemonic', { payload: { seed_phrase: '' } }).catch(() => {}),
+                    invoke('save_private_keys', {
+                        payload: {
+                            identity_id: '',
+                            auth_key: '',
+                            transfer_key: '',
+                            encryption_key: ''
+                        }
+                    }).catch(() => {}),
+                    invoke('save_identity_data', {
+                        payload: {
+                            username: '',
+                            identity_id: '',
+                            balance: null,
+                            is_authenticated: false
+                        }
+                    }).catch(() => {})
+                ])
+            } catch (err) {
+                console.error('Error clearing storage during logout:', err)
+            }
+
+            // Clear local state
             this.username = null
             this.identity = null
             this.balance = null
@@ -159,13 +271,17 @@ export const useIdentityStore = defineStore('identity', {
             this.premiumAccess = false
             this.connectionError = null
         },
+
         setPremiumAccess(hasAccess: boolean) {
             this.premiumAccess = hasAccess
+            this.saveToStorage()
         },
+
         clearConnectionError() {
             this.connectionError = null
         },
     },
+
     getters: {
         getGreeting: (state) => `Hello, ${state.username || 'Guest'}!`,
         isConnected: (state) => state.isAuthenticated && !!state.username,

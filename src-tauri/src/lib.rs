@@ -37,6 +37,14 @@ struct IMnemonic {
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
+struct IdentityData {
+    username: String,
+    identity_id: String,
+    balance: Option<String>,
+    is_authenticated: bool,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct NotificationSettings {
     messages: bool,
     mentions: bool,
@@ -54,6 +62,7 @@ struct ProfileSettings {
 // NOTE: Located in the app's "sandboxed" data directory.
 const SAFU_FILE: &str = ".safu.dat";
 const SETTINGS_FILE: &str = ".settings.dat";
+const IDENTITY_FILE: &str = ".identity.dat";
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -70,6 +79,9 @@ pub fn run() {
 
             load_private_keys,
             save_private_keys,
+
+            load_identity_data,
+            save_identity_data,
 
             load_settings_from_backend,
             save_settings_to_backend
@@ -247,6 +259,41 @@ fn load_network_settings(app_handle: AppHandle<Wry>) -> Result<Option<INetwork>,
         Ok(Some(payload))
     } else {
         println!("NO network settings found, returning default.");
+        Ok(None)
+    }
+}
+
+#[tauri::command]
+fn save_identity_data(app_handle: AppHandle<Wry>, payload: IdentityData) -> Result<(), String> {
+    let path = IDENTITY_FILE.parse::<PathBuf>().unwrap();
+
+    let store = StoreBuilder::new(&app_handle, path)
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    store.set("identity".to_string(), serde_json::to_value(payload).unwrap());
+
+    store.save().map_err(|e| e.to_string())?;
+
+    println!("Identity data saved successfully.");
+    Ok(())
+}
+
+#[tauri::command]
+fn load_identity_data(app_handle: AppHandle<Wry>) -> Result<Option<IdentityData>, String> {
+    let path = IDENTITY_FILE.parse::<PathBuf>().unwrap();
+
+    let store = StoreBuilder::new(&app_handle, path)
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    if let Some(json_value) = store.get("identity") {
+        let payload: IdentityData = serde_json::from_value(json_value.clone())
+            .map_err(|e| e.to_string())?;
+        println!("Identity data loaded successfully.");
+        Ok(Some(payload))
+    } else {
+        println!("NO identity data found, returning default.");
         Ok(None)
     }
 }
