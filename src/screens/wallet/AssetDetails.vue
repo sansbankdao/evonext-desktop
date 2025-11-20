@@ -136,7 +136,7 @@ const getStatusClasses = (status: string) => {
     }
 }
 
-const assetIconExists = (ticker: string) => true // Simplified
+const assetIconExists = (_ticker: string) => true // Simplified
 
 onMounted(() => {
     if (!Wallet.user) {

@@ -8,7 +8,7 @@ export default async (
     _identityIdx: number,
 ) => {
     /* Request private keys. */
-    const keys = await getPrivateKeys(_currentNetwork, _identityIdx)
+    const keys = await getPrivateKeys(_currentNetwork, _identityIdx, false)
 
     /* EvoNext (default) key setup. */
     const publicKeys = [

@@ -120,7 +120,7 @@
             </div>
 
             <!-- Transaction Preview -->
-            <div v-if="isFormValid && selectedAsset" class="bg-slate-700/50 p-4 rounded-lg space-y-2">
+            <div v-if="isFormValid && selectedAsset && amount" class="bg-slate-700/50 p-4 rounded-lg space-y-2">
                 <h3 class="text-sm font-semibold text-slate-300">Preview</h3>
                 <div class="text-xs space-y-1 text-slate-400">
                     <p>Send {{ amount.toLocaleString() }} {{ selectedAsset.ticker }} to {{ recipient.slice(0, 20) }}...</p>

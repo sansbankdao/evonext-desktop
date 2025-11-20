@@ -107,10 +107,11 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
+// import { invoke } from '@tauri-apps/api/core'
 
 import getIdentities from '@/libs/getIdentities'
 import getMnemonic from '@/libs/getMnemonic'
+import sendCredit from '@/libs/sendCredit'
 
 // Define the TypeScript interface for an Identity
 interface Identity {
@@ -125,10 +126,10 @@ interface Identity {
 //     mnemonic: string;
 // }
 
-interface IPrivateKey {
-    identity_id: string;
-    private_key: string;
-}
+// interface IPrivateKey {
+//     identity_id: string;
+//     private_key: string;
+// }
 
 
 // Sample data representing the user's identities
@@ -159,8 +160,8 @@ const identities = ref<Identity[]>([
 // A ref to track the currently active identity ID
 const activeIdentityId = ref<string>('BkEqcgfmNFY5TEy2atDhhFsDY1NZ6oPa4XPrDGuuWLVT')
 
-const identityId = ref<string | null>(null)
-const privateKey = ref<string | null>(null)
+// const identityId = ref<string | null>(null)
+// const privateKey = ref<string | null>(null)
 
 // Function to handle switching identities
 const switchToIdentity = (id: string) => {
@@ -186,22 +187,21 @@ console.log('MNEMONIC IS', mnemonic)
     const identities = await getIdentities('testnet')
 console.log('IDENTITIES', identities)
 
-return
-        /* Request private key. */
-        const privateKeyStore = await invoke<IPrivateKey | null>('load_private_keys')
-console.log('PRIVATE KEY (store)', privateKeyStore)
+//         /* Request private key. */
+//         const privateKeyStore = await invoke<IPrivateKey | null>('load_private_keys')
+// console.log('PRIVATE KEY (store)', privateKeyStore)
 
-        /* Validate authentication. */
-        if (privateKeyStore) {
-            // 3. Access the properties of the object
-            identityId.value = privateKeyStore.identity_id
-            privateKey.value = privateKeyStore.private_key
+//         /* Validate authentication. */
+//         if (privateKeyStore) {
+//             // 3. Access the properties of the object
+//             identityId.value = privateKeyStore.identity_id
+//             privateKey.value = privateKeyStore.private_key
 
-            console.log('User is logged in. Identity ID:', identityId.value)
-            console.log('PRIVATE KEY IS', privateKey.value)
-        } else {
-            console.log('User is not logged in.')
-        }
+//             console.log('User is logged in. Identity ID:', identityId.value)
+//             console.log('PRIVATE KEY IS', privateKey.value)
+//         } else {
+//             console.log('User is not logged in.')
+//         }
     } catch (error) {
         console.error('Failed to get credentials:', error)
     }

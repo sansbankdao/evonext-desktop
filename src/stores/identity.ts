@@ -3,13 +3,13 @@
 /* Import modules. */
 import { defineStore } from 'pinia'
 import { invoke } from '@tauri-apps/api/core'
-import initWasm, {
-    WasmSdkBuilder,
-    dpns_resolve_name,
-    prefetch_trusted_quorums_mainnet,
-} from '@/libs/dash/wasm_sdk.js'
+// import initWasm, {
+//     WasmSdkBuilder,
+//     dpns_resolve_name,
+//     prefetch_trusted_quorums_mainnet,
+// } from '@/libs/dash/wasm_sdk.js'
 import getIdentities from '@/libs/getIdentities'
-import getIdentityBalance from '@evonext/platform'
+import { getIdentityBalance } from '@evonext/platform'
 import { IIdentity, IPublicKey } from '@/libs/types'
 
 export interface IExtendedPublicKey extends IPublicKey {

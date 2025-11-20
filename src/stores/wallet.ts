@@ -63,9 +63,33 @@ export const useWalletStore = defineStore('wallet', {
                 { ticker: 'DUSD', name: 'Dash USD', amount: 1100.67, usdValue: 1100.67 },
             ]
             this.transactions = [
-                { id: 'tx1', type: 'sent', title: 'Sent DASH', subtitle: 'To: EWSqsaghuw...AkJWRTpY', amount: '-0.1 DASH', status: 'Completed' },
-                { id: 'tx2', type: 'received', title: 'Received DUSD', subtitle: 'From: 6Eb4tQdp24...cj1m87sj', amount: '+500.00 DUSD', status: 'Completed' },
-                { id: 'tx3', type: 'swap', title: 'Swap DASH to DUSD', subtitle: 'DashSwap Router', amount: '1.025 DASH', status: 'Pending...' },
+                {
+                    id: 'tx1',
+                    type: 'sent',
+                    title: 'Sent DASH',
+                    subtitle: 'To: EWSqsaghuw...AkJWRTpY',
+                    amount: '-0.1 DASH',
+                    status: 'Completed',
+                    date: new Date('2024-01-15T10:30:00Z')
+                },
+                {
+                    id: 'tx2',
+                    type: 'received',
+                    title: 'Received DUSD',
+                    subtitle: 'From: 6Eb4tQdp24...cj1m87sj',
+                    amount: '+500.00 DUSD',
+                    status: 'Completed',
+                    date: new Date('2024-01-14T14:45:00Z')
+                },
+                {
+                    id: 'tx3',
+                    type: 'swap',
+                    title: 'Swap DASH to DUSD',
+                    subtitle: 'DashSwap Router',
+                    amount: '1.025 DASH',
+                    status: 'Pending...',
+                    date: new Date()
+                },
             ]
             this.balanceChange = {
                 isPositive: true,

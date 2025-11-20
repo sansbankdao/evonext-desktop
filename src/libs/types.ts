@@ -187,6 +187,7 @@ export interface ITransaction {
     subtitle: string
     amount: string // Formatted amount with +/- and ticker
     status: 'Completed' | 'Pending...' | 'Failed'
+    date: Date
 }
 
 export interface IBalanceChange {

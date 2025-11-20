@@ -12,7 +12,7 @@ export default async (
     const network = (_currentNetwork === 'mainnet') ? 'mainnet' : 'testnet'
 
     /* Request private keys. */
-    const generatedkeys = await getPrivateKeys(network, _identityIdx)
+    const generatedkeys = await getPrivateKeys(network, _identityIdx, false)
 console.log('GENERATED KEYS', generatedkeys)
 
 // FIXME -- ONLY SEARCH IF (STANDARD) KEYS DO NOT WORK
