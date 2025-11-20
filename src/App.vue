@@ -1,3 +1,4 @@
+<!-- src/App.vue -->
 <template>
     <RouterView />
 </template>
@@ -10,10 +11,16 @@ import { listen, UnlistenFn } from '@tauri-apps/api/event'
 import { check } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
 
+import { useSystemStore } from '@/stores/system'
+import { useIdentityStore } from '@/stores/identity'
+
+const System = useSystemStore()
+const Identity = useIdentityStore()
+
 const manageUpdater = async () => {
     /* Request check. */
     const update = await check()
-console.log('AUTO UPDATER', update)
+    console.log('AUTO UPDATER', update)
 
     /* Handle update. */
     if (update) {
@@ -53,8 +60,16 @@ const router = useRouter()
 
 let unlisten: UnlistenFn | undefined
 
-// 2. Set up the listener when the component is mounted
+// Set up the listener when the component is mounted
 onMounted(async () => {
+    // Initialize system store first
+    System.startPriceUpdates()
+
+    // Initialize identity from storage
+    await Identity.initFromStorage()
+
+    console.log('App initialization complete. isAuthenticated:', Identity.isAuthenticated, 'DASH price:', System.currentDashPrice)
+
     unlisten = await listen('navigate', (event) => {
         console.log('Navigating to:', event.payload)
 
@@ -68,8 +83,10 @@ onMounted(async () => {
     manageUpdater()
 })
 
-// 4. Clean up the listener when the component is unmounted
+// Clean up the listener when the component is unmounted
 onUnmounted(() => {
+    System.stopPriceUpdates()
+
     if (unlisten) {
         unlisten()
     }

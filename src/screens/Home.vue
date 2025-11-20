@@ -38,44 +38,30 @@
                             {{ formatCurrency(totalBalance.usd) }}
                         </p>
                         <p class="text-xl text-slate-300 font-mono">
-                            {{ totalBalance.dash.toLocaleString() }} DASH
+                            {{ totalBalance.dash.toLocaleString(undefined, { maximumFractionDigits: 6 }) }} DASH
+                        </p>
+                        <p class="text-sm text-slate-400 font-mono">
+                            {{ totalBalance.credits.toLocaleString() }} credits
                         </p>
 
-                        <p class="text-sm text-green-400 mt-1">
-                            +1.25% ($152.34) vs last 24h
-                        </p>
+                        <div class="mt-2 flex items-center gap-1">
+                            <svg class="w-4 h-4" :class="System.isPricePositive ? 'text-green-400' : 'text-red-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path v-show="System.isPricePositive" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4 10-10" />
+                                <path v-show="!System.isPricePositive" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l-4 4-10 10" />
+                            </svg>
+                            <span class="text-sm" :class="System.isPricePositive ? 'text-green-400' : 'text-red-400'">
+                                {{ System.priceChange24h > 0 ? '+' : '' }}{{ System.priceChange24h.toFixed(2) }}% vs last 24h
+                            </span>
+                        </div>
                     </div>
 
                     <div class="flex items-center gap-1 bg-slate-700 px-3 py-1 rounded-full text-sm">
                         <span class="w-2 h-2 rounded-full bg-green-400"></span>
                         <span>
-                            Dash Credits
+                            Dash Platform
                         </span>
                     </div>
                 </div>
-
-                <!-- <div class="mt-6 flex flex-col sm:flex-row gap-3">
-                    <button class="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-indigo-500 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                        </svg>
-                        <span>Send</span>
-                    </button>
-
-                    <button class="w-full flex items-center justify-center gap-2 bg-slate-700 text-white font-semibold py-3 px-4 rounded-lg hover:bg-slate-600 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                        </svg>
-                        <span>Receive</span>
-                    </button>
-
-                    <button class="w-full flex items-center justify-center gap-2 bg-slate-700 text-white font-semibold py-3 px-4 rounded-lg hover:bg-slate-600 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                        </svg>
-                        <span>Swap</span>
-                    </button>
-                </div> -->
             </div>
 
             <div class="bg-slate-800 p-6 rounded-xl flex flex-col justify-center items-center text-center">
@@ -179,7 +165,6 @@
                                 <button class="bg-slate-700 hover:bg-slate-600 p-2 rounded-full"><svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
                             </div>
                         </div>
-                        <!-- ... other request items ... -->
                     </div>
                 </div>
 
@@ -215,7 +200,6 @@
                                 </div>
                             </div>
                         </a>
-                        <!-- ... other message items ... -->
                     </div>
                 </div>
 
@@ -227,21 +211,21 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
 import { useIdentityStore } from '@/stores/identity'
+import { useSystemStore } from '@/stores/system'
 
 const Identity = useIdentityStore()
-
-const DASH_PRICE_USD = 25 // Placeholder DASH price in USD; in production, fetch from API
+const System = useSystemStore()
 
 const totalBalance = computed(() => {
     if (Identity.isAuthenticated && Identity.balance) {
         const credits = parseInt(Identity.balance, 10)
         const duffs = credits / 1000 // Convert credits to duffs (1 duff = 1,000 credits)
         const dash = duffs / 100000000 // Convert duffs to DASH (1 DASH = 100,000,000 duffs)
-        const usd = dash * DASH_PRICE_USD
+        const usd = dash * System.currentDashPrice
         return { dash, usd, credits, duffs }
     }
     // Fallback to mock
-    return { dash: 0, usd: 0, credits: 0, duffs: 0 }
+    return { dash: 12345.67 / System.currentDashPrice, usd: 12345.67, credits: 0, duffs: 0 }
 })
 
 const formatCurrency = (value: number) => {

@@ -1,4 +1,4 @@
-// src/screens/wallet/Overview.vue
+<!-- src/screens/wallet/Overview.vue -->
 <template>
     <main class="p-4 max-w-7xl mx-auto">
         <!-- Header (unchanged) -->
@@ -46,16 +46,19 @@
                             {{ formatCurrency(totalBalance.usd) }}
                         </p>
                         <p class="text-xl text-slate-300 font-mono">
-                            {{ totalBalance.dash.toLocaleString() }} DASH
+                            {{ totalBalance.dash.toLocaleString(undefined, { maximumFractionDigits: 6 }) }} DASH
+                        </p>
+                        <p class="text-sm text-slate-400 font-mono">
+                            {{ totalBalance.credits.toLocaleString() }} credits
                         </p>
 
-                        <div v-if="Wallet.balanceChange" class="mt-2 flex items-center gap-1">
-                            <svg class="w-4 h-4" :class="Wallet.balanceChange.isPositive ? 'text-green-400' : 'text-red-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path v-show="Wallet.balanceChange.isPositive" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4 10-10" />
-                                <path v-show="!Wallet.balanceChange.isPositive" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l-4 4-10 10" />
+                        <div class="mt-2 flex items-center gap-1">
+                            <svg class="w-4 h-4" :class="System.isPricePositive ? 'text-green-400' : 'text-red-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path v-show="System.isPricePositive" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4 10-10" />
+                                <path v-show="!System.isPricePositive" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l-4 4-10 10" />
                             </svg>
-                            <span class="text-sm" :class="Wallet.balanceChange.isPositive ? 'text-green-400' : 'text-red-400'">
-                                {{ Wallet.balanceChange.isPositive ? '+' : '-' }}{{ Wallet.balanceChange.percent.toFixed(2) }}% ({{ formatCurrency(Wallet.balanceChange.amount) }}) vs last 24h
+                            <span class="text-sm" :class="System.isPricePositive ? 'text-green-400' : 'text-red-400'">
+                                {{ System.priceChange24h > 0 ? '+' : '' }}{{ System.priceChange24h.toFixed(2) }}% vs last 24h
                             </span>
                         </div>
                     </div>
@@ -223,29 +226,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWalletStore } from '@/stores/wallet'
 import { useIdentityStore } from '@/stores/identity'
+import { useSystemStore } from '@/stores/system'
 
 const router = useRouter()
 const Wallet = useWalletStore()
 const Identity = useIdentityStore()
+const System = useSystemStore()
 
 const isCopied = ref(false)
 
-const DASH_PRICE_USD = 25 // Placeholder DASH price in USD; in production, fetch from API
-
 const totalBalance = computed(() => {
-    if (Identity.isAuthenticated && Identity.balance) {
+    if (Identity.isConnected && Identity.balance) {
         const credits = parseInt(Identity.balance, 10)
         const duffs = credits / 1000 // Convert credits to duffs (1 duff = 1,000 credits)
         const dash = duffs / 100000000 // Convert duffs to DASH (1 DASH = 100,000,000 duffs)
-        const usd = dash * DASH_PRICE_USD
+        const usd = dash * System.currentDashPrice
         return { dash, usd, credits, duffs }
     }
     // Fallback to mock
-    return { dash: 0, usd: 0, credits: 0, duffs: 0 }
+    return { dash: 0, usd: Wallet.totalUsdValue || 0, credits: 0, duffs: 0 }
 })
 
 const formatCurrency = (value: number) => {
@@ -279,33 +282,35 @@ const getStatusClasses = (status: string) => {
     }
 }
 
-// Updated to handle 'credits' by mapping to 'dash.svg' (or fallback)
 const getIconSrc = (ticker: string) => {
     const lower = ticker.toLowerCase()
     if (lower === 'credits') {
-        return '/icons/dash.svg' // Map Dash Credits to DASH icon; adjust if needed
+        return '/icons/dash.svg'
     }
     return `/icons/${lower}.svg`
 }
 
 const assetIconExists = (ticker: string) => {
     const lower = ticker.toLowerCase()
-    // Assume common icons exist; return false for unmapped to trigger fallback
     const commonIcons = ['dash', 'sans', 'dusd']
-    return commonIcons.includes(lower) || lower === 'credits' // 'credits' now mapped, so true
+    return commonIcons.includes(lower) || lower === 'credits'
 }
 
-onMounted(() => {
-    if (Identity.isConnected) {
-        // Use identity data for user
-        if (Identity.username) {
-            Wallet.user = {
-                name: Identity.username,
-                address: Identity.username // Use identity ID as address
-            }
+onMounted(async () => {
+    await nextTick()
+
+    if (Identity.isConnected && Identity.username) {
+        console.log('Using identity data for user:', Identity.username)
+        Wallet.user = {
+            name: Identity.username,
+            address: Identity.username
         }
-        // Balance is already fetched via searchUserIdentities or fetchBalance
+
+        if (!Identity.balance) {
+            await Identity.fetchBalance()
+        }
     } else {
+        console.log('No identity found, falling back to mock data')
         Wallet.initializeMockData()
     }
 })
