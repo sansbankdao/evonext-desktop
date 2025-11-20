@@ -1,19 +1,21 @@
 Introducing the newest versions of the EvoNext Desktop Editions!
 
-We are excited to announce the release of the EvoNext Desktop v25.10.20.
+We are excited to announce the release of the EvoNext Desktop v25.11.20.
 
-This latest version of EvoNext introduces Mainnet (onchain) transactions support + SQLite database management.
+This latest version of EvoNext introduces seed phrase support, plus massive optimizations for DAPI.
 
 # Changelog
 
 ## Latest Features:
 
-- Network: Added support for Mainnet (onchain) functions.
-- DB: Added support for SQLite database management.
+- Network: Introuced @evonext/platform for new optimizations.
+- Storage: Add new (Identity) config for data persistence.
 
 ## Bugfixes:
 
-- WASM SDK: Always prefetch trusted quorums before initializing the SDK for onchain requests.
+- WASM SDK: Begin migration to WASM as a fallback to DashQt API.
+
+## Summary:
 
 We would especially like to thank all the contributors that made this release possible:
-TBD...
+- 0xShomari
