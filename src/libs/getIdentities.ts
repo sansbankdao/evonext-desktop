@@ -20,6 +20,7 @@ import { binToHex, hexToBin } from '@nexajs/utils'
 
 /* Initialize constants. */
 const MIN_INDEX_SEARCH = 3
+const QUERY_REGISTRY = false
 
 /**
  * Get Key Type
@@ -59,8 +60,14 @@ const decodeBase64ToHex = (_base64String: string) => {
  *
  * Will search ALL keys and signature schemes for an Identity's
  * registered public keys.
+ *
+ * Option to "force" DAPI connections ONLY.
+ * (default: false)
  */
-export default async (_network: string): Promise<IIdentity[] | null> => {
+export default async (
+    _network: string,
+    _dapiOnly: boolean
+): Promise<IIdentity[] | null> => {
     /* Initialize Identities handler. */
     const identities: IIdentity[] = []
 
@@ -159,7 +166,7 @@ export const searchByHash160 = async (_network: string, _identityIdx: number) =>
     }
 
     /* Request private keys. */
-    const privateKeys = await getPrivateKeys(_network, _identityIdx)
+    const privateKeys = await getPrivateKeys(_network, _identityIdx, QUERY_REGISTRY)
 
     /* Set public key. */
     const publicKey = privateKeys.masterKey.public_key
@@ -231,7 +238,7 @@ export const searchBySecp256k1 = async (_network: string, _identityIdx: number) 
     }
 
     /* Request private keys. */
-    const privateKeys = await getPrivateKeys(_network, _identityIdx)
+    const privateKeys = await getPrivateKeys(_network, _identityIdx, QUERY_REGISTRY)
 
     /* Set public key. */
     const publicKey = privateKeys.masterKey.public_key

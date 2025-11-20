@@ -12,6 +12,7 @@ import getMnemonic from './getMnemonic'
 export default async (
     _currentNetwork: string,
     _identityIdx: number,
+    _queryRegistry: boolean,
 ) => {
     /* Request mnemonic. */
     const mnemonic = await getMnemonic()

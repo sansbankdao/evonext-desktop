@@ -34,9 +34,9 @@ export const useIdentityStore = defineStore('identity', {
         async searchUserIdentities(network: 'mainnet' | 'testnet' = 'mainnet'): Promise<IIdentity | null> {
             try {
                 // Initialize WASM if not already done
-                await initWasm()
+                // await initWasm()
                 // Search for identities derived from the saved mnemonic/keys
-                const identities = await getIdentities(network === 'mainnet' ? 'mainnet' : 'testnet')
+                const identities = await getIdentities(network === 'mainnet' ? 'mainnet' : 'testnet', false)
                 if (!identities || identities.length === 0) {
                     console.warn('No identities found for the provided credentials.')
                     return null
