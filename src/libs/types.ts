@@ -44,7 +44,7 @@ export interface ICurrency {
 export interface IIdentity {
     id: string;
     idx: number;
-    publicKeys: [IPublicKey];
+    publicKeys: IPublicKey[];
 }
 
 export interface IKeyTypes {
