@@ -73,6 +73,12 @@ Interested in contributing to EvoNext? We'd love your help! Here's how to get th
     ```bash
     pnpm tauri dev
 
+
+## Security
+
+On Ubuntu, settings are stored at `~/.local/share/app.evonext`.
+
+
 ## 🤝 Contributing
 
 Contributions, issues, and feature requests are welcome! Feel free to check the issues page.

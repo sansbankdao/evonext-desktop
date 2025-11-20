@@ -18,7 +18,6 @@ struct AppSettings {
     profile: ProfileSettings,
 }
 
-
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct INetwork {
     network: String,
@@ -244,7 +243,7 @@ fn load_network_settings(app_handle: AppHandle<Wry>) -> Result<Option<INetwork>,
     if let Some(json_value) = store.get("network") {
         let payload: INetwork = serde_json::from_value(json_value.clone())
             .map_err(|e| e.to_string())?;
-        println!("Private keys loaded successfully.");
+        println!("Network settings loaded successfully.");
         Ok(Some(payload))
     } else {
         println!("NO network settings found, returning default.");
