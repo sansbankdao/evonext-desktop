@@ -6,14 +6,14 @@
                 Platform Overview
             </h1>
 
-            <div class="flex items-center gap-4 bg-slate-800 p-2 rounded-lg">
+            <div v-if="Identity.isConnected" class="flex items-center gap-4 bg-slate-800 p-2 rounded-lg">
                 <span class="w-[300px]">
                     <span class="text-sky-100 text-lg font-mono px-2 tracking-wider">
-                        BetaTesterExtraordinaire
+                        {{ Identity.username || 'User' }}
                     </span>
 
                     <span class="text-sky-300/70 text-xs font-mono px-2 tracking-tighter">
-                        v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5
+                        {{ Identity.username?.slice(0, 10) }}...{{ Identity.username?.slice(-10) }}
                     </span>
                 </span>
 
@@ -29,13 +29,16 @@
         <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div class="lg:col-span-2 bg-slate-800 p-6 rounded-xl">
                 <div class="flex justify-between items-start">
-                    <div>
+                    <div class="flex-1">
                         <p class="text-slate-400 text-sm">
                             Total Balance
                         </p>
 
                         <p class="text-4xl font-bold text-white mt-1">
-                            $12,345.67
+                            {{ formatCurrency(totalBalance.usd) }}
+                        </p>
+                        <p class="text-xl text-slate-300 font-mono">
+                            {{ totalBalance.dash.toLocaleString() }} DASH
                         </p>
 
                         <p class="text-sm text-green-400 mt-1">
@@ -220,3 +223,40 @@
         </section>
     </main>
 </template>
+
+<script setup lang="ts">
+import { computed, onMounted } from 'vue'
+import { useIdentityStore } from '@/stores/identity'
+
+const Identity = useIdentityStore()
+
+const DASH_PRICE_USD = 25 // Placeholder DASH price in USD; in production, fetch from API
+
+const totalBalance = computed(() => {
+    if (Identity.isConnected && Identity.balance) {
+        const duffs = parseInt(Identity.balance, 10)
+        const dash = duffs / 100000000
+        const usd = dash * DASH_PRICE_USD
+        return { dash, usd }
+    }
+    // Fallback to mock
+    return { dash: 12345.67 / DASH_PRICE_USD, usd: 12345.67 }
+})
+
+const formatCurrency = (value: number) => {
+    if (typeof value !== 'number') return '$0.00'
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+    }).format(value)
+}
+
+onMounted(() => {
+    if (Identity.isConnected && Identity.username) {
+        // Ensure balance is fetched if not already
+        if (!Identity.balance) {
+            Identity.fetchBalance()
+        }
+    }
+})
+</script>

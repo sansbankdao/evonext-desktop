@@ -13,6 +13,7 @@ import initWasm, {
     prefetch_trusted_quorums_mainnet,
 } from '@/libs/dash/wasm_sdk.js'
 import getIdentities from '@/libs/getIdentities' // Import getIdentities for WASM
+import getIdentityBalance from '@/libs/getIdentityBalance' // Import for balance fetching
 // Import shared types to avoid redefinition and mismatches
 import { IIdentity, IPublicKey } from '@/libs/types' // Adjust path if needed (matches getIdentities.ts import)
 // Optional: If the returned publicKeys from getIdentities needs an extended type,
@@ -25,12 +26,28 @@ export const useIdentityStore = defineStore('identity', {
     state: () => ({
         username: null as string | null,
         identity: null as IIdentity | null, // Now uses the shared/full IIdentity type
+        balance: null as string | null,
         isAuthenticated: false,
         isConnecting: false,
         connectionError: null as string | null,
         premiumAccess: false,
     }),
     actions: {
+        async fetchBalance(): Promise<string | null> {
+            if (!this.identity?.id) {
+                this.balance = null
+                return null
+            }
+            try {
+                const balance = await getIdentityBalance(this.identity.id)
+                this.balance = balance
+                return balance
+            } catch (err) {
+                console.error('Failed to fetch identity balance:', err)
+                this.balance = null
+                return null
+            }
+        },
         async searchUserIdentities(network: 'mainnet' | 'testnet' = 'mainnet'): Promise<IIdentity | null> {
             try {
                 // Initialize WASM if not already done
@@ -51,6 +68,8 @@ export const useIdentityStore = defineStore('identity', {
                 // Update internal state
                 this.username = username
                 this.identity = primaryIdentity // Now matches the shared IIdentity type exactly
+                // Fetch balance after setting identity
+                await this.fetchBalance()
                 return primaryIdentity
             } catch (err) {
                 console.error('Failed to search for identities:', err)
@@ -135,6 +154,7 @@ export const useIdentityStore = defineStore('identity', {
         logout() {
             this.username = null
             this.identity = null
+            this.balance = null
             this.isAuthenticated = false
             this.premiumAccess = false
             this.connectionError = null

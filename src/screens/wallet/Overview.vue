@@ -1,4 +1,4 @@
-<!-- src/screens/wallet/Overview.vue -->
+// src/screens/wallet/Overview.vue
 <template>
     <main class="p-4 max-w-7xl mx-auto">
         <!-- Header (unchanged) -->
@@ -43,7 +43,10 @@
                         </p>
 
                         <p class="text-4xl font-bold bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
-                            {{ formatCurrency(Wallet.totalUsdValue) }}
+                            {{ formatCurrency(totalBalance.usd) }}
+                        </p>
+                        <p class="text-xl text-slate-300 font-mono">
+                            {{ totalBalance.dash.toLocaleString() }} DASH
                         </p>
 
                         <div v-if="Wallet.balanceChange" class="mt-2 flex items-center gap-1">
@@ -220,14 +223,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWalletStore } from '@/stores/wallet'
+import { useIdentityStore } from '@/stores/identity'
 
 const router = useRouter()
 const Wallet = useWalletStore()
+const Identity = useIdentityStore()
 
 const isCopied = ref(false)
+
+const DASH_PRICE_USD = 25 // Placeholder DASH price in USD; in production, fetch from API
+
+const totalBalance = computed(() => {
+console.log('Identity.isAuthenticated', Identity.isAuthenticated)
+console.log('Identity.balance', Identity.balance)
+    if (Identity.isAuthenticated && Identity.balance) {
+        const duffs = parseInt(Identity.balance, 10)
+        const dash = duffs / 100000000
+        const usd = dash * DASH_PRICE_USD
+        return { dash, usd }
+    }
+    // Fallback to mock
+    return { dash: 0, usd: Wallet.totalUsdValue || 0 }
+})
 
 const formatCurrency = (value: number) => {
     if (typeof value !== 'number') return '$0.00'
@@ -277,7 +297,16 @@ const assetIconExists = (ticker: string) => {
 }
 
 onMounted(() => {
-    if (!Wallet.user) {
+    if (Identity.isConnected) {
+        // Use identity data for user
+        if (Identity.username) {
+            Wallet.user = {
+                name: Identity.username,
+                address: Identity.username // Use identity ID as address
+            }
+        }
+        // Balance is already fetched via searchUserIdentities or fetchBalance
+    } else {
         Wallet.initializeMockData()
     }
 })
