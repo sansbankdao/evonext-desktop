@@ -11,9 +11,9 @@ import {
     get_identity_by_non_unique_public_key_hash,
 } from './dash/wasm_sdk'
 import { IIdentity, IPublicKey } from './types'
- // @ts-ignore
+// @ts-ignore
 import { hash160 } from '@nexajs/crypto'
- // @ts-ignore
+// @ts-ignore
 import { binToHex, hexToBin } from '@nexajs/utils'
 /* Initialize constants. */
 const MIN_INDEX_SEARCH = 3
@@ -31,21 +31,21 @@ const getKeyType = (_type: number | undefined) => {
 const decodeBase64ToHex = (_base64String: string) => {
   try {
     // 1. Decode the Base64 string into a binary string
-    const byteString = atob(_base64String);
+    const byteString = atob(_base64String)
     // 2. Create an array to hold the byte values
-    const bytes = [];
+    const bytes = []
     for (let i = 0; i < byteString.length; i++) {
       // 3. Convert each character to its byte value
-      const byte = byteString.charCodeAt(i);
+      const byte = byteString.charCodeAt(i)
       // 4. Convert the byte to a two-digit hex string and add to the array
-      const hex = byte.toString(16).padStart(2, '0');
-      bytes.push(hex);
+      const hex = byte.toString(16).padStart(2, '0')
+      bytes.push(hex)
     }
     // 5. Join the array elements to form the final hex string
-    return bytes.join('');
+    return bytes.join('')
   } catch (e) {
-    console.error('Failed to decode Base64 string:', e);
-    return null;
+    console.error('Failed to decode Base64 string:', e)
+    return null
   }
 }
 /**
@@ -163,13 +163,11 @@ export const searchByHash160 = async (_network: string, _identityIdx: number, _d
     const publicKey = privateKeys.masterKey.public_key
     /* Calculate public key hash. */
     const publicKeyHash = binToHex(hash160(hexToBin(publicKey)))
-console.log('HASH160 PKH', publicKeyHash)
+    console.log('HASH160 PKH', publicKeyHash)
     let result
     if (_dapiOnly) {
         /* Use Web API for DAPI-only requests. */
-        result = await queryWebAPI('get_identity_by_non_unique_public_key_hash', [
-            publicKeyHash
-        ])
+        result = await queryWebAPI('get_identity_by_non_unique_public_key_hash', [publicKeyHash])
     } else {
         /* Initialize SDK. */
         await init()
@@ -192,8 +190,8 @@ console.log('HASH160 PKH', publicKeyHash)
             undefined
         ).catch(err => console.error(err))
     }
-console.log('HASH160 RESULT FOR', publicKeyHash, result)
-    /* Handle ECDSA_HASH160 signature scheme. */
+    console.log('HASH160 RESULT FOR', publicKeyHash, result)
+    /* Handle ECDSA_HASH160 signature scheme (array from both WASM/Web API). */
     if (result && result.length > 0 && typeof result === 'object') {
         /* Set Identity ID. */
         identityId = result[0].id
@@ -230,13 +228,11 @@ export const searchBySecp256k1 = async (_network: string, _identityIdx: number, 
     const publicKey = privateKeys.masterKey.public_key
     /* Calculate public key hash. */
     const publicKeyHash = binToHex(hash160(hexToBin(publicKey)))
-console.log('SECP256K1 PKH', publicKeyHash)
+    console.log('SECP256K1 PKH', publicKeyHash)
     let result
     if (_dapiOnly) {
         /* Use Web API for DAPI-only requests. */
-        result = await queryWebAPI('get_identity_by_public_key_hash', [
-            publicKeyHash
-        ])
+        result = await queryWebAPI('get_identity_by_public_key_hash', [publicKeyHash])
     } else {
         /* Initialize SDK. */
         await init()
@@ -258,14 +254,19 @@ console.log('SECP256K1 PKH', publicKeyHash)
             publicKeyHash
         ).catch(err => console.error(err))
     }
+    console.log('SECP256K1 RESULT FOR', publicKeyHash, result)
     /* Handle ECDSA_SECP256k1 signature scheme. */
     if (result && result.toJSON) {
-        /* Set Identity ID. */
-        identityId = result.toJSON().id
-        /* Set registered public keys. */
-        regPubKeys = result.toJSON().publicKeys
-    } else if (result && result.id) {
-        /* Direct result from Web API. */
+        /* WASM SDK result (wrapped object). */
+        const jsonResult = result.toJSON()
+        identityId = jsonResult.id
+        regPubKeys = jsonResult.publicKeys
+    } else if (result && Array.isArray(result) && result.length > 0) {
+        /* Web API result as array (fallback). */
+        identityId = result[0].id
+        regPubKeys = result[0].publicKeys
+    } else if (result && result.id && typeof result === 'object') {
+        /* Web API result as plain single object (expected for unique query). */
         identityId = result.id
         regPubKeys = result.publicKeys
     }
