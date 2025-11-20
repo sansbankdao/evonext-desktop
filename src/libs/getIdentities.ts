@@ -166,9 +166,6 @@ export const searchByHash160 = async (_network: string, _identityIdx: number, _d
     console.log('HASH160 PKH', publicKeyHash)
     let result
     if (_dapiOnly) {
-        /* Use Web API for DAPI-only requests. */
-        result = await queryWebAPI('get_identity_by_non_unique_public_key_hash', [publicKeyHash])
-    } else {
         /* Initialize SDK. */
         await init()
         let sdk
@@ -189,6 +186,9 @@ export const searchByHash160 = async (_network: string, _identityIdx: number, _d
             publicKeyHash,
             undefined
         ).catch(err => console.error(err))
+    } else {
+        /* Use Web API for DAPI-only requests. */
+        result = await queryWebAPI('get_identity_by_non_unique_public_key_hash', [publicKeyHash])
     }
     console.log('HASH160 RESULT FOR', publicKeyHash, result)
     /* Handle ECDSA_HASH160 signature scheme (array from both WASM/Web API). */
@@ -231,9 +231,6 @@ export const searchBySecp256k1 = async (_network: string, _identityIdx: number, 
     console.log('SECP256K1 PKH', publicKeyHash)
     let result
     if (_dapiOnly) {
-        /* Use Web API for DAPI-only requests. */
-        result = await queryWebAPI('get_identity_by_public_key_hash', [publicKeyHash])
-    } else {
         /* Initialize SDK. */
         await init()
         let sdk
@@ -253,6 +250,9 @@ export const searchBySecp256k1 = async (_network: string, _identityIdx: number, 
             sdk,
             publicKeyHash
         ).catch(err => console.error(err))
+    } else {
+        /* Use Web API for DAPI-only requests. */
+        result = await queryWebAPI('get_identity_by_public_key_hash', [publicKeyHash])
     }
     console.log('SECP256K1 RESULT FOR', publicKeyHash, result)
     /* Handle ECDSA_SECP256k1 signature scheme. */
