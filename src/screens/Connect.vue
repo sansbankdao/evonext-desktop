@@ -87,7 +87,7 @@
                 </div>
                 <!-- Form Container -->
                 <form @submit.prevent="connect" class="bg-slate-800/80 backdrop-blur-sm p-6 rounded-xl space-y-6 shadow-lg border border-slate-700">
-                    <!-- SEED PHRASE FORM (unchanged) -->
+                    <!-- SEED PHRASE FORM (updated for paste support) -->
                     <div v-if="connectionMethod === 'seed'" class="space-y-6">
                         <div>
                             <label class="block text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
@@ -122,6 +122,7 @@
                                 <span class="absolute -top-6 left-0 text-xs text-slate-500 font-mono bg-slate-900 px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200">{{ index + 1 }}</span>
                                 <input
                                     v-model="seedWords[index]"
+                                    @paste.prevent="handlePaste"
                                     type="text"
                                     autocomplete="off"
                                     spellcheck="false"
@@ -273,6 +274,27 @@ const copyAddress = async () => {
         }, 2000)
     } catch (err) {
         console.error('Failed to copy address: ', err)
+    }
+}
+// --- Paste Handler for Seed Words ---
+const handlePaste = (event: ClipboardEvent) => {
+    const pastedText = event.clipboardData?.getData('text') || ''
+    const words = pastedText
+        .toLowerCase()
+        .split(/\s+/)
+        .map((w) => w.trim())
+        .filter((w) => w.length > 0)
+
+    const totalSlots = seedWords.length
+    // Always start from index 0, regardless of which field was pasted into
+    for (let i = 0; i < words.length && i < totalSlots; i++) {
+        seedWords[i] = words[i]
+    }
+
+    if (words.length > totalSlots) {
+        console.warn(
+            `Pasted ${words.length} words, but only ${totalSlots} slots available. Extra words ignored.`
+        )
     }
 }
 // --- Logic ---
