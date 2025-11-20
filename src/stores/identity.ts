@@ -9,7 +9,7 @@ import initWasm, {
     prefetch_trusted_quorums_mainnet,
 } from '@/libs/dash/wasm_sdk.js'
 import getIdentities from '@/libs/getIdentities'
-import getIdentityBalance from '@/libs/getIdentityBalance'
+import getIdentityBalance from '@evonext/platform'
 import { IIdentity, IPublicKey } from '@/libs/types'
 
 export interface IExtendedPublicKey extends IPublicKey {

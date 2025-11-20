@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@evonext/platform':
+        specifier: 25.11.15
+        version: 25.11.15
       '@heroicons/vue':
         specifier: 2.2.0
         version: 2.2.0(vue@3.5.22(typescript@5.6.3))
@@ -299,6 +302,10 @@ packages:
 
   '@ethersproject/random@5.7.0':
     resolution: {integrity: sha512-19WjScqRA8IIeWclFme75VMXSBvi4e6InrUNuaR4s5pTF2qNhcGdCUwdxUVGtDDqC00sDLCO93jPQoDUH4HVmQ==}
+
+  '@evonext/platform@25.11.15':
+    resolution: {integrity: sha512-XnfFT1FWLiHgRjmfS7HSPgoRGFqWVU4cEyHi7M5+ahvu8PeUzw7w7r2E8FEhTR6OQo/kJJ9jQIHE/eMP0RxUCg==}
+    engines: {node: '>=18.0.0'}
 
   '@heroicons/vue@2.2.0':
     resolution: {integrity: sha512-G3dbSxoeEKqbi/DFalhRxJU4mTXJn7GwZ7ae8NuEQzd1bqdd0jAbdaBZlHPcvPD2xI1iGzNVB4k20Un2AguYPw==}
@@ -1551,6 +1558,13 @@ snapshots:
     dependencies:
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/logger': 5.8.0
+
+  '@evonext/platform@25.11.15':
+    dependencies:
+      '@nexajs/crypto': 24.9.5
+      '@nexajs/utils': 24.7.15
+      dash-platform-sdk: 1.3.0-dev.10(pshenmic-dpp@1.1.0-dev.7)
+      pshenmic-dpp: 1.1.0-dev.7
 
   '@heroicons/vue@2.2.0(vue@3.5.22(typescript@5.6.3))':
     dependencies:
