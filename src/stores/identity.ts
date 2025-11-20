@@ -1,5 +1,17 @@
+// src/stores/identity.ts
+
 /* Import modules. */
 import { defineStore } from 'pinia'
+
+import init, {
+    WasmSdkBuilder,
+    // identity_fetch,
+    dpns_resolve_name,
+    // get_dpns_usernames,
+    // get_documents,
+    // get_identity_token_balances,
+    prefetch_trusted_quorums_mainnet,
+} from '@/libs/dash/wasm_sdk.js'
 
 export const useIdentityStore = defineStore('identity', {
     state: () => ({

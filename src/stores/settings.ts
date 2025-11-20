@@ -1,3 +1,6 @@
+// src/stores/settings.ts
+
+/* Import modules. */
 import { defineStore } from 'pinia'
 import { invoke } from '@tauri-apps/api/core'
 

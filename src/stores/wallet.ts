@@ -1,4 +1,6 @@
 // src/stores/wallet.ts
+
+/* Import modules. */
 import { defineStore } from 'pinia'
 
 import init, {

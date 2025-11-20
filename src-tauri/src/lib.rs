@@ -1,3 +1,5 @@
+// src-tauri/src/lib.rs
+
 use std::path::PathBuf;
 use tauri::{AppHandle, Wry};
 use tauri_plugin_store::{StoreBuilder};
