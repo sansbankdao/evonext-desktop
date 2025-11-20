@@ -2,7 +2,7 @@ Introducing the newest versions of the EvoNext Desktop Editions!
 
 We are excited to announce the release of the EvoNext Desktop:
 
-v25.11.20 — Optimized for Awesome UX
+### Optimized for Awesome UX
 
 This latest version of EvoNext introduces seed phrase support, plus massive optimizations for DAPI.
 
