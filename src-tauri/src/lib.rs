@@ -33,7 +33,7 @@ struct IPrivateKeys {
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct IMnemonic {
-    mnemonic: String,
+    seed_phrase: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
@@ -68,8 +68,8 @@ pub fn run() {
             load_network_settings,
             save_network_settings,
 
-            load_private_key,
-            save_private_key,
+            load_private_keys,
+            save_private_keys,
 
             load_settings_from_backend,
             save_settings_to_backend
@@ -182,7 +182,7 @@ fn load_mnemonic(app_handle: AppHandle<Wry>) -> Result<Option<IMnemonic>, String
 }
 
 #[tauri::command]
-fn save_private_key(app_handle: AppHandle<Wry>, payload: IPrivateKeys) -> Result<(), String> {
+fn save_private_keys(app_handle: AppHandle<Wry>, payload: IPrivateKeys) -> Result<(), String> {
     let path = SAFU_FILE.parse::<PathBuf>().unwrap();
 
     let store = StoreBuilder::new(&app_handle, path)
@@ -198,7 +198,7 @@ fn save_private_key(app_handle: AppHandle<Wry>, payload: IPrivateKeys) -> Result
 }
 
 #[tauri::command]
-fn load_private_key(app_handle: AppHandle<Wry>) -> Result<Option<IPrivateKeys>, String> {
+fn load_private_keys(app_handle: AppHandle<Wry>) -> Result<Option<IPrivateKeys>, String> {
     let path = SAFU_FILE.parse::<PathBuf>().unwrap();
 
     let store = StoreBuilder::new(&app_handle, path)

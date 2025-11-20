@@ -66,7 +66,7 @@ export interface IMedia {
 }
 
 export interface IMnemonic {
-    mnemonic: string;
+    seed_phrase: string;
 }
 
 

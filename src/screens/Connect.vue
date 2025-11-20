@@ -340,19 +340,19 @@ const connect = async () => {
         if (connectionMethod.value === 'seed') {
             console.log(`Attempting to connect with a ${wordCount.value}-word mnemonic.`)
             /* Join the array into a single space-separated string. */
-            const mnemonic = seedWords.join(' ')
+            const seed_phrase = seedWords.join(' ')
 
             /* Set payload. */
-            payload = { mnemonic }
+            payload = { seed_phrase }
 
-            /* Save mnemonic. */
+            /* Save mnemonic (seed phrase). */
             await invoke('save_mnemonic', { payload })
         } else { // privateKey
             console.log(`Attempting to connect with private keys (username/ID + WIF or HEX).`)
             /* Set payload with all three keys (empty strings if not provided). Backend resolves username to ID if needed. */
             /* Backend should check: If username (e.g., "user.dash") → Use dpns_resolve_name; else treat as ID. */
             payload = {
-                identity: identityId.value.trim(), // Renamed from 'identity_id' to 'identity' for username/ID support
+                identity_id: identityId.value.trim(),
                 auth_key: authKey.value.trim(), // Authorization Key (WIF or HEX)
                 transfer_key: transferKey.value.trim(), // Transfer Key (WIF or HEX)
                 encryption_key: encryptionKey.value.trim() // Encryption Key (WIF or HEX)

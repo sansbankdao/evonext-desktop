@@ -188,7 +188,7 @@ console.log('IDENTITIES', identities)
 
 return
         /* Request private key. */
-        const privateKeyStore = await invoke<IPrivateKey | null>('load_private_key')
+        const privateKeyStore = await invoke<IPrivateKey | null>('load_private_keys')
 console.log('PRIVATE KEY (store)', privateKeyStore)
 
         /* Validate authentication. */

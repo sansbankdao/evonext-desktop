@@ -11,7 +11,7 @@ export default async () => {
 
     /* Validate mnemonic store. */
     if (typeof mnemonicStore !== 'undefined' && mnemonicStore !== null) {
-        return mnemonicStore.mnemonic
+        return mnemonicStore.seed_phrase
     } else {
         null
     }
