@@ -70,7 +70,7 @@
                                 <div class="mt-6 grid grid-cols-1 gap-y-6">
                                     <div>
                                         <label for="displayName" class="block text-sm font-medium text-slate-300">Display Name</label>
-                                        <input v-model="localProfile.displayName" type="text" name="displayName" id="displayName" class="mt-1 block w-full bg-slate-700 border-slate-600 rounded-lg p-3 text-white placeholder-slate-400 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition">
+                                        <input v-model="localProfile.display_name" type="text" name="displayName" id="displayName" class="mt-1 block w-full bg-slate-700 border-slate-600 rounded-lg p-3 text-white placeholder-slate-400 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition">
                                     </div>
                                     <div>
                                         <label for="username" class="block text-sm font-medium text-slate-300">Username</label>

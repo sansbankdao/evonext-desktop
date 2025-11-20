@@ -6,7 +6,7 @@ import { invoke } from '@tauri-apps/api/core'
 
 // Define the shape of our settings
 export interface ProfileSettings {
-    displayName: string;
+    display_name: string;
     username: string;
     bio: string;
 }
@@ -14,7 +14,7 @@ export interface ProfileSettings {
 export interface NotificationSettings {
     messages: boolean;
     mentions: boolean;
-    contactRequests: boolean;
+    contact_requests: boolean;
 }
 
 export interface SettingsState {
@@ -32,10 +32,10 @@ export const useSettingsStore = defineStore('settings', {
         notifications: {
             messages: true,
             mentions: true,
-            contactRequests: false,
+            contact_requests: false,
         },
         profile: {
-            displayName: '',
+            display_name: '',
             username: '',
             bio: '',
         },
