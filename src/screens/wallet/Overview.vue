@@ -237,16 +237,15 @@ const isCopied = ref(false)
 const DASH_PRICE_USD = 25 // Placeholder DASH price in USD; in production, fetch from API
 
 const totalBalance = computed(() => {
-console.log('Identity.isAuthenticated', Identity.isAuthenticated)
-console.log('Identity.balance', Identity.balance)
     if (Identity.isAuthenticated && Identity.balance) {
-        const duffs = parseInt(Identity.balance, 10)
-        const dash = duffs / 100000000
+        const credits = parseInt(Identity.balance, 10)
+        const duffs = credits / 1000 // Convert credits to duffs (1 duff = 1,000 credits)
+        const dash = duffs / 100000000 // Convert duffs to DASH (1 DASH = 100,000,000 duffs)
         const usd = dash * DASH_PRICE_USD
-        return { dash, usd }
+        return { dash, usd, credits, duffs }
     }
     // Fallback to mock
-    return { dash: 0, usd: Wallet.totalUsdValue || 0 }
+    return { dash: 0, usd: 0, credits: 0, duffs: 0 }
 })
 
 const formatCurrency = (value: number) => {

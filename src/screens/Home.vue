@@ -233,14 +233,15 @@ const Identity = useIdentityStore()
 const DASH_PRICE_USD = 25 // Placeholder DASH price in USD; in production, fetch from API
 
 const totalBalance = computed(() => {
-    if (Identity.isConnected && Identity.balance) {
-        const duffs = parseInt(Identity.balance, 10)
-        const dash = duffs / 100000000
+    if (Identity.isAuthenticated && Identity.balance) {
+        const credits = parseInt(Identity.balance, 10)
+        const duffs = credits / 1000 // Convert credits to duffs (1 duff = 1,000 credits)
+        const dash = duffs / 100000000 // Convert duffs to DASH (1 DASH = 100,000,000 duffs)
         const usd = dash * DASH_PRICE_USD
-        return { dash, usd }
+        return { dash, usd, credits, duffs }
     }
     // Fallback to mock
-    return { dash: 12345.67 / DASH_PRICE_USD, usd: 12345.67 }
+    return { dash: 0, usd: 0, credits: 0, duffs: 0 }
 })
 
 const formatCurrency = (value: number) => {
