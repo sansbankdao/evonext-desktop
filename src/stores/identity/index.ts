@@ -20,17 +20,22 @@ import {
 } from './actions/balance'
 import { useIdentityGetters } from './getters'
 
-/* Combine all actions */
-const useIdentityActions = (state: State, store: any) => ({
-    ...storageActions(state, store),
-    ...connectionActions(state, store),
-    ...identityActions(state, store),
-    ...balanceActions(state, store),
-})
+/* Create typed action objects by calling factories once */
+const allStorageActions = storageActions({} as State, {} as any)
+const allConnectionActions = connectionActions({} as State, {} as any)
+const allIdentityActions = identityActions({} as State, {} as any)
+const allBalanceActions = balanceActions({} as State, {} as any)
+
+/* Combine into final actions object */
+const useIdentityActions = {
+    ...allStorageActions,
+    ...allConnectionActions,
+    ...allIdentityActions,
+    ...allBalanceActions,
+}
 
 export const useIdentityStore = defineStore('identity', {
     state: useIdentityState,
     actions: useIdentityActions,
     getters: useIdentityGetters,
-    // NO persist: true - using Rust/Tauri storage instead!
 })
