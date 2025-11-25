@@ -1,8 +1,8 @@
 // src/stores/identity/actions/storage.ts
 
-import { invoke } from '@tauri-apps/api/core'
-import type { IdentityData, IdentityPublicKey } from '../types'
-export const storageActions = (state: any, store: any) => ({
+import { invoke } from '@tauri-apps/api/core'  // Tauri v2
+import type { IdentityData, IdentityPublicKey, State } from '../types'
+export const storageActions = (state: State, store: any) => ({
     async saveToStorage() {
         try {
             const identityData: IdentityData = {
@@ -15,7 +15,7 @@ export const storageActions = (state: any, store: any) => ({
                 created_at: state.lastConnected,
                 public_key_ids: state.publicKeys.map((key: IdentityPublicKey) => key.id),
             }
-            await invoke('save_identity_data', { payload: identityData })
+            await invoke('save_identity_data', { identityData })  // ✅ Tauri v2
             console.log('Identity data saved to storage')
         } catch (err) {
             console.error('Failed to save identity data to storage:', err)
@@ -23,7 +23,7 @@ export const storageActions = (state: any, store: any) => ({
     },
     async loadFromStorage() {
         try {
-            const identityData = await invoke('load_identity_data') as IdentityData | null
+            const identityData = await invoke('load_identity_data') as IdentityData | null  // ✅ Tauri v2
             if (identityData) {
                 console.log('Loaded identity data from storage:', identityData)
                 state.username = identityData.username || null
@@ -52,7 +52,7 @@ export const storageActions = (state: any, store: any) => ({
                 disabled_at: key.disabledAt || null
             }))
             const revisionNum = typeof sdkRevision === 'bigint' ? Number(sdkRevision) : sdkRevision
-            await invoke('update_identity_with_sdk_data', {
+            await invoke('update_identity_with_sdk_data', {  // ✅ Tauri v2
                 identityId,
                 publicKeys,
                 revision: revisionNum,

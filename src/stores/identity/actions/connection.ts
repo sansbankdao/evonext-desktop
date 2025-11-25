@@ -1,14 +1,16 @@
 // src/stores/identity/actions/connection.ts
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@tauri-apps/api/core'  // Tauri v2
 import getIdentities from '@/libs/getIdentities'
-export const connectionActions = (state: any, store: any) => ({
+import type { State } from '../types'
+
+export const connectionActions = (state: State, store: any) => ({
     async initFromStorage() {
         try {
             await store.loadFromStorage()
             const [mnemonicData, keysData] = await Promise.all([
-                invoke('load_mnemonic').catch(() => null),
-                invoke('load_private_keys').catch(() => null)
+                invoke('load_mnemonic').catch(() => null),  // ✅ Tauri v2
+                invoke('load_private_keys').catch(() => null),  // ✅ Tauri v2
             ])
             console.log('Loaded from storage - identity:', state.isAuthenticated, 'mnemonic:', !!mnemonicData, 'keys:', !!keysData)
             if (state.isAuthenticated && (mnemonicData || keysData)) {
@@ -34,13 +36,14 @@ export const connectionActions = (state: any, store: any) => ({
             console.error('Failed to initialize identity from storage:', err)
         }
     },
+
     async connectWithSeed(seedPhrase: string, network: 'mainnet' | 'testnet' = 'mainnet') {
         state.isConnecting = true
         state.connectionError = null
         try {
             console.log(`Attempting to connect with a mnemonic.`)
             const payload = { seed_phrase: seedPhrase }
-            await invoke('save_mnemonic', { payload })
+            await invoke('save_mnemonic', { payload })  // ✅ Tauri v2
             const identity = await store.searchUserIdentities(network)
             if (identity) {
                 state.isAuthenticated = true
@@ -59,6 +62,7 @@ export const connectionActions = (state: any, store: any) => ({
             state.isConnecting = false
         }
     },
+
     async connectWithPrivateKeys(
         identityId: string,
         authKey: string,
@@ -76,7 +80,7 @@ export const connectionActions = (state: any, store: any) => ({
                 transfer_key: transferKey.trim(),
                 encryption_key: encryptionKey.trim()
             }
-            await invoke('save_private_keys', { payload })
+            await invoke('save_private_keys', { payload })  // ✅ Tauri v2
             const resolvedIdentityId = identityId.trim()
             state.username = resolvedIdentityId
             state.isAuthenticated = true
@@ -95,16 +99,18 @@ export const connectionActions = (state: any, store: any) => ({
             state.isConnecting = false
         }
     },
+
     login(username: string) {
         state.username = username
         state.isAuthenticated = true
         store.saveToStorage()
     },
+
     async logout() {
         try {
             await Promise.all([
-                invoke('save_mnemonic', { payload: { seed_phrase: '' } }).catch(() => {}),
-                invoke('save_private_keys', {
+                invoke('save_mnemonic', { payload: { seed_phrase: '' } }).catch(() => {}),  // ✅ Tauri v2
+                invoke('save_private_keys', {  // ✅ Tauri v2
                     payload: {
                         identity_id: '',
                         auth_key: '',
@@ -112,7 +118,7 @@ export const connectionActions = (state: any, store: any) => ({
                         encryption_key: ''
                     }
                 }).catch(() => {}),
-                invoke('save_identity_data', {
+                invoke('save_identity_data', {  // ✅ Tauri v2
                     payload: {
                         username: '',
                         identity_id: '',
@@ -138,10 +144,12 @@ export const connectionActions = (state: any, store: any) => ({
         state.connectionError = null
         state.lastConnected = null
     },
+
     setPremiumAccess(hasAccess: boolean) {
         state.premiumAccess = hasAccess
         store.saveToStorage()
     },
+
     clearConnectionError() {
         state.connectionError = null
     },

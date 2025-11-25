@@ -2,11 +2,9 @@
 
 /* Import modules. */
 import { defineStore } from 'pinia'
-import { invoke } from '@tauri-apps/api/core'
-import { DashPlatformSDK } from 'dash-platform-sdk'
 import getIdentities from '@/libs/getIdentities'
 import { getIdentityBalance } from '@evonext/platform'
-import { IIdentity } from './types'
+import type { State } from './types'
 import { useIdentityState } from './state'
 import {
     storageActions
@@ -21,15 +19,18 @@ import {
     balanceActions
 } from './actions/balance'
 import { useIdentityGetters } from './getters'
+
 /* Combine all actions */
-const allActions = (state: any, store: any) => ({
+const useIdentityActions = (state: State, store: any) => ({
     ...storageActions(state, store),
     ...connectionActions(state, store),
     ...identityActions(state, store),
     ...balanceActions(state, store),
 })
+
 export const useIdentityStore = defineStore('identity', {
     state: useIdentityState,
-    actions: allActions,
+    actions: useIdentityActions,
     getters: useIdentityGetters,
+    // NO persist: true - using Rust/Tauri storage instead!
 })
