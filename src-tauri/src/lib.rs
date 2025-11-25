@@ -1,7 +1,6 @@
 // src-tauri/src/lib.rs
 mod commands;
 mod models;
-mod stores;
 mod menu;
 mod constants;
 
