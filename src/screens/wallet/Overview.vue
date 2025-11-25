@@ -118,7 +118,7 @@
             </div>
         </div>
 
-        <!-- Assets & Transactions (with icon mapping fix) -->
+        <!-- Assets & Transactions -->
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <!-- Assets List -->
             <div class="bg-slate-800/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-slate-700">
@@ -170,7 +170,7 @@
                 </div>
             </div>
 
-            <!-- Recent Transactions (unchanged except icon if needed; no assets here) -->
+            <!-- Recent Transactions -->
             <div class="bg-slate-800/80 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-slate-700">
                 <h2 class="text-xl font-semibold text-white mb-6 flex items-center gap-2">
                     <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -242,13 +242,18 @@ const isCopied = ref(false)
 const totalBalance = computed(() => {
     if (Identity.isConnected && Identity.balance) {
         const credits = parseInt(Identity.balance, 10)
-        const duffs = credits / 1000 // Convert credits to duffs (1 duff = 1,000 credits)
-        const dash = duffs / 100000000 // Convert duffs to DASH (1 DASH = 100,000,000 duffs)
+        const duffs = credits / 1000
+        const dash = duffs / 100000000
         const usd = dash * System.currentDashPrice
         return { dash, usd, credits, duffs }
     }
-    // Fallback to mock
-    return { dash: 0, usd: Wallet.totalUsdValue || 0, credits: 0, duffs: 0 }
+    // Fallback to mock data from wallet store
+    return {
+        dash: Wallet.assets.find(a => a.ticker === 'DASH')?.amount || 0,
+        usd: Wallet.totalUsdValue || 0,
+        credits: Wallet.assets.find(a => a.ticker === 'CREDITS')?.amount || 0,
+        duffs: 0
+    }
 })
 
 const formatCurrency = (value: number) => {
@@ -299,7 +304,11 @@ const assetIconExists = (ticker: string) => {
 onMounted(async () => {
     await nextTick()
 
-    if (Identity.isConnected && Identity.username) {
+    // Always ensure we have mock data if no identity is connected
+    if (!Identity.isConnected) {
+        console.log('No identity found, loading mock data')
+        Wallet.initializeMockData()
+    } else if (Identity.isConnected && Identity.username) {
         console.log('Using identity data for user:', Identity.username)
         Wallet.user = {
             name: Identity.username,
@@ -309,9 +318,11 @@ onMounted(async () => {
         if (!Identity.balance) {
             await Identity.fetchBalance()
         }
-    } else {
-        console.log('No identity found, falling back to mock data')
-        Wallet.initializeMockData()
+    }
+
+    // Ensure we have market data
+    if (!System.currentDashPrice) {
+        await System.fetchDashPrice()
     }
 })
 </script>
