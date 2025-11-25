@@ -2,9 +2,10 @@
 
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import getIdentities from '@/libs/getIdentities'
-import type { IIdentity } from '../types'
-export const identityActions = (state: any, store: any) => ({
-    async searchUserIdentities(network: 'mainnet' | 'testnet' = 'mainnet'): Promise<IIdentity | null> {
+import type { State, IdentityPublicKey } from '../types'
+export const identityActions = () => ({
+    async searchUserIdentities(this: any, network: 'mainnet' | 'testnet' = 'mainnet') {
+        const state = this as State
         try {
             console.log('Searching for user identities...')
             const identities = await getIdentities(network === 'mainnet' ? 'mainnet' : 'testnet', false)
@@ -20,12 +21,12 @@ export const identityActions = (state: any, store: any) => ({
             state.identity = primaryIdentity
             state.isAuthenticated = true
             try {
-                await store.queryIdentityDetails(primaryIdentity.id)
+                await this.queryIdentityDetails(primaryIdentity.id)
             } catch (error) {
                 console.warn('Failed to query detailed identity information:', error)
             }
-            await store.fetchBalance()
-            await store.saveToStorage()
+            await this.fetchBalance()
+            await this.saveToStorage()
             return primaryIdentity
         } catch (err) {
             console.error('Failed to search for identities:', err)
@@ -33,7 +34,8 @@ export const identityActions = (state: any, store: any) => ({
             return null
         }
     },
-    async queryIdentityDetails(identityId: string): Promise<any> {
+    async queryIdentityDetails(this: any, identityId: string) {
+        const state = this as State
         try {
             console.log('Querying identity details for:', identityId)
             const sdk = new DashPlatformSDK({ network: 'mainnet' })
@@ -43,7 +45,7 @@ export const identityActions = (state: any, store: any) => ({
             const revision = identity.revision || 0n
             console.log('Identity public keys:', publicKeys)
             console.log('Identity revision:', revision)
-            await store.updateIdentityWithSdkData(identityId, publicKeys, revision)
+            await this.updateIdentityWithSdkData(identityId, publicKeys, revision)
             return {
                 identity,
                 publicKeys,
@@ -54,13 +56,14 @@ export const identityActions = (state: any, store: any) => ({
             throw error
         }
     },
-    async getPublicKeys(): Promise<any[]> {
+    async getPublicKeys(this: any) {
+        const state = this as State
         try {
             if (state.publicKeys.length > 0) {
                 return state.publicKeys
             }
             if (state.identity?.id) {
-                const details = await store.queryIdentityDetails(state.identity.id)
+                const details = await this.queryIdentityDetails(state.identity.id)
                 return details.publicKeys || []
             }
             return []
