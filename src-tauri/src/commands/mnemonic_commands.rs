@@ -1,3 +1,4 @@
+// src-tauri/src/commands/mnemonic_commands.rs
 use tauri::{AppHandle, Wry};
 use crate::models::IMnemonic;
 use crate::constants::SAFU_FILE;
