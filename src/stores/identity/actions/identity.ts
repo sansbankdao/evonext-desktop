@@ -3,6 +3,16 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import getIdentities from '@/libs/getIdentities'
 import type { State, IdentityPublicKey } from '../types'
+
+function hexHash160ToBase64(hex: string): string {
+    // Hex string → Uint8Array (binary data)
+    const matches = hex.match(/.{2}/g)
+    if (!matches) throw new Error(`Invalid hex string: ${hex}`)
+    const bytes = new Uint8Array(matches.map(byte => parseInt(byte, 16)))
+    // Uint8Array → Base64
+    return btoa(String.fromCharCode(...Array.from(bytes)))
+}
+
 export const identityActions = () => ({
     async searchUserIdentities(this: any, network: 'mainnet' | 'testnet' = 'mainnet') {
         const state = this as State
@@ -41,7 +51,19 @@ export const identityActions = () => ({
             const sdk = new DashPlatformSDK({ network: 'mainnet' })
             const identity = await sdk.identities.getIdentityByIdentifier(identityId)
             console.log('SDK Identity details:', identity)
-            const publicKeys = identity.getPublicKeys()
+            const publicKeys = identity.getPublicKeys().map((_key, _index) => {
+                // return _key.data
+                return {
+                    id: _index,
+                    type_: _key.keyType,
+                    purpose: _key.purposeNumber,
+                    security_level: _key.securityLevelNumber,
+                    // data: _key.data,
+                    data: hexHash160ToBase64(_key.data),
+                    read_only: _key.readOnly,
+                    disabled_at: _key.disabledAt,
+                }
+            })
             const revision = identity.revision || 0n
             console.log('Identity public keys:', publicKeys)
             console.log('Identity revision:', revision)

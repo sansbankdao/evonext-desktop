@@ -2,6 +2,16 @@
 
 import { invoke } from '@tauri-apps/api/core'
 import type { IdentityData, IdentityPublicKey, State } from '../types'
+
+function hexHash160ToBase64(hex: string): string {
+    // Hex string → Uint8Array (binary data)
+    const matches = hex.match(/.{2}/g)
+    if (!matches) throw new Error(`Invalid hex string: ${hex}`)
+    const bytes = new Uint8Array(matches.map(byte => parseInt(byte, 16)))
+    // Uint8Array → Base64
+    return btoa(String.fromCharCode(...Array.from(bytes)))
+}
+
 export const storageActions = () => ({
     async saveToStorage(this: any) {
         const state = this as State
@@ -40,6 +50,9 @@ export const storageActions = () => ({
         }
     },
     async updateIdentityWithSdkData(this: any, identityId: string, sdkPublicKeys: any[], sdkRevision: bigint | number) {
+console.log('WITH SDK DATA (identityId)', identityId)
+console.log('WITH SDK DATA (sdkPublicKeys)', JSON.stringify(sdkPublicKeys, null, 2))
+console.log('WITH SDK DATA (sdkRevision)', sdkRevision)
         const state = this as State
         try {
             const publicKeys: IdentityPublicKey[] = sdkPublicKeys.map((key: any, index: number) => ({
@@ -47,6 +60,8 @@ export const storageActions = () => ({
                 type_: key.type || 'ecdsa',
                 purpose: Number(key.purpose || 0),
                 security_level: Number(key.securityLevel || 0),
+                data: key.data,
+                // data: hexHash160ToBase64(key.data),
                 read_only: Boolean(key.readOnly || false),
                 disabled_at: key.disabledAt || null
             }))
