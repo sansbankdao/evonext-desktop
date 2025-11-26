@@ -1,8 +1,6 @@
 // src/stores/identity/actions/storage.ts
-
 import { invoke } from '@tauri-apps/api/core'
 import type { IdentityData, IdentityPublicKey, State } from '../types'
-
 function hexHash160ToBase64(hex: string): string {
     // Hex string → Uint8Array (binary data)
     const matches = hex.match(/.{2}/g)
@@ -11,7 +9,6 @@ function hexHash160ToBase64(hex: string): string {
     // Uint8Array → Base64
     return btoa(String.fromCharCode(...Array.from(bytes)))
 }
-
 export const storageActions = () => ({
     async saveToStorage(this: any) {
         const state = this as State
@@ -26,7 +23,10 @@ export const storageActions = () => ({
                 created_at: state.lastConnected,
                 public_key_ids: state.publicKeys.map((key: IdentityPublicKey) => key.id),
             }
-            await invoke('save_identity_data', { identityData })
+            // ✅ FIXED: Wrap in { payload: identityData }
+            await invoke('save_identity_data', {
+                payload: identityData
+            })
             console.log('Identity data saved to storage')
         } catch (err) {
             console.error('Failed to save identity data to storage:', err)
@@ -50,27 +50,26 @@ export const storageActions = () => ({
         }
     },
     async updateIdentityWithSdkData(this: any, identityId: string, sdkPublicKeys: any[], sdkRevision: bigint | number) {
-console.log('WITH SDK DATA (identityId)', identityId)
-console.log('WITH SDK DATA (sdkPublicKeys)', JSON.stringify(sdkPublicKeys, null, 2))
-console.log('WITH SDK DATA (sdkRevision)', sdkRevision)
         const state = this as State
         try {
             const publicKeys: IdentityPublicKey[] = sdkPublicKeys.map((key: any, index: number) => ({
                 id: index,
-                type_: key.type || 'ecdsa',
-                purpose: Number(key.purpose || 0),
-                security_level: Number(key.securityLevel || 0),
-                data: key.data,
-                // data: hexHash160ToBase64(key.data),
-                read_only: Boolean(key.readOnly || false),
-                disabled_at: key.disabledAt || null
+                type_: key.type_ || key.keyType || 'ecdsa',
+                purpose: Number(key.purpose || key.purposeNumber || 0),
+                security_level: Number(key.security_level || key.securityLevelNumber || 0),
+                data: key.data || hexHash160ToBase64(key.dataBytes || ''),  // ✅ FIXED: Ensure data exists
+                read_only: Boolean(key.read_only || key.readOnly || false),
+                disabled_at: key.disabled_at || key.disabledAt || null
             }))
             const revisionNum = typeof sdkRevision === 'bigint' ? Number(sdkRevision) : sdkRevision
+            // ✅ FIXED: Wrap in { payload: { identityId, publicKeys, ... } }
             await invoke('update_identity_with_sdk_data', {
-                identityId,
-                publicKeys,
-                revision: revisionNum,
-                publicKeyIds: publicKeys.map(key => key.id)
+                payload: {
+                    identityId,
+                    publicKeys,
+                    revision: revisionNum,
+                    publicKeyIds: publicKeys.map(key => key.id)
+                }
             })
             state.publicKeys = publicKeys
             state.revision = revisionNum
