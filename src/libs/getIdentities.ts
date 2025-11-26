@@ -64,8 +64,14 @@ const queryWebAPI = async (_method: string, _params: any[]): Promise<any> => {
             body: JSON.stringify({
                 method: _method,
                 params: _params,
+                network: 'mainnet', // FIXME WE NEED TO MAKE THIS DYNAMIC
             }),
         })
+console.log({
+    method: _method,
+    params: _params,
+    network: 'mainnet', // FIXME WE NEED TO MAKE THIS DYNAMIC
+})
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
         }
@@ -107,6 +113,7 @@ export default async (
     for (let i = 0; i < MIN_INDEX_SEARCH; i++) {
         /* Request query by Hash160. */
         const hash160Result = await searchByHash160(_network, i, _dapiOnly)
+console.log('***HASH160 RESULT', hash160Result)
         /* Validate result. */
         if (typeof hash160Result !== 'undefined' && hash160Result !== null) {
             identities.push({
@@ -206,15 +213,10 @@ export const searchByHash160 = async (_network: string, _identityIdx: number, _d
     }
     console.log('HASH160 RESULT FOR', publicKeyHash, result)
     /* Handle ECDSA_HASH160 signature scheme (array from both WASM/Web API). */
-    if (result && Array.isArray(result) && result.length > 0) {
-        /* Set Identity ID. */
-        identityId = result[0].id
-        /* Set registered public keys. */
-        regPubKeys = result[0].publicKeys
-    }
-    /* If empty array or null, no identity found (consistent handling). */
-    if (result === null || (Array.isArray(result) && result.length === 0)) {
-        return null
+    if (result && typeof result === 'object' && result.result.identityId) {
+        /* Web API result as plain single object (expected for unique query). */
+        identityId = result.result.identityId
+        regPubKeys = result.result.publicKeys
     }
     /* Validate Identity. */
     if (typeof identityId === 'undefined' || identityId === null) {
@@ -274,25 +276,11 @@ export const searchBySecp256k1 = async (_network: string, _identityIdx: number, 
     }
     console.log('SECP256K1 RESULT FOR', publicKeyHash, result)
     /* Handle ECDSA_SECP256k1 signature scheme (consistent with normalized Web API or WASM). */
-    if (result && typeof result === 'object' && result.toJSON) {
-        /* WASM SDK result (wrapped object). */
-        const jsonResult = result.toJSON()
-        if (jsonResult && typeof jsonResult === 'object' && jsonResult.id) {
-            identityId = jsonResult.id
-            regPubKeys = jsonResult.publicKeys
-        }
-    } else if (result && Array.isArray(result) && result.length > 0) {
-        /* Web API result as array (fallback for non-unique, but treat similarly). */
-        identityId = result[0].id
-        regPubKeys = result[0].publicKeys
-    } else if (result && typeof result === 'object' && result.id) {
+    // if (result && typeof result === 'object' && result.toJSON) {
+    if (result && typeof result === 'object' && result.result.identityId) {
         /* Web API result as plain single object (expected for unique query). */
-        identityId = result.id
-        regPubKeys = result.publicKeys
-    }
-    /* If empty array or null, no identity found (consistent handling). */
-    if (result === null || (Array.isArray(result) && result.length === 0)) {
-        return null
+        identityId = result.result.identityId
+        regPubKeys = result.result.publicKeys
     }
     /* Validate Identity. */
     if (typeof identityId === 'undefined' || identityId === null) {
