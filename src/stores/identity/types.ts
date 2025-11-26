@@ -9,7 +9,9 @@ export interface IExtendedPublicKey {
 export interface State {
     username: string | null
     identity: any | null
-    balance: string | null
+    balance: string | null                    // Raw satoshis string from API
+    balanceBigInt?: bigint                    // ✅ NEW: Computed satoshis BigInt
+    dashBigInt?: bigint                       // ✅ NEW: Computed DASH BigInt
     publicKeys: IdentityPublicKey[]
     revision: number | null
     isAuthenticated: boolean
