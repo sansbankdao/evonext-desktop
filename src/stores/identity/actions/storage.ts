@@ -23,7 +23,7 @@ export const storageActions = () => ({
                 created_at: state.lastConnected,
                 public_key_ids: state.publicKeys.map((key: IdentityPublicKey) => key.id),
             }
-            // ✅ FIXED: Wrap in { payload: identityData }
+            // ✅ FIXED: Direct payload (matches Rust: payload: IdentityData)
             await invoke('save_identity_data', {
                 payload: identityData
             })
@@ -57,19 +57,25 @@ export const storageActions = () => ({
                 type_: key.type_ || key.keyType || 'ecdsa',
                 purpose: Number(key.purpose || key.purposeNumber || 0),
                 security_level: Number(key.security_level || key.securityLevelNumber || 0),
-                data: key.data || hexHash160ToBase64(key.dataBytes || ''),  // ✅ FIXED: Ensure data exists
+                data: key.data || hexHash160ToBase64(key.dataBytes || key.data || ''),
                 read_only: Boolean(key.read_only || key.readOnly || false),
                 disabled_at: key.disabled_at || key.disabledAt || null
             }))
             const revisionNum = typeof sdkRevision === 'bigint' ? Number(sdkRevision) : sdkRevision
-            // ✅ FIXED: Wrap in { payload: { identityId, publicKeys, ... } }
-            await invoke('update_identity_with_sdk_data', {
-                payload: {
-                    identityId,
-                    publicKeys,
-                    revision: revisionNum,
-                    publicKeyIds: publicKeys.map(key => key.id)
-                }
+            // ✅ FIXED: Tauri expects { payload: IdentityData } - create full IdentityData
+            const identityData: IdentityData = {
+                username: state.username || '',
+                identity_id: identityId,
+                balance: state.balance,
+                is_authenticated: state.isAuthenticated,
+                public_keys: publicKeys,
+                revision: revisionNum,
+                created_at: state.lastConnected || new Date().toISOString(),
+                public_key_ids: publicKeys.map(key => key.id)
+            }
+            // ✅ Call save_identity_data with complete IdentityData payload
+            await invoke('save_identity_data', {
+                payload: identityData
             })
             state.publicKeys = publicKeys
             state.revision = revisionNum
