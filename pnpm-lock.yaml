@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@evonext/platform':
-        specifier: 25.11.22
-        version: 25.11.22
+        specifier: 25.11.23
+        version: 25.11.23
       '@heroicons/vue':
         specifier: 2.2.0
         version: 2.2.0(vue@3.5.22(typescript@5.6.3))
@@ -303,8 +303,8 @@ packages:
   '@ethersproject/random@5.7.0':
     resolution: {integrity: sha512-19WjScqRA8IIeWclFme75VMXSBvi4e6InrUNuaR4s5pTF2qNhcGdCUwdxUVGtDDqC00sDLCO93jPQoDUH4HVmQ==}
 
-  '@evonext/platform@25.11.22':
-    resolution: {integrity: sha512-JeKwSZiHaFJiZM679KKnMLwHUyGXwH6fFMby/13Zne0U6qhlj2atjCSJ3gOho5B0hzW97RoMIIYvQTfC0VOIQg==}
+  '@evonext/platform@25.11.23':
+    resolution: {integrity: sha512-wCR3t0hG387G5QVI9EJPUdwEGUNkkD464IlvVk65Hwxh86GBO7xSXnIm40BcXcOxPvYRrURxOxakLO/nOaL6Zg==}
 
   '@heroicons/vue@2.2.0':
     resolution: {integrity: sha512-G3dbSxoeEKqbi/DFalhRxJU4mTXJn7GwZ7ae8NuEQzd1bqdd0jAbdaBZlHPcvPD2xI1iGzNVB4k20Un2AguYPw==}
@@ -1558,7 +1558,7 @@ snapshots:
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/logger': 5.8.0
 
-  '@evonext/platform@25.11.22':
+  '@evonext/platform@25.11.23':
     dependencies:
       '@nexajs/crypto': 24.9.5
       '@nexajs/utils': 24.7.15

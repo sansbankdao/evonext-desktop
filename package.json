@@ -11,7 +11,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@evonext/platform": "25.11.22",
+    "@evonext/platform": "25.11.23",
     "@heroicons/vue": "2.2.0",
     "@nexajs/crypto": "24.9.5",
     "@nexajs/utils": "24.7.15",
