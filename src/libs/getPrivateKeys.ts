@@ -1,11 +1,6 @@
 // src/libs/getPrivateKeys.ts
 
 /* Import modules. */
-import init, {
-    // WasmSdkBuilder,
-    derive_key_from_seed_with_path,
-    // prefetch_trusted_quorums_mainnet,
-} from './dash/wasm_sdk.js'
 import getMnemonic from './getMnemonic'
 
 /* Get Private Keys. */

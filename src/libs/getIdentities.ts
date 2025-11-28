@@ -1,25 +1,19 @@
 // src/libs/getIdentities.ts
+
 /* Import modules. */
-import init, {
-    WasmSdkBuilder,
-    prefetch_trusted_quorums_mainnet,
-    prefetch_trusted_quorums_testnet,
-} from '@/libs/dash/wasm_sdk.js'
 import getPrivateKeys from './getPrivateKeys'
-import {
-    get_identity_by_public_key_hash,
-    get_identity_by_non_unique_public_key_hash,
-} from './dash/wasm_sdk'
 import { IIdentity, IPublicKey } from './types'
 // @ts-ignore
 import { hash160 } from '@nexajs/crypto'
 // @ts-ignore
 import { binToHex, hexToBin } from '@nexajs/utils'
+
 /* Initialize constants. */
 const MIN_INDEX_SEARCH = 3
 const QUERY_REGISTRY = false
 /* Initialize Web API endpoint. */
 const WEB_API_ENDPOINT = 'https://dashqt.org/v1/dapi'
+
 /**
  * Get Key Type
  *
@@ -28,6 +22,7 @@ const WEB_API_ENDPOINT = 'https://dashqt.org/v1/dapi'
 const getKeyType = (_type: number | undefined): string => {
     return 'FIXME -- ENUMERATE KEY TYPE'
 }
+
 const decodeBase64ToHex = (_base64String: string): string | null => {
   try {
     // 1. Decode the Base64 string into a binary string
@@ -48,6 +43,7 @@ const decodeBase64ToHex = (_base64String: string): string | null => {
     return null
   }
 }
+
 /**
  * Web API Query
  *
@@ -95,6 +91,7 @@ console.log({
         return null
     }
 }
+
 /**
  * Get Identities
  *
@@ -168,6 +165,7 @@ console.log('***HASH160 RESULT', hash160Result)
         return identities
     }
 }
+
 /**
  * Search By Hash160
  *
@@ -232,6 +230,7 @@ export const searchByHash160 = async (_network: string, _identityIdx: number, _d
         regPubKeys,
     }
 }
+
 /**
  * Search By Secp256k1
  *

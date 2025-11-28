@@ -7,11 +7,6 @@ import {
     ITxSuccess,
     // ITokenPaymentInfo,
 } from './types'
-import {
-    WasmSdkBuilder,
-    prefetch_trusted_quorums_mainnet,
-    prefetch_trusted_quorums_testnet,
-} from './dash/wasm_sdk'
 
 export default async (
     _network: string,

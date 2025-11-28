@@ -1,14 +1,5 @@
 // src/libs/getTokenBalance.ts
 
-/* Import modules. */
-import init, {
-    WasmSdkBuilder,
-    // derive_key_from_seed_with_path,
-    get_identities_token_balances_with_proof_info,
-    prefetch_trusted_quorums_mainnet,
-    prefetch_trusted_quorums_testnet,
-} from './dash/wasm_sdk'
-
 export default async (
     identityIds: [string],
     _tokenId: string,
