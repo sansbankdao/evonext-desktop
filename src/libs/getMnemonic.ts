@@ -7,12 +7,11 @@ import { IMnemonic }  from './types.ts'
 export default async () => {
     /* Request mnemonic. */
     const mnemonicStore = await invoke<IMnemonic | null>('load_mnemonic')
-// console.log('MNEMONIC (getMnemonic)', mnemonicStore)
 
     /* Validate mnemonic store. */
     if (typeof mnemonicStore !== 'undefined' && mnemonicStore !== null) {
         return mnemonicStore.seed_phrase
     } else {
-        null
+        throw new Error('No mnemonic found.')
     }
 }

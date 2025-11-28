@@ -9,24 +9,6 @@ pub struct AppSettings {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct INetwork {
-    pub network: String,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct IPrivateKeys {
-    pub identity_id: String,
-    pub auth_key: String,
-    pub encryption_key: String,
-    pub transfer_key: String,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct IMnemonic {
-    pub seed_phrase: String,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
 pub struct IdentityData {
     pub username: String,
     pub identity_id: String,
@@ -62,4 +44,27 @@ pub struct ProfileSettings {
     pub display_name: String,
     pub username: String,
     pub bio: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ILicense {
+    pub license_id: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct IMnemonic {
+    pub seed_phrase: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct INetwork {
+    pub network: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct IPrivateKeys {
+    pub identity_id: String,
+    pub auth_key: String,
+    pub encryption_key: String,
+    pub transfer_key: String,
 }

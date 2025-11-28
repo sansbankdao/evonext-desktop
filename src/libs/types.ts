@@ -55,6 +55,10 @@ export interface IKeyTypes {
     encryptionKey: IPrivateKey | IPublicKey;
 }
 
+export interface ILicense {
+    license_id: string;
+}
+
 export interface IMedia {
     id: string;
     type: 'image' | 'video' | 'gif';
@@ -68,7 +72,6 @@ export interface IMedia {
 export interface IMnemonic {
     seed_phrase: string;
 }
-
 
 export interface INotification {
     id: string;
