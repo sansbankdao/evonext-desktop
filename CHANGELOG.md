@@ -1,21 +1,22 @@
-Introducing the newest versions of the EvoNext Desktop Editions!
+Introducing the newest versions of the EvoNext Desktop Edition
 
 We are excited to announce the release of the EvoNext Desktop:
 
-### Optimized for Awesome UX
+### Send & Receive Credits and Tokens
 
-This latest version of EvoNext introduces seed phrase support, plus massive optimizations for DAPI.
+This latest version of EvoNext introduces FULL asset support for sending credits and tokens directly from the UI.
+Simply (1) select and asset, (2) enter a recipient Identity ID, (3) enter an amount and SEND!
 
 # Changelog
 
 ## Latest Features:
 
-- Network: Introuced @evonext/platform for new optimizations.
-- Storage: Add new (Identity) config for data persistence.
+- Network: Select between Mainnet and Testnet.
+- UI: View real-time asset information.
 
 ## Bugfixes:
 
-- WASM SDK: Begin migration to WASM as a fallback to DashQt API.
+- WASM SDK: Completely removed from this version.
 
 ## Summary:
 
