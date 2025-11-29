@@ -1,7 +1,13 @@
 // src/libs/getPrivateKeys.ts
 
 /* Import modules. */
+import { DashPlatformSDK } from 'dash-platform-sdk'
+
 import getMnemonic from './getMnemonic'
+import getNetwork from './getNetwork'
+
+const IDENTITY_INDEX = 0
+const KEY_ID = 0
 
 /* Get Private Keys. */
 export default async (
@@ -12,8 +18,26 @@ export default async (
     /* Request mnemonic. */
     const mnemonic = await getMnemonic()
 
-    /* Initialize WASM module. */
-    await init()
+    /* Initialize SDK. */
+    const sdk = new DashPlatformSDK({ network: getNetwork() })
+
+const seed = await sdk.keyPair.mnemonicToSeed(mnemonic, undefined)
+console.log('\nSEED', seed)
+
+const walletHDKey = sdk.keyPair.seedToHdKey(seed)
+console.log('\nWALLET HD KEY', walletHDKey)
+
+const hdKey = sdk.keyPair.deriveIdentityPrivateKey(walletHDKey, IDENTITY_INDEX, KEY_ID, 'mainnet')
+console.log('\n HD KEY', hdKey)
+
+const privateKey = hdKey.privateKey
+console.log('\nPRIVATE KEY', privateKey)
+
+const publicKey = hdKey.publicKey
+console.log('\nPUBLIC KEY', publicKey)
+console.log('\nPUBLIC KEY (hex)', binToHex(publicKey))
+console.log('\nPUBLIC KEY (hash160)', binToHex(hash160(publicKey)))
+
 
     /* Master Authentication */
     const masterKeyPath = `m/9'/${_currentNetwork === 'mainnet' ? 5 : 1}'/5'/0'/0'/${_identityIdx}'/0'`

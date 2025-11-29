@@ -11,7 +11,6 @@ import { binToHex, hexToBin } from '@nexajs/utils'
 /* Initialize constants. */
 const MIN_INDEX_SEARCH = 3
 const QUERY_REGISTRY = false
-/* Initialize Web API endpoint. */
 const WEB_API_ENDPOINT = 'https://dashqt.org/v1/dapi'
 
 /**
@@ -27,8 +26,10 @@ const decodeBase64ToHex = (_base64String: string): string | null => {
   try {
     // 1. Decode the Base64 string into a binary string
     const byteString = atob(_base64String)
+
     // 2. Create an array to hold the byte values
     const bytes: string[] = []
+
     for (let i = 0; i < byteString.length; i++) {
       // 3. Convert each character to its byte value
       const byte = byteString.charCodeAt(i)
@@ -71,9 +72,12 @@ console.log({
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
         }
+
         const result = await response.json()
+
         // Normalize "not found" responses for identity lookup methods to empty array for consistency
         const isIdentityLookup = _method.includes('get_identity_by_')
+
         if (isIdentityLookup && (
             result === null ||
             (Array.isArray(result) && result.length === 0) ||
@@ -85,6 +89,7 @@ console.log({
             console.debug(`Normalized ${ _method } to empty array (no results found)`)
             return []
         }
+
         return result
     } catch (error) {
         console.error(`Web API query failed for ${_method}:`, error)
@@ -107,10 +112,12 @@ export default async (
 ): Promise<IIdentity[] | null> => {
     /* Initialize Identities handler. */
     const identities: IIdentity[] = []
+
     for (let i = 0; i < MIN_INDEX_SEARCH; i++) {
         /* Request query by Hash160. */
         const hash160Result = await searchByHash160(_network, i, _dapiOnly)
 console.log('***HASH160 RESULT', hash160Result)
+
         /* Validate result. */
         if (typeof hash160Result !== 'undefined' && hash160Result !== null) {
             identities.push({
@@ -133,8 +140,10 @@ console.log('***HASH160 RESULT', hash160Result)
             })
             break // exit for-loop
         }
+
         /* Request query by Secp256k1. */
         const secp256k1Result = await searchBySecp256k1(_network, i, _dapiOnly)
+
         /* Validate result. */
         if (typeof secp256k1Result !== 'undefined' && secp256k1Result !== null) {
             identities.push({
@@ -158,6 +167,7 @@ console.log('***HASH160 RESULT', hash160Result)
             break // exit for-loop
         }
     }
+
     /* Validate Identities. */
     if (identities.length === 0) {
         return null
@@ -172,58 +182,42 @@ console.log('***HASH160 RESULT', hash160Result)
  * Will search the blockchain for ECDSA_HASH160 public keys, matching
  * the primary public key.
  */
-export const searchByHash160 = async (_network: string, _identityIdx: number, _dapiOnly: boolean = false) => {
+export const searchByHash160 = async (_network: string, _identityIdx: number) => {
     /* Initialize locals. */
     let identityId: string | undefined
     let regPubKeys: IPublicKey[] | undefined
+
     /* Request private keys. */
     const privateKeys = await getPrivateKeys(_network, _identityIdx, QUERY_REGISTRY)
+
     /* Set public key. */
     const publicKey = privateKeys.masterKey.public_key
+
     /* Calculate public key hash. */
     const publicKeyHash = binToHex(hash160(hexToBin(publicKey)))
     console.log('HASH160 PKH', publicKeyHash)
     let result: any
-    if (_dapiOnly) {
-        /* Use WebAssembly SDK for dapiOnly mode (no Web API). */
-        await init()
-        let sdk
-        if (_network === 'mainnet') {
-            /* Pre-fetch (trusted) quorums. */
-            await prefetch_trusted_quorums_mainnet()
-            /* Initialize SDK. */
-            sdk = await WasmSdkBuilder.new_mainnet_trusted().build()
-        } else {
-            /* Pre-fetch (trusted) quorums. */
-            await prefetch_trusted_quorums_testnet()
-            /* Initialize SDK. */
-            sdk = await WasmSdkBuilder.new_testnet_trusted().build()
-        }
-        /* Request (HASH160) Identity using WebAssembly SDK. */
-        result = await get_identity_by_non_unique_public_key_hash(
-            sdk,
-            publicKeyHash,
-            undefined
-        ).catch(err => console.error(err))
-    } else {
-        /* Use Web API (normalized to [] for no results). */
-        result = await queryWebAPI('get_identity_by_non_unique_public_key_hash', [publicKeyHash])
-    }
-    console.log('HASH160 RESULT FOR', publicKeyHash, result)
+
+    /* Use Web API (normalized to [] for no results). */
+    result = await queryWebAPI('get_identity_by_non_unique_public_key_hash', [publicKeyHash])
+
     /* Handle ECDSA_HASH160 signature scheme (array from both WASM/Web API). */
     if (result && typeof result === 'object' && result.result.identityId) {
         /* Web API result as plain single object (expected for unique query). */
         identityId = result.result.identityId
         regPubKeys = result.result.publicKeys
     }
+
     /* Validate Identity. */
     if (typeof identityId === 'undefined' || identityId === null) {
         return null
     }
+
     /* Validate registered keys. */
     if (typeof regPubKeys === 'undefined' || regPubKeys === null || !Array.isArray(regPubKeys)) {
         return null
     }
+
     /* Return (registered) Identity + public keys. */
     return {
         identityId,
@@ -237,43 +231,25 @@ export const searchByHash160 = async (_network: string, _identityIdx: number, _d
  * Will search the blockchain for ECDSA_SECP256k1 public keys, matching
  * the primary public key.
  */
-export const searchBySecp256k1 = async (_network: string, _identityIdx: number, _dapiOnly: boolean = false) => {
+export const searchBySecp256k1 = async (_network: string, _identityIdx: number) => {
     /* Initialize locals. */
     let identityId: string | undefined
     let regPubKeys: IPublicKey[] | undefined
+
     /* Request private keys. */
     const privateKeys = await getPrivateKeys(_network, _identityIdx, QUERY_REGISTRY)
+
     /* Set public key. */
     const publicKey = privateKeys.masterKey.public_key
+
     /* Calculate public key hash. */
     const publicKeyHash = binToHex(hash160(hexToBin(publicKey)))
     console.log('SECP256K1 PKH', publicKeyHash)
     let result: any
-    if (_dapiOnly) {
-        /* Use WebAssembly SDK for dapiOnly mode (no Web API). */
-        await init()
-        let sdk
-        if (_network === 'mainnet') {
-            /* Pre-fetch (trusted) quorums. */
-            await prefetch_trusted_quorums_mainnet()
-            /* Initialize SDK. */
-            sdk = await WasmSdkBuilder.new_mainnet_trusted().build()
-        } else {
-            /* Pre-fetch (trusted) quorums. */
-            await prefetch_trusted_quorums_testnet()
-            /* Initialize SDK. */
-            sdk = await WasmSdkBuilder.new_testnet_trusted().build()
-        }
-        /* Request (SECP256k1) Identity using WebAssembly SDK. */
-        result = await get_identity_by_public_key_hash(
-            sdk,
-            publicKeyHash
-        ).catch(err => console.error(err))
-    } else {
-        /* Use Web API (normalized to [] for no results). */
-        result = await queryWebAPI('get_identity_by_public_key_hash', [publicKeyHash])
-    }
-    console.log('SECP256K1 RESULT FOR', publicKeyHash, result)
+
+    /* Use Web API (normalized to [] for no results). */
+    result = await queryWebAPI('get_identity_by_public_key_hash', [publicKeyHash])
+
     /* Handle ECDSA_SECP256k1 signature scheme (consistent with normalized Web API or WASM). */
     // if (result && typeof result === 'object' && result.toJSON) {
     if (result && typeof result === 'object' && result.result.identityId) {
@@ -281,14 +257,17 @@ export const searchBySecp256k1 = async (_network: string, _identityIdx: number, 
         identityId = result.result.identityId
         regPubKeys = result.result.publicKeys
     }
+
     /* Validate Identity. */
     if (typeof identityId === 'undefined' || identityId === null) {
         return null
     }
+
     /* Validate registered keys. */
     if (typeof regPubKeys === 'undefined' || regPubKeys === null || !Array.isArray(regPubKeys)) {
         return null
     }
+
     /* Return (registered) Identity + public keys. */
     return {
         identityId,

@@ -12,6 +12,6 @@ export default async () => {
     if (typeof licenseStore !== 'undefined' && licenseStore !== null) {
         return licenseStore.license_id
     } else {
-        throw new Error('No license found.')
+        return ''
     }
 }

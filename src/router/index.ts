@@ -1,5 +1,6 @@
 /* Import modules. */
 import { createRouter, createWebHashHistory } from 'vue-router'
+import getLicense from '@/libs/getLicense'
 
 /* Import your layout and screens. */
 import AppLayout from '../layouts/AppLayout.vue'
@@ -28,10 +29,9 @@ import WalletSwap from '../screens/wallet/Swap.vue'
 import WalletAssetDetails from '../screens/wallet/AssetDetails.vue'
 import WalletTransactionDetails from '../screens/wallet/TransactionDetails.vue'
 
-/* Set Premium SANS Identity flag. */
 // NOTE: FIVE HUNDRED (500) STAKED SANS IS REQUIRED
 //       to unlock early access to PREMIUM features.
-const PREMIUM_SANS_IDENTITY = true
+const PREMIUM_SANS_IDENTITY = await getLicense() === '' ? false : true
 
 /* Initialize routes. */
 const routes = [
