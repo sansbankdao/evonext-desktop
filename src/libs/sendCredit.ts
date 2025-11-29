@@ -9,7 +9,6 @@ import {
 } from './types'
 
 export default async (
-    _network: string,
     _identityId: string,
     _identityIdx: number,
     _receiver: string,

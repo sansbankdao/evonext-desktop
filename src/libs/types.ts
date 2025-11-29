@@ -73,6 +73,10 @@ export interface IMnemonic {
     seed_phrase: string;
 }
 
+export interface INetwork {
+    network: 'testnet' | 'mainnet';
+}
+
 export interface INotification {
     id: string;
     type: 'like' | 'remix' | 'follow' | 'reply' | 'mention';

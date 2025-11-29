@@ -106,16 +106,13 @@ console.log({
  * Option to "force" DAPI connections ONLY.
  * (default: false)
  */
-export default async (
-    _network: string,
-    _dapiOnly: boolean = false
-): Promise<IIdentity[] | null> => {
+export default async (): Promise<IIdentity[] | null> => {
     /* Initialize Identities handler. */
     const identities: IIdentity[] = []
 
     for (let i = 0; i < MIN_INDEX_SEARCH; i++) {
         /* Request query by Hash160. */
-        const hash160Result = await searchByHash160(_network, i, _dapiOnly)
+        const hash160Result = await searchByHash160(_network, i)
 console.log('***HASH160 RESULT', hash160Result)
 
         /* Validate result. */
@@ -142,7 +139,7 @@ console.log('***HASH160 RESULT', hash160Result)
         }
 
         /* Request query by Secp256k1. */
-        const secp256k1Result = await searchBySecp256k1(_network, i, _dapiOnly)
+        const secp256k1Result = await searchBySecp256k1(_network, i)
 
         /* Validate result. */
         if (typeof secp256k1Result !== 'undefined' && secp256k1Result !== null) {

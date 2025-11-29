@@ -14,7 +14,6 @@ import {
 } from './types'
 
 export const sendToken = async (
-    _network: string,
     _identityId: string,
     _identityIdx: number,
     _tokenId: string,

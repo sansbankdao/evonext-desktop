@@ -3,12 +3,9 @@
 /* Import modules. */
 import getPrivateKeys from './getPrivateKeys'
 
-export default async (
-    _currentNetwork: string,
-    _identityIdx: number,
-) => {
+export default async (_identityIdx: number) => {
     /* Request private keys. */
-    const keys = await getPrivateKeys(_currentNetwork, _identityIdx, false)
+    const keys = await getPrivateKeys(_identityIdx, false)
 
     /* EvoNext (default) key setup. */
     const publicKeys = [

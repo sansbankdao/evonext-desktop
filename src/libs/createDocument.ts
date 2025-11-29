@@ -4,6 +4,7 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 
+import getNetwork from './getNetwork'
 import getTransferKey from './getTransferKey'
 import {
     // IKeyTypes,
@@ -13,7 +14,6 @@ import {
 } from './types'
 
 export default async (
-    _network: string,
     _identityIdx: number,
     _identityId: string,
     _dataContract: string,
@@ -21,17 +21,11 @@ export default async (
     _receiver: string,
     _atomicUnits: bigint,
 ): Promise<ITxSuccess | ITxError> => {
-    /* Initialize locals. */
-    let sdk
+    /* Request network. */
+    const network = await getNetwork()
 
-    /* Handle network. */
-    if (_network === 'mainnet') {
-        /* Initialize Dash Platform SDK. */
-        sdk = new DashPlatformSDK({ network: 'mainnet' })
-    } else {
-        /* Initialize Dash Platform SDK. */
-        sdk = new DashPlatformSDK({ network: 'testnet' })
-    }
+    /* Initialize Dash Platform SDK. */
+    const sdk = new DashPlatformSDK({ network })
 
     /* Set data contract. */
     // TODO ADD FINAL DATA CONTRACT VALIDATION

@@ -1,5 +1,18 @@
-// src/libs/getNetwork.ts
+// src/libs/getMnemonic.ts
 
-export default () => {
-    return 'mainnet' as const
+/* Import modules. */
+import { invoke } from '@tauri-apps/api/core'
+import { INetwork }  from './types.ts'
+
+export default async () => {
+    /* Request mnemonic. */
+    const networkStore = await invoke<INetwork | null>('load_network')
+
+    /* Validate mnemonic store. */
+    if (typeof networkStore !== 'undefined' && networkStore !== null) {
+        return networkStore.network
+    } else {
+        // return 'testnet' as const
+        return 'mainnet' as const
+    }
 }
