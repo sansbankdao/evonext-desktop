@@ -1,9 +1,9 @@
-<!-- src/screens/Stakehouse.vue -->
+<!-- src/screens/Stakeline.vue -->
 <template>
     <main>
         <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
             <h1 class="text-3xl font-bold text-white mb-4 sm:mb-0">
-                Stakehouse
+                Stakeline
             </h1>
 
             <div class="flex items-center gap-4 bg-slate-800 p-2 rounded-lg">
@@ -32,7 +32,7 @@
                     <!-- Hero Section -->
                     <div class="text-center space-y-6">
                         <h1 class="text-4xl font-extrabold tracking-tight text-white sm:text-6xl">
-                            Sansbank Stakehouse
+                            EvoNext Stakeline
                         </h1>
                         <p class="max-w-3xl mx-auto text-lg leading-relaxed text-slate-400">
                             Unlock the full power of EvoNext. Stake your Sansnote (SANS) tokens to gain premium access, early features, and exclusive community perks.

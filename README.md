@@ -33,7 +33,7 @@ Built with **Tauri v2** and powered by the **Dash Platform**, EvoNext gives you 
 *   **Decentralized Identity:** Your account is your own. No central authority can lock you out or take it away.
 *   **Censorship-Resistant:** Speak your mind freely. The distributed nature of the platform protects your voice.
 *   **Social & Financial Hub:** Seamlessly manage your Dash assets, participate in crowdfunding, and engage with a vibrant social feed all in one place.
-*   **Premium Access via Staking:** Unlock early features and exclusive perks by staking Sansnote (SANS) tokens in the Stakehouse.
+*   **Premium Access via Staking:** Unlock early features and exclusive perks by staking Sansnote (SANS) tokens to the Stakeline.
 *   **Secure & Private:** Your data is protected by the robust security of the Dash Platform.
 *   **Cross-Platform:** Available for Windows, macOS, and Linux.
 
