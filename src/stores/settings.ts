@@ -55,7 +55,7 @@ export const useSettingsStore = defineStore('settings', {
             this.isLoading = true
             this.error = null
             try {
-                const loadedState = await invoke<Partial<SettingsState>>('load_settings_from_backend')
+                const loadedState = await invoke<Partial<SettingsState>>('load_settings')
                 this.$patch({
                     ...loadedState,
                     network: loadedState?.network || 'testnet'
@@ -83,7 +83,7 @@ export const useSettingsStore = defineStore('settings', {
                     notifications: this.notifications,
                     profile: this.profile,
                 }
-                await invoke('save_settings_to_backend', { settings: settingsPayload })
+                await invoke('save_settings', { settings: settingsPayload })
                 this.lastSaved = new Date()
                 console.log('Settings saved successfully to backend.')
             } catch (err) {

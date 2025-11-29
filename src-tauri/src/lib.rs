@@ -22,8 +22,8 @@ pub fn run() {
             commands::license_commands::save_license,
             commands::mnemonic_commands::load_mnemonic,
             commands::mnemonic_commands::save_mnemonic,
-            commands::settings_commands::load_settings_from_backend,
-            commands::settings_commands::save_settings_to_backend,
+            commands::settings_commands::load_settings,
+            commands::settings_commands::save_settings,
             commands::identity_details_commands::update_identity_with_sdk_data,
             commands::identity_details_commands::get_identity_public_keys,
         ])

@@ -6,7 +6,7 @@ import { INetwork }  from './types.ts'
 
 export default async () => {
     /* Request mnemonic. */
-    const networkStore = await invoke<INetwork | null>('load_network_settings')
+    const networkStore = await invoke<INetwork | null>('load_settings')
 
     /* Validate mnemonic store. */
     if (typeof networkStore !== 'undefined' && networkStore !== null) {

@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use tauri_plugin_store::StoreBuilder;
 
 #[tauri::command]
-pub fn load_settings_from_backend(app_handle: AppHandle<Wry>) -> Result<Option<IAppSettings>, String> {
+pub fn load_settings(app_handle: AppHandle<Wry>) -> Result<Option<IAppSettings>, String> {
     let path = SETTINGS_FILE.parse::<PathBuf>().unwrap();
     let store = StoreBuilder::new(&app_handle, path)
         .build()
@@ -24,7 +24,7 @@ pub fn load_settings_from_backend(app_handle: AppHandle<Wry>) -> Result<Option<I
 }
 
 #[tauri::command]
-pub fn save_settings_to_backend(app_handle: AppHandle<Wry>, settings: IAppSettings) -> Result<(), String> {
+pub fn save_settings(app_handle: AppHandle<Wry>, settings: IAppSettings) -> Result<(), String> {
     let path = SETTINGS_FILE.parse::<PathBuf>().unwrap();
     let store = StoreBuilder::new(&app_handle, path)
         .build()
