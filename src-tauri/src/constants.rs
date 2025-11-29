@@ -1,4 +1,5 @@
 // src-tauri/src/constants.rs
+pub const ASSETS_FILE: &str = ".assets.dat";
 pub const LICENSE_FILE: &str = ".license.dat";
 pub const SAFU_FILE: &str = ".safu.dat";
 pub const SETTINGS_FILE: &str = ".settings.dat";

@@ -12,6 +12,8 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
+            commands::asset_commands::load_assets,
+            commands::asset_commands::save_assets,
             commands::identity_commands::load_private_keys,
             commands::identity_commands::save_private_keys,
             commands::identity_commands::load_identity_data,
