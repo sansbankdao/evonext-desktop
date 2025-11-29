@@ -2,7 +2,8 @@
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct AppSettings {
+pub struct IAppSettings {
+    pub network: String,
     pub theme: String,
     pub notifications: NotificationSettings,
     pub profile: ProfileSettings,
@@ -61,11 +62,6 @@ pub struct ILicense {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct IMnemonic {
     pub seed_phrase: String,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct INetwork {
-    pub network: String,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

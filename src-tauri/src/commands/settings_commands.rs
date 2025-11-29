@@ -1,19 +1,19 @@
 // src-tauri/src/commands/settings_commands.rs
 use tauri::{AppHandle, Wry};
-use crate::models::AppSettings;
+use crate::models::IAppSettings;
 use crate::constants::SETTINGS_FILE;
 use std::path::PathBuf;
 use tauri_plugin_store::StoreBuilder;
 
 #[tauri::command]
-pub fn load_settings_from_backend(app_handle: AppHandle<Wry>) -> Result<Option<AppSettings>, String> {
+pub fn load_settings_from_backend(app_handle: AppHandle<Wry>) -> Result<Option<IAppSettings>, String> {
     let path = SETTINGS_FILE.parse::<PathBuf>().unwrap();
     let store = StoreBuilder::new(&app_handle, path)
         .build()
         .map_err(|e| e.to_string())?;
 
     if let Some(json_value) = store.get("settings") {
-        let settings: AppSettings = serde_json::from_value(json_value.clone())
+        let settings: IAppSettings = serde_json::from_value(json_value.clone())
             .map_err(|e| e.to_string())?;
         println!("Settings loaded successfully.");
         Ok(Some(settings))
@@ -24,7 +24,7 @@ pub fn load_settings_from_backend(app_handle: AppHandle<Wry>) -> Result<Option<A
 }
 
 #[tauri::command]
-pub fn save_settings_to_backend(app_handle: AppHandle<Wry>, settings: AppSettings) -> Result<(), String> {
+pub fn save_settings_to_backend(app_handle: AppHandle<Wry>, settings: IAppSettings) -> Result<(), String> {
     let path = SETTINGS_FILE.parse::<PathBuf>().unwrap();
     let store = StoreBuilder::new(&app_handle, path)
         .build()
