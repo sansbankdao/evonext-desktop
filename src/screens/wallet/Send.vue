@@ -151,12 +151,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWalletStore } from '@/stores/wallet'
+import { useSettingsStore } from '@/stores/settings'
 import sendCredit from '@/libs/sendCredit'
-// import sendDash from '@/libs/sendDash' // For native DASH coins
-// import sendToken from '@/libs/sendToken' // For DUSD/SANS
 
 const router = useRouter()
 const Wallet = useWalletStore()
+const Settings = useSettingsStore()
 
 const recipient = ref('')
 const amount = ref<number | null>(null)
@@ -172,9 +172,16 @@ const currencyNameMap = {
     'sans': 'Sansnote'
 } as const
 
+// FIXED: Use ticker instead of name for more reliable lookup
 const selectedAsset = computed(() => {
-    const name = currencyNameMap[selectedCurrency.value as keyof typeof currencyNameMap]
-    return Wallet.assets.find((a: any) => a.name === name)
+    const tickerMap: Record<string, string> = {
+        'dash-coins': 'DASH',
+        'dash-credits': 'CREDITS',
+        'dusd': 'DUSD',
+        'sans': 'SANS'
+    }
+    const ticker = tickerMap[selectedCurrency.value]
+    return Wallet.getAssetByTicker(ticker)
 })
 
 const isFormValid = computed(() => {
@@ -187,9 +194,9 @@ const setMaxAmount = () => {
     }
 }
 
-// Ensure mock data is initialized if not already done elsewhere in the app
-onMounted(() => {
-    if (!Wallet.user) {
+onMounted(async () => {
+    // Always ensure mock data is loaded
+    if (Wallet.assets.length === 0) {
         Wallet.initializeMockData()
     }
 })
@@ -200,7 +207,6 @@ const handleSend = async () => {
         return
     }
 
-    // Basic Validation
     if (amount.value! > selectedAsset.value.amount) {
         error.value = 'Insufficient balance for this transaction.'
         return
@@ -209,33 +215,40 @@ const handleSend = async () => {
     isSending.value = true
     error.value = null
 
+const IDENTITY_IDX = 0
+
     try {
-        console.log(`Preparing to send ${amount.value} ${selectedAsset.value.ticker} to ${recipient.value} (${selectedCurrency.value})`)
+        const currentNetwork = Settings.network // Use current network from settings
 
-        // Integrate sending logic based on currency/ticker
+        console.log(`Sending ${amount.value} ${selectedAsset.value.ticker} to ${recipient.value} on ${currentNetwork}`)
+
         if (selectedAsset.value.ticker === 'CREDITS' && amount.value) {
-            // Send Dash Credits using the platform SDK
-            const credits = BigInt(Math.floor(amount.value * 1000000000)) // Example conversion (adjust based on actual units)
-            const identityId = Wallet.user?.address // The sender's identity
+            /* Calculate credits. */
+            const credits = BigInt(Math.floor(amount.value * 100_000_000_000))
+console.log('CALCULATED CREDITS', credits)
+
+            /* Set identity ID. */
+            const identityId = Wallet.user?.address
+console.log('IDENTITY ID', identityId)
+
+            /* Validate identity ID. */
             if (identityId) {
-                const result = await sendCredit('testnet', identityId, 1, recipient.value, credits)
-                console.log('Send Credit Result:', result)
+                const result = await sendCredit(
+                    identityId, IDENTITY_IDX, recipient.value, credits)
+console.log('Send Credit Result:', result)
+
+                /* Reqest UI confirmation. */
+                if (confirm('Transaction successful! Would you like to viw explorer.')) {
+                    window.open(`https://platform-explorer.com/transaction/${result.txid}`)
+                }
             }
-        } else if (selectedAsset.value.ticker === 'DASH') {
-            // TODO: Implement sendDash for native DASH coins
-            // e.g., const result = await sendDash('testnet', Wallet.user?.address!, recipient.value, amount.value! * 1e8) // Satoshis conversion
-            console.log('Dash coins sending logic pending implementation.')
-            await new Promise(resolve => setTimeout(resolve, 2000)) // Simulate network delay
+
+            /* Redirect back home. */
+            router.push('/wallet')
         } else {
-            // TODO: Implement sendToken for DUSD/SANS
-            // e.g., await sendToken(selectedAsset.value.ticker, amount.value!, recipient.value)
-            console.log(`${selectedAsset.value.ticker} token sending logic pending implementation.`)
-            await new Promise(resolve => setTimeout(resolve, 2000)) // Simulate network delay
+            console.log(`${selectedAsset.value.ticker} sending logic pending implementation.`)
+            await new Promise(resolve => setTimeout(resolve, 2000))
         }
-
-        alert('Transaction successful!') // TODO: Replace with toast or modal notification
-        router.push('/wallet')
-
     } catch (e: any) {
         console.error('Failed to send transaction:', e)
         error.value = e.message || 'An unknown error occurred during the transaction.'

@@ -1,14 +1,16 @@
 // src/stores/wallet.ts
+
+/* Import modules. */
 import { defineStore } from 'pinia'
 import { useSystemStore } from './system'
 import { IUser2, IAsset, ITransaction, IBalanceChange } from '@/libs/types'
 
 interface IWalletState {
-    user: IUser2 | null
-    assets: IAsset[]
-    transactions: ITransaction[]
-    balanceChange: IBalanceChange | null
-    isLoading: boolean
+    user: IUser2 | null;
+    assets: IAsset[];
+    transactions: ITransaction[];
+    balanceChange: IBalanceChange | null;
+    isLoading: boolean;
 }
 
 export const useWalletStore = defineStore('wallet', {
@@ -56,12 +58,14 @@ export const useWalletStore = defineStore('wallet', {
                 name: 'BetaTesterExtraordinaire',
                 address: 'v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5',
             }
+
             this.assets = [
                 { ticker: 'DASH', name: 'Dash Coins', amount: 50.00, usdValue: 50.00 * dashPrice },
                 { ticker: 'CREDITS', name: 'Dash Credits', amount: 112.55, usdValue: 2750.00 },
                 { ticker: 'SANS', name: 'Sansnote', amount: 1337.88, usdValue: 28.64 },
                 { ticker: 'DUSD', name: 'Dash USD', amount: 1100.67, usdValue: 1100.67 },
             ]
+
             this.transactions = [
                 {
                     id: 'tx1',
@@ -91,6 +95,7 @@ export const useWalletStore = defineStore('wallet', {
                     date: new Date()
                 },
             ]
+
             this.balanceChange = {
                 isPositive: true,
                 percent: 1.25,
