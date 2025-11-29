@@ -64,7 +64,7 @@ export default async (
     )
 
     /* Request transfer (WIF) key. */
-    const transferWif = await getTransferKey(_network, _identityIdx)
+    const transferWif = await getTransferKey(_identityIdx)
 
     /* Set private (transfer) key. */
     const privKey = PrivateKeyWASM.fromWIF(transferWif)

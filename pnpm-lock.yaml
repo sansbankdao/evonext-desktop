@@ -8,9 +8,15 @@ importers:
 
   .:
     dependencies:
+      '@evonext/crypto':
+        specifier: ^25.11.25
+        version: 25.11.25
       '@evonext/platform':
         specifier: 25.11.23
         version: 25.11.23
+      '@evonext/utils':
+        specifier: ^25.11.25
+        version: 25.11.25
       '@heroicons/vue':
         specifier: 2.2.0
         version: 2.2.0(vue@3.5.22(typescript@5.6.3))
@@ -20,6 +26,9 @@ importers:
       '@nexajs/utils':
         specifier: 24.7.15
         version: 24.7.15
+      '@scure/base':
+        specifier: 2.0.0
+        version: 2.0.0
       '@tauri-apps/api':
         specifier: 2.8.0
         version: 2.8.0
@@ -36,8 +45,8 @@ importers:
         specifier: 1.3.0-dev.10
         version: 1.3.0-dev.10(pshenmic-dpp@1.1.0-dev.7)
       monaco-editor:
-        specifier: 0.54.0
-        version: 0.54.0
+        specifier: 0.55.1
+        version: 0.55.1
       pinia:
         specifier: 3.0.3
         version: 3.0.3(typescript@5.6.3)(vue@3.5.22(typescript@5.6.3))
@@ -303,8 +312,14 @@ packages:
   '@ethersproject/random@5.7.0':
     resolution: {integrity: sha512-19WjScqRA8IIeWclFme75VMXSBvi4e6InrUNuaR4s5pTF2qNhcGdCUwdxUVGtDDqC00sDLCO93jPQoDUH4HVmQ==}
 
+  '@evonext/crypto@25.11.25':
+    resolution: {integrity: sha512-KjrSDL3OADoUcn8MMGJWwjZwWEqeNdIbTfN/YeCBVb0tu8UsEGIKQe3SPTkqTXU6WI6IW5NHWpv4D/MSWzDZVg==}
+
   '@evonext/platform@25.11.23':
     resolution: {integrity: sha512-wCR3t0hG387G5QVI9EJPUdwEGUNkkD464IlvVk65Hwxh86GBO7xSXnIm40BcXcOxPvYRrURxOxakLO/nOaL6Zg==}
+
+  '@evonext/utils@25.11.25':
+    resolution: {integrity: sha512-vZQJqs2o2zB7Et9aTXgGQt1xtIaUyPMxPOohDkNKmTdLIt44QkYNIzOic+rCuwcbYhzCiDL49es0XkXNTHMYqQ==}
 
   '@heroicons/vue@2.2.0':
     resolution: {integrity: sha512-G3dbSxoeEKqbi/DFalhRxJU4mTXJn7GwZ7ae8NuEQzd1bqdd0jAbdaBZlHPcvPD2xI1iGzNVB4k20Un2AguYPw==}
@@ -591,6 +606,9 @@ packages:
   '@types/node@24.6.2':
     resolution: {integrity: sha512-d2L25Y4j+W3ZlNAeMKcy7yDsK425ibcAOO2t7aPTz6gNMH0z2GThtwENCDc0d/Pw9wgyRqE5Px1wkV7naz8ang==}
 
+  '@types/trusted-types@2.0.7':
+    resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
+
   '@vitejs/plugin-vue@6.0.1':
     resolution: {integrity: sha512-+MaE752hU0wfPFJEUAIxqw18+20euHHdxVtMvbFcOEpjEyfqXH/5DCoTHiVJ0J29EhTJdoTkjEv5YBKU9dnoTw==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -808,8 +826,8 @@ packages:
   dlv@1.1.3:
     resolution: {integrity: sha512-+HlytyjlPKnIG8XuRG8WvmBP8xs8P71y+SKKS6ZXWoEgLuePxtDoUEiH7WkdePWrQ5JBpE6aoVqfZfJUQkjXwA==}
 
-  dompurify@3.1.7:
-    resolution: {integrity: sha512-VaTstWtsneJY8xzy7DekmYWEOZcmzIe3Qb3zPd4STve1OBTa+e+WmS1ITQec1fZYXI3HCsOZZiSMpG6oxoWMWQ==}
+  dompurify@3.2.7:
+    resolution: {integrity: sha512-WhL/YuveyGXJaerVlMYGWhvQswa7myDG17P7Vu65EWC05o8vfeNbvNf4d/BOvH99+ZW+LlQsc1GDKMa1vNK6dw==}
 
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
@@ -1026,8 +1044,8 @@ packages:
   mitt@3.0.1:
     resolution: {integrity: sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw==}
 
-  monaco-editor@0.54.0:
-    resolution: {integrity: sha512-hx45SEUoLatgWxHKCmlLJH81xBo0uXP4sRkESUpmDQevfi+e7K1VuiSprK6UpQ8u4zOcKNiH0pMvHvlMWA/4cw==}
+  monaco-editor@0.55.1:
+    resolution: {integrity: sha512-jz4x+TJNFHwHtwuV9vA9rMujcZRb0CEilTEwG2rRSpe/A7Jdkuj8xPKttCgOh+v/lkHy7HsZ64oj+q3xoAFl9A==}
 
   muggle-string@0.4.1:
     resolution: {integrity: sha512-VNTrAak/KhO2i8dqqnqnAHOa3cYBwXEZe9h+D5h/1ZqFSTEFHdM65lR7RoIqq3tBBYavsOXV84NoHXZ0AkPyqQ==}
@@ -1235,6 +1253,10 @@ packages:
 
   secure-ls@1.2.6:
     resolution: {integrity: sha512-g8vUSKl6elSfyAUHodybnNkuZW+mUYEOWj4SZIDg+xoQ1dq5ddktBoOFrtxQBUl88ZyAJOtGWQ1PRaOxkTAuZQ==}
+
+  secure-ls@2.0.0:
+    resolution: {integrity: sha512-Wgtnw0QSm0v7gVKv11nOoeyGS65EThGXnBB7jfd4IhZd2eq3B4AMPcXAL5qJ1h55+Qolun7TONTwX7H5m6e2pQ==}
+    engines: {node: '>=8.0'}
 
   shebang-command@2.0.0:
     resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
@@ -1558,12 +1580,26 @@ snapshots:
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/logger': 5.8.0
 
+  '@evonext/crypto@25.11.25':
+    dependencies:
+      '@ethersproject/random': 5.7.0
+      '@evonext/utils': 25.11.25
+      bn.js: 5.2.1
+      bs58: 6.0.0
+      crypto-js: 4.2.0
+      elliptic: 6.5.5
+      lodash: 4.17.21
+      scrypt-js: 3.0.1
+      secure-ls: 2.0.0
+
   '@evonext/platform@25.11.23':
     dependencies:
       '@nexajs/crypto': 24.9.5
       '@nexajs/utils': 24.7.15
       dash-platform-sdk: 1.3.0-dev.10(pshenmic-dpp@1.1.0-dev.7)
       pshenmic-dpp: 1.1.0-dev.7
+
+  '@evonext/utils@25.11.25': {}
 
   '@heroicons/vue@2.2.0(vue@3.5.22(typescript@5.6.3))':
     dependencies:
@@ -1801,6 +1837,9 @@ snapshots:
   '@types/node@24.6.2':
     dependencies:
       undici-types: 7.13.0
+
+  '@types/trusted-types@2.0.7':
+    optional: true
 
   '@vitejs/plugin-vue@6.0.1(vite@7.1.9(@types/node@24.6.2)(jiti@1.21.7)(yaml@2.8.1))(vue@3.5.22(typescript@5.6.3))':
     dependencies:
@@ -2057,7 +2096,9 @@ snapshots:
 
   dlv@1.1.3: {}
 
-  dompurify@3.1.7: {}
+  dompurify@3.2.7:
+    optionalDependencies:
+      '@types/trusted-types': 2.0.7
 
   eastasianwidth@0.2.0: {}
 
@@ -2280,9 +2321,9 @@ snapshots:
 
   mitt@3.0.1: {}
 
-  monaco-editor@0.54.0:
+  monaco-editor@0.55.1:
     dependencies:
-      dompurify: 3.1.7
+      dompurify: 3.2.7
       marked: 14.0.0
 
   muggle-string@0.4.1: {}
@@ -2483,6 +2524,11 @@ snapshots:
   secure-ls@1.2.6:
     dependencies:
       crypto-js: 3.3.0
+      lz-string: 1.5.0
+
+  secure-ls@2.0.0:
+    dependencies:
+      crypto-js: 4.2.0
       lz-string: 1.5.0
 
   shebang-command@2.0.0:

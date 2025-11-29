@@ -4,19 +4,13 @@
 import getIdentities from './getIdentities'
 import getPrivateKeys from './getPrivateKeys'
 
-export default async (
-    _currentNetwork: string,
-    _identityIdx: number,
-) => {
-    /* Set network. */
-    const network = (_currentNetwork === 'mainnet') ? 'mainnet' : 'testnet'
-
+export default async (_identityIdx: number) => {
     /* Request private keys. */
-    const generatedkeys = await getPrivateKeys(network, _identityIdx, false)
+    const generatedkeys = await getPrivateKeys(_identityIdx, false)
 // console.log('GENERATED KEYS (getTransferKey)', generatedkeys)
 
 // FIXME -- ONLY SEARCH IF (STANDARD) KEYS DO NOT WORK
-    const response = await getIdentities(network)
+    const response = await getIdentities()
 
     const registeredKeys = response![0].publicKeys
 console.log('REGISTERED KEYS (getTransferKey)', registeredKeys)

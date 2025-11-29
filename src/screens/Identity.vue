@@ -184,7 +184,7 @@ const init = async () => {
         const mnemonic = await getMnemonic()
 console.log('MNEMONIC IS', mnemonic)
 
-    const identities = await getIdentities('testnet')
+    const identities = await getIdentities()
 console.log('IDENTITIES', identities)
 
 //         /* Request private key. */
@@ -211,11 +211,10 @@ const sendCreditsTest = async () => {
     console.log('SENDING CREDITS')
 
     const response = await sendCredit(
-        'testnet',
         'ADtgYG2MHikwv4UiZeY8faUsEkH1YDjEnJFhGbuXLfFB',
         1, // identityIdx
         '34vkjdeUTP2z798SiXqoB6EAuobh51kXYURqVa9xkujf', // safeReceiver
-        13370000n
+        BigInt(13370000)
     ).catch(err => {
         console.error(err)
         // setErrorMsgs(err?.message)

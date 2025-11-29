@@ -1,12 +1,14 @@
 // src/libs/getIdentities.ts
 
 /* Import modules. */
-import getPrivateKeys from './getPrivateKeys'
-import { IIdentity, IPublicKey } from './types'
 // @ts-ignore
 import { hash160 } from '@nexajs/crypto'
 // @ts-ignore
 import { binToHex, hexToBin } from '@nexajs/utils'
+
+import getNetwork from './getNetwork'
+import getPrivateKeys from './getPrivateKeys'
+import { IIdentity, IPublicKey } from './types'
 
 /* Initialize constants. */
 const MIN_INDEX_SEARCH = 3
@@ -52,6 +54,9 @@ const decodeBase64ToHex = (_base64String: string): string | null => {
  * Both get_identity_by_public_key_hash and get_identity_by_non_unique_public_key_hash will now return [] for no results (status 200).
  */
 const queryWebAPI = async (_method: string, _params: any[]): Promise<any> => {
+    /* Request network. */
+    const network = await getNetwork()
+
     try {
         const response = await fetch(WEB_API_ENDPOINT, {
             method: 'POST',
@@ -61,13 +66,13 @@ const queryWebAPI = async (_method: string, _params: any[]): Promise<any> => {
             body: JSON.stringify({
                 method: _method,
                 params: _params,
-                network: 'mainnet', // FIXME WE NEED TO MAKE THIS DYNAMIC
+                network,
             }),
         })
 console.log({
     method: _method,
     params: _params,
-    network: 'mainnet', // FIXME WE NEED TO MAKE THIS DYNAMIC
+    network,
 })
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
@@ -112,7 +117,7 @@ export default async (): Promise<IIdentity[] | null> => {
 
     for (let i = 0; i < MIN_INDEX_SEARCH; i++) {
         /* Request query by Hash160. */
-        const hash160Result = await searchByHash160(_network, i)
+        const hash160Result = await searchByHash160(i)
 console.log('***HASH160 RESULT', hash160Result)
 
         /* Validate result. */
@@ -139,7 +144,7 @@ console.log('***HASH160 RESULT', hash160Result)
         }
 
         /* Request query by Secp256k1. */
-        const secp256k1Result = await searchBySecp256k1(_network, i)
+        const secp256k1Result = await searchBySecp256k1(i)
 
         /* Validate result. */
         if (typeof secp256k1Result !== 'undefined' && secp256k1Result !== null) {
@@ -179,13 +184,13 @@ console.log('***HASH160 RESULT', hash160Result)
  * Will search the blockchain for ECDSA_HASH160 public keys, matching
  * the primary public key.
  */
-export const searchByHash160 = async (_network: string, _identityIdx: number) => {
+export const searchByHash160 = async (_identityIdx: number) => {
     /* Initialize locals. */
     let identityId: string | undefined
     let regPubKeys: IPublicKey[] | undefined
 
     /* Request private keys. */
-    const privateKeys = await getPrivateKeys(_network, _identityIdx, QUERY_REGISTRY)
+    const privateKeys = await getPrivateKeys(_identityIdx, QUERY_REGISTRY)
 
     /* Set public key. */
     const publicKey = privateKeys.masterKey.public_key
@@ -228,13 +233,13 @@ export const searchByHash160 = async (_network: string, _identityIdx: number) =>
  * Will search the blockchain for ECDSA_SECP256k1 public keys, matching
  * the primary public key.
  */
-export const searchBySecp256k1 = async (_network: string, _identityIdx: number) => {
+export const searchBySecp256k1 = async (_identityIdx: number) => {
     /* Initialize locals. */
     let identityId: string | undefined
     let regPubKeys: IPublicKey[] | undefined
 
     /* Request private keys. */
-    const privateKeys = await getPrivateKeys(_network, _identityIdx, QUERY_REGISTRY)
+    const privateKeys = await getPrivateKeys(_identityIdx, QUERY_REGISTRY)
 
     /* Set public key. */
     const publicKey = privateKeys.masterKey.public_key

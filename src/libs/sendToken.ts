@@ -4,8 +4,9 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 
-import getAuthKey from './getAuthKey'
-import getTransferKey from './getTransferKey'
+import getAuthKeys from './getAuthKeys'
+import getNetwork from './getNetwork'
+import getTransferKeys from './getTransferKeys'
 import {
     // IKeyTypes,
     ITxError,
@@ -21,16 +22,13 @@ export const sendToken = async (
     _atomicUnits: bigint,
 ): Promise<ITxSuccess | ITxError> => {
     /* Initialize locals. */
-    let sdk
+    let response
 
-    /* Handle network. */
-    if (_network === 'mainnet') {
-        /* Initialize Dash Platform SDK. */
-        sdk = new DashPlatformSDK({ network: 'mainnet' })
-    } else {
-        /* Initialize Dash Platform SDK. */
-        sdk = new DashPlatformSDK({ network: 'testnet' })
-    }
+    /* Request network. */
+    const network = await getNetwork()
+
+    /* Initialize Dash Platform SDK. */
+    const sdk = new DashPlatformSDK({ network })
 
     /* Set transfer amount. */
     // const amount = BigInt(_satoshis)
@@ -53,17 +51,21 @@ console.log('IDENTITY ID', _identityId)
         )
 
     /* Request transfer (WIF) key. */
-    const authWif = await getAuthKey(_network, _identityIdx)
+    response = await getAuthKeys(_identityIdx)
+    const authWif = response[0]
 console.log('authWif', authWif)
 
     /* Request transfer (WIF) key. */
-    const transferWif = await getTransferKey(_network, _identityIdx)
+    response = await getTransferKeys(_identityIdx)
+    const transferWif = response[0]
 console.log('transferWif', transferWif)
+
     /* Set private (transfer) key. */
     const privKey = PrivateKeyWASM.fromWIF(transferWif)
     // const privKey = PrivateKeyWASM.fromHex(transferWif, 'testnet')
 console.log('privKey', privKey)
-    /* Set identity. */
+
+    /* Request identity. */
     const identity = await sdk.identities.getIdentityByIdentifier(_identityId)
 
     /* Set public keys. */

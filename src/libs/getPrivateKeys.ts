@@ -13,6 +13,13 @@ import getNetwork from './getNetwork'
 const IDENTITY_INDEX = 0
 const KEY_ID = 0
 
+/**
+ * Derivation Paths
+ *
+ * MAINNET -> m/9'/5'/5'/0'/0'/<IDENTITY_IDX>'/<KEY_IDX>'
+ * TESTNET -> m/9'/1'/5'/0'/0'/<IDENTITY_IDX>'/<KEY_IDX>'
+ */
+
 /* Get Private Keys. */
 export default async (
     _identityIdx: number,
@@ -27,17 +34,19 @@ export default async (
     /* Initialize SDK. */
     const sdk = new DashPlatformSDK({ network })
 
-const seed = await sdk.keyPair.mnemonicToSeed(mnemonic, undefined)
+    const seed = await sdk.keyPair.mnemonicToSeed(mnemonic, undefined)
 console.log('\nSEED', seed)
 
-const walletHDKey = sdk.keyPair.seedToHdKey(seed)
+    const walletHDKey = sdk.keyPair.seedToHdKey(seed)
 console.log('\nWALLET HD KEY', walletHDKey)
 
-const hdKey = sdk.keyPair.deriveIdentityPrivateKey(walletHDKey, IDENTITY_INDEX, KEY_ID, 'mainnet')
+    const hdKey = sdk.keyPair.deriveIdentityPrivateKey(
+        walletHDKey, IDENTITY_INDEX, KEY_ID, network)
 console.log('\n HD KEY', hdKey)
 
 const privateKey = hdKey.privateKey
 console.log('\nPRIVATE KEY', privateKey)
+console.log('\nPRIVATE KEY (hex)', binToHex(privateKey))
 
 const publicKey = hdKey.publicKey
 console.log('\nPUBLIC KEY', publicKey)
@@ -46,31 +55,32 @@ console.log('\nPUBLIC KEY (hash160)', binToHex(hash160(publicKey)))
 
 
     /* Master Authentication */
-    const masterKeyPath = `m/9'/${network === 'mainnet' ? 5 : 1}'/5'/0'/0'/${_identityIdx}'/0'`
-    const masterKey = derive_key_from_seed_with_path(
-        mnemonic!, undefined, masterKeyPath, _currentNetwork)
-    // console.log('Master key object:', masterKey)
-    // console.log('Master key (public_key):', masterKey.public_key)
+    // const masterKeyPath = `m/9'/${network === 'mainnet' ? 5 : 1}'/5'/0'/0'/${_identityIdx}'/0'`
+    const masterKey = binToHex(privateKey)
 
     /* Critical Authentication */
-    const authCriticalPath = `m/9'/${network === 'mainnet' ? 5 : 1}'/5'/0'/0'/${_identityIdx}'/1'`
-    const authCritical = derive_key_from_seed_with_path(
-        mnemonic!, undefined, authCriticalPath, _currentNetwork)
+    // const authCriticalPath = `m/9'/${network === 'mainnet' ? 5 : 1}'/5'/0'/0'/${_identityIdx}'/1'`
+    // const authCritical = derive_key_from_seed_with_path(
+    //     mnemonic!, undefined, authCriticalPath, network)
+    const authCritical = ''
 
     /* High Authentication */
-    const authHighPath = `m/9'/${network === 'mainnet' ? 5 : 1}'/5'/0'/0'/${_identityIdx}'/2'`
-    const authHigh = derive_key_from_seed_with_path(
-        mnemonic!, undefined, authHighPath, _currentNetwork)
+    // const authHighPath = `m/9'/${network === 'mainnet' ? 5 : 1}'/5'/0'/0'/${_identityIdx}'/2'`
+    // const authHigh = derive_key_from_seed_with_path(
+    //     mnemonic!, undefined, authHighPath, network)
+    const authHigh = ''
 
     /* Transfer Key */
-    const transferKeyPath = `m/9'/${network === 'mainnet' ? 5 : 1}'/5'/0'/0'/${_identityIdx}'/3'`
-    const transferKey = derive_key_from_seed_with_path(
-        mnemonic!, undefined, transferKeyPath, _currentNetwork)
+    // const transferKeyPath = `m/9'/${network === 'mainnet' ? 5 : 1}'/5'/0'/0'/${_identityIdx}'/3'`
+    // const transferKey = derive_key_from_seed_with_path(
+    //     mnemonic!, undefined, transferKeyPath, network)
+    const transferKey = ''
 
     /* Authentication Key */
-    const encryptionKeyPath = `m/9'/${network === 'mainnet' ? 5 : 1}'/5'/0'/0'/${_identityIdx}'/4'`
-    const encryptionKey = derive_key_from_seed_with_path(
-        mnemonic!, undefined, encryptionKeyPath, _currentNetwork)
+    // const encryptionKeyPath = `m/9'/${network === 'mainnet' ? 5 : 1}'/5'/0'/0'/${_identityIdx}'/4'`
+    // const encryptionKey = derive_key_from_seed_with_path(
+    //     mnemonic!, undefined, encryptionKeyPath, network)
+    const encryptionKey = ''
 
     /* Return ALL keys. */
     return {
