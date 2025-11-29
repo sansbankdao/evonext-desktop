@@ -35,6 +35,27 @@
                         <p class="text-lg text-slate-400">Manage your application preferences and profile.</p>
                     </div>
 
+                    <!-- Network Section -->
+                    <div class="bg-slate-800 p-6 rounded-xl">
+                        <h2 class="text-xl font-semibold text-white">Network</h2>
+                        <p class="mt-1 text-slate-400">Choose which network to connect to.</p>
+                        <div class="mt-6">
+                            <fieldset>
+                                <legend class="sr-only">Network</legend>
+                                <div class="flex items-center gap-4">
+                                    <!-- Testnet Option -->
+                                    <button @click="Settings.setNetwork('testnet')" :class="['flex-1 text-center p-4 rounded-lg border-2 transition', Settings.network === 'testnet' ? 'border-cyan-400 bg-slate-700' : 'border-slate-600 hover:border-slate-500']">
+                                        <span class="font-medium text-white">Testnet</span>
+                                    </button>
+                                    <!-- Mainnet Option -->
+                                    <button @click="Settings.setNetwork('mainnet')" :class="['flex-1 text-center p-4 rounded-lg border-2 transition', Settings.network === 'mainnet' ? 'border-cyan-400 bg-slate-700' : 'border-slate-600 hover:border-slate-500']">
+                                        <span class="font-medium text-white">Mainnet</span>
+                                    </button>
+                                </div>
+                            </fieldset>
+                        </div>
+                    </div>
+
                     <!-- Appearance Section -->
                     <div class="bg-slate-800 p-6 rounded-xl">
                         <h2 class="text-xl font-semibold text-white">Appearance</h2>
@@ -139,13 +160,10 @@ import type { ProfileSettings, NotificationSettings } from '@/stores/settings'
 
 const Settings = useSettingsStore()
 
-// Use local state for form bindings to avoid updating the store on every keystroke.
-// This also makes a "Reset" or "Cancel" feature possible.
 const localProfile = ref<ProfileSettings>({ ...Settings.profile })
 const localNotifications = ref<NotificationSettings>({ ...Settings.notifications })
 const localPassword = ref({ new: '', confirm: '' })
 
-// Keep local state in sync if the store changes from another source
 watch(() => Settings.profile, (newProfile) => {
     localProfile.value = { ...newProfile }
 })
@@ -154,10 +172,9 @@ watch(() => Settings.notifications, (newNotifications) => {
     localNotifications.value = { ...newNotifications }
 })
 
-// Load initial settings when the component is mounted
 onMounted(() => {
     // In a real app, you might only call this once in your root App.vue
-    // Settings.loadSettings();
+    // Settings.loadSettings()
 })
 
 const handleSaveChanges = async () => {
@@ -167,7 +184,6 @@ const handleSaveChanges = async () => {
     })
 }
 
-// A ref to show a temporary success message
 const showSuccessMessage = ref(false)
 
 watch(() => Settings.lastSaved, () => {
