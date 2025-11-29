@@ -26,6 +26,10 @@ export default async (
     _identityIdx: number,
     _queryRegistry: boolean,
 ) => {
+    /* Initialize locals. */
+    let hdKey
+    let privateKey
+
     /* Request mnemonic. */
     const mnemonic = await getMnemonic()
 
@@ -42,52 +46,78 @@ console.log('THE NETWORK IS CURRENTLY', network)
     /* Set wallet HD key. */
     const walletHDKey = sdk.keyPair.seedToHdKey(seed)
 
-    /* Derive HD key. */
-    const hdKey = sdk.keyPair.deriveIdentityPrivateKey(
-        walletHDKey, IDENTITY_INDEX, KEY_ID, network)
-console.log('\n HD KEY', hdKey)
+    /* Derive Master Authentication. */
+    hdKey = sdk.keyPair.deriveIdentityPrivateKey(
+        walletHDKey, IDENTITY_INDEX, 0, network)
 
-const privateKey = hdKey.privateKey
-console.log('\nPRIVATE KEY', privateKey)
-console.log('\nPRIVATE KEY (hex)', binToHex(privateKey))
-const pkAlt = PrivateKeyWASM.fromHex(binToHex(privateKey), network)
-console.log('\nPRIVATE KEY (ALT)', pkAlt)
-console.log('\nPRIVATE KEY (WIF)', pkAlt.WIF())
-console.log('\nPRIVATE KEY (HEX)', pkAlt.hex())
+    /* Derive private key. */
+    privateKey = PrivateKeyWASM
+        .fromHex(binToHex(hdKey.privateKey), network)
+// console.log('\nPRIVATE KEY', privateKey)
+// console.log('\nPRIVATE KEY (hex)', privateKey.hex())
+// console.log('\nPRIVATE KEY (WIF)', privateKey.WIF())
 
-const publicKey = hdKey.publicKey
-console.log('\nPUBLIC KEY', publicKey)
-console.log('\nPUBLIC KEY (hex)', binToHex(publicKey))
-console.log('\nPUBLIC KEY (hash160)', binToHex(hash160(publicKey)))
-
+    /* Set public key. */
+    // const publicKey = hdKey.publicKey
+// console.log('\nPUBLIC KEY', publicKey)
+// console.log('\nPUBLIC KEY (hex)', binToHex(publicKey))
+// console.log('\nPUBLIC KEY (hash160)', binToHex(hash160(publicKey)))
 
     /* Master Authentication */
     // const masterKeyPath = `m/9'/${network === 'mainnet' ? 5 : 1}'/5'/0'/0'/${_identityIdx}'/0'`
-    const masterKey = binToHex(privateKey)
+    const masterKey = privateKey
+
+
+    /* Derive Critical Authentication. */
+    hdKey = sdk.keyPair.deriveIdentityPrivateKey(
+        walletHDKey, IDENTITY_INDEX, 1, network)
+
+    /* Derive private key. */
+    privateKey = PrivateKeyWASM
+        .fromHex(binToHex(hdKey.privateKey), network)
 
     /* Critical Authentication */
     // const authCriticalPath = `m/9'/${network === 'mainnet' ? 5 : 1}'/5'/0'/0'/${_identityIdx}'/1'`
-    // const authCritical = derive_key_from_seed_with_path(
-    //     mnemonic!, undefined, authCriticalPath, network)
-    const authCritical = ''
+    const authCritical = privateKey
+
+
+    /* Derive Critical Authentication. */
+    hdKey = sdk.keyPair.deriveIdentityPrivateKey(
+        walletHDKey, IDENTITY_INDEX, 2, network)
+
+    /* Derive private key. */
+    privateKey = PrivateKeyWASM
+        .fromHex(binToHex(hdKey.privateKey), network)
 
     /* High Authentication */
     // const authHighPath = `m/9'/${network === 'mainnet' ? 5 : 1}'/5'/0'/0'/${_identityIdx}'/2'`
-    // const authHigh = derive_key_from_seed_with_path(
-    //     mnemonic!, undefined, authHighPath, network)
-    const authHigh = ''
+    const authHigh = privateKey
+
+
+    /* Derive Critical Authentication. */
+    hdKey = sdk.keyPair.deriveIdentityPrivateKey(
+        walletHDKey, IDENTITY_INDEX, 3, network)
+
+    /* Derive private key. */
+    privateKey = PrivateKeyWASM
+        .fromHex(binToHex(hdKey.privateKey), network)
 
     /* Transfer Key */
     // const transferKeyPath = `m/9'/${network === 'mainnet' ? 5 : 1}'/5'/0'/0'/${_identityIdx}'/3'`
-    // const transferKey = derive_key_from_seed_with_path(
-    //     mnemonic!, undefined, transferKeyPath, network)
-    const transferKey = ''
+    const transferKey = privateKey
+
+
+    /* Derive Critical Authentication. */
+    hdKey = sdk.keyPair.deriveIdentityPrivateKey(
+        walletHDKey, IDENTITY_INDEX, 4, network)
+
+    /* Derive private key. */
+    privateKey = PrivateKeyWASM
+        .fromHex(binToHex(hdKey.privateKey), network)
 
     /* Authentication Key */
     // const encryptionKeyPath = `m/9'/${network === 'mainnet' ? 5 : 1}'/5'/0'/0'/${_identityIdx}'/4'`
-    // const encryptionKey = derive_key_from_seed_with_path(
-    //     mnemonic!, undefined, encryptionKeyPath, network)
-    const encryptionKey = ''
+    const encryptionKey = privateKey
 
     /* Return ALL keys. */
     return {

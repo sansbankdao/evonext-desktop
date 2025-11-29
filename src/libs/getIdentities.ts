@@ -191,13 +191,16 @@ export const searchByHash160 = async (_identityIdx: number) => {
 
     /* Request private keys. */
     const privateKeys = await getPrivateKeys(_identityIdx, QUERY_REGISTRY)
+console.log('PRIVATE KEYS (searchByHash160)', privateKeys)
 
     /* Set public key. */
-    const publicKey = privateKeys.masterKey.public_key
+    const publicKey = privateKeys.masterKey.getPublicKey()
+console.log('PUBLIC KEY (searchByHash160)', binToHex(publicKey.bytes()))
 
     /* Calculate public key hash. */
-    const publicKeyHash = binToHex(hash160(hexToBin(publicKey)))
+    const publicKeyHash = binToHex(hash160(publicKey.bytes()))
     console.log('HASH160 PKH', publicKeyHash)
+
     let result: any
 
     /* Use Web API (normalized to [] for no results). */
@@ -240,18 +243,20 @@ export const searchBySecp256k1 = async (_identityIdx: number) => {
 
     /* Request private keys. */
     const privateKeys = await getPrivateKeys(_identityIdx, QUERY_REGISTRY)
-
+console.log('DEBUG-1', privateKeys)
     /* Set public key. */
-    const publicKey = privateKeys.masterKey.public_key
+    const publicKey = privateKeys.masterKey.getPublicKey()
+console.log('DEBUG-2', publicKey)
 
     /* Calculate public key hash. */
-    const publicKeyHash = binToHex(hash160(hexToBin(publicKey)))
+    const publicKeyHash = binToHex(hash160(publicKey.bytes()))
+console.log('DEBUG-3', publicKeyHash)
     console.log('SECP256K1 PKH', publicKeyHash)
     let result: any
 
     /* Use Web API (normalized to [] for no results). */
     result = await queryWebAPI('get_identity_by_public_key_hash', [publicKeyHash])
-
+console.log('DEBUG-4', result)
     /* Handle ECDSA_SECP256k1 signature scheme (consistent with normalized Web API or WASM). */
     // if (result && typeof result === 'object' && result.toJSON) {
     if (result && typeof result === 'object' && result.result.identityId) {
