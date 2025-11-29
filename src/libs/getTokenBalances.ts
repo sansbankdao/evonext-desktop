@@ -3,6 +3,12 @@
 /* Import modules. */
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import getNetwork from './getNetwork'
+import {
+    DUSD_CONTRACT_ID,
+    TDUSD_CONTRACT_ID,
+    SANS_CONTRACT_ID,
+    TSANS_CONTRACT_ID,
+} from './constants'
 
 interface TokenBalance {
     tokenId: {
@@ -10,12 +16,6 @@ interface TokenBalance {
     }
     balance: bigint
 }
-
-/* Initialize constants. */
-const DUSD_CONTRACT_ID = 'DYqxCsuDgYsEAJ2ADnimkwNdL7C4xbe4No4so19X9mmd'
-const SANS_CONTRACT_ID = 'AxAYWyXV6mrm8Sq7vc7wEM18wtL8a8rgj64SM3SDmzsB'
-const TDUSD_CONTRACT_ID = '3oTHkj8nqn82QkZRHkmUmNBX696nzE1rg1fwPRpemEdz'
-const TSANS_CONTRACT_ID = 'A36eJF2kyYXwxCtJGsgbR3CTAscUFaNxZN19UqUfM1kw'
 
 export default async (
     identityId: string,
