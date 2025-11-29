@@ -47,6 +47,13 @@ pub struct ProfileSettings {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+pub struct IAssets {
+    pub identityId: String,
+    pub name: String,
+    pub symbol: String,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub struct ILicense {
     pub license_id: String,
 }

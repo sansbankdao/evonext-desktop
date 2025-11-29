@@ -2,6 +2,7 @@
 
 /* Import modules. */
 import { DashPlatformSDK } from 'dash-platform-sdk'
+import { PrivateKeyWASM } from 'pshenmic-dpp'
 // @ts-ignore
 import { hash160 } from '@evonext/crypto'
 // @ts-ignore
@@ -30,16 +31,18 @@ export default async (
 
     /* Request network. */
     const network = await getNetwork()
+console.log('THE NETWORK IS CURRENTLY', network)
 
     /* Initialize SDK. */
     const sdk = new DashPlatformSDK({ network })
 
+    /* Set seed. */
     const seed = await sdk.keyPair.mnemonicToSeed(mnemonic, undefined)
-console.log('\nSEED', seed)
 
+    /* Set wallet HD key. */
     const walletHDKey = sdk.keyPair.seedToHdKey(seed)
-console.log('\nWALLET HD KEY', walletHDKey)
 
+    /* Derive HD key. */
     const hdKey = sdk.keyPair.deriveIdentityPrivateKey(
         walletHDKey, IDENTITY_INDEX, KEY_ID, network)
 console.log('\n HD KEY', hdKey)
@@ -47,6 +50,10 @@ console.log('\n HD KEY', hdKey)
 const privateKey = hdKey.privateKey
 console.log('\nPRIVATE KEY', privateKey)
 console.log('\nPRIVATE KEY (hex)', binToHex(privateKey))
+const pkAlt = PrivateKeyWASM.fromHex(binToHex(privateKey), network)
+console.log('\nPRIVATE KEY (ALT)', pkAlt)
+console.log('\nPRIVATE KEY (WIF)', pkAlt.WIF())
+console.log('\nPRIVATE KEY (HEX)', pkAlt.hex())
 
 const publicKey = hdKey.publicKey
 console.log('\nPUBLIC KEY', publicKey)
