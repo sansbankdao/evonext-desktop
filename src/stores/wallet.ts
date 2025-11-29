@@ -2,8 +2,21 @@
 
 /* Import modules. */
 import { defineStore } from 'pinia'
+import { getIdentityBalance } from '@evonext/platform'
+
 import { useSystemStore } from './system'
+import { useSettingsStore } from './settings'
+
 import { IUser2, IAsset, ITransaction, IBalanceChange } from '@/libs/types'
+import getTokenBalances from '@/libs/getTokenBalances'
+import {
+    DUSD_CONTRACT_ID,
+    TDUSD_CONTRACT_ID,
+    SANS_CONTRACT_ID,
+    TSANS_CONTRACT_ID,
+    DUSD_DECIMAL_PLACES,
+    SANS_DECIMAL_PLACES,
+} from '@/libs/constants'
 
 interface IWalletState {
     user: IUser2 | null;
@@ -59,11 +72,9 @@ export const useWalletStore = defineStore('wallet', {
                 address: 'v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5',
             }
 
+            // Only DASH has mock balance, others will be loaded live
             this.assets = [
                 { ticker: 'DASH', name: 'Dash Coins', amount: 50.00, usdValue: 50.00 * dashPrice },
-                { ticker: 'CREDITS', name: 'Dash Credits', amount: 112.55, usdValue: 2750.00 },
-                { ticker: 'SANS', name: 'Sansnote', amount: 1337.88, usdValue: 28.64 },
-                { ticker: 'DUSD', name: 'Dash USD', amount: 1100.67, usdValue: 1100.67 },
             ]
 
             this.transactions = [
@@ -121,6 +132,97 @@ export const useWalletStore = defineStore('wallet', {
             })
         },
 
+        /**
+         * Fetches live balances for CREDITS, DUSD, and SANS
+         */
+        async fetchLiveBalances() {
+            if (!this.user?.address) {
+                console.warn('No user identity available for balance fetch')
+                return
+            }
+
+            const identityId = this.user.address
+            const Settings = useSettingsStore()
+            const isTestnet = Settings.network === 'testnet'
+            const system = useSystemStore()
+
+            try {
+                console.log('Fetching live balances for:', identityId)
+
+                // Fetch CREDITS balance (same as DASH)
+                const creditsBalanceSatoshis = await getIdentityBalance(isTestnet ? 'testnet' : 'mainnet', identityId)
+                const creditsBalance = creditsBalanceSatoshis
+                    ? Number(creditsBalanceSatoshis) / 100_000_000_000 // 12 decimals
+                    : 0
+                const dashBalance = creditsBalance // DASH and CREDITS show same balance
+
+                console.log(`Credits/DASH balance: ${creditsBalance}`)
+
+                // Fetch token balances
+                const tokenBalances = await getTokenBalances(identityId, [])
+                console.log('Token balances:', tokenBalances)
+
+                // Process token balances
+                const dusdBalanceAtomic = tokenBalances.find(token => {
+                    const tokenIdStr = token.tokenId.base58()
+                    return isTestnet
+                        ? tokenIdStr === TDUSD_CONTRACT_ID
+                        : tokenIdStr === DUSD_CONTRACT_ID
+                })?.balance || BigInt(0)
+
+                const sansBalanceAtomic = tokenBalances.find(token => {
+                    const tokenIdStr = token.tokenId.base58()
+                    return isTestnet
+                        ? tokenIdStr === TSANS_CONTRACT_ID
+                        : tokenIdStr === SANS_CONTRACT_ID
+                })?.balance || BigInt(0)
+
+                const dusdBalance = Number(dusdBalanceAtomic) / (10 ** DUSD_DECIMAL_PLACES) // 6 decimals
+                const sansBalance = Number(sansBalanceAtomic) / (10 ** SANS_DECIMAL_PLACES) // 8 decimals
+
+                console.log(`DUSD balance: ${dusdBalance}, SANS balance: ${sansBalance}`)
+
+                // Update assets array
+                const updatedAssets: IAsset[] = [
+                    // DASH (same as credits)
+                    {
+                        ticker: 'DASH',
+                        name: 'Dash Coins',
+                        amount: dashBalance,
+                        usdValue: dashBalance * system.currentDashPrice
+                    },
+                    // CREDITS (same as DASH)
+                    {
+                        ticker: 'CREDITS',
+                        name: 'Dash Credits',
+                        amount: creditsBalance,
+                        usdValue: creditsBalance * 24.45 // ~$0.00000002445 per credit
+                    },
+                    // DUSD
+                    {
+                        ticker: 'DUSD',
+                        name: 'Dash USD',
+                        amount: dusdBalance,
+                        usdValue: dusdBalance
+                    },
+                    // SANS
+                    {
+                        ticker: 'SANS',
+                        name: 'Sansnote',
+                        amount: sansBalance,
+                        usdValue: sansBalance * 0.0000214 // ~$0.0000214 per SANS
+                    },
+                ]
+
+                this.assets = updatedAssets.filter(asset => asset.amount > 0) // Only show assets with balance
+                this.updateAssetPrices() // Update USD values with latest DASH price
+
+            } catch (error) {
+                console.error('Failed to fetch live balances:', error)
+                // Keep existing assets (including mock DASH if present)
+            }
+        },
+
         async refreshBalances() {
             this.isLoading = true
             console.log('Refreshing balances...')
@@ -129,11 +231,12 @@ export const useWalletStore = defineStore('wallet', {
             const system = useSystemStore()
             await system.fetchDashPrice()
 
+            // Fetch live balances (CREDITS, DUSD, SANS)
+            await this.fetchLiveBalances()
+
             // Update asset prices with new DASH price
             this.updateAssetPrices()
 
-            // In a real app, you would fetch fresh data here
-            await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate network delay
             this.isLoading = false
             console.log('Balances refreshed.')
         },
