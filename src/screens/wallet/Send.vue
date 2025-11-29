@@ -152,7 +152,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { useWalletStore } from '@/stores/wallet'
-import { useSettingsStore } from '@/stores/settings'
+// import { useSettingsStore } from '@/stores/settings'
 import getNetwork from '@/libs/getNetwork'
 import sendCredit from '@/libs/sendCredit'
 import sendToken from '@/libs/sendToken'
@@ -176,12 +176,12 @@ const selectedCurrency = ref('dash-coins')
 const isSending = ref(false)
 const error = ref<string | null>(null)
 
-const currencyNameMap = {
-    'dash-coins': 'Dash Coins',
-    'dash-credits': 'Dash Credits',
-    'dusd': 'Dash USD',
-    'sans': 'Sansnote'
-} as const
+// const currencyNameMap = {
+//     'dash-coins': 'Dash Coins',
+//     'dash-credits': 'Dash Credits',
+//     'dusd': 'Dash USD',
+//     'sans': 'Sansnote'
+// } as const
 
 const selectedAsset = computed(() => {
     const tickerMap: Record<string, string> = {
@@ -245,9 +245,9 @@ const handleSend = async () => {
                 identityId, IDENTITY_IDX, recipient.value, credits)
             console.log('Send Credit Result:', result)
 
-            if (confirm('Transaction successful! Would you like to view explorer.')) {
-                window.open(`https://platform-explorer.com/transaction/${result.txid}`)
-            }
+            // if (confirm('Transaction successful! Would you like to view explorer.')) {
+            //     window.open(`https://platform-explorer.com/transaction/${result.txid}`)
+            // }
 
         } else if (['SANS', 'DUSD'].includes(selectedAsset.value.ticker) && amount.value) {
             /* Get token contract ID based on network and ticker. */
@@ -279,9 +279,9 @@ const handleSend = async () => {
             )
             console.log('Send Token Result:', result)
 
-            if (confirm('Transaction successful! Would you like to view explorer.')) {
-                window.open(`https://platform-explorer.com/transaction/${result.txid}`)
-            }
+            // if (confirm('Transaction successful! Would you like to view explorer.')) {
+            //     window.open(`https://platform-explorer.com/transaction/${result.txid}`)
+            // }
 
         } else {
             console.log(`${selectedAsset.value.ticker} sending logic pending implementation.`)

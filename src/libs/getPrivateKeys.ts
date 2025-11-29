@@ -12,7 +12,7 @@ import getMnemonic from './getMnemonic'
 import getNetwork from './getNetwork'
 
 const IDENTITY_INDEX = 0
-const KEY_ID = 0
+// const KEY_ID = 0
 
 /**
  * Derivation Paths

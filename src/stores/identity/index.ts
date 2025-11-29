@@ -1,9 +1,9 @@
 // src/stores/identity/index.ts
 
 import { defineStore } from 'pinia'
-import getIdentities from '@/libs/getIdentities'
-import { getIdentityBalance } from '@evonext/platform'
-import type { State } from './types'
+// import getIdentities from '@/libs/getIdentities'
+// import { getIdentityBalance } from '@evonext/platform'
+// import type { IState } from './types'
 import { useIdentityState } from './state'
 import { storageActions } from './actions/storage'
 import { connectionActions } from './actions/connection'

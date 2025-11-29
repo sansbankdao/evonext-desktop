@@ -1,8 +1,8 @@
 // src/stores/identity/state.ts
 
-import type { State } from './types'
+import type { IState } from './types'
 
-export const useIdentityState = (): State => ({
+export const useIdentityState = (): IState => ({
     username: null,
     identity: null,
     balance: null,

@@ -1,7 +1,7 @@
 // src/stores/identity/actions/storage.ts
 
 import { invoke } from '@tauri-apps/api/core'
-import type { IdentityData, IdentityPublicKey, State } from '../types'
+import type { IIdentityData, IIdentityPublicKey, IState } from '../types'
 
 function hexHash160ToBase64(hex: string): string {
     // Hex string → Uint8Array (binary data)
@@ -14,10 +14,10 @@ function hexHash160ToBase64(hex: string): string {
 
 export const storageActions = () => ({
     async saveToStorage(this: any) {
-        const state = this as State
+        const state = this as IState
 
         try {
-            const identityData: IdentityData = {
+            const identityData: IIdentityData = {
                 username: state.username || '',
                 identity_id: state.identity?.id || '',
                 balance: state.balance,
@@ -25,7 +25,7 @@ export const storageActions = () => ({
                 public_keys: state.publicKeys.length > 0 ? state.publicKeys : null,
                 revision: state.revision,
                 created_at: state.lastConnected,
-                public_key_ids: state.publicKeys.map((key: IdentityPublicKey) => key.id),
+                public_key_ids: state.publicKeys.map((key: IIdentityPublicKey) => key.id),
             }
 
             await invoke('save_identity_data', {
@@ -38,10 +38,10 @@ export const storageActions = () => ({
     },
 
     async loadFromStorage(this: any) {
-        const state = this as State
+        const state = this as IState
 
         try {
-            const identityData = await invoke('load_identity_data') as IdentityData | null
+            const identityData = await invoke('load_identity_data') as IIdentityData | null
 
             if (identityData) {
                 console.log('Loaded identity data from storage:', identityData)
@@ -58,10 +58,10 @@ export const storageActions = () => ({
     },
 
     async updateIdentityWithSdkData(this: any, identityId: string, sdkPublicKeys: any[], sdkRevision: bigint | number) {
-        const state = this as State
+        const state = this as IState
 
         try {
-            const publicKeys: IdentityPublicKey[] = sdkPublicKeys.map((key: any, index: number) => ({
+            const publicKeys: IIdentityPublicKey[] = sdkPublicKeys.map((key: any, index: number) => ({
                 id: index,
                 type_: key.type_ || key.keyType || 'ecdsa',
                 purpose: Number(key.purpose || key.purposeNumber || 0),
@@ -72,7 +72,7 @@ export const storageActions = () => ({
             }))
 
             const revisionNum = typeof sdkRevision === 'bigint' ? Number(sdkRevision) : sdkRevision
-            const identityData: IdentityData = {
+            const identityData: IIdentityData = {
                 username: state.username || '',
                 identity_id: identityId,
                 balance: state.balance,

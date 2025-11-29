@@ -5,7 +5,7 @@ import { defineStore } from 'pinia'
 import { getIdentityBalance } from '@evonext/platform'
 
 import { useSystemStore } from './system'
-import { useSettingsStore } from './settings'
+// import { useSettingsStore } from './settings'
 import { IUser2, IAsset, ITransaction, IBalanceChange } from '@/libs/types'
 import getNetwork from '@/libs/getNetwork'
 import getTokenBalances from '@/libs/getTokenBalances'
@@ -148,7 +148,7 @@ export const useWalletStore = defineStore('wallet', {
             }
 
             const identityId = this.user.address
-            const Settings = useSettingsStore()
+            // const Settings = useSettingsStore()
             const network = await getNetwork()
             const system = useSystemStore()
 

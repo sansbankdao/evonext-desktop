@@ -1,17 +1,17 @@
 // src/stores/identity/getters.ts
-import type { IdentityPublicKey, State } from './types'
+import type { IIdentityPublicKey, IState } from './types'
 
 export const useIdentityGetters = {
-    getGreeting: (state: State) => `Hello, ${state.username || 'Guest'}!`,
-    isConnected: (state: State) => state.isAuthenticated && !!state.username,
-    hasPublicKeys: (state: State) => state.publicKeys.length > 0,
-    getPublicKeyById: (state: State) => (id: number) => {
-        return state.publicKeys.find((key: IdentityPublicKey) => key.id === id)
+    getGreeting: (state: IState) => `Hello, ${state.username || 'Guest'}!`,
+    isConnected: (state: IState) => state.isAuthenticated && !!state.username,
+    hasPublicKeys: (state: IState) => state.publicKeys.length > 0,
+    getPublicKeyById: (state: IState) => (id: number) => {
+        return state.publicKeys.find((key: IIdentityPublicKey) => key.id === id)
     },
-    getAuthPublicKey: (state: State) => {
-        return state.publicKeys.find((key: IdentityPublicKey) => key.purpose === 0)
+    getAuthPublicKey: (state: IState) => {
+        return state.publicKeys.find((key: IIdentityPublicKey) => key.purpose === 0)
     },
-    getEncryptionPublicKey: (state: State) => {
-        return state.publicKeys.find((key: IdentityPublicKey) => key.purpose === 1)
+    getEncryptionPublicKey: (state: IState) => {
+        return state.publicKeys.find((key: IIdentityPublicKey) => key.purpose === 1)
     },
 }
