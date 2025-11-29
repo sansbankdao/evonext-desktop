@@ -13,9 +13,11 @@ import { relaunch } from '@tauri-apps/plugin-process'
 
 import { useSystemStore } from '@/stores/system'
 import { useIdentityStore } from '@/stores/identity'
+import { useWalletStore } from '@/stores/wallet'
 
 const System = useSystemStore()
 const Identity = useIdentityStore()
+const Wallet = useWalletStore()
 
 const manageUpdater = async () => {
     /* Request check. */
@@ -67,6 +69,14 @@ onMounted(async () => {
 
     // Initialize identity from storage
     await Identity.initFromStorage()
+
+    // Initialize wallet (sets user identity for balance fetching)
+    if (Wallet.assets.length === 0) {
+        Wallet.initializeMockData()
+    }
+
+    // Load LIVE wallet balances (CREDITS, DUSD, SANS)
+    await Wallet.refreshBalances()
 
     console.log('App initialization complete. isAuthenticated:', Identity.isAuthenticated, 'DASH price:', System.currentDashPrice)
 

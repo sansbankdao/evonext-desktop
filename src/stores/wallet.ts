@@ -6,7 +6,6 @@ import { getIdentityBalance } from '@evonext/platform'
 
 import { useSystemStore } from './system'
 import { useSettingsStore } from './settings'
-
 import { IUser2, IAsset, ITransaction, IBalanceChange } from '@/libs/types'
 import getTokenBalances from '@/libs/getTokenBalances'
 import {
@@ -115,7 +114,7 @@ export const useWalletStore = defineStore('wallet', {
         },
 
         /**
-         * Updates USD values based on current DASH price
+         * Updates USD values based on current DASH price and hardcoded token prices
          */
         updateAssetPrices() {
             const system = useSystemStore()
@@ -123,6 +122,12 @@ export const useWalletStore = defineStore('wallet', {
 
             this.assets = this.assets.map(asset => {
                 if (asset.ticker === 'DASH') {
+                    return {
+                        ...asset,
+                        usdValue: asset.amount * dashPrice
+                    }
+                } else if (asset.ticker === 'CREDITS') {
+                    // Use DASH price for credits (same balance, same USD value)
                     return {
                         ...asset,
                         usdValue: asset.amount * dashPrice
@@ -143,14 +148,14 @@ export const useWalletStore = defineStore('wallet', {
 
             const identityId = this.user.address
             const Settings = useSettingsStore()
-            const isTestnet = Settings.network === 'testnet'
+            const network = Settings.network as 'testnet' | 'mainnet'
             const system = useSystemStore()
 
             try {
                 console.log('Fetching live balances for:', identityId)
 
-                // Fetch CREDITS balance (same as DASH)
-                const creditsBalanceSatoshis = await getIdentityBalance(isTestnet ? 'testnet' : 'mainnet', identityId)
+                // Fetch CREDITS balance using @evonext/platform (DASH shows same)
+                const creditsBalanceSatoshis = await getIdentityBalance(network, identityId)
                 const creditsBalance = creditsBalanceSatoshis
                     ? Number(creditsBalanceSatoshis) / 100_000_000_000 // 12 decimals
                     : 0
@@ -165,14 +170,14 @@ export const useWalletStore = defineStore('wallet', {
                 // Process token balances
                 const dusdBalanceAtomic = tokenBalances.find(token => {
                     const tokenIdStr = token.tokenId.base58()
-                    return isTestnet
+                    return network === 'testnet'
                         ? tokenIdStr === TDUSD_CONTRACT_ID
                         : tokenIdStr === DUSD_CONTRACT_ID
                 })?.balance || BigInt(0)
 
                 const sansBalanceAtomic = tokenBalances.find(token => {
                     const tokenIdStr = token.tokenId.base58()
-                    return isTestnet
+                    return network === 'testnet'
                         ? tokenIdStr === TSANS_CONTRACT_ID
                         : tokenIdStr === SANS_CONTRACT_ID
                 })?.balance || BigInt(0)
@@ -182,7 +187,7 @@ export const useWalletStore = defineStore('wallet', {
 
                 console.log(`DUSD balance: ${dusdBalance}, SANS balance: ${sansBalance}`)
 
-                // Update assets array
+                // Update assets array with live data and proper USD values
                 const updatedAssets: IAsset[] = [
                     // DASH (same as credits)
                     {
@@ -191,35 +196,35 @@ export const useWalletStore = defineStore('wallet', {
                         amount: dashBalance,
                         usdValue: dashBalance * system.currentDashPrice
                     },
-                    // CREDITS (same as DASH)
+                    // CREDITS (same as DASH balance, uses DASH price)
                     {
                         ticker: 'CREDITS',
                         name: 'Dash Credits',
                         amount: creditsBalance,
-                        usdValue: creditsBalance * 24.45 // ~$0.00000002445 per credit
+                        usdValue: creditsBalance * system.currentDashPrice
                     },
-                    // DUSD
+                    // DUSD ($1.00 hardcoded)
                     {
                         ticker: 'DUSD',
                         name: 'Dash USD',
                         amount: dusdBalance,
-                        usdValue: dusdBalance
+                        usdValue: dusdBalance * 1.00 // $1.00 per DUSD
                     },
-                    // SANS
+                    // SANS ($0.08 hardcoded)
                     {
                         ticker: 'SANS',
                         name: 'Sansnote',
                         amount: sansBalance,
-                        usdValue: sansBalance * 0.0000214 // ~$0.0000214 per SANS
+                        usdValue: sansBalance * 0.08 // $0.08 per SANS
                     },
                 ]
 
-                this.assets = updatedAssets.filter(asset => asset.amount > 0) // Only show assets with balance
-                this.updateAssetPrices() // Update USD values with latest DASH price
+                this.assets = updatedAssets.filter(asset => asset.amount > 0 || asset.ticker === 'DASH') // Keep DASH even if zero
+                this.updateAssetPrices()
 
             } catch (error) {
                 console.error('Failed to fetch live balances:', error)
-                // Keep existing assets (including mock DASH if present)
+                // Keep existing assets (including mock DASH)
             }
         },
 
