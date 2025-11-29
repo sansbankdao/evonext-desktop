@@ -14,7 +14,7 @@ import {
     // ITokenPaymentInfo,
 } from './types'
 
-// NOTE: Minimum credit transfer amount enforced by the protocol (0.001 DASH).
+// NOTE: Minimum credit transfer amount enforced by the protocol (0.000001 DASH).
 const MIN_CREDIT_TRANSFER = BigInt(100000)
 
 export default async (
@@ -43,45 +43,32 @@ export default async (
 
     /* Request transfer (WIF) key. */
     const transferWif = await getTransferKey(_identityIdx)
-console.log('transferWif', transferWif)
 
     /* Set private (transfer) key. */
     const privKey = PrivateKeyWASM.fromWIF(transferWif)
-    // const privKey = PrivateKeyWASM.fromHex(transferWif, 'testnet')
-console.log('privKey', privKey)
 
     /* Request identity. */
     const identity = await sdk.identities.getIdentityByIdentifier(_identityId)
-console.log('IDENTITY', JSON.stringify(identity, null, 2))
 
     /* Request identity nonce. */
     const identityNonce = await sdk.identities.getIdentityNonce(_identityId)
-console.log('IDENTITY NONCE', identityNonce)
 
     /* Create unsigned identity credit transfer state transition. */
     const stateTransition = sdk.identities.createStateTransition('creditTransfer', {
         identityId: _identityId,
         amount: amountInCredits,
         recipientId: _receiver,
-        identityNonce: identityNonce + BigInt(1)
+        identityNonce: identityNonce + BigInt(1) // FIXME MAYBE INCREMENT MANUALLY??
     })
 
     /* Set public keys. */
     const identityPublicKeys = identity.getPublicKeys()
-// console.log('PUBLIC KEYS', identityPublicKeys)
 
     /* Set public key ID. */
     const publicKeyId = 3 // 03 => Transfer (Critical)
 
     /* Set public key. */
     const pubKey = identityPublicKeys[publicKeyId]
-
-    // stateTransition.signByPrivateKey(PrivateKeyWASM.fromHex(privateKey, network), KEY_ID, 'ECDSA_SECP256K1')
-    // stateTransition.signByPrivateKey(PrivateKeyWASM.fromWIF(transferWif), KEY_ID, 'ECDSA_SECP256K1')
-    // stateTransition.signByPrivateKey(
-    //     PrivateKeyWASM.fromWIF(transferWif), KEY_ID, 'ECDSA_HASH160')
-
-    // stateTransition.signaturePublicKeyId = KEY_ID
 
     /* Sign state transition. */
     stateTransition.sign(privKey, pubKey)
