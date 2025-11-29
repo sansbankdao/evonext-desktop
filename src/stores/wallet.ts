@@ -7,6 +7,7 @@ import { getIdentityBalance } from '@evonext/platform'
 import { useSystemStore } from './system'
 import { useSettingsStore } from './settings'
 import { IUser2, IAsset, ITransaction, IBalanceChange } from '@/libs/types'
+import getNetwork from '@/libs/getNetwork'
 import getTokenBalances from '@/libs/getTokenBalances'
 import {
     DUSD_CONTRACT_ID,
@@ -148,14 +149,16 @@ export const useWalletStore = defineStore('wallet', {
 
             const identityId = this.user.address
             const Settings = useSettingsStore()
-            const network = Settings.network as 'testnet' | 'mainnet'
+            const network = await getNetwork()
             const system = useSystemStore()
 
             try {
-                console.log('Fetching live balances for:', identityId)
+                console.log('Fetching live balances for:', identityId, 'on', network)
 
                 // Fetch CREDITS balance using @evonext/platform (DASH shows same)
                 const creditsBalanceSatoshis = await getIdentityBalance(network, identityId)
+                    .catch(err => console.error(err))
+
                 const creditsBalance = creditsBalanceSatoshis
                     ? Number(creditsBalanceSatoshis) / 100_000_000_000 // 12 decimals
                     : 0
@@ -163,8 +166,20 @@ export const useWalletStore = defineStore('wallet', {
 
                 console.log(`Credits/DASH balance: ${creditsBalance}`)
 
+                /* Initialize locals. */
+                let activeTokens
+
+                /* Handle network. */
+                if (network === 'mainnet') {
+                    /* Set active (mainnet) tokens. */
+                    activeTokens = [DUSD_CONTRACT_ID, SANS_CONTRACT_ID]
+                } else {
+                    /* Set active (testnet) tokens. */
+                    activeTokens = [TDUSD_CONTRACT_ID, TSANS_CONTRACT_ID]
+                }
+
                 // Fetch token balances
-                const tokenBalances = await getTokenBalances(identityId, [])
+                const tokenBalances = await getTokenBalances(identityId, activeTokens)
                 console.log('Token balances:', tokenBalances)
 
                 // Process token balances
