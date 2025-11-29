@@ -1,7 +1,7 @@
 // src/libs/sendCredit.ts
 
 /* Import modules. */
-import { base64 } from '@scure/base'
+// import { base64 } from '@scure/base'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 
@@ -41,8 +41,22 @@ export default async (
         }
     }
 
+    /* Request transfer (WIF) key. */
+    const transferWif = await getTransferKey(_identityIdx)
+console.log('transferWif', transferWif)
+
+    /* Set private (transfer) key. */
+    const privKey = PrivateKeyWASM.fromWIF(transferWif)
+    // const privKey = PrivateKeyWASM.fromHex(transferWif, 'testnet')
+console.log('privKey', privKey)
+
+    /* Request identity. */
+    const identity = await sdk.identities.getIdentityByIdentifier(_identityId)
+console.log('IDENTITY', JSON.stringify(identity, null, 2))
+
     /* Request identity nonce. */
     const identityNonce = await sdk.identities.getIdentityNonce(_identityId)
+console.log('IDENTITY NONCE', identityNonce)
 
     /* Create unsigned identity credit transfer state transition. */
     const stateTransition = sdk.identities.createStateTransition('creditTransfer', {
@@ -52,17 +66,25 @@ export default async (
         identityNonce: identityNonce + BigInt(1)
     })
 
-/* Request transfer (WIF) key. */
-const transferWif = await getTransferKey(_identityIdx)
-console.log('GET TRANSFER KEY (WIF)', transferWif)
-const KEY_ID = 3
+    /* Set public keys. */
+    const identityPublicKeys = identity.getPublicKeys()
+// console.log('PUBLIC KEYS', identityPublicKeys)
+
+    /* Set public key ID. */
+    const publicKeyId = 3 // 03 => Transfer (Critical)
+
+    /* Set public key. */
+    const pubKey = identityPublicKeys[publicKeyId]
 
     // stateTransition.signByPrivateKey(PrivateKeyWASM.fromHex(privateKey, network), KEY_ID, 'ECDSA_SECP256K1')
     // stateTransition.signByPrivateKey(PrivateKeyWASM.fromWIF(transferWif), KEY_ID, 'ECDSA_SECP256K1')
-    stateTransition.signByPrivateKey(
-        PrivateKeyWASM.fromWIF(transferWif), KEY_ID, 'ECDSA_HASH160')
+    // stateTransition.signByPrivateKey(
+    //     PrivateKeyWASM.fromWIF(transferWif), KEY_ID, 'ECDSA_HASH160')
 
     // stateTransition.signaturePublicKeyId = KEY_ID
+
+    /* Sign state transition. */
+    stateTransition.sign(privKey, pubKey)
 
     /* Execute state transition. */
     await sdk.stateTransitions.broadcast(stateTransition)

@@ -48,10 +48,6 @@ console.log('IDENTITY ID', _identityId)
         )
 
     /* Request transfer (WIF) key. */
-//     const authWif = await getAuthKey(_identityIdx)
-// console.log('authWif', authWif)
-
-    /* Request transfer (WIF) key. */
     const transferWif = await getTransferKey(_identityIdx)
 console.log('transferWif', transferWif)
 

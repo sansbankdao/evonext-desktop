@@ -4,7 +4,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { ILicense }  from './types.ts'
 
-export default async () => {
+export default async (): Promise<string> => {
     /* Request license. */
     const licenseStore = await invoke<ILicense | null>('load_license')
 

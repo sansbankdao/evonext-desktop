@@ -1,58 +1,28 @@
-// src/libs/getAuthKey.ts
+// src/libs/getTransferKey.ts
 
 /* Import modules. */
-import getIdentities from './getIdentities'
 import getPrivateKeys from './getPrivateKeys'
 
-export default async (_identityIdx: number) => {
-    /* Request private keys. */
-    const generatedkeys = await getPrivateKeys(_identityIdx, false)
-console.log('GENERATED KEYS', generatedkeys)
+/* Set constants. */
+const DEFAULT_SECURITY_LEVEL = 0
 
-// FIXME -- ONLY SEARCH IF (STANDARD) KEYS DO NOT WORK
-    const response = await getIdentities()
-    const registeredKeys = response![0].publicKeys
-console.log('REGISTERED KEYS', registeredKeys)
-// FIXME WE WANT TO SUPPORT ALTERNATIVE KEY CONFIGURATIONS
+export default async (
+    _identityIdx: number,
+    _securityLevel: number = DEFAULT_SECURITY_LEVEL,
+): Promise<string> => {
+    /* Initialize locals. */
+    let transferKey
 
-/*
+    /* Request (generated) private keys. */
+    const generatedKeys = await getPrivateKeys(_identityIdx, false)
 
-PURPOSES
-0 => AUTHENTICATION
-1 => ENCRYPTION
-2 => DECRYPTION
-3 => TRANSFER
+    /* Set transfer key. */
+    if (_securityLevel === DEFAULT_SECURITY_LEVEL) {
+        transferKey = generatedKeys.authCritical
+    } else {
+        transferKey = generatedKeys.authHigh
+    }
 
-TYPES
-0 =>
-1 =>
-2 => ???
-
-SECURITY LEVELS
-0 => MASTER
-1 => CRITICAL
-2 => HIGH
-3 => MEDIUM
-
-
-
-// WHAT IS THE CONFIG FOR TRANSFER KEYS??
-
-const signingPublicKey = regPubKeys.find((_pubkey: any) => {
-    return _pubkey.purpose === 0 && (_pubkey.securityLevel === 1 || _pubkey.securityLevel === 2)
-})
-console.log('SIGNING (public) KEY', signingPublicKey)
-
-const signingPrivateKey = publicKeys.find(_pubkey => {
-    return _pubkey.id === signingPublicKey.id
-})
-console.log('SIGNING (private) KEY', signingPrivateKey)
-
-const seedPrivateKey = signingPrivateKey!.privateKeyWif
-
-*/
-
-    /* Return transfer (private) key (WIF). */
-    return generatedkeys.authCritical.private_key_wif
-    // return generatedkeys.transferKey.private_key_hex
+    /* Return wallet import format (WIF). */
+    return transferKey.WIF()
 }

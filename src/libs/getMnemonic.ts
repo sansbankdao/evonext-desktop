@@ -4,7 +4,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { IMnemonic }  from './types.ts'
 
-export default async () => {
+export default async (): Promise<string> => {
     /* Request mnemonic. */
     const mnemonicStore = await invoke<IMnemonic | null>('load_mnemonic')
 

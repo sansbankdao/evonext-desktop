@@ -3,7 +3,7 @@
 /* Import modules. */
 import getPrivateKeys from './getPrivateKeys'
 
-export default async (_identityIdx: number) => {
+export default async (_identityIdx: number): Promise<string> => {
     /* Request (generated) private keys. */
     const generatedKeys = await getPrivateKeys(_identityIdx, false)
 
