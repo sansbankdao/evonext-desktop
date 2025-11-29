@@ -6,7 +6,7 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 
 import getNetwork from './getNetwork'
-import getTransferKeys from './getTransferKeys'
+import getTransferKey from './getTransferKey'
 import {
     // IKeyTypes,
     ITxError,
@@ -53,15 +53,23 @@ export default async (
     })
 
 /* Request transfer (WIF) key. */
-const transferWif = await getTransferKeys(_identityIdx)
-console.log('GET TRANSFER KEY', transferWif)
+const transferWif = await getTransferKey(_identityIdx)
+console.log('GET TRANSFER KEY (WIF)', transferWif)
 const KEY_ID = 3
+
     // stateTransition.signByPrivateKey(PrivateKeyWASM.fromHex(privateKey, network), KEY_ID, 'ECDSA_SECP256K1')
-    stateTransition.signByPrivateKey(PrivateKeyWASM.fromWIF(transferWif), KEY_ID, 'ECDSA_SECP256K1')
+    // stateTransition.signByPrivateKey(PrivateKeyWASM.fromWIF(transferWif), KEY_ID, 'ECDSA_SECP256K1')
+    stateTransition.signByPrivateKey(
+        PrivateKeyWASM.fromWIF(transferWif), KEY_ID, 'ECDSA_HASH160')
 
     // stateTransition.signaturePublicKeyId = KEY_ID
 
+    /* Execute state transition. */
     await sdk.stateTransitions.broadcast(stateTransition)
 
-    return { txid: 'almost there!' }
+    /* Wait for confirmation. */
+    await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+
+    /* Return transaction ID. */
+    return { txid: stateTransition.hash(false) }
 }

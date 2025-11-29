@@ -4,9 +4,9 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 
-import getAuthKeys from './getAuthKeys'
+// import getAuthKey from './getAuthKey'
 import getNetwork from './getNetwork'
-import getTransferKeys from './getTransferKeys'
+import getTransferKey from './getTransferKey'
 import {
     // IKeyTypes,
     ITxError,
@@ -14,16 +14,13 @@ import {
     // ITokenPaymentInfo,
 } from './types'
 
-export const sendToken = async (
+export default async (
     _identityId: string,
     _identityIdx: number,
     _tokenId: string,
     _receiver: string,
     _atomicUnits: bigint,
 ): Promise<ITxSuccess | ITxError> => {
-    /* Initialize locals. */
-    let response
-
     /* Request network. */
     const network = await getNetwork()
 
@@ -51,13 +48,11 @@ console.log('IDENTITY ID', _identityId)
         )
 
     /* Request transfer (WIF) key. */
-    response = await getAuthKeys(_identityIdx)
-    const authWif = response[0]
-console.log('authWif', authWif)
+//     const authWif = await getAuthKey(_identityIdx)
+// console.log('authWif', authWif)
 
     /* Request transfer (WIF) key. */
-    response = await getTransferKeys(_identityIdx)
-    const transferWif = response[0]
+    const transferWif = await getTransferKey(_identityIdx)
 console.log('transferWif', transferWif)
 
     /* Set private (transfer) key. */
@@ -92,6 +87,9 @@ console.log('privKey', privKey)
     /* Broadcast state transition. */
     await sdk.stateTransitions.broadcast(stateTransition)
 
-    // FIXME FIND A WAY TO REQUEST TXID
-    return { txid: 'UNKNOWN TXID' }
+    /* Wait for confirmation. */
+    await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+
+    /* Return transaction ID. */
+    return { txid: stateTransition.hash(false) }
 }
