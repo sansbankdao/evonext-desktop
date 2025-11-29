@@ -1,6 +1,8 @@
 // src/stores/identity/actions/storage.ts
+
 import { invoke } from '@tauri-apps/api/core'
 import type { IdentityData, IdentityPublicKey, State } from '../types'
+
 function hexHash160ToBase64(hex: string): string {
     // Hex string → Uint8Array (binary data)
     const matches = hex.match(/.{2}/g)
@@ -9,9 +11,11 @@ function hexHash160ToBase64(hex: string): string {
     // Uint8Array → Base64
     return btoa(String.fromCharCode(...Array.from(bytes)))
 }
+
 export const storageActions = () => ({
     async saveToStorage(this: any) {
         const state = this as State
+
         try {
             const identityData: IdentityData = {
                 username: state.username || '',
@@ -23,7 +27,7 @@ export const storageActions = () => ({
                 created_at: state.lastConnected,
                 public_key_ids: state.publicKeys.map((key: IdentityPublicKey) => key.id),
             }
-            // ✅ FIXED: Direct payload (matches Rust: payload: IdentityData)
+
             await invoke('save_identity_data', {
                 payload: identityData
             })
@@ -32,10 +36,13 @@ export const storageActions = () => ({
             console.error('Failed to save identity data to storage:', err)
         }
     },
+
     async loadFromStorage(this: any) {
         const state = this as State
+
         try {
             const identityData = await invoke('load_identity_data') as IdentityData | null
+
             if (identityData) {
                 console.log('Loaded identity data from storage:', identityData)
                 state.username = identityData.username || null
@@ -49,8 +56,10 @@ export const storageActions = () => ({
             console.error('Failed to load identity data from storage:', err)
         }
     },
+
     async updateIdentityWithSdkData(this: any, identityId: string, sdkPublicKeys: any[], sdkRevision: bigint | number) {
         const state = this as State
+
         try {
             const publicKeys: IdentityPublicKey[] = sdkPublicKeys.map((key: any, index: number) => ({
                 id: index,
@@ -61,8 +70,8 @@ export const storageActions = () => ({
                 read_only: Boolean(key.read_only || key.readOnly || false),
                 disabled_at: key.disabled_at || key.disabledAt || null
             }))
+
             const revisionNum = typeof sdkRevision === 'bigint' ? Number(sdkRevision) : sdkRevision
-            // ✅ FIXED: Tauri expects { payload: IdentityData } - create full IdentityData
             const identityData: IdentityData = {
                 username: state.username || '',
                 identity_id: identityId,
@@ -73,10 +82,11 @@ export const storageActions = () => ({
                 created_at: state.lastConnected || new Date().toISOString(),
                 public_key_ids: publicKeys.map(key => key.id)
             }
-            // ✅ Call save_identity_data with complete IdentityData payload
+
             await invoke('save_identity_data', {
                 payload: identityData
             })
+
             state.publicKeys = publicKeys
             state.revision = revisionNum
             state.lastConnected = new Date().toISOString()

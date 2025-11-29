@@ -12,7 +12,9 @@ export const balanceActions = () => ({
         if (!state.identity?.id) {
             console.log('No identity ID available for balance fetch')
             state.balance = null
+
             await this.saveToStorage()
+
             return null
         }
 
@@ -47,7 +49,9 @@ export const balanceActions = () => ({
                 state.balance = null
                 state.balanceBigInt = undefined
                 state.dashBigInt = undefined
+
                 await this.saveToStorage()
+
                 return null
             }
         } catch (err) {
@@ -55,7 +59,9 @@ export const balanceActions = () => ({
             state.balance = null
             state.balanceBigInt = undefined
             state.dashBigInt = undefined
+
             await this.saveToStorage()
+
             return null
         }
     },
