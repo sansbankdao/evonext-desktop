@@ -11,6 +11,7 @@
                     Connect to Dash
                 </h1>
             </div>
+
             <div class="flex items-center gap-3 bg-slate-800/80 backdrop-blur-sm p-3 rounded-lg border border-slate-700 w-full sm:w-auto mt-4 sm:mt-0">
                 <div class="flex-grow flex flex-col overflow-hidden">
                     <span class="text-cyan-100 text-base font-semibold px-2 tracking-wide truncate">
@@ -20,6 +21,7 @@
                         v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5
                     </span>
                 </div>
+
                 <button @click="copyAddress" class="p-2 rounded-md hover:bg-slate-700/50 transition-colors flex-shrink-0 relative">
                     <svg v-if="!isCopied" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -30,6 +32,7 @@
                 </button>
             </div>
         </header>
+
         <section class="flex items-center justify-center min-h-[calc(100vh-120px)] px-4">
             <div class="max-w-2xl w-full mx-auto space-y-8">
                 <!-- Page Header (unchanged) -->
@@ -40,10 +43,12 @@
                         </svg>
                         Connect to Dash Platform
                     </h2>
+
                     <p class="text-slate-400 text-sm leading-relaxed">
                         Securely access your identity using one of the methods below. Your data stays local.
                     </p>
                 </div>
+
                 <!-- Connection Method Tabs (unchanged) -->
                 <div class="bg-slate-800/80 backdrop-blur-sm p-1 rounded-lg border border-slate-700 flex">
                     <button
@@ -60,6 +65,7 @@
                         </svg>
                         <span>Seed Phrase</span>
                     </button>
+
                     <button
                         @click="connectionMethod = 'privateKey'"
                         :class="[
@@ -75,16 +81,19 @@
                         <span>Private Keys</span>
                     </button>
                 </div>
+
                 <!-- Security Warning (unchanged) -->
                 <div class="bg-amber-900/20 border border-amber-800/50 text-amber-300 p-4 rounded-xl flex items-start gap-3 shadow-lg">
                     <svg class="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
+
                     <div>
                         <h3 class="font-semibold text-sm mb-1">Security Notice</h3>
                         <p class="text-sm leading-relaxed">Your credentials are processed locally and never sent to any server. Always connect in a secure, private environment.</p>
                     </div>
                 </div>
+
                 <!-- Form Container -->
                 <form @submit.prevent="connect" class="bg-slate-800/80 backdrop-blur-sm p-6 rounded-xl space-y-6 shadow-lg border border-slate-700">
                     <!-- SEED PHRASE FORM (updated for paste support) -->
@@ -96,6 +105,7 @@
                                 </svg>
                                 Phrase Length
                             </label>
+
                             <fieldset class="grid grid-cols-2 gap-3">
                                 <label :class="[
                                     'flex items-center justify-center p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 shadow-sm group',
@@ -106,6 +116,7 @@
                                     <input type="radio" value="12" v-model="wordCount" class="sr-only">
                                     <span class="font-semibold text-sm">12 Words</span>
                                 </label>
+
                                 <label :class="[
                                     'flex items-center justify-center p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 shadow-sm group',
                                     wordCount === '24'
@@ -117,6 +128,7 @@
                                 </label>
                             </fieldset>
                         </div>
+
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                             <div v-for="(_word, index) in seedWords" :key="index" class="relative group">
                                 <span class="absolute -top-6 left-0 text-xs text-slate-500 font-mono bg-slate-900 px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200">{{ index + 1 }}</span>
@@ -132,6 +144,7 @@
                             </div>
                         </div>
                     </div>
+
                     <!-- PRIVATE KEYS FORM (updated label and divider) -->
                     <div v-if="connectionMethod === 'privateKey'" class="space-y-6">
                         <div>
@@ -141,6 +154,7 @@
                                 </svg>
                                 Username or Identity ID
                             </label>
+
                             <input
                                 id="identityId"
                                 type="text"
@@ -150,6 +164,7 @@
                                 required
                             />
                         </div>
+
                         <!-- Divider Separator (updated label) -->
                         <div class="relative">
                             <div class="absolute inset-0 flex items-center">
@@ -159,6 +174,7 @@
                                 <span class="px-3 bg-slate-800/80 text-slate-400">Platform Private Keys</span>
                             </div>
                         </div>
+
                         <div class="space-y-4">
                             <div>
                                 <label for="authKey" class="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
@@ -167,7 +183,9 @@
                                     </svg>
                                     Authentication Key (WIF or HEX)
                                 </label>
+
                                 <p class="text-xs text-slate-500 mb-2">Enter as WIF (starts with cN/Kw) or raw HEX (64 characters).</p>
+
                                 <input
                                     id="authKey"
                                     type="password"
@@ -176,6 +194,7 @@
                                     class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:bg-slate-900 transition-all duration-200 font-mono text-sm"
                                 />
                             </div>
+
                             <div>
                                 <label for="transferKey" class="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
                                     <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -183,7 +202,9 @@
                                     </svg>
                                     Transfer Key (WIF or HEX)
                                 </label>
+
                                 <p class="text-xs text-slate-500 mb-2">Enter as WIF (starts with cN/Kw) or raw HEX (64 characters).</p>
+
                                 <input
                                     id="transferKey"
                                     type="password"
@@ -192,6 +213,7 @@
                                     class="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-lg text-white placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 focus:bg-slate-900 transition-all duration-200 font-mono text-sm"
                                 />
                             </div>
+
                             <div>
                                 <label for="encryptionKey" class="block text-sm font-medium text-slate-300 mb-2 flex items-center gap-2">
                                     <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -199,7 +221,9 @@
                                     </svg>
                                     Encryption Key (WIF or HEX)
                                 </label>
+
                                 <p class="text-xs text-slate-500 mb-2">Enter as WIF (starts with cN/Kw) or raw HEX (64 characters).</p>
+
                                 <input
                                     id="encryptionKey"
                                     type="password"
@@ -210,6 +234,7 @@
                             </div>
                         </div>
                     </div>
+
                     <!-- Helper Text for Private Keys (unchanged) -->
                     <div v-if="connectionMethod === 'privateKey'" class="text-xs text-slate-500 text-center italic p-3 bg-slate-900/50 rounded-lg">
                         <svg class="w-4 h-4 inline mr-1 -ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -217,6 +242,7 @@
                         </svg>
                         Username will be resolved to Identity ID via DPNS (if valid). At least one key is required. WIF (compressed/uncompressed) or raw HEX private keys are supported.
                     </div>
+
                     <!-- Error Message Display (now from store) -->
                     <div v-if="identityStore.connectionError" class="bg-red-900/30 border border-red-800/50 text-red-300 p-4 rounded-lg text-sm font-medium text-center shadow-md">
                         <svg class="w-4 h-4 inline mr-2 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,6 +250,7 @@
                         </svg>
                         {{ identityStore.connectionError }}
                     </div>
+
                     <!-- Action Button (now uses store's isConnecting) -->
                     <div class="pt-4">
                         <button
@@ -243,10 +270,13 @@
         </section>
     </main>
 </template>
+
 <script setup lang="ts">
 import { ref, reactive, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import getNetwork from '@/libs/getNetwork'
 import { useIdentityStore } from '@/stores/identity' // Import the updated store
+
 const router = useRouter()
 const identityStore = useIdentityStore()
 // --- Component State ---
@@ -263,9 +293,12 @@ const transferKey = ref('') // Transfer Key (WIF or HEX)
 const encryptionKey = ref('') // Encryption Key (WIF or HEX)
 // Copy address state (from wallet pattern)
 const isCopied = ref(false)
+
 const copyAddress = async () => {
     const address = 'v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5' // Mock; use from store in real app
+
     if (isCopied.value) return
+
     try {
         await navigator.clipboard.writeText(address)
         isCopied.value = true
@@ -276,9 +309,11 @@ const copyAddress = async () => {
         console.error('Failed to copy address: ', err)
     }
 }
+
 // --- Paste Handler for Seed Words ---
 const handlePaste = (event: ClipboardEvent) => {
     const pastedText = event.clipboardData?.getData('text') || ''
+
     const words = pastedText
         .toLowerCase()
         .split(/\s+/)
@@ -286,6 +321,7 @@ const handlePaste = (event: ClipboardEvent) => {
         .filter((w) => w.length > 0)
 
     const totalSlots = seedWords.length
+
     // Always start from index 0, regardless of which field was pasted into
     for (let i = 0; i < words.length && i < totalSlots; i++) {
         seedWords[i] = words[i]
@@ -297,6 +333,7 @@ const handlePaste = (event: ClipboardEvent) => {
         )
     }
 }
+
 // --- Logic ---
 // Watch for changes in the word count and resize the seedWords array accordingly.
 watch(wordCount, (newCount) => {
@@ -306,6 +343,7 @@ watch(wordCount, (newCount) => {
         seedWords.push('')
     }
 })
+
 // A computed property to check if all inputs are filled, used to disable the button.
 // For seed: All words must be filled.
 // For private keys: Identity ID (username or ID) + at least one key (WIF or HEX) non-empty.
@@ -318,28 +356,46 @@ const isFormValid = computed(() => {
                (authKey.value.trim() !== '' || transferKey.value.trim() !== '' || encryptionKey.value.trim() !== '')
     }
 })
+
 // The main function to handle the connection process (now delegates to store).
 const connect = async () => {
     /* Validate form values. */
     if (!isFormValid.value) return
-    // Clear any previous errors
+
+    /* Clear any previous errors. */
     identityStore.clearConnectionError()
+
+    /* Initialize locals. */
     let result
+
+    /* Request network. */
+    const network = await getNetwork()
+
     try {
         if (connectionMethod.value === 'seed') {
             // Join the array into a single space-separated string.
             const seedPhrase = seedWords.join(' ')
+
             // Call store action (assume mainnet; make configurable if needed)
-            result = await identityStore.connectWithSeed(seedPhrase, 'mainnet')
+            result = await identityStore.connectWithSeed(seedPhrase, network)
         } else { // privateKey
             // Trim inputs before passing
             const trimmedId = identityId.value.trim()
             const trimmedAuth = authKey.value.trim()
             const trimmedTransfer = transferKey.value.trim()
             const trimmedEncryption = encryptionKey.value.trim()
+
             // Call store action
-            result = await identityStore.connectWithPrivateKeys(trimmedId, trimmedAuth, trimmedTransfer, trimmedEncryption, 'mainnet')
+            result = await identityStore
+                .connectWithPrivateKeys(
+                    trimmedId,
+                    trimmedAuth,
+                    trimmedTransfer,
+                    trimmedEncryption,
+                    network
+            )
         }
+
         if (result.success) {
             alert('Connection Successful! Navigating to home screen...')
             // Navigate to home after success (store handles auth state)

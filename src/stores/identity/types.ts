@@ -6,33 +6,21 @@ export interface IExtendedPublicKey {
     dataBytes: string
 }
 
-export interface State {
-    username: string | null
-    identity: any | null
-    balance: string | null                    // Raw satoshis string from API
-    balanceBigInt?: bigint                    // ✅ NEW: Computed satoshis BigInt
-    dashBigInt?: bigint                       // ✅ NEW: Computed DASH BigInt
-    publicKeys: IdentityPublicKey[]
-    revision: number | null
-    isAuthenticated: boolean
-    isConnecting: boolean
-    connectionError: string | null
-    premiumAccess: boolean
-    lastConnected: string | null
+export interface IIdentity {
 }
 
-export interface IdentityData {
+export interface IIdentityData {
     username: string
     identity_id: string
     balance: string | null
     is_authenticated: boolean
-    public_keys: IdentityPublicKey[] | null
+    public_keys: IIdentityPublicKey[] | null
     revision: number | null
     created_at: string | null
     public_key_ids: number[] | null
 }
 
-export interface IdentityPublicKey {
+export interface IIdentityPublicKey {
     id: number
     type_: string
     purpose: number
@@ -41,5 +29,17 @@ export interface IdentityPublicKey {
     disabled_at: string | null
 }
 
-export interface IIdentity {
+export interface IState {
+    username: string | null
+    identity: any | null
+    balance: string | null
+    balanceBigInt?: bigint
+    dashBigInt?: bigint
+    publicKeys: IIdentityPublicKey[]
+    revision: number | null
+    isAuthenticated: boolean
+    isConnecting: boolean
+    connectionError: string | null
+    premiumAccess: boolean
+    lastConnected: string | null
 }
