@@ -12,7 +12,7 @@ export default async () => {
     if (typeof networkStore !== 'undefined' && networkStore !== null) {
         return networkStore.network
     } else {
+        // NOTE: Default to Testnet.
         return 'testnet' as const
-        // return 'mainnet' as const
     }
 }

@@ -1,18 +1,22 @@
 // src/stores/settings.ts
+
 /* Import modules. */
 import { defineStore } from 'pinia'
 import { invoke } from '@tauri-apps/api/core'
+
 // Define the shape of our settings
 export interface ProfileSettings {
     display_name: string;
     username: string;
     bio: string;
 }
+
 export interface NotificationSettings {
     messages: boolean;
     mentions: boolean;
     contact_requests: boolean;
 }
+
 export interface SettingsState {
     theme: 'system' | 'light' | 'dark';
     notifications: NotificationSettings;
@@ -21,6 +25,7 @@ export interface SettingsState {
     error: string | null;
     lastSaved: Date | null;
 }
+
 export const useSettingsStore = defineStore('settings', {
     state: (): SettingsState => ({
         theme: 'system',
@@ -38,6 +43,7 @@ export const useSettingsStore = defineStore('settings', {
         error: null,
         lastSaved: null,
     }),
+
     actions: {
         /**
          * Fetches settings from the Rust backend.
@@ -60,6 +66,7 @@ export const useSettingsStore = defineStore('settings', {
                 this.isLoading = false;
             }
         },
+
         /**
          * Saves the current settings to the Rust backend.
          */
@@ -86,6 +93,7 @@ export const useSettingsStore = defineStore('settings', {
                 this.isLoading = false;
             }
         },
+
         setTheme(theme: 'system' | 'light' | 'dark') {
             this.theme = theme;
             // Optionally auto-save when a simple setting like this changes
