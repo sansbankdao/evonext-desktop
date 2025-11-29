@@ -150,13 +150,24 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+
 import { useWalletStore } from '@/stores/wallet'
 import { useSettingsStore } from '@/stores/settings'
+import getNetwork from '@/libs/getNetwork'
 import sendCredit from '@/libs/sendCredit'
+import sendToken from '@/libs/sendToken'
+import {
+    DUSD_CONTRACT_ID,
+    TDUSD_CONTRACT_ID,
+    SANS_CONTRACT_ID,
+    TSANS_CONTRACT_ID,
+    DUSD_DECIMAL_PLACES,
+    SANS_DECIMAL_PLACES,
+} from '@/libs/constants'
 
 const router = useRouter()
 const Wallet = useWalletStore()
-const Settings = useSettingsStore()
+// const Settings = useSettingsStore()
 
 const recipient = ref('')
 const amount = ref<number | null>(null)
@@ -172,7 +183,6 @@ const currencyNameMap = {
     'sans': 'Sansnote'
 } as const
 
-// FIXED: Use ticker instead of name for more reliable lookup
 const selectedAsset = computed(() => {
     const tickerMap: Record<string, string> = {
         'dash-coins': 'DASH',
@@ -195,11 +205,12 @@ const setMaxAmount = () => {
 }
 
 onMounted(async () => {
-    // Always ensure mock data is loaded
     if (Wallet.assets.length === 0) {
         Wallet.initializeMockData()
     }
 })
+
+const IDENTITY_IDX = 0
 
 const handleSend = async () => {
     if (!isFormValid.value || !selectedAsset.value) {
@@ -215,40 +226,70 @@ const handleSend = async () => {
     isSending.value = true
     error.value = null
 
-const IDENTITY_IDX = 0
-
     try {
-        const currentNetwork = Settings.network // Use current network from settings
+        const identityId = Wallet.user?.address
+        if (!identityId) {
+            throw new Error('No identity found')
+        }
 
-        console.log(`Sending ${amount.value} ${selectedAsset.value.ticker} to ${recipient.value} on ${currentNetwork}`)
+        console.log(`Sending ${amount.value} ${selectedAsset.value.ticker} to ${recipient.value}`)
 
         if (selectedAsset.value.ticker === 'CREDITS' && amount.value) {
             /* Calculate credits. */
             const credits = BigInt(Math.floor(amount.value * 100_000_000_000))
-console.log('CALCULATED CREDITS', credits)
+            console.log('CALCULATED CREDITS', credits)
 
-            /* Set identity ID. */
-            const identityId = Wallet.user?.address
-console.log('IDENTITY ID', identityId)
+            console.log('IDENTITY ID', identityId)
 
-            /* Validate identity ID. */
-            if (identityId) {
-                const result = await sendCredit(
-                    identityId, IDENTITY_IDX, recipient.value, credits)
-console.log('Send Credit Result:', result)
+            const result = await sendCredit(
+                identityId, IDENTITY_IDX, recipient.value, credits)
+            console.log('Send Credit Result:', result)
 
-                /* Reqest UI confirmation. */
-                if (confirm('Transaction successful! Would you like to viw explorer.')) {
-                    window.open(`https://platform-explorer.com/transaction/${result.txid}`)
-                }
+            if (confirm('Transaction successful! Would you like to view explorer.')) {
+                window.open(`https://platform-explorer.com/transaction/${result.txid}`)
             }
 
-            /* Redirect back home. */
-            router.push('/wallet')
+        } else if (['SANS', 'DUSD'].includes(selectedAsset.value.ticker) && amount.value) {
+            /* Get token contract ID based on network and ticker. */
+            const isTestnet = (await getNetwork()) === 'testnet'
+            let tokenId: string
+            let decimalPlaces: number
+
+            if (selectedAsset.value.ticker === 'DUSD') {
+                tokenId = isTestnet ? TDUSD_CONTRACT_ID : DUSD_CONTRACT_ID
+                decimalPlaces = DUSD_DECIMAL_PLACES
+            } else {
+                tokenId = isTestnet ? TSANS_CONTRACT_ID : SANS_CONTRACT_ID
+                decimalPlaces = SANS_DECIMAL_PLACES
+            }
+
+            /* Calculate atomic units using correct decimal places. */
+            const atomicUnits = BigInt(Math.floor(amount.value * (10 ** decimalPlaces)))
+
+            console.log('TOKEN CONTRACT ID', tokenId)
+            console.log('DECIMAL PLACES', decimalPlaces)
+            console.log('CALCULATED ATOMIC UNITS', atomicUnits)
+
+            const result = await sendToken(
+                identityId,
+                IDENTITY_IDX,
+                tokenId,
+                recipient.value,
+                atomicUnits
+            )
+            console.log('Send Token Result:', result)
+
+            if (confirm('Transaction successful! Would you like to view explorer.')) {
+                window.open(`https://platform-explorer.com/transaction/${result.txid}`)
+            }
+
         } else {
             console.log(`${selectedAsset.value.ticker} sending logic pending implementation.`)
             await new Promise(resolve => setTimeout(resolve, 2000))
         }
+
+        router.push('/wallet')
+
     } catch (e: any) {
         console.error('Failed to send transaction:', e)
         error.value = e.message || 'An unknown error occurred during the transaction.'
