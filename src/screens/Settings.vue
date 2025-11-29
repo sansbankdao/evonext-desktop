@@ -31,14 +31,25 @@
 
                     <!-- Page Header -->
                     <div class="space-y-2">
-                        <h1 class="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">Settings</h1>
-                        <p class="text-lg text-slate-400">Manage your application preferences and profile.</p>
+                        <h1 class="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                            Settings
+                        </h1>
+
+                        <p class="text-lg text-slate-400">
+                            Manage your application preferences and profile.
+                        </p>
                     </div>
 
                     <!-- Network Section -->
                     <div class="bg-slate-800 p-6 rounded-xl">
-                        <h2 class="text-xl font-semibold text-white">Network</h2>
-                        <p class="mt-1 text-slate-400">Choose which network to connect to.</p>
+                        <h2 class="text-xl font-semibold text-white">
+                            Network
+                        </h2>
+
+                        <p class="mt-1 text-slate-400">
+                            Choose which network to connect to.
+                        </p>
+
                         <div class="mt-6">
                             <fieldset>
                                 <legend class="sr-only">Network</legend>
@@ -58,8 +69,14 @@
 
                     <!-- Appearance Section -->
                     <div class="bg-slate-800 p-6 rounded-xl">
-                        <h2 class="text-xl font-semibold text-white">Appearance</h2>
-                        <p class="mt-1 text-slate-400">Customize the look and feel of the app.</p>
+                        <h2 class="text-xl font-semibold text-white">
+                            Appearance
+                        </h2>
+
+                        <p class="mt-1 text-slate-400">
+                            Customize the look and feel of the app.
+                        </p>
+
                         <div class="mt-6">
                             <fieldset>
                                 <legend class="sr-only">Theme</legend>
@@ -86,17 +103,25 @@
                         <div class="flex flex-col gap-8">
                             <!-- Profile Section -->
                             <div class="bg-slate-800 p-6 rounded-xl">
-                                <h2 class="text-xl font-semibold text-white">Profile</h2>
-                                <p class="mt-1 text-slate-400">This information will be displayed publicly.</p>
+                                <h2 class="text-xl font-semibold text-white">
+                                    Profile
+                                </h2>
+
+                                <p class="mt-1 text-slate-400">
+                                    This information will be displayed publicly.
+                                </p>
+
                                 <div class="mt-6 grid grid-cols-1 gap-y-6">
                                     <div>
                                         <label for="displayName" class="block text-sm font-medium text-slate-300">Display Name</label>
                                         <input v-model="localProfile.display_name" type="text" name="displayName" id="displayName" class="mt-1 block w-full bg-slate-700 border-slate-600 rounded-lg p-3 text-white placeholder-slate-400 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition">
                                     </div>
+
                                     <div>
                                         <label for="username" class="block text-sm font-medium text-slate-300">Username</label>
                                         <input v-model="localProfile.username" type="text" name="username" id="username" disabled class="mt-1 block w-full bg-slate-900 border-slate-700 rounded-lg p-3 text-slate-400 cursor-not-allowed">
                                     </div>
+
                                     <div>
                                         <label for="bio" class="block text-sm font-medium text-slate-300">Bio</label>
                                         <textarea v-model="localProfile.bio" name="bio" id="bio" rows="3" class="mt-1 block w-full bg-slate-700 border-slate-600 rounded-lg p-3 text-white placeholder-slate-400 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition"></textarea>
@@ -106,8 +131,14 @@
 
                             <!-- Notifications Section -->
                             <div class="bg-slate-800 p-6 rounded-xl">
-                                <h2 class="text-xl font-semibold text-white">Notifications</h2>
-                                <p class="mt-1 text-slate-400">Choose how you want to be notified.</p>
+                                <h2 class="text-xl font-semibold text-white">
+                                    Notifications
+                                </h2>
+
+                                <p class="mt-1 text-slate-400">
+                                    Choose how you want to be notified.
+                                </p>
+
                                 <div class="mt-6 space-y-4">
                                     <div v-for="(enabled, key) in localNotifications" :key="key" class="flex items-center justify-between">
                                         <span class="font-medium text-slate-300 capitalize">{{ key.replace(/([A-Z])/g, ' $1') }}</span>
@@ -119,13 +150,20 @@
                             </div>
 
                             <div class="bg-slate-800 p-6 rounded-xl">
-                                <h2 class="text-xl font-semibold text-white">Security</h2>
-                                <p class="mt-1 text-slate-400">Protect your sensitive data with an encryption password.</p>
+                                <h2 class="text-xl font-semibold text-white">
+                                    Security
+                                </h2>
+
+                                <p class="mt-1 text-slate-400">
+                                    Protect your sensitive data with an encryption password.
+                                </p>
+
                                 <div class="mt-6 grid grid-cols-1 gap-y-6">
                                     <div>
                                         <label for="new-password" class="block text-sm font-medium text-slate-300">New Password</label>
                                         <input v-model="localPassword.new" type="password" name="new-password" id="new-password" placeholder="Enter a strong password" class="mt-1 block w-full bg-slate-700 border-slate-600 rounded-lg p-3 text-white placeholder-slate-400 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition">
                                     </div>
+
                                     <div>
                                         <label for="confirm-password" class="block text-sm font-medium text-slate-300">Confirm Password</label>
                                         <input v-model="localPassword.confirm" type="password" name="confirm-password" id="confirm-password" placeholder="Confirm your new password" class="mt-1 block w-full bg-slate-700 border-slate-600 rounded-lg p-3 text-white placeholder-slate-400 focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition">
@@ -138,8 +176,14 @@
                         <!-- Action Bar -->
                         <div class="mt-8 pt-5 border-t border-slate-700">
                             <div class="flex justify-end items-center gap-4">
-                                <p v-if="showSuccessMessage" class="text-sm text-green-400 transition-opacity duration-300">Changes saved successfully!</p>
-                                <p v-if="Settings.error" class="text-sm text-red-400">{{ Settings.error }}</p>
+                                <p v-if="showSuccessMessage" class="text-sm text-green-400 transition-opacity duration-300">
+                                    Changes saved successfully!
+                                </p>
+
+                                <p v-if="Settings.error" class="text-sm text-red-400">
+                                    {{ Settings.error }}
+                                </p>
+
                                 <button type="submit" :disabled="Settings.isLoading" class="inline-flex justify-center rounded-lg bg-cyan-500 py-2 px-6 text-sm font-semibold text-white shadow-sm hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed">
                                     <span v-if="!Settings.isLoading">Save Changes</span>
                                     <span v-else>Saving...</span>
@@ -154,7 +198,10 @@
 </template>
 
 <script setup lang="ts">
+/* Import modules. */
 import { ref, watch, onMounted } from 'vue'
+
+import getNetwork from '@/libs/getNetwork.ts'
 import { useSettingsStore } from '@/stores/settings'
 import type { ProfileSettings, NotificationSettings } from '@/stores/settings'
 
@@ -172,7 +219,11 @@ watch(() => Settings.notifications, (newNotifications) => {
     localNotifications.value = { ...newNotifications }
 })
 
-onMounted(() => {
+onMounted(async () => {
+    // Load the actual current network from backend
+    const currentNetwork = await getNetwork()
+    Settings.network = currentNetwork
+
     // In a real app, you might only call this once in your root App.vue
     // Settings.loadSettings()
 })
