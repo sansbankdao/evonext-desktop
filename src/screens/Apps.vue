@@ -2,38 +2,38 @@
 <template>
     <main>
         <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-            <h1 class="text-3xl font-bold text-white mb-4 sm:mb-0">
+            <h1 class="text-3xl font-bold text-slate-100 dark:text-slate-900 mb-4 sm:mb-0">
                 Mini Apps
             </h1>
 
-            <div class="flex items-center gap-4 bg-slate-800 p-2 rounded-lg">
+            <div class="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 p-2 rounded-2xl border border-slate-200 dark:border-slate-700">
                 <span class="w-[300px]">
-                    <span class="text-sky-100 text-lg font-mono px-2 tracking-wider">
+                    <span class="text-sky-900 dark:text-sky-100 text-lg font-mono px-2 tracking-wider">
                         BetaTesterExtraordinaire
                     </span>
 
-                    <span class="text-sky-300/70 text-xs font-mono px-2 tracking-tighter">
+                    <span class="text-sky-700 dark:text-sky-300/70 text-xs font-mono px-2 tracking-tighter">
                         v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5
                     </span>
                 </span>
 
-                <button class="p-2 rounded-md hover:bg-slate-700 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <button class="p-2 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
                 </button>
             </div>
         </header>
 
-        <section class="bg-slate-900 font-sans text-slate-200 min-h-screen">
+        <section class="bg-white dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen rounded-2xl mx-4">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div class="flex flex-col gap-12">
 
                     <!-- 1. Featured Cards -->
                     <div>
-                        <h2 class="text-2xl font-bold text-white mb-4">Featured Apps</h2>
-                        <div class="flex space-x-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-800">
-                            <div v-for="app in featuredApps" :key="app.id" class="flex-shrink-0 h-32 md:h-48 group relative rounded-xl overflow-hidden">
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4">Featured Apps</h2>
+                        <div class="flex space-x-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-slate-500 dark:scrollbar-thumb-slate-700 scrollbar-track-slate-100 dark:scrollbar-track-slate-800">
+                            <div v-for="app in featuredApps" :key="app.id" class="flex-shrink-0 h-32 md:h-48 group relative rounded-2xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-700">
                                 <img
                                     :src="app.imageUrl"
                                     :alt="app.title"
@@ -47,7 +47,7 @@
                                         {{ app.title }}
                                     </h3>
 
-                                    <p class="text-slate-300 mt-1 text-sm">
+                                    <p class="text-slate-200 dark:text-slate-300 mt-1 text-sm">
                                         {{ app.description }}
                                     </p>
                                 </div>
@@ -57,32 +57,32 @@
 
                     <!-- 2. Installed Apps -->
                     <div>
-                        <h2 class="text-xl font-semibold text-white mb-4">My Apps</h2>
-                        <div class="flex space-x-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-800">
+                        <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">My Apps</h2>
+                        <div class="flex space-x-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-slate-500 dark:scrollbar-thumb-slate-700 scrollbar-track-slate-100 dark:scrollbar-track-slate-800">
                             <a v-for="app in installedApps" :key="app.id" href="#" class="flex flex-col items-center gap-2 flex-shrink-0 w-24 text-center group">
-                                <div class="size-16 rounded-xl bg-slate-700 p-1 transition duration-300 group-hover:scale-105 group-hover:bg-slate-600">
-                                    <img :src="app.iconUrl" :alt="app.name" class="w-full h-full object-cover rounded-lg">
+                                <div class="size-16 rounded-2xl bg-slate-100 dark:bg-slate-700 p-1 transition duration-300 group-hover:scale-105 group-hover:bg-slate-200 dark:group-hover:bg-slate-600 border border-slate-200 dark:border-slate-600">
+                                    <img :src="app.iconUrl" :alt="app.name" class="w-full h-full object-cover rounded-xl">
                                 </div>
-                                <span class="text-xs text-slate-400 font-medium truncate w-full">{{ app.name }}</span>
+                                <span class="text-xs text-slate-600 dark:text-slate-400 font-medium truncate w-full">{{ app.name }}</span>
                             </a>
                             <a href="#" class="flex flex-col items-center gap-2 flex-shrink-0 w-24 text-center group">
-                                <div class="size-16 rounded-xl bg-slate-800 border-2 border-dashed border-slate-700 flex items-center justify-center transition duration-300 group-hover:border-slate-500 group-hover:bg-slate-700">
-                                    <svg class="h-8 w-8 text-slate-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                <div class="size-16 rounded-2xl bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center transition duration-300 group-hover:border-slate-200 dark:group-hover:border-slate-500 group-hover:bg-slate-200 dark:group-hover:bg-slate-700">
+                                    <svg class="h-8 w-8 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                                 </div>
-                                <span class="text-xs text-slate-500 font-medium">Add New</span>
+                                <span class="text-xs text-slate-500 dark:text-slate-500 font-medium">Add New</span>
                             </a>
                         </div>
                     </div>
 
                     <!-- 3. Trending List -->
                     <div>
-                        <h2 class="text-2xl font-bold text-white mb-6">Trending Apps</h2>
+                        <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-6">Trending Apps</h2>
 
                         <!-- Category Filters -->
-                        <div class="mb-6 border-b border-slate-700">
+                        <div class="mb-6 border-b border-slate-200 dark:border-slate-700">
                             <nav class="-mb-px flex space-x-6 overflow-x-auto">
                                 <button v-for="category in categories" :key="category.id" @click="activeCategory = category.id"
-                                    :class="[activeCategory === category.id ? 'border-cyan-400 text-cyan-400' : 'border-transparent text-slate-400 hover:border-slate-500 hover:text-white', 'flex items-center gap-2 whitespace-nowrap border-b-2 py-3 px-1 text-base font-medium transition']">
+                                    :class="[activeCategory === category.id ? 'border-sky-400 text-sky-600 dark:text-sky-400' : 'border-transparent text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-slate-100', 'flex items-center gap-2 whitespace-nowrap border-b-2 py-3 px-1 text-base font-medium transition rounded-t-xl']">
                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" v-html="category.icon"></svg>
                                     <span>{{ category.name }}</span>
                                 </button>
@@ -91,22 +91,22 @@
 
                         <!-- List of Trending Apps -->
                         <div class="space-y-3">
-                            <div v-for="app in filteredTrendingApps" :key="app.id" class="bg-slate-800 p-4 rounded-xl flex items-center justify-between gap-4 hover:bg-slate-700/50 transition">
+                            <div v-for="app in filteredTrendingApps" :key="app.id" class="bg-white dark:bg-slate-800 p-4 rounded-2xl flex items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition border border-slate-200 dark:border-slate-700 shadow-sm">
                                 <div class="flex items-center gap-4">
-                                    <img :src="app.iconUrl" :alt="app.name" class="size-14 rounded-xl bg-slate-700 p-1"/>
+                                    <img :src="app.iconUrl" :alt="app.name" class="size-14 rounded-2xl bg-slate-100 dark:bg-slate-700 p-1 border border-slate-200 dark:border-slate-600"/>
                                     <div>
-                                        <h3 class="font-bold text-white">{{ app.name }}</h3>
-                                        <p class="text-sm text-slate-400">by {{ app.publisher }}</p>
+                                        <h3 class="font-bold text-slate-900 dark:text-slate-100">{{ app.name }}</h3>
+                                        <p class="text-sm text-slate-600 dark:text-slate-400">by {{ app.publisher }}</p>
                                     </div>
                                 </div>
-                                <button class="inline-flex justify-center rounded-lg bg-cyan-500 py-2 px-6 text-sm font-semibold text-white shadow-sm hover:bg-cyan-600 transition">
+                                <button class="inline-flex justify-center rounded-2xl bg-sky-500 hover:bg-sky-600 py-2 px-6 text-sm font-semibold text-white shadow-sm transition border border-sky-300">
                                     Launch
                                 </button>
                             </div>
                             <!-- Empty State -->
-                            <div v-if="filteredTrendingApps.length === 0" class="text-center py-12 px-6 bg-slate-800 rounded-xl">
-                                <h3 class="text-lg font-semibold text-white">No Apps in this Category</h3>
-                                <p class="mt-1 text-slate-400">Check back later or explore another category.</p>
+                            <div v-if="filteredTrendingApps.length === 0" class="text-center py-12 px-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                                <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">No Apps in this Category</h3>
+                                <p class="mt-1 text-slate-600 dark:text-slate-400">Check back later or explore another category.</p>
                             </div>
                         </div>
                     </div>
@@ -117,7 +117,6 @@
     </main>
 </template>
 
-<!-- src/screens/Apps.vue -->
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 
@@ -184,7 +183,7 @@ const trendingApps = ref<TrendingApp[]>([
     { id: 't1', name: 'Decentral Games', publisher: 'DG-Labs', iconUrl: 'https://ui-avatars.com/api/?name=DG&background=8b5cf6&color=fff', category: 'games' },
     { id: 't2', name: 'DashPay Wallet', publisher: 'Dash Core Group', iconUrl: 'https://ui-avatars.com/api/?name=DW&background=3b82f6&color=fff', category: 'finance' },
     { id: 't3', name: 'EvoVerse', publisher: 'CommunityDAO', iconUrl: 'https://ui-avatars.com/api/?name=EV&background=ec4899&color=fff', category: 'social' },
-    { id: 't4', 'name': 'Mintable Art', publisher: 'Artisan Hub', iconUrl: 'https://ui-avatars.com/api/?name=MA&background=f59e0b&color=fff', category: 'art' },
+    { id: 't4', name: 'Mintable Art', publisher: 'Artisan Hub', iconUrl: 'https://ui-avatars.com/api/?name=MA&background=f59e0b&color=fff', category: 'art' },
     { id: 't5', name: 'DPNS Manager', publisher: 'Dash Core Group', iconUrl: 'https://ui-avatars.com/api/?name=DPNS&background=14b8a6&color=fff', category: 'utility' },
     { id: 't6', name: 'CoinFlip', publisher: 'Community Games', iconUrl: 'https://ui-avatars.com/api/?name=CF&background=8b5cf6&color=fff', category: 'games' },
 ]);
