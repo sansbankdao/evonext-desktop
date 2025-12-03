@@ -3,32 +3,10 @@
 /* Import modules. */
 import { defineStore } from 'pinia'
 import { invoke } from '@tauri-apps/api/core'
-
-// Define the shape of our settings
-export interface ProfileSettings {
-    display_name: string;
-    username: string;
-    bio: string;
-}
-
-export interface NotificationSettings {
-    messages: boolean;
-    mentions: boolean;
-    contact_requests: boolean;
-}
-
-export interface SettingsState {
-    theme: 'system' | 'light' | 'dark';
-    network: string;
-    notifications: NotificationSettings;
-    profile: ProfileSettings;
-    isLoading: boolean;
-    error: string | null;
-    lastSaved: Date | null;
-}
+import type { ISettingsState } from '@/types'
 
 export const useSettingsStore = defineStore('settings', {
-    state: (): SettingsState => ({
+    state: (): ISettingsState => ({
         theme: 'system',
         network: 'testnet',
         notifications: {
@@ -54,8 +32,10 @@ export const useSettingsStore = defineStore('settings', {
         async loadSettings() {
             this.isLoading = true
             this.error = null
+
             try {
-                const loadedState = await invoke<Partial<SettingsState>>('load_settings')
+                const loadedState = await invoke<Partial<ISettingsState>>('load_settings')
+
                 this.$patch({
                     ...loadedState,
                     network: loadedState?.network || 'testnet'
@@ -72,18 +52,22 @@ export const useSettingsStore = defineStore('settings', {
         /**
          * Saves the current settings to the Rust backend.
          */
-        async saveSettings(newSettings: Partial<SettingsState>) {
+        async saveSettings(newSettings: Partial<ISettingsState>) {
             this.isLoading = true
             this.error = null
+
             try {
                 this.$patch(newSettings)
+
                 const settingsPayload = {
                     theme: this.theme,
                     network: this.network,
                     notifications: this.notifications,
                     profile: this.profile,
                 }
+
                 await invoke('save_settings', { settings: settingsPayload })
+
                 this.lastSaved = new Date()
                 console.log('Settings saved successfully to backend.')
             } catch (err) {
@@ -99,7 +83,7 @@ export const useSettingsStore = defineStore('settings', {
             this.saveSettings({ theme })
         },
 
-        setNetwork(network: string) {
+        setNetwork(network: 'testnet' | 'mainnet') {
             this.network = network
             this.saveSettings({ network })
         }
