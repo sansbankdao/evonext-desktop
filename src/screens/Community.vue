@@ -16,7 +16,7 @@
                         <a v-for="convo in conversations" :key="convo.id" href="#" class="flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition border border-slate-200/50 dark:border-slate-600/50">
                             <div class="relative">
                                 <img :src="convo.avatarUrl" :alt="convo.name" class="size-12 rounded-2xl"/>
-                                <span v-if="convo.unread > 0" class="absolute bottom-0 right-0 block h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold"> {{ convo.unread }}</span>
+                                <span v-if="convo.unread > 0" class="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold"> {{ convo.unread }}</span>
                             </div>
 
                             <div class="flex-1 truncate">

@@ -7,13 +7,6 @@
             <div class="max-w-2xl w-full mx-auto space-y-8 border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-8 bg-white dark:bg-slate-900">
                 <!-- Page Header -->
                 <div class="text-center space-y-3">
-                    <!-- <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center justify-center gap-2 mb-2">
-                        <svg class="w-6 h-6 text-cyan-500 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        Connect to Dash Platform
-                    </h2> -->
-
                     <p class="text-slate-600 dark:text-slate-400 text-xl leading-relaxed">
                         Securely access your identity using one of the methods below. Your data stays local.
                     </p>
@@ -71,7 +64,7 @@
                     <!-- SEED PHRASE FORM -->
                     <div v-if="connectionMethod === 'seed'" class="space-y-6">
                         <div>
-                            <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                            <label class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
                                 <svg class="w-5 h-5 text-cyan-500 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2h10a2 2 0 012 2v2m0 0V9a2 2 0 00-2-2M5 11a2 2 0 012-2h10a2 2 0 012 2" />
                                 </svg>
@@ -120,7 +113,7 @@
                     <!-- PRIVATE KEYS FORM -->
                     <div v-if="connectionMethod === 'privateKey'" class="space-y-6">
                         <div>
-                            <label for="identityId" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                            <label for="identityId" class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                                 <svg class="w-5 h-5 text-cyan-500 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                 </svg>
@@ -149,7 +142,7 @@
 
                         <div class="space-y-6">
                             <div>
-                                <label for="authKey" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                <label for="authKey" class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                                     <svg class="w-5 h-5 text-cyan-500 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.413a2.7 2.7 0 001.946-.661 2.7 2.7 0 014.438 0 2.7 2.7 0 001.946.661 2.7 2.7 0 012.611 2.611v3.686a2.7 2.7 0 002.611 2.611h2.064a2.7 2.7 0 001.946.661 2.704 2.704 0 01.682 2.15 2.7 2.7 0 00.661 2.146 2.7 2.7 0 000 3.806 2.7 2.7 0 00-.661 2.146 2.7 2.7 0 01-.946 1.946 2.7 2.7 0 01-2.146.682 2.7 2.7 0 01-1.946-.661V23a2.7 2.7 0 01-2.611-2.611H4.413a2.7 2.7 0 01-2.611-2.611 2.7 2.7 0 00-.661-1.946 2.7 2.7 0 010-3.806 2.7 2.7 0 00.661-2.146 2.7 2.7 0 01.946-1.946 2.7 2.7 0 012.146-.682h3.686z" />
                                     </svg>
@@ -168,7 +161,7 @@
                             </div>
 
                             <div>
-                                <label for="transferKey" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                <label for="transferKey" class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                                     <svg class="w-5 h-5 text-cyan-500 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
@@ -187,7 +180,7 @@
                             </div>
 
                             <div>
-                                <label for="encryptionKey" class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                <label for="encryptionKey" class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                                     <svg class="w-5 h-5 text-cyan-500 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2h10a2 2 0 012 2v2m0 0V9a2 2 0 00-2-2M5 11a2 2 0 012-2h10a2 2 0 012 2" />
                                     </svg>

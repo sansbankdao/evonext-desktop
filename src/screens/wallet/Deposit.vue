@@ -34,7 +34,7 @@
             </div>
 
             <!-- QR Code -->
-            <div class="bg-white/90 dark:bg-slate-800/90 p-8 rounded-2xl mb-8 shadow-2xl border-2 border-slate-200/50 dark:border-slate-700 shadow-xl group-hover:shadow-3xl transition-all duration-300">
+            <div class="bg-white/90 dark:bg-slate-800/90 p-8 rounded-2xl mb-8 border-2 border-slate-200/50 dark:border-slate-700 shadow-xl group-hover:shadow-3xl transition-all duration-300">
                 <qrcode-vue
                     v-if="Wallet.user?.address"
                     :value="Wallet.user.address"
@@ -51,7 +51,7 @@
             </div>
 
             <div class="w-full space-y-4">
-                <label class="block text-lg font-bold text-slate-700 dark:text-slate-300 text-center mb-3 flex items-center justify-center gap-3">
+                <label class="text-lg font-bold text-slate-700 dark:text-slate-300 text-center mb-3 flex items-center justify-center gap-3">
                     <svg class="w-6 h-6 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
