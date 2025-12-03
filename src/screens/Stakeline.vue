@@ -1,29 +1,7 @@
 <!-- src/screens/Stakeline.vue -->
 <template>
     <main>
-        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 bg-gray-50 dark:bg-slate-900 p-6 rounded-xl shadow-lg">
-            <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4 sm:mb-0">
-                Stakeline
-            </h1>
-
-            <div class="flex items-center gap-4 bg-white dark:bg-slate-800 p-3 rounded-lg shadow-sm">
-                <span class="w-[300px]">
-                    <span class="text-sky-900 dark:text-sky-100 text-lg font-mono px-2 tracking-wider">
-                        BetaTesterExtraordinaire
-                    </span>
-
-                    <span class="text-sky-600/70 dark:text-sky-300/70 text-xs font-mono px-2 tracking-tighter">
-                        v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5
-                    </span>
-                </span>
-
-                <button class="p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-700 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                </button>
-            </div>
-        </header>
+        <Header title="Premium User Stakeline" />
 
         <section class="bg-gray-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
@@ -31,16 +9,16 @@
 
                     <!-- Hero Section -->
                     <div class="text-center space-y-6">
-                        <h1 class="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-6xl">
+                        <!-- <h1 class="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-6xl">
                             Premium User Stakeline
-                        </h1>
+                        </h1> -->
 
                         <h3 class="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-amber-500 to-amber-600 dark:from-amber-400 dark:to-amber-500 bg-clip-text text-transparent sm:text-4xl">
                             Unlock the FULL Potential of EvoNext
                         </h3>
 
                         <p class="max-w-3xl mx-auto text-lg leading-relaxed text-slate-600 dark:text-slate-400">
-                             During 8-week Sansbank Bootstrap phase, you may stake your Sansnote (SANS) tokens to gain premium access, early features, and exclusive community perks.
+                             During the 8-week Sansbank Bootstrap phase, you may stake your Sansnote (SANS) tokens to gain premium access, early features, and exclusive community perks.
                         </p>
                     </div>
 
@@ -185,6 +163,7 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
+import Header from '@/components/Header.vue'
 
 const isStaked = ref(false)
 const isStaking = ref(false)

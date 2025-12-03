@@ -1,4 +1,4 @@
-name: 'Release EvoNext Desktop Editions'
+name: 'Release EvoNext Desktop Edition'
 
 on:
   push:
