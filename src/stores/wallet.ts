@@ -6,9 +6,7 @@ import { getIdentityBalance } from '@evonext/platform'
 
 import { useSystemStore } from './system'
 // import { useSettingsStore } from './settings'
-import { IUser2, IAsset, ITransaction, IBalanceChange } from '@/types'
-import getNetwork from '@/libs/getNetwork'
-import getTokenBalances from '@/libs/getTokenBalances'
+
 import {
     DUSD_CONTRACT_ID,
     TDUSD_CONTRACT_ID,
@@ -17,21 +15,22 @@ import {
     DUSD_DECIMAL_PLACES,
     SANS_DECIMAL_PLACES,
 } from '@/constants'
+import { IAsset } from '@/types'
+import { IWalletState } from '@/types'
 
-interface IWalletState {
-    user: IUser2 | null;
-    assets: IAsset[];
-    transactions: ITransaction[];
-    balanceChange: IBalanceChange | null;
-    isLoading: boolean;
-}
+import getNetwork from '@/libs/getNetwork'
+import getTokenBalances from '@/libs/getTokenBalances'
 
 export const useWalletStore = defineStore('wallet', {
     state: (): IWalletState => ({
         user: null,
+
         assets: [],
+
         transactions: [],
+
         balanceChange: null,
+
         isLoading: false,
     }),
 
