@@ -20,8 +20,8 @@ pub fn setup_menus(app: &App) -> tauri::Result<()> {
         .text("exit", "Exit")
         .build()?;
 
-    let check_privacy_item = CheckMenuItemBuilder::new("Display balances")
-        .id("balance")
+    let check_privacy_item = CheckMenuItemBuilder::new("Show balances")
+        .id("balance_visibility")
         .checked(true)
         .build(app_handle)?;
 
