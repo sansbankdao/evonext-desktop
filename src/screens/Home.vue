@@ -1,7 +1,7 @@
 <!-- src/screens/Home.vue -->
 <template>
     <main class="">
-        <Header @back="router.back()" title="Maīson Ξvolution" />
+        <Header title="Maīson Ξvolution" />
 
         <!-- Balance Card & Actions -->
         <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

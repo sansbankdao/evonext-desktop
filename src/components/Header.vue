@@ -16,13 +16,16 @@
             </span>
 
             <button
-                v-if="showBackButton"
                 class="p-2 rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shadow-sm"
-                @click="$emit('back')"
+                @click="copyIdentityId"
                 type="button"
+                :aria-label="`Copy ${Identity.identity.id} to clipboard`"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-700 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg v-if="!isCopied" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-700 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-500 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
             </button>
         </div>
@@ -30,21 +33,32 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useIdentityStore } from '@/stores/identity'
 
 interface Props {
     title?: string
-    showBackButton?: boolean
 }
 
-const { title, showBackButton } = withDefaults(defineProps<Props>(), {
-    title: 'Unknown Page',
-    showBackButton: true
+const { title } = withDefaults(defineProps<Props>(), {
+    title: 'Unknown Page'
 })
 
 const Identity = useIdentityStore()
+const isCopied = ref(false)
 
-defineEmits<{
-    back: []
-}>()
+const copyIdentityId = async () => {
+    if (!Identity.identity?.id) return
+
+    try {
+        await navigator.clipboard.writeText(Identity.identity.id)
+        isCopied.value = true
+
+        setTimeout(() => {
+            isCopied.value = false
+        }, 2000)
+    } catch (err) {
+        console.error('Failed to copy identity ID:', err)
+    }
+}
 </script>
