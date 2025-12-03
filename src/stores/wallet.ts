@@ -65,11 +65,6 @@ export const useWalletStore = defineStore('wallet', {
             const system = useSystemStore()
             const dashPrice = system.currentDashPrice
 
-            this.user = {
-                name: 'BetaTesterExtraordinaire',
-                address: 'v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5',
-            }
-
             // Only DASH has mock balance, others will be loaded live
             this.assets = [
                 { ticker: 'DASH', name: 'Dash Coins', amount: 50.00, usdValue: 50.00 * dashPrice },

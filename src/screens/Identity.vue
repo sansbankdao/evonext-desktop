@@ -24,16 +24,6 @@
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                                 <span>Register New Identity</span>
                             </RouterLink>
-
-                            <button @click="sendCreditsTest" class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white py-3 px-8 text-sm font-bold shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 focus:ring-4 focus:ring-emerald-400/30 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900">
-                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                                <span>Test Credits</span>
-                            </button>
-
-                            <button @click="sendTokensTest" class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-3 px-8 text-sm font-bold shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 focus:ring-4 focus:ring-purple-400/30 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900">
-                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                                <span>Test Tokens</span>
-                            </button>
                         </div>
                     </div>
 
@@ -162,37 +152,6 @@ const init = async () => {
     } catch (error) {
         console.error('Failed to get credentials:', error)
     }
-}
-
-const sendCreditsTest = async () => {
-    console.log('SENDING CREDITS')
-
-    const response = await sendCredit(
-        'v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5', // BetaTesterExtraordinaire
-        0, // Identity Index
-        '9EMDaGV3QwxrPfaMeuuCTLxtpYv9VFjwrBNSHVpGa3gG', // DefinitelyNotARogueAI
-        BigInt(13370000)
-    ).catch((err: Error) => {
-        console.error(err)
-        // setErrorMsgs(err?.message)
-    })
-    console.log('SEND (CREDIT response)', typeof response, response)
-}
-
-const sendTokensTest = async () => {
-    console.log('SENDING TOKENS')
-
-    const response = await sendToken(
-        'v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5',  // BetaTesterExtraordinaire
-        0, // Identity Index
-        'AxAYWyXV6mrm8Sq7vc7wEM18wtL8a8rgj64SM3SDmzsB', // SANS
-        '9EMDaGV3QwxrPfaMeuuCTLxtpYv9VFjwrBNSHVpGa3gG', // DefinitelyNotARogueAI
-        BigInt(133700000)
-    ).catch((err: Error) => {
-        console.error(err)
-        // setErrorMsgs(err?.message)
-    })
-    console.log('SEND (TOKEN response)', typeof response, response)
 }
 
 onMounted(async () => {

@@ -26,21 +26,47 @@ export const identityActions = () => ({
         try {
             console.log('Searching for user identities...')
 
+            /* Request identities. */
             const identities = await getIdentities()
-
             console.log('Identities found:', identities)
 
+            /* Validate identities. */
             if (!identities || identities.length === 0) {
                 console.warn('No identities found for the provided credentials.')
                 return null
             }
 
+            /* Select primary identity. */
             const primaryIdentity = identities[0]
-            console.log('Primary identity:', primaryIdentity)
 
-            const username = 'BetaTesterExtraordinaire'//primaryIdentity.id
-            state.username = username
+            /* Validate identity. */
+            if (typeof primaryIdentity?.id !== 'undefined' && primaryIdentity?.id !== null) {
+                /* Request network. */
+                const network = await getNetwork()
+
+                /* Initialize SDK. */
+                const sdk = new DashPlatformSDK({ network })
+
+                /* Search for username. */
+                const [document] = await sdk.names.searchByIdentity(primaryIdentity.id)
+
+                /* Validate (identity) document. */
+                if (typeof document?.properties?.label !== 'undefined' && document?.properties?.label !== null) {
+                    /* Set (registered) username. */
+                    state.username = document.properties.label
+                } else {
+                    /* Set (fallback) username. */
+                    state.username = primaryIdentity.id
+                }
+            } else {
+                /* Set (fallback) username. */
+                state.username = primaryIdentity.id
+            }
+
+            /* Set identity. */
             state.identity = primaryIdentity
+
+            /* Set authentication flag. */
             state.isAuthenticated = true
 
             try {

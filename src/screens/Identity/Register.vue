@@ -1,29 +1,7 @@
 <!-- src/screens/Identity/Register.vue -->
 <template>
     <main>
-        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-            <h1 class="text-3xl font-bold text-slate-100 dark:text-slate-900 mb-4 sm:mb-0">
-                Identity Registration
-            </h1>
-
-            <div class="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 p-2 rounded-2xl border border-slate-200 dark:border-slate-700">
-                <span class="w-[300px]">
-                    <span class="text-sky-900 dark:text-sky-100 text-lg font-mono px-2 tracking-wider">
-                        BetaTesterExtraordinaire
-                    </span>
-
-                    <span class="text-sky-700 dark:text-sky-300/70 text-xs font-mono px-2 tracking-tighter">
-                        v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5
-                    </span>
-                </span>
-
-                <button class="p-2 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                </button>
-            </div>
-        </header>
+        <Header title="Identity Registration" />
 
         <section class="bg-white dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen rounded-2xl mx-4">
             <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
@@ -143,45 +121,46 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed } from 'vue'
+import Header from '@/components/Header.vue'
 
 // --- State Management ---
 
 // Controls which step of the registration process is visible
-const step = ref<'form' | 'review' | 'seed' | 'loading'>('form');
+const step = ref<'form' | 'review' | 'seed' | 'loading'>('form')
 
 // A reactive object to hold the user's input
 const formData = reactive({
     displayName: '',
     username: '',
     bio: '',
-});
+})
 
 // A computed property to add the .dash suffix automatically for display
 const fullUsername = computed(() => {
-    return formData.username ? `${formData.username}.dash` : '';
-});
+    return formData.username ? `${formData.username}.dash` : ''
+})
 
 // Placeholder for the generated mnemonic seed phrase
-const seedPhrase = ref('apple banana kiwi grape orange mango pineapple strawberry blueberry cherry melon lime');
+const seedPhrase = ref('apple banana kiwi grape orange mango pineapple strawberry blueberry cherry melon lime')
 
 // State for the confirmation checkbox on the seed phrase step
-const seedPhraseConfirmed = ref(false);
+const seedPhraseConfirmed = ref(false)
 
 // --- Functions ---
 
 const goToReview = () => {
     // Add validation here before proceeding
     if (formData.displayName && formData.username) {
-        step.value = 'review';
+        step.value = 'review'
     } else {
-        alert('Display Name and Username are required.');
+        alert('Display Name and Username are required.')
     }
-};
+}
 
 const createIdentity = async () => {
-    console.log('Creating identity with the following data:', formData);
-    step.value = 'loading';
+    console.log('Creating identity with the following data:', formData)
+    step.value = 'loading'
 
     // --- TAURI INTEGRATION ---
     // This is where you would invoke your Rust command to create the identity.
@@ -191,23 +170,23 @@ const createIdentity = async () => {
     // seedPhrase.value = result.seed;
 
     // Simulate a delay for the backend process
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 2000))
 
-    step.value = 'seed';
+    step.value = 'seed'
 };
 
 const finishRegistration = () => {
     if (!seedPhraseConfirmed.value) {
-        alert('Please confirm you have saved your seed phrase.');
-        return;
+        alert('Please confirm you have saved your seed phrase.')
+        return
     }
-    console.log('Registration finished. User has confirmed seed phrase.');
+    console.log('Registration finished. User has confirmed seed phrase.')
     // Here you would navigate the user to their new identity screen or dashboard
     // For example: router.push('/identities');
-    alert('Identity created successfully!');
-};
+    alert('Identity created successfully!')
+}
 
 const goBackToForm = () => {
-    step.value = 'form';
-};
+    step.value = 'form'
+}
 </script>
