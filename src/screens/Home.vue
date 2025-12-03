@@ -1,29 +1,7 @@
 <!-- src/screens/Home.vue -->
 <template>
     <main class="">
-        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 bg-gray-50 dark:bg-slate-900 p-6 rounded-xl shadow-lg">
-            <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4 sm:mb-0">
-                Platform Overview
-            </h1>
-
-            <div v-if="Identity.isConnected" class="flex items-center gap-4 bg-white dark:bg-slate-800 p-3 rounded-lg shadow-sm">
-                <span class="w-[300px]">
-                    <span class="block text-sky-900 dark:text-sky-100 text-lg font-mono px-2 tracking-wider">
-                        {{ Identity.username || 'User' }}
-                    </span>
-
-                    <span class="block text-sky-600/70 dark:text-sky-300/70 text-xs font-mono px-2 tracking-tighter">
-                        {{ Identity.identity.id }}
-                    </span>
-                </span>
-
-                <button class="p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-700 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                </button>
-            </div>
-        </header>
+        <Header @back="router.back()" title="Maīson Ξvolution" />
 
         <!-- Balance Card & Actions -->
         <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -210,9 +188,12 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useIdentityStore } from '@/stores/identity'
 import { useSystemStore } from '@/stores/system'
+import Header from '@/components/Header.vue'
 
+const router = useRouter()
 const Identity = useIdentityStore()
 const System = useSystemStore()
 
