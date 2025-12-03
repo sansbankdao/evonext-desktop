@@ -8,7 +8,7 @@ import {
     TDUSD_CONTRACT_ID,
     SANS_CONTRACT_ID,
     TSANS_CONTRACT_ID,
-} from './constants'
+} from '@/constants'
 
 interface TokenBalance {
     tokenId: {
