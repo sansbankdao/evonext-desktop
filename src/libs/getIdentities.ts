@@ -2,9 +2,9 @@
 
 /* Import modules. */
 // @ts-ignore
-import { hash160 } from '@nexajs/crypto'
+import { hash160 } from '@evonext/crypto'
 // @ts-ignore
-import { binToHex, hexToBin } from '@nexajs/utils'
+import { binToHex, hexToBin } from '@evonext/utils'
 
 import getNetwork from './getNetwork'
 import getPrivateKeys from './getPrivateKeys'

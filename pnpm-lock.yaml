@@ -9,23 +9,17 @@ importers:
   .:
     dependencies:
       '@evonext/crypto':
-        specifier: ^25.11.25
+        specifier: 25.11.25
         version: 25.11.25
       '@evonext/platform':
         specifier: 25.11.23
         version: 25.11.23
       '@evonext/utils':
-        specifier: ^25.11.25
+        specifier: 25.11.25
         version: 25.11.25
       '@heroicons/vue':
         specifier: 2.2.0
         version: 2.2.0(vue@3.5.22(typescript@5.6.3))
-      '@nexajs/crypto':
-        specifier: 24.9.5
-        version: 24.9.5
-      '@nexajs/utils':
-        specifier: 24.7.15
-        version: 24.7.15
       '@scure/base':
         specifier: 2.0.0
         version: 2.0.0

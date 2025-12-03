@@ -1,7 +1,7 @@
 {
   "name": "evonext-desktop",
   "description": "Free and Fearless — Discover safe spaces to Explore. Curate. Share YOUR Truth — secured by Dash Platform.",
-  "version": "25.11.29",
+  "version": "25.12.3",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -11,12 +11,10 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@evonext/crypto": "^25.11.25",
+    "@evonext/crypto": "25.11.25",
     "@evonext/platform": "25.11.23",
-    "@evonext/utils": "^25.11.25",
+    "@evonext/utils": "25.11.25",
     "@heroicons/vue": "2.2.0",
-    "@nexajs/crypto": "24.9.5",
-    "@nexajs/utils": "24.7.15",
     "@scure/base": "2.0.0",
     "@tauri-apps/api": "2.8.0",
     "@tauri-apps/plugin-opener": "2.5.0",
