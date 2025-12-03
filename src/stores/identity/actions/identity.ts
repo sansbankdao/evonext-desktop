@@ -36,10 +36,10 @@ export const identityActions = () => ({
                 return null
             }
 
-            /* Select primary identity. */
+            /* Select (primary) identity. */
             const primaryIdentity = identities[0]
 
-            /* Validate identity. */
+            /* Validate (primary) identity. */
             if (typeof primaryIdentity?.id !== 'undefined' && primaryIdentity?.id !== null) {
                 /* Request network. */
                 const network = await getNetwork()
