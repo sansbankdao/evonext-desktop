@@ -9,7 +9,7 @@ import getTransferKey from './getTransferKey'
 import {
     ITxError,
     ITxSuccess,
-} from './types'
+} from '@/types'
 
 export default async (
     _identityId: string,

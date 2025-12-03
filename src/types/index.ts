@@ -1,5 +1,6 @@
 // src/types/index.ts
 
+export * from './identity'
 export * from './settings'
 export * from './system'
 export * from './wallet'

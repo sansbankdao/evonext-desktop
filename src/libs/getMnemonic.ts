@@ -2,7 +2,7 @@
 
 /* Import modules. */
 import { invoke } from '@tauri-apps/api/core'
-import { IMnemonic }  from './types.ts'
+import { IMnemonic }  from '@/types'
 
 export default async (): Promise<string> => {
     /* Request mnemonic. */

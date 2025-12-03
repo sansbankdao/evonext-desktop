@@ -2,7 +2,7 @@
 
 import { getIdentityBalance } from '@evonext/platform'
 import { formatDash, dashAmount } from '../../../utils/dash'
-import type { IState } from '../types'
+import type { IState } from '@/types'
 
 export const balanceActions = () => ({
     async fetchBalance(this: any) {

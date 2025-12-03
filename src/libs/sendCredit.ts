@@ -12,7 +12,7 @@ import {
     ITxError,
     ITxSuccess,
     // ITokenPaymentInfo,
-} from './types'
+} from '@/types'
 
 // NOTE: Minimum credit transfer amount enforced by the protocol (0.000001 DASH).
 const MIN_CREDIT_TRANSFER = BigInt(100000)

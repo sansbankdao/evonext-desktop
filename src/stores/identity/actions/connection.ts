@@ -3,7 +3,7 @@
 /* Import modules. */
 import { invoke } from '@tauri-apps/api/core'
 // import getIdentities from '@/libs/getIdentities'
-import type { IState } from '../types'
+import type { IState } from '@/types'
 
 export const connectionActions = () => ({
     async initFromStorage(this: any) {

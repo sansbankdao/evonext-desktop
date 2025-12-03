@@ -3,7 +3,7 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import getIdentities from '@/libs/getIdentities'
 import getNetwork from '@/libs/getNetwork'
-import type { IState } from '../types'
+import type { IState } from '@/types'
 
 /* Hex string → Uint8Array (binary data). */
 function hexHash160ToBase64(hex: string): string {

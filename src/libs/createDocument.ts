@@ -11,7 +11,7 @@ import {
     ITxError,
     ITxSuccess,
     ITokenPaymentInfo,
-} from './types'
+} from '@/types'
 
 export default async (
     _identityIdx: number,

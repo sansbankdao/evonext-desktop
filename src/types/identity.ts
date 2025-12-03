@@ -1,4 +1,4 @@
-// src/stores/identity/types.ts
+// src/types/identity.ts
 
 /* Interface definitions. */
 export interface IExtendedPublicKey {

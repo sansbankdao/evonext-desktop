@@ -1,7 +1,7 @@
 // src/stores/identity/actions/storage.ts
 
 import { invoke } from '@tauri-apps/api/core'
-import type { IIdentityData, IIdentityPublicKey, IState } from '../types'
+import type { IIdentityData, IIdentityPublicKey, IState } from '@/types'
 
 function hexHash160ToBase64(hex: string): string {
     // Hex string → Uint8Array (binary data)
