@@ -61,7 +61,6 @@
         <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Main Content Feed (2/3 width on large screens) -->
             <div class="lg:col-span-2 flex flex-col gap-6">
-
                 <!-- Create Post -->
                 <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
                     <div class="flex items-start gap-4">
@@ -109,78 +108,13 @@
                         <button class="flex items-center gap-2 hover:text-slate-700 dark:hover:text-slate-200 transition"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg></button>
                     </div>
                 </div>
-
             </div>
 
             <!-- Sidebar (1/3 width on large screens) -->
             <div class="lg:col-span-1 flex flex-col gap-6">
-
-                <!-- Trending Topics -->
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                    <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Trending Topics</h2>
-                    <div class="flex flex-col gap-3">
-                        <a href="#" class="text-sky-500 dark:text-sky-400 hover:text-sky-600 dark:hover:text-sky-300 font-semibold">#Sansbank</a>
-                        <a href="#" class="text-sky-500 dark:text-sky-400 hover:text-sky-600 dark:hover:text-sky-300 font-semibold">#Dash</a>
-                        <a href="#" class="text-sky-500 dark:text-sky-400 hover:text-sky-600 dark:hover:text-sky-300 font-semibold">#CryptoFreedom</a>
-                        <a href="#" class="text-sky-500 dark:text-sky-400 hover:text-sky-600 dark:hover:text-sky-300 font-semibold">#EvoNext</a>
-                    </div>
-                </div>
-
-                <!-- Contact Requests -->
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">Contact Requests</h2>
-                        <span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">2</span>
-                    </div>
-                    <div class="flex flex-col gap-4">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <img src="https://ui-avatars.com/api/?name=Alice&background=random" alt="Bob's Avatar" class="size-10 rounded-full"/>
-                                <p class="font-semibold text-slate-900 dark:text-slate-100">Bob</p>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <button class="bg-emerald-500 hover:bg-emerald-600 p-2 rounded-full"><svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></button>
-                                <button class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 p-2 rounded-full"><svg class="h-5 w-5 text-slate-900 dark:text-slate-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Pending Messages -->
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                    <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">
-                            Pending Messages
-                        </h2>
-
-                        <span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                            1
-                        </span>
-                    </div>
-
-                    <div class="flex flex-col gap-4">
-                        <a href="#" class="block hover:bg-slate-50 dark:hover:bg-slate-700 p-2 rounded-lg transition">
-                            <div class="w-32 xl:w-48 flex items-center gap-3">
-                                <img
-                                    src="https://ui-avatars.com/api/?name=Alice&background=random"
-                                    alt="Charlie's Avatar"
-                                    class="size-10 rounded-full"
-                                />
-
-                                <div class="w-full">
-                                    <p class="font-semibold text-slate-900 dark:text-slate-100">
-                                        Charlie
-                                    </p>
-
-                                    <p class="text-sm text-slate-600 dark:text-slate-400 truncate">
-                                        Hey, saw your post about the bootstrap...
-                                    </p>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                </div>
-
+                <PendingMessages />
+                <ContactRequests />
+                <TrendingTopics />
             </div>
         </section>
     </main>
@@ -191,6 +125,9 @@ import { computed, onMounted } from 'vue'
 import { useIdentityStore } from '@/stores/identity'
 import { useSystemStore } from '@/stores/system'
 import Header from '@/components/Header.vue'
+import TrendingTopics from '@/components/home/TrendingTopics.vue'
+import ContactRequests from '@/components/home/ContactRequests.vue'
+import PendingMessages from '@/components/home/PendingMessages.vue'
 
 const Identity = useIdentityStore()
 const System = useSystemStore()
