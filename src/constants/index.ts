@@ -3,6 +3,9 @@
 /* DashSwap Endpoint */
 export const DASHSWAP_ENDPOINT = 'https://dashswap.xyz/v1/'
 
+/* Dash API (DAPI) Endpoint */
+export const DAPI_WEB_API_ENDPOINT = 'https://dashqt.org/v1/dapi'
+
 /* Dash USD (Mainnet) */
 export const DUSD_CONTRACT_ID = 'DYqxCsuDgYsEAJ2ADnimkwNdL7C4xbe4No4so19X9mmd'
 

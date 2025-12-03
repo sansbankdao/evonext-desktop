@@ -8,20 +8,28 @@ import { binToHex, hexToBin } from '@evonext/utils'
 
 import getNetwork from './getNetwork'
 import getPrivateKeys from './getPrivateKeys'
+import { DAPI_WEB_API_ENDPOINT } from '@/constants'
 import type { IIdentity, IPublicKey } from '@/types'
 
 /* Initialize constants. */
 const MIN_INDEX_SEARCH = 3
 const QUERY_REGISTRY = false
-const WEB_API_ENDPOINT = 'https://dashqt.org/v1/dapi'
+
 
 /**
- * Get Key Type
+ * Get Key Type ID
  *
- * FIXME -- ENUMERATE KEY TYPE
+ * Enumerate the key type into a numeric ID.
  */
-const getKeyType = (_type: number | undefined): string => {
-    return 'FIXME -- ENUMERATE KEY TYPE'
+const getKeyTypeId = (_keyType: string | undefined): number => {
+    switch(_keyType) {
+    case 'ECDSA_SECP256K1': return 0
+    case 'BLS12_381': return 1
+    case 'ECDSA_HASH160': return 2
+    case 'BIP13_SCRIPT_HASH': return 3
+    case 'EDDSA_25519_HASH160': return 4
+    default: return -1
+    }
 }
 
 const decodeBase64ToHex = (_base64String: string): string | null => {
@@ -58,7 +66,7 @@ const queryWebAPI = async (_method: string, _params: any[]): Promise<any> => {
     const network = await getNetwork()
 
     try {
-        const response = await fetch(WEB_API_ENDPOINT, {
+        const response = await fetch(DAPI_WEB_API_ENDPOINT, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -69,11 +77,7 @@ const queryWebAPI = async (_method: string, _params: any[]): Promise<any> => {
                 network,
             }),
         })
-console.log({
-    method: _method,
-    params: _params,
-    network,
-})
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
         }
@@ -118,7 +122,6 @@ export default async (): Promise<IIdentity[] | null> => {
     for (let i = 0; i < MIN_INDEX_SEARCH; i++) {
         /* Request query by Hash160. */
         const hash160Result = await searchByHash160(i)
-console.log('***HASH160 RESULT', hash160Result)
 
         /* Validate result. */
         if (typeof hash160Result !== 'undefined' && hash160Result !== null) {
@@ -128,8 +131,8 @@ console.log('***HASH160 RESULT', hash160Result)
                 publicKeys: hash160Result.regPubKeys.map((_key: IPublicKey) => {
                     return {
                         id: _key.id,
-                        type: _key.type,
-                        keyType: getKeyType(_key.type),
+                        type: getKeyTypeId(_key.keyType),
+                        keyType: _key.keyType,
                         purpose: _key.purpose,
                         securityLevel: _key.securityLevel,
                         contractBounds: _key.contractBounds,
@@ -154,8 +157,8 @@ console.log('***HASH160 RESULT', hash160Result)
                 publicKeys: secp256k1Result.regPubKeys.map((_key: IPublicKey) => {
                     return {
                         id: _key.id,
-                        type: _key.type,
-                        keyType: getKeyType(_key.type),
+                        type: getKeyTypeId(_key.keyType),
+                        keyType: _key.keyType,
                         purpose: _key.purpose,
                         securityLevel: _key.securityLevel,
                         contractBounds: _key.contractBounds,
@@ -191,15 +194,12 @@ export const searchByHash160 = async (_identityIdx: number) => {
 
     /* Request private keys. */
     const privateKeys = await getPrivateKeys(_identityIdx, QUERY_REGISTRY)
-console.log('PRIVATE KEYS (searchByHash160)', privateKeys)
 
     /* Set public key. */
     const publicKey = privateKeys.masterKey.getPublicKey()
-console.log('PUBLIC KEY (searchByHash160)', binToHex(publicKey.bytes()))
 
     /* Calculate public key hash. */
     const publicKeyHash = binToHex(hash160(publicKey.bytes()))
-    console.log('HASH160 PKH', publicKeyHash)
 
     let result: any
 
@@ -243,20 +243,18 @@ export const searchBySecp256k1 = async (_identityIdx: number) => {
 
     /* Request private keys. */
     const privateKeys = await getPrivateKeys(_identityIdx, QUERY_REGISTRY)
-console.log('DEBUG-1', privateKeys)
+
     /* Set public key. */
     const publicKey = privateKeys.masterKey.getPublicKey()
-console.log('DEBUG-2', publicKey)
 
     /* Calculate public key hash. */
     const publicKeyHash = binToHex(hash160(publicKey.bytes()))
-console.log('DEBUG-3', publicKeyHash)
-    console.log('SECP256K1 PKH', publicKeyHash)
+
     let result: any
 
     /* Use Web API (normalized to [] for no results). */
     result = await queryWebAPI('get_identity_by_public_key_hash', [publicKeyHash])
-console.log('DEBUG-4', result)
+
     /* Handle ECDSA_SECP256k1 signature scheme (consistent with normalized Web API or WASM). */
     // if (result && typeof result === 'object' && result.toJSON) {
     if (result && typeof result === 'object' && result.result.identityId) {
