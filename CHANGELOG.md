@@ -1,6 +1,6 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Send & Receive Credits and Tokens
+### Updated UI w/ Light & Dark Modes Enabled
 
 This latest version of EvoNext introduces an updated UI, plus light and dark modes available from the Settings screen.
 
