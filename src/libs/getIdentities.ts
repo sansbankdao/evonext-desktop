@@ -8,7 +8,7 @@ import { binToHex, hexToBin } from '@evonext/utils'
 
 import getNetwork from './getNetwork'
 import getPrivateKeys from './getPrivateKeys'
-import { IIdentity, IPublicKey } from '@/types'
+import type { IIdentity, IPublicKey } from '@/types'
 
 /* Initialize constants. */
 const MIN_INDEX_SEARCH = 3

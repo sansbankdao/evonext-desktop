@@ -6,7 +6,7 @@ import { PrivateKeyWASM } from 'pshenmic-dpp'
 
 import getNetwork from './getNetwork'
 import getTransferKey from './getTransferKey'
-import {
+import type {
     ITxError,
     ITxSuccess,
 } from '@/types'

@@ -1,6 +1,8 @@
 // src/stores/identity/actions/identity.ts
 
+/* Import modules. */
 import { DashPlatformSDK } from 'dash-platform-sdk'
+
 import getIdentities from '@/libs/getIdentities'
 import getNetwork from '@/libs/getNetwork'
 import type { IIdentityState } from '@/types'

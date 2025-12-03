@@ -15,8 +15,7 @@ import {
     DUSD_DECIMAL_PLACES,
     SANS_DECIMAL_PLACES,
 } from '@/constants'
-import { IAsset } from '@/types'
-import { IWalletState } from '@/types'
+import type { IAsset, IWalletState } from '@/types'
 
 import getNetwork from '@/libs/getNetwork'
 import getTokenBalances from '@/libs/getTokenBalances'

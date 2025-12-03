@@ -2,7 +2,7 @@
 
 /* Import modules. */
 import { invoke } from '@tauri-apps/api/core'
-import { ILicense }  from '@/types'
+import type { ILicense }  from '@/types'
 
 export default async (): Promise<string> => {
     /* Request license. */

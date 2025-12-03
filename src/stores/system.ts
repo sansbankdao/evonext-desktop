@@ -4,7 +4,7 @@
 import { defineStore } from 'pinia'
 
 import { DASHSWAP_ENDPOINT } from '@/constants'
-import { IDashPriceData, ISystemState } from '@/types'
+import type { IDashPriceData, ISystemState } from '@/types'
 
 export const useSystemStore = defineStore('system', {
     state: (): ISystemState => ({

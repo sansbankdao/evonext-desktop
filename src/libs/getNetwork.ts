@@ -2,7 +2,7 @@
 
 /* Import modules. */
 import { invoke } from '@tauri-apps/api/core'
-import { INetwork }  from '@/types'
+import type { INetwork }  from '@/types'
 
 export default async () => {
     /* Request mnemonic. */

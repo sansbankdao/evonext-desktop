@@ -20,6 +20,7 @@ export const balanceActions = () => ({
 
         try {
             console.log('Fetching balance for identity:', state.identity.id)
+
             const balanceString = await getIdentityBalance('mainnet', state.identity.id)
             console.log('Balance string:', balanceString)
 
@@ -27,10 +28,12 @@ export const balanceActions = () => ({
                 state.balance = balanceString  // Raw string for storage
 
                 const balanceBigInt = BigInt(balanceString)
+
                 const dashBigInt = dashAmount(balanceBigInt)
 
                 // ✅ TypeScript safe - properties exist on IIdentityState
                 state.balanceBigInt = balanceBigInt
+
                 state.dashBigInt = dashBigInt
 
                 const dashFormatted = formatDash(balanceBigInt)

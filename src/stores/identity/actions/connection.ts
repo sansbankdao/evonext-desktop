@@ -156,6 +156,7 @@ export const connectionActions = () => ({
         } catch (err) {
             console.error('Error clearing storage during logout:', err)
         }
+
         state.username = null
         state.identity = null
         state.balance = null
