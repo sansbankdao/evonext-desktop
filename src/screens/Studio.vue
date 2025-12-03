@@ -136,7 +136,7 @@ import {
     ChevronDownIcon,
 } from '@heroicons/vue/24/outline'
 
-import Editor from '@/components/Editor.vue'
+import Editor from '@/components/studio/Editor.vue'
 
 // State Management
 const activeTab = ref('readme')
