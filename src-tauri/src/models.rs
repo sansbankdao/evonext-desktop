@@ -49,7 +49,7 @@ pub struct ProfileSettings {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct IAssets {
-    pub identityId: String,
+    pub identity_id: String,
     pub name: String,
     pub symbol: String,
 }
