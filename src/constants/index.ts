@@ -1,4 +1,7 @@
-// src/libs/constants.ts
+// src/constants/index.ts
+
+/* DashSwap Endpoint */
+export const DASHSWAP_ENDPOINT = 'https://dashswap.xyz/v1/'
 
 /* Dash USD (Mainnet) */
 export const DUSD_CONTRACT_ID = 'DYqxCsuDgYsEAJ2ADnimkwNdL7C4xbe4No4so19X9mmd'

@@ -166,7 +166,7 @@ import {
     TSANS_CONTRACT_ID,
     DUSD_DECIMAL_PLACES,
     SANS_DECIMAL_PLACES,
-} from '@/libs/constants'
+} from '@/constants'
 
 const router = useRouter()
 const Wallet = useWalletStore()

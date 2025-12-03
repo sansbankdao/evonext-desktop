@@ -8,19 +8,25 @@ import type { ISettingsState } from '@/types'
 export const useSettingsStore = defineStore('settings', {
     state: (): ISettingsState => ({
         theme: 'system',
+
         network: 'testnet',
+
         notifications: {
             messages: true,
             mentions: true,
             contact_requests: false,
         },
+
         profile: {
             display_name: '',
             username: '',
             bio: '',
         },
+
         isLoading: false,
+
         error: null,
+
         lastSaved: null,
     }),
 

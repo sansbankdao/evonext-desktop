@@ -6,7 +6,7 @@ import { getIdentityBalance } from '@evonext/platform'
 
 import { useSystemStore } from './system'
 // import { useSettingsStore } from './settings'
-import { IUser2, IAsset, ITransaction, IBalanceChange } from '@/libs/types'
+import { IUser2, IAsset, ITransaction, IBalanceChange } from '@/types'
 import getNetwork from '@/libs/getNetwork'
 import getTokenBalances from '@/libs/getTokenBalances'
 import {
@@ -16,7 +16,7 @@ import {
     TSANS_CONTRACT_ID,
     DUSD_DECIMAL_PLACES,
     SANS_DECIMAL_PLACES,
-} from '@/libs/constants'
+} from '@/constants'
 
 interface IWalletState {
     user: IUser2 | null;
