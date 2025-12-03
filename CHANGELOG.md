@@ -1,21 +1,20 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Updated UI w/ Light & Dark Modes Enabled
+### Expanded Support for Older Linux Systems
 
-This latest version of EvoNext introduces an updated UI, plus light and dark modes available from the Settings screen.
+This latest version of EvoNext extends support to Linux systems running older Glibc (v2.27+).
 
 # Changelog
 
 ## Latest Features:
 
-- UI: All screens have been re-formatted for a "cleaner" UX.
-- UI: Light and dark mode can now be toggled from the Settings screen.
+- Package: Extended support to Glibc (v2.27+).
 
 ## Bugfixes:
 
-- Header: now connects to the Identity store, for dynamic Identity display.
+- none
 
-## Conclusion:
+## Notes:
 
 We would especially like to thank all the contributors that made this release possible:
 - 0xShomari

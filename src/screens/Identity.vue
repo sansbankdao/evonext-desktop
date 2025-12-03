@@ -87,8 +87,6 @@ import Header from '@/components/Header.vue'
 
 import getIdentities from '@/libs/getIdentities'
 import getMnemonic from '@/libs/getMnemonic'
-import sendCredit from '@/libs/sendCredit'
-import sendToken from '@/libs/sendToken'
 
 // Define the TypeScript interface for an Identity
 interface Identity {

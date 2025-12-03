@@ -189,13 +189,13 @@ import { ref, watch, onMounted } from 'vue'
 
 import getNetwork from '@/libs/getNetwork.ts'
 import { useSettingsStore } from '@/stores/settings'
-import type { ProfileSettings, NotificationSettings } from '@/stores/settings'
+import type { IProfileSettings, INotificationSettings } from '@/types'
 import Header from '@/components/Header.vue'
 
 const Settings = useSettingsStore()
 
-const localProfile = ref<ProfileSettings>({ ...Settings.profile })
-const localNotifications = ref<NotificationSettings>({ ...Settings.notifications })
+const localProfile = ref<IProfileSettings>({ ...Settings.profile })
+const localNotifications = ref<INotificationSettings>({ ...Settings.notifications })
 const localPassword = ref({ new: '', confirm: '' })
 
 watch(() => Settings.profile, (newProfile) => {

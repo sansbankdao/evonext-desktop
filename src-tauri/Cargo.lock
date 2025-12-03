@@ -935,7 +935,7 @@ dependencies = [
 
 [[package]]
 name = "evonext"
-version = "25.12.1"
+version = "25.12.2"
 dependencies = [
  "chrono",
  "serde",
