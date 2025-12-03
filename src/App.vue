@@ -1,10 +1,12 @@
 <!-- src/App.vue -->
 <template>
-    <RouterView />
+    <div :class="rootClass">
+        <RouterView />
+    </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { listen, UnlistenFn } from '@tauri-apps/api/event'
@@ -14,10 +16,22 @@ import { relaunch } from '@tauri-apps/plugin-process'
 import { useSystemStore } from '@/stores/system'
 import { useIdentityStore } from '@/stores/identity'
 import { useWalletStore } from '@/stores/wallet'
+import { useSettingsStore } from '@/stores/settings'
 
 const System = useSystemStore()
 const Identity = useIdentityStore()
 const Wallet = useWalletStore()
+const Settings = useSettingsStore()
+
+const rootClass = computed(() => {
+    if (Settings.theme === 'light') {
+        return 'light'
+    }
+    if (Settings.theme === 'dark') {
+        return 'dark'
+    }
+    return ''
+})
 
 const manageUpdater = async () => {
     /* Request check. */
@@ -105,4 +119,9 @@ onUnmounted(() => {
 
 <style>
 /* Use for global styles (e.g. scrollbars). */
+
+/* Smooth theme transitions */
+html {
+    transition: color-scheme 0.2s ease-in-out;
+}
 </style>
