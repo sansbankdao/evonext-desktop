@@ -2,20 +2,20 @@
 <template>
     <main class="max-w-md mx-auto">
         <header class="flex items-center justify-between mb-8">
-            <h1 class="text-3xl font-bold text-white">
+            <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">
                 Swap Assets
             </h1>
-            <button @click="router.back()" class="text-slate-400 hover:text-white transition-colors">
+            <button @click="router.back()" class="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
                 &larr; Back to Wallet
             </button>
         </header>
 
-        <div class="bg-slate-800 p-6 rounded-xl space-y-2">
+        <div class="bg-white dark:bg-slate-800 p-6 rounded-xl space-y-2">
             <!-- From Asset -->
-            <div class="bg-slate-900/70 p-4 rounded-lg">
+            <div class="bg-slate-50/50 dark:bg-slate-900/70 p-4 rounded-lg">
                 <div class="flex justify-between items-center mb-1">
-                    <span class="text-sm text-slate-400">You Pay</span>
-                    <span class="text-sm text-slate-400">
+                    <span class="text-sm text-slate-600 dark:text-slate-400">You Pay</span>
+                    <span class="text-sm text-slate-600 dark:text-slate-400">
                         Balance: {{ fromAsset?.amount.toLocaleString() ?? 0 }}
                     </span>
                 </div>
@@ -25,9 +25,9 @@
                         v-model="fromAmount"
                         @input="calculateToAmount"
                         placeholder="0.0"
-                        class="w-full bg-transparent text-2xl text-white focus:outline-none"
+                        class="w-full bg-transparent text-2xl text-slate-900 dark:text-slate-100 focus:outline-none"
                     />
-                    <select v-model="fromAssetTicker" class="bg-slate-700 border-none rounded-lg p-2 text-white font-semibold">
+                    <select v-model="fromAssetTicker" class="bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-2 text-slate-900 dark:text-slate-100 font-semibold">
                         <option v-for="asset in Wallet.assets" :key="asset.ticker" :value="asset.ticker">
                             {{ asset.ticker }}
                         </option>
@@ -37,18 +37,18 @@
 
             <!-- Swap Direction Button -->
             <div class="flex justify-center py-2">
-                <button @click="flipAssets" class="p-2 bg-slate-700 rounded-full hover:bg-slate-600 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <button @click="flipAssets" class="p-2 bg-slate-200 dark:bg-slate-700 rounded-full hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M7 16V4m0 12l-4-4m4 4l4-4m6 8v-12m0 12l-4-4m4 4l4-4" />
                     </svg>
                 </button>
             </div>
 
             <!-- To Asset -->
-            <div class="bg-slate-900/70 p-4 rounded-lg">
+            <div class="bg-slate-50/50 dark:bg-slate-900/70 p-4 rounded-lg">
                 <div class="flex justify-between items-center mb-1">
-                    <span class="text-sm text-slate-400">You Receive</span>
-                     <span class="text-sm text-slate-400">
+                    <span class="text-sm text-slate-600 dark:text-slate-400">You Receive</span>
+                     <span class="text-sm text-slate-600 dark:text-slate-400">
                         Balance: {{ toAsset?.amount.toLocaleString() ?? 0 }}
                     </span>
                 </div>
@@ -58,9 +58,9 @@
                         v-model="toAmount"
                         @input="calculateFromAmount"
                         placeholder="0.0"
-                        class="w-full bg-transparent text-2xl text-white focus:outline-none"
+                        class="w-full bg-transparent text-2xl text-slate-900 dark:text-slate-100 focus:outline-none"
                     />
-                    <select v-model="toAssetTicker" class="bg-slate-700 border-none rounded-lg p-2 text-white font-semibold">
+                    <select v-model="toAssetTicker" class="bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-2 text-slate-900 dark:text-slate-100 font-semibold">
                         <option v-for="asset in availableToAssets" :key="asset.ticker" :value="asset.ticker">
                             {{ asset.ticker }}
                         </option>
@@ -69,12 +69,12 @@
             </div>
 
             <!-- Exchange Rate Info -->
-            <div v-if="exchangeRate" class="text-center text-sm text-slate-400 pt-4">
+            <div v-if="exchangeRate" class="text-center text-sm text-slate-600 dark:text-slate-400 pt-4">
                 1 {{ fromAssetTicker }} ≈ {{ exchangeRate.toFixed(4) }} {{ toAssetTicker }}
             </div>
 
             <!-- Error Message -->
-            <div v-if="error" class="bg-red-900/50 text-red-300 text-sm p-3 rounded-lg mt-4">
+            <div v-if="error" class="bg-red-50 dark:bg-red-900/50 text-red-700 dark:text-red-300 text-sm p-3 rounded-lg mt-4">
                 {{ error }}
             </div>
 
@@ -83,7 +83,7 @@
                 @click="handleSwap"
                 :disabled="isSubmitting || !isFormValid"
                 class="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors mt-4
-                       hover:bg-indigo-500 disabled:bg-indigo-800 disabled:cursor-not-allowed"
+                       hover:bg-indigo-500 disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed"
             >
                 {{ isSubmitting ? 'Processing...' : 'Swap' }}
             </button>
