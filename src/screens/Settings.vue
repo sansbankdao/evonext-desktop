@@ -186,14 +186,12 @@
 <script setup lang="ts">
 /* Import modules. */
 import { ref, watch, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 
 import getNetwork from '@/libs/getNetwork.ts'
 import { useSettingsStore } from '@/stores/settings'
 import type { ProfileSettings, NotificationSettings } from '@/stores/settings'
 import Header from '@/components/Header.vue'
 
-const router = useRouter()
 const Settings = useSettingsStore()
 
 const localProfile = ref<ProfileSettings>({ ...Settings.profile })

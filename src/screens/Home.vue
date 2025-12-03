@@ -188,12 +188,10 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useIdentityStore } from '@/stores/identity'
 import { useSystemStore } from '@/stores/system'
 import Header from '@/components/Header.vue'
 
-const router = useRouter()
 const Identity = useIdentityStore()
 const System = useSystemStore()
 

@@ -1,50 +1,20 @@
 <!-- src/screens/Connect.vue -->
 <template>
-    <main class="min-h-screen bg-gray-50 dark:bg-slate-900">
-        <!-- Header -->
-        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 bg-white dark:bg-slate-900 p-6 rounded-xl shadow-lg border-2 border-slate-200 dark:border-slate-700">
-            <div class="flex items-center gap-3">
-                <svg class="w-8 h-8 text-cyan-500 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                    Connect to Dash
-                </h1>
-            </div>
-
-            <div class="flex items-center gap-3 bg-slate-100 dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 w-full sm:w-auto mt-4 sm:mt-0">
-                <div class="flex-grow flex flex-col overflow-hidden">
-                    <span class="text-sky-900 dark:text-sky-100 text-base font-semibold px-2 tracking-wide truncate">
-                        BetaTesterExtraordinaire
-                    </span>
-                    <span class="text-sky-600/70 dark:text-sky-300/70 text-xs font-mono px-2 tracking-tight truncate">
-                        v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5
-                    </span>
-                </div>
-
-                <button @click="copyAddress" class="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-all duration-200 shadow-sm hover:shadow-md flex-shrink-0 relative">
-                    <svg v-if="!isCopied" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    <svg v-else class="h-5 w-5 text-emerald-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                </button>
-            </div>
-        </header>
+    <main>
+        <Header title="Connect to Platform" />
 
         <section class="flex items-center justify-center min-h-[calc(100vh-140px)] px-4">
             <div class="max-w-2xl w-full mx-auto space-y-8 border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-8 bg-white dark:bg-slate-900">
                 <!-- Page Header -->
                 <div class="text-center space-y-3">
-                    <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center justify-center gap-2 mb-2">
+                    <!-- <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center justify-center gap-2 mb-2">
                         <svg class="w-6 h-6 text-cyan-500 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                         Connect to Dash Platform
-                    </h2>
+                    </h2> -->
 
-                    <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                    <p class="text-slate-600 dark:text-slate-400 text-xl leading-relaxed">
                         Securely access your identity using one of the methods below. Your data stays local.
                     </p>
                 </div>
@@ -278,6 +248,7 @@ import { ref, reactive, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import getNetwork from '@/libs/getNetwork'
 import { useIdentityStore } from '@/stores/identity'
+import Header from '@/components/Header.vue'
 
 const router = useRouter()
 const identityStore = useIdentityStore()

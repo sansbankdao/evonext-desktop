@@ -1,37 +1,7 @@
 <!-- src/screens/wallet/Overview.vue -->
 <template>
-    <main class="p-6 max-w-7xl mx-auto min-h-screen">
-        <!-- Header -->
-        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 bg-white dark:bg-slate-900 p-6 rounded-xl shadow-lg border-2 border-slate-200 dark:border-slate-700">
-            <div class="flex items-center gap-3">
-                <svg class="w-8 h-8 text-indigo-500 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                </svg>
-                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                    Wallet Dashboard
-                </h1>
-            </div>
-
-            <div v-if="Wallet.user" class="flex items-center gap-3 bg-slate-100 dark:bg-slate-800 p-3 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 w-full sm:w-auto ml-0 sm:ml-auto">
-                <div class="flex-grow flex flex-col overflow-hidden">
-                    <span class="text-indigo-600 dark:text-indigo-400 text-base font-semibold px-2 tracking-wide truncate">
-                        {{ Wallet.user.name }}
-                    </span>
-                    <span class="text-sky-600/70 dark:text-sky-300/70 text-xs font-mono px-2 tracking-tight truncate">
-                        {{ Wallet.user.address.slice(0, 10) }}...{{ Wallet.user.address.slice(-10) }}
-                    </span>
-                </div>
-
-                <button @click="copyAddress" class="p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-all duration-200 shadow-sm hover:shadow-md flex-shrink-0 relative">
-                    <svg v-if="!isCopied" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    <svg v-else class="h-5 w-5 text-emerald-500 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                </button>
-            </div>
-        </header>
+    <main>
+        <Header title="Wallet Dashboard" />
 
         <!-- Balance Card & Actions -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -233,6 +203,7 @@ import { useRouter } from 'vue-router'
 import { useWalletStore } from '@/stores/wallet'
 import { useIdentityStore } from '@/stores/identity'
 import { useSystemStore } from '@/stores/system'
+import Header from '@/components/Header.vue'
 
 const router = useRouter()
 const Wallet = useWalletStore()
