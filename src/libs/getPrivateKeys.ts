@@ -11,9 +11,6 @@ import { binToHex, hexToBin } from '@evonext/utils'
 import getMnemonic from './getMnemonic'
 import getNetwork from './getNetwork'
 
-const IDENTITY_INDEX = 0
-// const KEY_ID = 0
-
 /**
  * Derivation Paths
  *
@@ -35,7 +32,7 @@ export default async (
 
     /* Request network. */
     const network = await getNetwork()
-console.log('THE NETWORK IS CURRENTLY', network)
+// console.log('THE NETWORK IS CURRENTLY', network)
 
     /* Initialize SDK. */
     const sdk = new DashPlatformSDK({ network })
@@ -48,7 +45,7 @@ console.log('THE NETWORK IS CURRENTLY', network)
 
     /* Derive Master Authentication. */
     hdKey = sdk.keyPair.deriveIdentityPrivateKey(
-        walletHDKey, IDENTITY_INDEX, 0, network)
+        walletHDKey, _identityIdx, 0, network)
 
     /* Derive private key. */
     privateKey = PrivateKeyWASM
@@ -70,7 +67,7 @@ console.log('THE NETWORK IS CURRENTLY', network)
 
     /* Derive Critical Authentication. */
     hdKey = sdk.keyPair.deriveIdentityPrivateKey(
-        walletHDKey, IDENTITY_INDEX, 1, network)
+        walletHDKey, _identityIdx, 1, network)
 
     /* Derive private key. */
     privateKey = PrivateKeyWASM
@@ -83,7 +80,7 @@ console.log('THE NETWORK IS CURRENTLY', network)
 
     /* Derive Critical Authentication. */
     hdKey = sdk.keyPair.deriveIdentityPrivateKey(
-        walletHDKey, IDENTITY_INDEX, 2, network)
+        walletHDKey, _identityIdx, 2, network)
 
     /* Derive private key. */
     privateKey = PrivateKeyWASM
@@ -96,7 +93,7 @@ console.log('THE NETWORK IS CURRENTLY', network)
 
     /* Derive Critical Authentication. */
     hdKey = sdk.keyPair.deriveIdentityPrivateKey(
-        walletHDKey, IDENTITY_INDEX, 3, network)
+        walletHDKey, _identityIdx, 3, network)
 
     /* Derive private key. */
     privateKey = PrivateKeyWASM
@@ -109,7 +106,7 @@ console.log('THE NETWORK IS CURRENTLY', network)
 
     /* Derive Critical Authentication. */
     hdKey = sdk.keyPair.deriveIdentityPrivateKey(
-        walletHDKey, IDENTITY_INDEX, 4, network)
+        walletHDKey, _identityIdx, 4, network)
 
     /* Derive private key. */
     privateKey = PrivateKeyWASM

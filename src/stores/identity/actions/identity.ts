@@ -29,7 +29,6 @@ export const identityActions = () => ({
             /* Request identities. */
             const identities = await getIdentities()
             console.log('Identities found:', identities)
-alert(JSON.stringify(identities, null, 2))
 
             /* Validate identities. */
             if (!identities || identities.length === 0) {

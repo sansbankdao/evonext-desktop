@@ -15,7 +15,6 @@ import type { IIdentity, IPublicKey } from '@/types'
 const MIN_INDEX_SEARCH = 3
 const QUERY_REGISTRY = false
 
-
 /**
  * Get Key Type ID
  *
@@ -65,23 +64,29 @@ const queryWebAPI = async (_method: string, _params: any[]): Promise<any> => {
     /* Request network. */
     const network = await getNetwork()
 
+    /* Prepare (payload) body. */
+    const body = JSON.stringify({
+        method: _method,
+        params: _params,
+        network,
+    })
+
     try {
+        /* Make remote request. */
         const response = await fetch(DAPI_WEB_API_ENDPOINT, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                method: _method,
-                params: _params,
-                network,
-            }),
+            body,
         })
 
+        /* Validate response. */
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
         }
 
+        /* Handle response. */
         const result = await response.json()
 
         // Normalize "not found" responses for identity lookup methods to empty array for consistency
