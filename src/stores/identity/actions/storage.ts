@@ -1,7 +1,14 @@
 // src/stores/identity/actions/storage.ts
 
+/* Import modules. */
 import { invoke } from '@tauri-apps/api/core'
-import type { IIdentityData, IIdentityPublicKey, IState } from '@/types'
+
+/* Import types. */
+import type {
+    IIdentityData,
+    IIdentityPublicKey,
+    IIdentityState,
+} from '@/types'
 
 function hexHash160ToBase64(hex: string): string {
     // Hex string → Uint8Array (binary data)
@@ -14,7 +21,7 @@ function hexHash160ToBase64(hex: string): string {
 
 export const storageActions = () => ({
     async saveToStorage(this: any) {
-        const state = this as IState
+        const state = this as IIdentityState
 
         try {
             const identityData: IIdentityData = {
@@ -38,7 +45,7 @@ export const storageActions = () => ({
     },
 
     async loadFromStorage(this: any) {
-        const state = this as IState
+        const state = this as IIdentityState
 
         try {
             const identityData = await invoke('load_identity_data') as IIdentityData | null
@@ -58,7 +65,7 @@ export const storageActions = () => ({
     },
 
     async updateIdentityWithSdkData(this: any, identityId: string, sdkPublicKeys: any[], sdkRevision: bigint | number) {
-        const state = this as IState
+        const state = this as IIdentityState
 
         try {
             const publicKeys: IIdentityPublicKey[] = sdkPublicKeys.map((key: any, index: number) => ({

@@ -29,7 +29,7 @@ export interface IIdentityPublicKey {
     disabled_at: string | null
 }
 
-export interface IState {
+export interface IIdentityState {
     username: string | null
     identity: any | null
     balance: string | null

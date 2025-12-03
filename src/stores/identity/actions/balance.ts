@@ -2,11 +2,11 @@
 
 import { getIdentityBalance } from '@evonext/platform'
 import { formatDash, dashAmount } from '../../../utils/dash'
-import type { IState } from '@/types'
+import type { IIdentityState } from '@/types'
 
 export const balanceActions = () => ({
     async fetchBalance(this: any) {
-        const state = this as IState
+        const state = this as IIdentityState
         console.log('fetchBalance called, identity:', state.identity?.id)
 
         if (!state.identity?.id) {
@@ -29,7 +29,7 @@ export const balanceActions = () => ({
                 const balanceBigInt = BigInt(balanceString)
                 const dashBigInt = dashAmount(balanceBigInt)
 
-                // ✅ TypeScript safe - properties exist on IState
+                // ✅ TypeScript safe - properties exist on IIdentityState
                 state.balanceBigInt = balanceBigInt
                 state.dashBigInt = dashBigInt
 

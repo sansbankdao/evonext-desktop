@@ -3,7 +3,7 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import getIdentities from '@/libs/getIdentities'
 import getNetwork from '@/libs/getNetwork'
-import type { IState } from '@/types'
+import type { IIdentityState } from '@/types'
 
 /* Hex string → Uint8Array (binary data). */
 function hexHash160ToBase64(hex: string): string {
@@ -19,7 +19,7 @@ function hexHash160ToBase64(hex: string): string {
 
 export const identityActions = () => ({
     async searchUserIdentities(this: any) {
-        const state = this as IState
+        const state = this as IIdentityState
 
         try {
             console.log('Searching for user identities...')
@@ -59,7 +59,7 @@ export const identityActions = () => ({
     },
 
     async queryIdentityDetails(this: any, identityId: string) {
-        const state = this as IState
+        const state = this as IIdentityState
 
         /* Request network. */
         const network = await getNetwork()
@@ -107,7 +107,7 @@ console.log('Identity revision:', revision)
     },
 
     async getPublicKeys(this: any) {
-        const state = this as IState
+        const state = this as IIdentityState
 
         try {
             if (state.publicKeys.length > 0) {

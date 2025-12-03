@@ -3,11 +3,11 @@
 /* Import modules. */
 import { invoke } from '@tauri-apps/api/core'
 // import getIdentities from '@/libs/getIdentities'
-import type { IState } from '@/types'
+import type { IIdentityState } from '@/types'
 
 export const connectionActions = () => ({
     async initFromStorage(this: any) {
-        const state = this as IState
+        const state = this as IIdentityState
 
         try {
             await this.loadFromStorage()
@@ -45,7 +45,7 @@ export const connectionActions = () => ({
     },
 
     async connectWithSeed(this: any, seedPhrase: string, network: 'mainnet' | 'testnet' = 'mainnet') {
-        const state = this as IState
+        const state = this as IIdentityState
         state.isConnecting = true
         state.connectionError = null
 
@@ -81,7 +81,7 @@ export const connectionActions = () => ({
     },
 
     async connectWithPrivateKeys(this: any, identityId: string, authKey: string, transferKey: string, encryptionKey: string, network: 'mainnet' | 'testnet' = 'mainnet') {
-        const state = this as IState
+        const state = this as IIdentityState
         state.isConnecting = true
         state.connectionError = null
 
@@ -119,14 +119,14 @@ export const connectionActions = () => ({
     },
 
     login(this: any, username: string) {
-        const state = this as IState
+        const state = this as IIdentityState
         state.username = username
         state.isAuthenticated = true
         this.saveToStorage()
     },
 
     async logout(this: any) {
-        const state = this as IState
+        const state = this as IIdentityState
 
         try {
             await Promise.all([
@@ -168,13 +168,13 @@ export const connectionActions = () => ({
     },
 
     setPremiumAccess(this: any, hasAccess: boolean) {
-        const state = this as IState
+        const state = this as IIdentityState
         state.premiumAccess = hasAccess
         this.saveToStorage()
     },
 
     clearConnectionError(this: any) {
-        const state = this as IState
+        const state = this as IIdentityState
         state.connectionError = null
     },
 })
