@@ -244,8 +244,10 @@
 </template>
 
 <script setup lang="ts">
+/* Import modules. */
 import { ref, reactive, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
+
 import getNetwork from '@/libs/getNetwork'
 import { useIdentityStore } from '@/stores/identity'
 import Header from '@/components/Header.vue'
@@ -255,34 +257,19 @@ const identityStore = useIdentityStore()
 
 // --- Component State ---
 const connectionMethod = ref<'seed' | 'privateKey'>('seed')
+
 // Controls whether we show 12 or 24 input fields
 const wordCount = ref<'12' | '24'>('12')
+
 /* Initialize an array to hold the words from the input fields. */
 // NOTE: We use `reactive` because we will be changing its size.
 const seedWords = reactive<string[]>(Array(12).fill(''))
+
 /* Initialize local handlers. */
 const identityId = ref('') // Username or Identity ID
 const authKey = ref('') // Authentication Key (WIF or HEX)
 const transferKey = ref('') // Transfer Key (WIF or HEX)
 const encryptionKey = ref('') // Encryption Key (WIF or HEX)
-// Copy address state (from wallet pattern)
-const isCopied = ref(false)
-
-const copyAddress = async () => {
-    const address = 'v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5' // Mock; use from store in real app
-
-    if (isCopied.value) return
-
-    try {
-        await navigator.clipboard.writeText(address)
-        isCopied.value = true
-        setTimeout(() => {
-            isCopied.value = false
-        }, 2000)
-    } catch (err) {
-        console.error('Failed to copy address: ', err)
-    }
-}
 
 // --- Paste Handler for Seed Words ---
 const handlePaste = (event: ClipboardEvent) => {

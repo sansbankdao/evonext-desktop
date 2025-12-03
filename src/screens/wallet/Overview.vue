@@ -198,11 +198,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick } from 'vue'
+/* Import modules. */
+import { onMounted, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+
 import { useWalletStore } from '@/stores/wallet'
 import { useIdentityStore } from '@/stores/identity'
 import { useSystemStore } from '@/stores/system'
+
 import Header from '@/components/Header.vue'
 
 const router = useRouter()
@@ -210,14 +213,13 @@ const Wallet = useWalletStore()
 const Identity = useIdentityStore()
 const System = useSystemStore()
 
-const isCopied = ref(false)
-
 const totalBalance = computed(() => {
     if (Identity.isConnected && Identity.balance) {
         const credits = parseInt(Identity.balance, 10)
         const duffs = credits / 1000
         const dash = duffs / 100000000
         const usd = dash * System.currentDashPrice
+
         return { dash, usd, credits, duffs }
     }
     // Fallback to mock data from wallet store
@@ -237,20 +239,6 @@ const formatCurrency = (value: number) => {
     }).format(value)
 }
 
-const copyAddress = async () => {
-    if (!Wallet.user?.address || isCopied.value) return
-    try {
-        await navigator.clipboard.writeText(Wallet.user.address)
-        isCopied.value = true
-        setTimeout(() => {
-            isCopied.value = false
-        }, 2000)
-    } catch (err) {
-        console.error('Failed to copy address: ', err)
-        alert('Failed to copy address. Please try manually.')
-    }
-}
-
 const getStatusClasses = (status: string) => {
     switch (status) {
         case 'Completed': return 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 shadow-emerald-200/50 dark:shadow-emerald-500/20'
@@ -262,15 +250,18 @@ const getStatusClasses = (status: string) => {
 
 const getIconSrc = (ticker: string) => {
     const lower = ticker.toLowerCase()
+
     if (lower === 'credits') {
         return '/icons/dash.svg'
     }
+
     return `/icons/${lower}.svg`
 }
 
 const assetIconExists = (ticker: string) => {
     const lower = ticker.toLowerCase()
     const commonIcons = ['dash', 'sans', 'dusd']
+
     return commonIcons.includes(lower) || lower === 'credits'
 }
 

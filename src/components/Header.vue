@@ -33,6 +33,7 @@
 </template>
 
 <script setup lang="ts">
+/* Import modules. */
 import { ref } from 'vue'
 import { useIdentityStore } from '@/stores/identity'
 
@@ -40,9 +41,11 @@ interface Props {
     title?: string
 }
 
-const { title } = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
     title: 'Unknown Page'
 })
+
+const { title } = props
 
 const Identity = useIdentityStore()
 const isCopied = ref(false)

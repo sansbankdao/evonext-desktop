@@ -6,6 +6,7 @@
                 <svg class="w-8 h-8 text-indigo-500 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
                 </svg>
+
                 <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">
                     Send Assets
                 </h1>
@@ -15,6 +16,7 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
+
                 Back to Wallet
             </button>
         </header>
@@ -148,11 +150,12 @@
 </template>
 
 <script setup lang="ts">
+/* Import modules. */
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { useWalletStore } from '@/stores/wallet'
-import { useSettingsStore } from '@/stores/settings'
+
 import getNetwork from '@/libs/getNetwork'
 import sendCredit from '@/libs/sendCredit'
 import sendToken from '@/libs/sendToken'
@@ -167,7 +170,6 @@ import {
 
 const router = useRouter()
 const Wallet = useWalletStore()
-const Settings = useSettingsStore()
 
 const recipient = ref('')
 const amount = ref<number | null>(null)
@@ -183,7 +185,9 @@ const selectedAsset = computed(() => {
         'dusd': 'DUSD',
         'sans': 'SANS'
     }
+
     const ticker = tickerMap[selectedCurrency.value]
+
     return Wallet.getAssetByTicker(ticker)
 })
 
