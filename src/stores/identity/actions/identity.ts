@@ -36,7 +36,7 @@ export const identityActions = () => ({
             const primaryIdentity = identities[0]
             console.log('Primary identity:', primaryIdentity)
 
-            const username = primaryIdentity.id
+            const username = 'BetaTesterExtraordinaire'//primaryIdentity.id
             state.username = username
             state.identity = primaryIdentity
             state.isAuthenticated = true

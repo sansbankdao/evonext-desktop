@@ -1,24 +1,24 @@
 <!-- src/screens/Home.vue -->
 <template>
     <main class="">
-        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-            <h1 class="text-3xl font-bold text-slate-100 dark:text-slate-900 mb-4 sm:mb-0">
+        <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 bg-gray-50 dark:bg-slate-900 p-6 rounded-xl shadow-lg">
+            <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4 sm:mb-0">
                 Platform Overview
             </h1>
 
-            <div v-if="Identity.isConnected" class="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
+            <div v-if="Identity.isConnected" class="flex items-center gap-4 bg-white dark:bg-slate-800 p-3 rounded-lg shadow-sm">
                 <span class="w-[300px]">
-                    <span class="text-sky-900 dark:text-sky-100 text-lg font-mono px-2 tracking-wider">
+                    <span class="block text-sky-900 dark:text-sky-100 text-lg font-mono px-2 tracking-wider">
                         {{ Identity.username || 'User' }}
                     </span>
 
-                    <span class="text-sky-700 dark:text-sky-300/70 text-xs font-mono px-2 tracking-tighter">
-                        {{ Identity.username?.slice(0, 10) }}...{{ Identity.username?.slice(-10) }}
+                    <span class="block text-sky-600/70 dark:text-sky-300/70 text-xs font-mono px-2 tracking-tighter">
+                        {{ Identity.identity.id }}
                     </span>
                 </span>
 
-                <button class="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-600 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <button class="p-2 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-700 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                     </svg>
                 </button>
