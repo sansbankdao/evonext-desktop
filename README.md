@@ -73,6 +73,19 @@ Interested in contributing to EvoNext? We'd love your help! Here's how to get th
     ```bash
     pnpm tauri dev
 
+### Potential Issues
+
+```
+Error [tauri_cli_node] failed to run 'cargo metadata' command to get workspace directory: No such file or directory (os error 2)
+```
+
+#### Explanation of the Problem
+The error shows that cargo (Rust's package manager) is not found in the PATH.
+The Rust installation step didn't properly add cargo to the PATH in the container.
+
+#### Potential Solution #1
+Use `source "$HOME/.cargo/env"` to immediately load cargo into PATH
+
 
 ## Security
 

@@ -85,21 +85,27 @@ jobs:
           echo "Node.js version:"
           node --version
 
-      - name: Install Rust
+      - name: Install Rust and Cargo
         run: |
+          # Install Rust using rustup
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          echo "export PATH=$HOME/.cargo/bin:$PATH" >> ~/.bashrc
-          . ~/.bashrc
+
+          # Load cargo into PATH immediately (this is the key fix)
+          source "$HOME/.cargo/env"
+
+          # Set up Rust
           rustup default stable
           rustup target add x86_64-unknown-linux-gnu
-          echo "Rust version:"
-          rustc --version
+
+          # Verify installation
+          echo "Rust version: $(rustc --version)"
+          echo "Cargo version: $(cargo --version)"
+          echo "Cargo path: $(which cargo)"
 
       - name: Install pnpm
         run: |
           npm install -g pnpm@8
-          echo "pnpm version:"
-          pnpm --version
+          echo "pnpm version: $(pnpm --version)"
 
       - name: Install frontend dependencies
         run: pnpm install
