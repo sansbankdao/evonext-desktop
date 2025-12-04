@@ -1,6 +1,9 @@
+// src/router/index.ts
+
 /* Import modules. */
 import { createRouter, createWebHashHistory } from 'vue-router'
 import getLicense from '@/libs/getLicense'
+import getNetwork from '@/libs/getNetwork'
 
 /* Import your layout and screens. */
 import AppLayout from '../layouts/AppLayout.vue'
@@ -31,36 +34,33 @@ import WalletTransactionDetails from '../screens/wallet/TransactionDetails.vue'
 
 // NOTE: FIVE HUNDRED (500) STAKED SANS IS REQUIRED
 //       to unlock early access to PREMIUM features.
-const PREMIUM_SANS_IDENTITY = await getLicense() === '' ? false : true
+let isPremiumSansIdentity = false
 
-/* Initialize routes. */
+/* Initialize routes with all possible routes. */
 const routes = [
     {
         path: '/',
-        component: AppLayout, // NOTE: layout wraps all pages
+        component: AppLayout,
         children: [
-            { path: '', component: Home }, // NOTE: default child route
+            { path: '', component: Home },
             { path: 'about', component: About },
-            { path: 'apps', component: PREMIUM_SANS_IDENTITY ? Apps : Stakeline },
+            { path: 'apps', component: Apps },
             { path: 'bootstrap', component: Bootstrap },
-            { path: 'community', component: PREMIUM_SANS_IDENTITY ? Community : Stakeline },
-            { path: 'explorer', component: PREMIUM_SANS_IDENTITY ? Explorer : Stakeline },
-            { path: 'favorites', component: PREMIUM_SANS_IDENTITY ? Favorites : Stakeline },
-
+            { path: 'community', component: Community },
+            { path: 'explorer', component: Explorer },
+            { path: 'favorites', component: Favorites },
             { path: 'identity', component: Identity },
             { path: 'identity/register', component: IdentityRegister },
-
             { path: 'posts', component: Posts },
             { path: 'settings', component: Settings },
+            { path: 'stakeline', component: Stakeline },
             { path: 'studio', component: Studio },
-
             { path: 'wallet', component: WalletOverview },
             { path: 'wallet/deposit', component: WalletDeposit },
             { path: 'wallet/send', component: WalletSend },
             { path: 'wallet/swap', component: WalletSwap },
             { path: 'wallet/asset/:ticker', component: WalletAssetDetails },
             { path: 'wallet/transaction/:id', component: WalletTransactionDetails },
-
             { path: 'connect', component: Connect },
             { path: 'disconnect', component: Connect },
         ]
@@ -69,9 +69,37 @@ const routes = [
 
 /* Initialize router. */
 const router = createRouter({
-    // Use hash mode for easier compatibility with Tauri
     history: createWebHashHistory(),
     routes,
+})
+
+/* Handle global route guard. */
+router.beforeEach(async (_to, _from, next) => {
+    /* Request current network and license status. */
+    const network = await getNetwork()
+    isPremiumSansIdentity = await getLicense() !== ''
+
+    /* Define premium routes. */
+    const premiumRoutes = ['apps', 'community', 'favorites']
+    const routeName = _to.path.split('/')[1] // NOTE: Get first path segment.
+
+    if (premiumRoutes.includes(routeName)) {
+        if (network === 'testnet') {
+            // NOTE: Testnet, always allow.
+            next()
+        } else {
+            // NOTE: Non-testnet, check license.
+            if (isPremiumSansIdentity) {
+                next()
+            } else {
+                // NOTE: Redirect to stakeline for upgrade.
+                next('/stakeline')
+            }
+        }
+    } else {
+        // NOTE: Non-premium route: always allow.
+        next()
+    }
 })
 
 export default router
