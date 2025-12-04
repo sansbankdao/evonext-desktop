@@ -47,6 +47,9 @@ jobs:
           # Install tzdata first to avoid interactive prompts later
           apt-get install -y --no-install-recommends tzdata
 
+          # Install pkg-config early (needed for GLib detection)
+          apt-get install -y --no-install-recommends pkg-config
+
           # Install basic tools
           apt-get install -y --no-install-recommends curl wget lsb-release ca-certificates
 
@@ -54,19 +57,44 @@ jobs:
           lsb_release -a
 
           # Install Tauri dependencies for Ubuntu 20.04
+          # GLib development files are CRITICAL for glib-sys crate
           apt-get install -y --no-install-recommends \
             build-essential \
+            # GTK/GLib dependencies
+            libglib2.0-dev \
+            libgtk-3-dev \
             libwebkit2gtk-4.0-dev \
             libappindicator3-dev \
             librsvg2-dev \
+            # SSL/TLS
             libssl-dev \
-            libgtk-3-dev \
+            libssl1.1 \
+            # System libraries
+            libcairo2-dev \
+            libpango1.0-dev \
+            libatk1.0-dev \
+            libgdk-pixbuf2.0-dev \
+            # Patching tool for AppImage bundling
             patchelf \
-            pkg-config
+            # Additional WebKit dependencies
+            libsoup2.4-dev \
+            libjavascriptcoregtk-4.0-dev
 
           # Try to install ayatana (may not exist in 20.04, that's okay)
           apt-get install -y --no-install-recommends libayatana-appindicator3-dev 2>/dev/null || \
             echo "Note: libayatana-appindicator3-dev not available, continuing..."
+
+          # Set PKG_CONFIG_PATH for GLib
+          echo "=== Setting PKG_CONFIG_PATH ==="
+          export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig:$PKG_CONFIG_PATH
+          echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
+
+          # Verify pkg-config can find glib-2.0
+          echo "=== Verifying pkg-config can find glib-2.0 ==="
+          pkg-config --modversion glib-2.0 || echo "Warning: glib-2.0 not found via pkg-config"
+          pkg-config --modversion gtk+-3.0 || echo "Warning: gtk+-3.0 not found via pkg-config"
+          pkg-config --modversion webkit2gtk-4.0 || echo "Warning: webkit2gtk-4.0 not found via pkg-config"
 
           # Clean up to reduce image size
           apt-get clean
@@ -74,7 +102,7 @@ jobs:
 
           # Verify key dependencies are installed
           echo "=== Verifying key dependencies ==="
-          dpkg -l | grep -E "(webkit|gtk|appindicator|rsvg)" | grep ii || true
+          dpkg -l | grep -E "(glib|gtk|webkit|appindicator|rsvg|cairo|pango|atk)" | grep ii || true
 
       - name: Install Node.js 20
         run: |
@@ -120,26 +148,35 @@ jobs:
           which node || echo "node not found"
           which pnpm || echo "pnpm not found"
           which tauri || echo "tauri not found"
+
+          echo "=== Verifying pkg-config setup ==="
+          pkg-config --list-all | grep -E "(glib|gtk|webkit)" || echo "No GLib/GTK packages found via pkg-config"
+
           echo "PATH: $PATH"
+          echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
 
       - name: Build Tauri Application
         run: |
-          # Debug: Show cargo location
+          # Debug: Show cargo location and pkg-config setup
           echo "Cargo location: $(which cargo)"
           echo "Cargo version: $(cargo --version)"
+          echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
 
-          # Navigate to tauri directory and build
-          cd src-tauri
-          cargo --version
-          cd ..
+          # Test pkg-config
+          echo "=== Testing pkg-config ==="
+          pkg-config --modversion glib-2.0 || echo "ERROR: glib-2.0 not found"
+          pkg-config --modversion gtk+-3.0 || echo "ERROR: gtk+-3.0 not found"
+          pkg-config --modversion webkit2gtk-4.0 || echo "ERROR: webkit2gtk-4.0 not found"
 
           # Build with pnpm
+          echo "=== Starting Tauri build ==="
           pnpm tauri build --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           PATH: ${{ env.PATH }}:${{ env.CARGO_BIN }}
+          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig:$PKG_CONFIG_PATH
 
       - name: Upload Linux Artifacts to Release
         uses: softprops/action-gh-release@v2
