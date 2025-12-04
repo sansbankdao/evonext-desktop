@@ -34,29 +34,45 @@ jobs:
 
       - name: Install System Dependencies for Tauri 2.4.0
         run: |
+          # Set noninteractive mode and timezone to avoid prompts
+          export DEBIAN_FRONTEND=noninteractive
+          export TZ=America/New_York
+
+          # Preconfigure timezone
+          ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
+
           # Update package list first
           apt-get update
 
-          # Install basic tools to see system info
-          apt-get install -y curl wget lsb-release
+          # Install tzdata first to avoid interactive prompts later
+          apt-get install -y --no-install-recommends tzdata
+
+          # Install basic tools
+          apt-get install -y --no-install-recommends curl wget lsb-release
 
           echo "=== Building on Ubuntu Version ==="
           lsb_release -a
 
           # Install Tauri dependencies for Ubuntu 20.04
           # Based on Tauri documentation for Ubuntu 20.04
-          apt-get install -y \
+          apt-get install -y --no-install-recommends \
             build-essential \
             libwebkit2gtk-4.0-dev \
             libappindicator3-dev \
             librsvg2-dev \
             libssl-dev \
             libgtk-3-dev \
-            patchelf
+            patchelf \
+            pkg-config \
+            ca-certificates
 
           # Try to install ayatana (may not exist in 20.04, that's okay)
-          apt-get install -y libayatana-appindicator3-dev 2>/dev/null || \
+          apt-get install -y --no-install-recommends libayatana-appindicator3-dev 2>/dev/null || \
             echo "Note: libayatana-appindicator3-dev not available, continuing..."
+
+          # Clean up to reduce image size
+          apt-get clean
+          rm -rf /var/lib/apt/lists/*
 
           # Verify key dependencies are installed
           echo "=== Verifying key dependencies ==="
