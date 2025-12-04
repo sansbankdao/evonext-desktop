@@ -1,0 +1,52 @@
+version: 2.1
+
+orbs:
+  gh: circleci/github-cli@1.0.1
+
+jobs:
+  build-linux-circleci:
+    docker:
+      - image: cimg/rust:1.73-node-20.04
+    steps:
+      - checkout
+      - run:
+          name: Install Linux Dependencies
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y \
+              libwebkit2gtk-4.1-dev \
+              libappindicator3-dev \
+              librsvg2-dev \
+              patchelf \
+              libayatana-appindicator3-dev
+      - run:
+          name: Install pnpm
+          command: npm install -g pnpm@8
+      - run:
+          name: Install Dependencies
+          command: pnpm install
+      - run:
+          name: Build Tauri App
+          command: pnpm tauri build
+          environment:
+            TAURI_SIGNING_PRIVATE_KEY: ${TAURI_SIGNING_PRIVATE_KEY}
+            TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${TAURI_SIGNING_PRIVATE_KEY_PASSWORD}
+      - gh/setup
+      - run:
+          name: Upload to GitHub Release
+          command: |
+            gh release upload "${CIRCLE_TAG}" \
+              src-tauri/target/release/bundle/appimage/*.AppImage \
+              src-tauri/target/release/bundle/deb/*.deb \
+              src-tauri/target/release/bundle/rpm/*.rpm
+
+workflows:
+  version: 2
+  build-linux:
+    jobs:
+      - build-linux-circleci:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/

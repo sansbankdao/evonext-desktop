@@ -25,12 +25,33 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:20.04
-      options: --privileged  # Needed for some Tauri builds
+      options: --privileged
     defaults:
       run:
         shell: bash
     steps:
       - uses: actions/checkout@v4
+
+      # Debug step to see what's available
+      - name: Debug - Find Exact Package Names
+        if: ${{ always() }}
+        run: |
+          echo "=== System Information ==="
+          lsb_release -a
+          uname -a
+
+          echo "=== Available WebKitGTK packages ==="
+          apt-cache search webkit | grep -E "(webkit|webkit2gtk)" | sort
+
+          echo "=== Available GTK development packages ==="
+          apt-cache search 'libgtk-3' | grep dev | sort
+
+          echo "=== Available libappindicator packages ==="
+          apt-cache search appindicator | grep -E "(dev|lib)" | sort
+
+          echo "=== Available libayatana packages ==="
+          apt-cache search ayatana | grep -E "(dev|lib)" | sort
+
       - name: Update APT and Install System Dependencies
         run: |
           apt-get update
@@ -38,39 +59,55 @@ jobs:
             curl \
             wget \
             build-essential \
-            libwebkit2gtk-4.1-dev \
+            # Tauri 2.4.0 dependencies for Ubuntu 20.04
+            libwebkit2gtk-4.0-dev \
             libappindicator3-dev \
+            libayatana-appindicator3-dev \
             librsvg2-dev \
-            patchelf \
             libgtk-3-dev \
             libssl-dev \
+            patchelf \
             pkg-config \
             ca-certificates \
-            libayatana-appindicator3-dev \
             gnupg \
             lsb-release \
             software-properties-common
-      - name: Install Node.js 20 (Ubuntu 20.04 has older version)
+
+      # Verify installation
+      - name: Verify Dependencies
+        run: |
+          echo "=== Checking installed packages ==="
+          dpkg -l | grep -E "(webkit|gtk|appindicator|ayatana|rsvg)" | grep -E "ii|hi"
+          echo "=== Checking pkg-config paths ==="
+          pkg-config --cflags --libs webkit2gtk-4.0 || echo "WebKit2GTK not found via pkg-config"
+          pkg-config --cflags --libs gtk+-3.0 || echo "GTK+3 not found via pkg-config"
+
+      - name: Install Node.js 20
         run: |
           curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
           apt-get install -y nodejs
+
       - name: Install Rust
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           echo "export PATH=$HOME/.cargo/bin:$PATH" >> ~/.bashrc
-          source ~/.bashrc
+          . ~/.bashrc
           rustup default stable
           rustup target add x86_64-unknown-linux-gnu
+
       - name: Install pnpm
         run: npm install -g pnpm@8
+
       - name: Install frontend dependencies
         run: pnpm install
+
       - name: Build Tauri Application
         run: pnpm tauri build --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
       - name: Upload Linux Artifacts to Release
         uses: softprops/action-gh-release@v2
         with:
