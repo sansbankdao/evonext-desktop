@@ -34,12 +34,16 @@
                                 <div class="flex items-center gap-4">
                                     <!-- Testnet Option -->
                                     <button @click="Settings.setNetwork('testnet')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', Settings.network === 'testnet' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">
-                                        <span class="font-semibold">Testnet</span>
+                                        <span class="font-semibold">
+                                            Testnet
+                                        </span>
                                     </button>
 
                                     <!-- Mainnet Option -->
                                     <button @click="Settings.setNetwork('mainnet')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', Settings.network === 'mainnet' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">
-                                        <span class="font-semibold">Mainnet</span>
+                                        <span class="font-semibold">
+                                            Mainnet
+                                        </span>
                                     </button>
                                 </div>
                             </fieldset>
@@ -59,7 +63,6 @@
                         <div class="mt-6">
                             <fieldset>
                                 <legend class="sr-only">Theme</legend>
-
                                 <div class="flex items-center gap-4">
                                     <!-- System Theme Option -->
                                     <button @click="Settings.setTheme('system')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', Settings.theme === 'system' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">

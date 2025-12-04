@@ -1,6 +1,9 @@
 // src/stores/identity/actions/balance.ts
 
+/* Import modules. */
 import { getIdentityBalance } from '@evonext/platform'
+
+import getNetwork from '@/libs/getNetwork'
 import { formatDash, dashAmount } from '../../../utils/dash'
 import type { IIdentityState } from '@/types'
 
@@ -8,6 +11,8 @@ export const balanceActions = () => ({
     async fetchBalance(this: any) {
         const state = this as IIdentityState
         console.log('fetchBalance called, identity:', state.identity?.id)
+
+        const network = await getNetwork()
 
         if (!state.identity?.id) {
             console.log('No identity ID available for balance fetch')
@@ -21,17 +26,16 @@ export const balanceActions = () => ({
         try {
             console.log('Fetching balance for identity:', state.identity.id)
 
-            const balanceString = await getIdentityBalance('mainnet', state.identity.id)
+            const balanceString = await getIdentityBalance(network, state.identity.id)
             console.log('Balance string:', balanceString)
 
             if (balanceString !== null && balanceString !== '0') {
-                state.balance = balanceString  // Raw string for storage
+                state.balance = balanceString  // NOTE: Raw string for storage.
 
                 const balanceBigInt = BigInt(balanceString)
 
                 const dashBigInt = dashAmount(balanceBigInt)
 
-                // ✅ TypeScript safe - properties exist on IIdentityState
                 state.balanceBigInt = balanceBigInt
 
                 state.dashBigInt = dashBigInt

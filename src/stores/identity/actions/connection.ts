@@ -2,12 +2,13 @@
 
 /* Import modules. */
 import { invoke } from '@tauri-apps/api/core'
-// import getIdentities from '@/libs/getIdentities'
+import getNetwork from '@/libs/getNetwork'
 import type { IIdentityState } from '@/types'
 
 export const connectionActions = () => ({
     async initFromStorage(this: any) {
         const state = this as IIdentityState
+        const network = await getNetwork()
 
         try {
             await this.loadFromStorage()
@@ -21,12 +22,12 @@ export const connectionActions = () => ({
 
             if (state.isAuthenticated && (mnemonicData || keysData)) {
                 console.log('Found stored identity and credentials, verifying state...')
-                await this.searchUserIdentities('mainnet')
+                await this.searchUserIdentities(network)
             } else if (!state.isAuthenticated && (mnemonicData || keysData)) {
                 console.log('Found stored credentials but no identity, re-authenticating...')
 
                 if (mnemonicData) {
-                    await this.connectWithSeed((mnemonicData as any).seed_phrase, 'mainnet')
+                    await this.connectWithSeed((mnemonicData as any).seed_phrase, network)
                 } else if (keysData) {
                     const keys = keysData as any
 
@@ -35,7 +36,7 @@ export const connectionActions = () => ({
                         keys.auth_key,
                         keys.transfer_key,
                         keys.encryption_key,
-                        'mainnet'
+                        network
                     )
                 }
             }
@@ -44,7 +45,11 @@ export const connectionActions = () => ({
         }
     },
 
-    async connectWithSeed(this: any, seedPhrase: string, network: 'mainnet' | 'testnet' = 'mainnet') {
+    async connectWithSeed(
+        this: any,
+        seedPhrase: string,
+        network: 'mainnet' | 'testnet' = 'mainnet'
+    ) {
         const state = this as IIdentityState
         state.isConnecting = true
         state.connectionError = null
@@ -80,7 +85,14 @@ export const connectionActions = () => ({
         }
     },
 
-    async connectWithPrivateKeys(this: any, identityId: string, authKey: string, transferKey: string, encryptionKey: string, network: 'mainnet' | 'testnet' = 'mainnet') {
+    async connectWithPrivateKeys(
+        this: any,
+        identityId: string,
+        authKey: string,
+        transferKey: string,
+        encryptionKey: string,
+        network: 'mainnet' | 'testnet' = 'mainnet',
+    ) {
         const state = this as IIdentityState
         state.isConnecting = true
         state.connectionError = null
@@ -107,11 +119,15 @@ export const connectionActions = () => ({
                 state.identity = identity
             }
             console.log('Private keys connection successful. isAuthenticated:', state.isAuthenticated)
+
             await this.saveToStorage()
+
             return { success: true, identity: state.identity }
         } catch (err: any) {
             console.error('Private keys connection failed:', err)
+
             state.connectionError = typeof err === 'string' ? err : 'Failed to connect with private keys.'
+
             return { success: false, error: state.connectionError }
         } finally {
             state.isConnecting = false
@@ -122,6 +138,7 @@ export const connectionActions = () => ({
         const state = this as IIdentityState
         state.username = username
         state.isAuthenticated = true
+
         this.saveToStorage()
     },
 
@@ -171,6 +188,7 @@ export const connectionActions = () => ({
     setPremiumAccess(this: any, hasAccess: boolean) {
         const state = this as IIdentityState
         state.premiumAccess = hasAccess
+
         this.saveToStorage()
     },
 
