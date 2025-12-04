@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install System Dependencies for Tauri 2.4.0
+      - name: Setup Environment
         run: |
           # Set noninteractive mode and timezone to avoid prompts
           export DEBIAN_FRONTEND=noninteractive
@@ -42,81 +42,110 @@ jobs:
           ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
 
           # Update package list first
+          echo "=== Updating package list ==="
           apt-get update
 
           # Install tzdata first to avoid interactive prompts later
+          echo "=== Installing tzdata ==="
           apt-get install -y --no-install-recommends tzdata
 
-          # Install pkg-config early (needed for GLib detection)
-          apt-get install -y --no-install-recommends pkg-config
+      - name: Install Basic Tools
+        run: |
+          echo "=== Installing basic tools ==="
+          apt-get install -y --no-install-recommends \
+            curl \
+            wget \
+            lsb-release \
+            ca-certificates \
+            software-properties-common
 
-          # Install basic tools
-          apt-get install -y --no-install-recommends curl wget lsb-release ca-certificates
-
-          echo "=== Building on Ubuntu Version ==="
+          echo "=== Ubuntu Version ==="
           lsb_release -a
 
-          # Install Tauri dependencies for Ubuntu 20.04
-          # GLib development files are CRITICAL for glib-sys crate
+      - name: Install Build Essentials
+        run: |
+          echo "=== Installing build essentials ==="
           apt-get install -y --no-install-recommends \
             build-essential \
-            # GTK/GLib dependencies
+            pkg-config \
+            cmake
+
+      - name: Install GLib and GTK Dependencies
+        run: |
+          echo "=== Installing GLib and GTK dependencies ==="
+          apt-get install -y --no-install-recommends \
             libglib2.0-dev \
             libgtk-3-dev \
-            libwebkit2gtk-4.0-dev \
-            libappindicator3-dev \
-            librsvg2-dev \
-            # SSL/TLS
-            libssl-dev \
-            libssl1.1 \
-            # System libraries
             libcairo2-dev \
             libpango1.0-dev \
             libatk1.0-dev \
             libgdk-pixbuf2.0-dev \
-            # Patching tool for AppImage bundling
-            patchelf \
-            # Additional WebKit dependencies
+            libharfbuzz-dev \
+            libgstreamer1.0-dev \
+            libgstreamer-plugins-base1.0-dev
+
+      - name: Install WebKitGTK Dependencies
+        run: |
+          echo "=== Installing WebKitGTK dependencies ==="
+          apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.0-dev \
             libsoup2.4-dev \
             libjavascriptcoregtk-4.0-dev
 
-          # Try to install ayatana (may not exist in 20.04, that's okay)
+      - name: Install Additional Tauri Dependencies
+        run: |
+          echo "=== Installing additional Tauri dependencies ==="
+          apt-get install -y --no-install-recommends \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            patchelf \
+            libdbus-1-dev \
+            libx11-dev \
+            libxcb1-dev \
+            libxrandr-dev \
+            libxtst-dev \
+            libxi-dev
+
+      - name: Try Install Ayatana (Optional)
+        run: |
+          echo "=== Trying to install ayatana (optional) ==="
           apt-get install -y --no-install-recommends libayatana-appindicator3-dev 2>/dev/null || \
-            echo "Note: libayatana-appindicator3-dev not available, continuing..."
+            echo "libayatana-appindicator3-dev not available, skipping..."
 
-          # Set PKG_CONFIG_PATH for GLib
-          echo "=== Setting PKG_CONFIG_PATH ==="
-          export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig:$PKG_CONFIG_PATH
-          echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
-          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
-
-          # Verify pkg-config can find glib-2.0
-          echo "=== Verifying pkg-config can find glib-2.0 ==="
-          pkg-config --modversion glib-2.0 || echo "Warning: glib-2.0 not found via pkg-config"
-          pkg-config --modversion gtk+-3.0 || echo "Warning: gtk+-3.0 not found via pkg-config"
-          pkg-config --modversion webkit2gtk-4.0 || echo "Warning: webkit2gtk-4.0 not found via pkg-config"
-
-          # Clean up to reduce image size
+      - name: Clean Up APT Cache
+        run: |
+          echo "=== Cleaning up ==="
           apt-get clean
           rm -rf /var/lib/apt/lists/*
 
-          # Verify key dependencies are installed
-          echo "=== Verifying key dependencies ==="
-          dpkg -l | grep -E "(glib|gtk|webkit|appindicator|rsvg|cairo|pango|atk)" | grep ii || true
+      - name: Verify Installed Dependencies
+        run: |
+          echo "=== Verifying installed dependencies ==="
+          dpkg -l | grep -E "(glib|gtk|webkit|appindicator|rsvg|cairo|pango|atk|ssl)" | grep "^ii" || true
+
+          echo "=== Checking pkg-config files ==="
+          find /usr -name "*.pc" | grep -E "(glib|gtk|webkit)" | head -10 || true
+
+          echo "=== Testing pkg-config ==="
+          pkg-config --modversion glib-2.0 || echo "WARNING: glib-2.0 not found via pkg-config"
+          pkg-config --modversion gtk+-3.0 || echo "WARNING: gtk+-3.0 not found via pkg-config"
+          pkg-config --modversion webkit2gtk-4.0 || echo "WARNING: webkit2gtk-4.0 not found via pkg-config"
 
       - name: Install Node.js 20
         run: |
+          echo "=== Installing Node.js 20 ==="
           curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
           apt-get install -y nodejs
-          echo "Node.js version:"
-          node --version
+          echo "Node.js version: $(node --version)"
+          echo "npm version: $(npm --version)"
 
-      - name: Install Rust and Cargo with Proper PATH
+      - name: Install Rust and Cargo
         run: |
-          # Install Rust using rustup
+          echo "=== Installing Rust ==="
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
-          # Load cargo into PATH for this step
+          # Load cargo into PATH
           source "$HOME/.cargo/env"
 
           # Set up Rust
@@ -128,57 +157,63 @@ jobs:
           echo "Cargo version: $(cargo --version)"
           echo "Cargo path: $(which cargo)"
 
-          # Add cargo to PATH for subsequent steps
+          # Save to environment for later steps
           echo "CARGO_BIN=$HOME/.cargo/bin" >> $GITHUB_ENV
           echo "PATH=$HOME/.cargo/bin:$PATH" >> $GITHUB_ENV
 
       - name: Install pnpm
         run: |
+          echo "=== Installing pnpm ==="
           npm install -g pnpm@8
           echo "pnpm version: $(pnpm --version)"
 
       - name: Install frontend dependencies
-        run: pnpm install
-
-      - name: Verify Build Environment
         run: |
-          echo "=== Verifying all build tools are in PATH ==="
-          which cargo || echo "cargo not found"
-          which rustc || echo "rustc not found"
-          which node || echo "node not found"
-          which pnpm || echo "pnpm not found"
-          which tauri || echo "tauri not found"
+          echo "=== Installing frontend dependencies ==="
+          pnpm install
 
-          echo "=== Verifying pkg-config setup ==="
-          pkg-config --list-all | grep -E "(glib|gtk|webkit)" || echo "No GLib/GTK packages found via pkg-config"
+      - name: Verify Build Tools
+        run: |
+          echo "=== Verifying build tools ==="
+          which cargo && echo "✓ cargo found: $(cargo --version)"
+          which rustc && echo "✓ rustc found: $(rustc --version)"
+          which node && echo "✓ node found: $(node --version)"
+          which pnpm && echo "✓ pnpm found: $(pnpm --version)"
+          which tauri || echo "✗ tauri not found (will be run via pnpm)"
 
-          echo "PATH: $PATH"
+          echo "=== PKG_CONFIG_PATH ==="
           echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+
+          echo "=== Testing pkg-config again ==="
+          pkg-config --modversion glib-2.0 && echo "✓ glib-2.0 found"
+          pkg-config --modversion gtk+-3.0 && echo "✓ gtk+-3.0 found"
+          pkg-config --modversion webkit2gtk-4.0 && echo "✓ webkit2gtk-4.0 found" || echo "✗ webkit2gtk-4.0 not found"
 
       - name: Build Tauri Application
         run: |
-          # Debug: Show cargo location and pkg-config setup
-          echo "Cargo location: $(which cargo)"
-          echo "Cargo version: $(cargo --version)"
+          echo "=== Building Tauri application ==="
           echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+          echo "PATH: $PATH"
+          echo "Cargo location: $(which cargo)"
 
-          # Test pkg-config
-          echo "=== Testing pkg-config ==="
-          pkg-config --modversion glib-2.0 || echo "ERROR: glib-2.0 not found"
-          pkg-config --modversion gtk+-3.0 || echo "ERROR: gtk+-3.0 not found"
-          pkg-config --modversion webkit2gtk-4.0 || echo "ERROR: webkit2gtk-4.0 not found"
+          # Set PKG_CONFIG_PATH explicitly
+          export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig:${PKG_CONFIG_PATH:-}
+          echo "Final PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
 
-          # Build with pnpm
-          echo "=== Starting Tauri build ==="
+          # Test pkg-config one more time
+          pkg-config --modversion glib-2.0 || exit 1
+
+          # Build
           pnpm tauri build --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           PATH: ${{ env.PATH }}:${{ env.CARGO_BIN }}
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig:$PKG_CONFIG_PATH
+          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig
 
       - name: Upload Linux Artifacts to Release
+        if: success()
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -186,6 +221,19 @@ jobs:
             src-tauri/target/release/bundle/appimage/*.AppImage
             src-tauri/target/release/bundle/deb/*.deb
             src-tauri/target/release/bundle/rpm/*.rpm
+
+      - name: Debug on Failure
+        if: failure()
+        run: |
+          echo "=== DEBUG: Build failed, showing diagnostic info ==="
+          echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+          echo "PATH: $PATH"
+          which cargo || echo "cargo not found"
+          pkg-config --modversion glib-2.0 || echo "glib-2.0 not found"
+          pkg-config --modversion gtk+-3.0 || echo "gtk+-3.0 not found"
+          find /usr -name "glib-2.0.pc" 2>/dev/null || echo "No glib-2.0.pc found"
+          find /usr -name "*.pc" | grep -i glib || echo "No glib pc files found"
+          dpkg -l | grep glib || echo "No glib packages installed"
 
   build-macos:
     needs: create-release
