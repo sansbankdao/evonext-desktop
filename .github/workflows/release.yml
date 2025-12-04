@@ -32,60 +32,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Debug step to see what's available
-      - name: Debug - Find Exact Package Names
-        if: ${{ always() }}
+      - name: Install System Dependencies for Tauri 2.4.0
         run: |
-          echo "=== System Information ==="
-          lsb_release -a
-          uname -a
-
-          echo "=== Available WebKitGTK packages ==="
-          apt-cache search webkit | grep -E "(webkit|webkit2gtk)" | sort
-
-          echo "=== Available GTK development packages ==="
-          apt-cache search 'libgtk-3' | grep dev | sort
-
-          echo "=== Available libappindicator packages ==="
-          apt-cache search appindicator | grep -E "(dev|lib)" | sort
-
-          echo "=== Available libayatana packages ==="
-          apt-cache search ayatana | grep -E "(dev|lib)" | sort
-
-      - name: Update APT and Install System Dependencies
-        run: |
+          # Update package list first
           apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            curl \
-            wget \
+
+          # Install basic tools to see system info
+          apt-get install -y curl wget lsb-release
+
+          echo "=== Building on Ubuntu Version ==="
+          lsb_release -a
+
+          # Install Tauri dependencies for Ubuntu 20.04
+          # Based on Tauri documentation for Ubuntu 20.04
+          apt-get install -y \
             build-essential \
-            # Tauri 2.4.0 dependencies for Ubuntu 20.04
             libwebkit2gtk-4.0-dev \
             libappindicator3-dev \
-            libayatana-appindicator3-dev \
             librsvg2-dev \
-            libgtk-3-dev \
             libssl-dev \
-            patchelf \
-            pkg-config \
-            ca-certificates \
-            gnupg \
-            lsb-release \
-            software-properties-common
+            libgtk-3-dev \
+            patchelf
 
-      # Verify installation
-      - name: Verify Dependencies
-        run: |
-          echo "=== Checking installed packages ==="
-          dpkg -l | grep -E "(webkit|gtk|appindicator|ayatana|rsvg)" | grep -E "ii|hi"
-          echo "=== Checking pkg-config paths ==="
-          pkg-config --cflags --libs webkit2gtk-4.0 || echo "WebKit2GTK not found via pkg-config"
-          pkg-config --cflags --libs gtk+-3.0 || echo "GTK+3 not found via pkg-config"
+          # Try to install ayatana (may not exist in 20.04, that's okay)
+          apt-get install -y libayatana-appindicator3-dev 2>/dev/null || \
+            echo "Note: libayatana-appindicator3-dev not available, continuing..."
+
+          # Verify key dependencies are installed
+          echo "=== Verifying key dependencies ==="
+          dpkg -l | grep -E "(webkit|gtk|appindicator|rsvg)" | grep ii || true
 
       - name: Install Node.js 20
         run: |
           curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
           apt-get install -y nodejs
+          echo "Node.js version:"
+          node --version
 
       - name: Install Rust
         run: |
@@ -94,9 +76,14 @@ jobs:
           . ~/.bashrc
           rustup default stable
           rustup target add x86_64-unknown-linux-gnu
+          echo "Rust version:"
+          rustc --version
 
       - name: Install pnpm
-        run: npm install -g pnpm@8
+        run: |
+          npm install -g pnpm@8
+          echo "pnpm version:"
+          pnpm --version
 
       - name: Install frontend dependencies
         run: pnpm install
