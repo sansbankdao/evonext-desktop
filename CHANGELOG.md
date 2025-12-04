@@ -1,14 +1,14 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Expanded Support for Older Linux Systems
+### Added Improved Handling of Testnet
 
-This latest version of EvoNext extends support to Linux systems running older Glibc (v2.31+).
+This latest version of EvoNext improves Testnet support.
 
 # Changelog
 
 ## Latest Features:
 
-- Package: Extended support to Glibc (v2.31+).
+- Network: Improved UX when using Testnet.
 
 ## Bugfixes:
 
