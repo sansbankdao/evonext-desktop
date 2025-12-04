@@ -57,7 +57,7 @@ Interested in contributing to EvoNext? We'd love your help! Here's how to get th
 *   **Node.js:** (v20+ recommended) [https://nodejs.org/](https://nodejs.org/)
 *   **Glibc:** (v2.35+ recommended) Ubuntu 22.04+ | Debian 12+
 *   **pnpm:** `npm install -g pnpm`
-*   **Tauri System Dependencies:** Follow the official guide for your OS: [https://tauri.app/v2/guides/getting-started/prerequisites](https://tauri.app/v2/guides/getting-started/prerequisites)
+*   **Tauri System Dependencies:** Follow the official guide for your OS: [https://tauri.app/start/prerequisites](https://tauri.app/start/prerequisites)
 
 ### Installation & Running
 
