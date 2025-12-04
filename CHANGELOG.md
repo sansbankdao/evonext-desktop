@@ -2,13 +2,13 @@ Introducing the newest version of the EvoNext Desktop Edition
 
 ### Expanded Support for Older Linux Systems
 
-This latest version of EvoNext extends support to Linux systems running older Glibc (v2.27+).
+This latest version of EvoNext extends support to Linux systems running older Glibc (v2.31+).
 
 # Changelog
 
 ## Latest Features:
 
-- Package: Extended support to Glibc (v2.27+).
+- Package: Extended support to Glibc (v2.31+).
 
 ## Bugfixes:
 
