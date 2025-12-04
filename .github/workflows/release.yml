@@ -42,33 +42,35 @@ jobs:
 
       - name: Install Basic Tools
         run: |
-          apt-get install -y --no-install-recommends curl wget build-essential pkg-config ca-certificates gnupg lsb-release
+          apt-get install -y --no-install-recommends curl wget build-essential pkg-config ca-certificates gnupg lsb-release software-properties-common
 
-      - name: Check Ubuntu Version
+      - name: Check Packages Are Available
         run: |
-          echo "=== Ubuntu Version ==="
+          echo "=== Checking Ubuntu Version ==="
           lsb_release -a
-          echo "=== Checking available packages ==="
-          apt-cache policy libwebkit2gtk-4.1-dev | head -5
-          apt-cache policy libglib2.0-dev | head -5
+          echo "=== Checking if packages exist ==="
+          apt-cache show libwebkit2gtk-4.1-dev > /dev/null 2>&1 && echo "✓ libwebkit2gtk-4.1-dev available" || echo "✗ libwebkit2gtk-4.1-dev NOT available"
+          apt-cache show libglib2.0-dev > /dev/null 2>&1 && echo "✓ libglib2.0-dev available" || echo "✗ libglib2.0-dev NOT available"
 
-      - name: Install Tauri Dependencies (All in One Line)
+      - name: Install Tauri Dependencies
         run: |
+          echo "=== Installing all Tauri dependencies ==="
+          # All on one line to avoid parsing issues
           apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev libglib2.0-dev libgtk-3-dev libappindicator3-dev librsvg2-dev libssl-dev patchelf libcairo2-dev libpango1.0-dev libatk1.0-dev libgdk-pixbuf2.0-dev libsoup-3.0-dev
 
       - name: Install Optional Ayatana
         run: |
+          echo "=== Installing optional packages ==="
           apt-get install -y --no-install-recommends libayatana-appindicator3-dev 2>/dev/null || echo "libayatana-appindicator3-dev not available, continuing..."
 
-      - name: Verify Dependencies
+      - name: Clean Up
         run: |
-          echo "=== Verifying installed dependencies ==="
-          dpkg -l | grep -E "(webkit|glib|gtk|appindicator|rsvg)" | grep "^ii" || true
-          echo "=== Checking .pc files ==="
-          ls -la /usr/lib/x86_64-linux-gnu/pkgconfig/ | grep -E "(glib|gtk|webkit|javascript)" || true
+          apt-get clean
+          rm -rf /var/lib/apt/lists/*
 
       - name: Install Node.js 20
         run: |
+          echo "=== Installing Node.js 20 ==="
           curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
           apt-get install -y nodejs
           echo "Node.js $(node --version)"
@@ -76,6 +78,7 @@ jobs:
 
       - name: Install Rust
         run: |
+          echo "=== Installing Rust ==="
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           source "$HOME/.cargo/env"
           rustup default stable
@@ -87,34 +90,47 @@ jobs:
 
       - name: Install pnpm
         run: |
+          echo "=== Installing pnpm ==="
           npm install -g pnpm@8
           echo "pnpm $(pnpm --version)"
 
       - name: Install frontend dependencies
-        run: pnpm install
-
-      - name: Verify pkg-config Setup
         run: |
-          echo "=== Testing pkg-config ==="
-          PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig
-          echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
-          echo "glib-2.0: $(pkg-config --modversion glib-2.0 || echo 'NOT FOUND')"
-          echo "gtk+-3.0: $(pkg-config --modversion gtk+-3.0 || echo 'NOT FOUND')"
-          echo "webkit2gtk-4.1: $(pkg-config --modversion webkit2gtk-4.1 || echo 'NOT FOUND')"
-          echo "javascriptcoregtk-4.1: $(pkg-config --modversion javascriptcoregtk-4.1 || echo 'NOT FOUND')"
-          echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH" >> $GITHUB_ENV
+          echo "=== Installing frontend dependencies ==="
+          pnpm install
+
+      - name: Verify Build Environment
+        run: |
+          echo "=== Verifying build environment ==="
+          which cargo && echo "✓ cargo found"
+          which rustc && echo "✓ rustc found"
+          which node && echo "✓ node found"
+          which pnpm && echo "✓ pnpm found"
+
+          echo "=== Checking critical libraries ==="
+          pkg-config --modversion glib-2.0 && echo "✓ glib-2.0 found" || echo "✗ glib-2.0 NOT found"
+          pkg-config --modversion gtk+-3.0 && echo "✓ gtk+-3.0 found" || echo "✗ gtk+-3.0 NOT found"
+          pkg-config --modversion webkit2gtk-4.1 && echo "✓ webkit2gtk-4.1 found" || echo "✗ webkit2gtk-4.1 NOT found"
+          pkg-config --modversion javascriptcoregtk-4.1 && echo "✓ javascriptcoregtk-4.1 found" || echo "✗ javascriptcoregtk-4.1 NOT found"
 
       - name: Build Tauri Application
         run: |
-          echo "=== Building Tauri ==="
-          echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+          echo "=== Building Tauri application ==="
+          echo "Environment:"
+          echo "PKG_CONFIG_PATH=${PKG_CONFIG_PATH:-not set}"
+          echo "PATH: $PATH"
+
+          # Set PKG_CONFIG_PATH if not already set
+          export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig:${PKG_CONFIG_PATH:-}
+          echo "Using PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+
+          # Build
           pnpm tauri build --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           PATH: ${{ env.PATH }}:${{ env.CARGO_BIN }}
-          PKG_CONFIG_PATH: /usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig
 
       - name: Upload Linux Artifacts
         uses: softprops/action-gh-release@v2

@@ -54,7 +54,8 @@ Interested in contributing to EvoNext? We'd love your help! Here's how to get th
 ### Prerequisites
 
 *   **Rust:** [https://www.rust-lang.org/tools/install](https://www.rust-lang.org/tools/install)
-*   **Node.js:** (v18+ recommended) [https://nodejs.org/](https://nodejs.org/)
+*   **Node.js:** (v20+ recommended) [https://nodejs.org/](https://nodejs.org/)
+*   **Glibc:** (v2.31+ recommended)
 *   **pnpm:** `npm install -g pnpm`
 *   **Tauri System Dependencies:** Follow the official guide for your OS: [https://tauri.app/v2/guides/getting-started/prerequisites](https://tauri.app/v2/guides/getting-started/prerequisites)
 
