@@ -93,7 +93,7 @@
                                     <img
                                         :src="app.iconUrl"
                                         :alt="app.name"
-                                        class="size-20 rounded-2xl bg-slate-100 dark:bg-slate-700 p-1 border border-slate-200 dark:border-slate-600"
+                                        class="size-20 rounded-2xl bg-slate-100 dark:bg-slate-700 p-1 border border-slate-200 dark:border-slate-600 object-cover"
                                     />
 
                                     <div>
@@ -160,7 +160,7 @@ interface TrendingApp {
 interface Category {
     id: 'all' | 'games' | 'social' | 'finance' | 'art' | 'utility';
     name: string;
-    icon: string; // SVG path data
+    icon: string;
 }
 
 // --- Component State ---
@@ -171,20 +171,32 @@ const featuredApps = ref<FeaturedApp[]>([
     {
         id: 'f1',
         title: `Rock, Paper, Scissors, Lizard, Spock`,
-        description: `A fun P2P game that offers real Dash USD winnings.`,
+        description: `Ultimate P2P strategy game. Win real Dash USD prizes in every match.`,
         imageUrl: 'https://i.ibb.co/7JwB98cQ/banner.webp',
     },
     {
         id: 'f2',
-        title: `Pixelated Realms`,
-        description: `A decentralized RPG where you own your items.`,
-        imageUrl: 'https://images.unsplash.com/photo-1562229125-6d6075419a22?q=80',
+        title: `FarmVille`,
+        description: `Grow crops, raise animals, and build your dream farm. Daily prizes available.`,
+        imageUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=2070&auto=format&fit=crop',
     },
     {
         id: 'f3',
-        title: `Artisan Hub`,
-        description: `A marketplace for tokenized digital art.`,
-        imageUrl: 'https://images.unsplash.com/photo-1593103499244-6c882f0163cf?q=80',
+        title: `Words with Friends`,
+        description: `Challenge friends to a word game. Earn tokens for high-scoring words.`,
+        imageUrl: 'https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?q=80&w=2070&auto=format&fit=crop',
+    },
+    {
+        id: 'f4',
+        title: `Candy Crush`,
+        description: `Match colorful candies in this addictive puzzle game with daily rewards.`,
+        imageUrl: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=2070&auto=format&fit=crop',
+    },
+    {
+        id: 'f5',
+        title: `Mafia Wars`,
+        description: `Build your criminal empire and compete with other players.`,
+        imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2070&auto=format&fit=crop',
     },
 ])
 
@@ -196,13 +208,23 @@ const installedApps = ref<InstalledApp[]>([
     },
     {
         id: 'i2',
-        name: `Stakehouse`,
-        iconUrl: 'https://ui-avatars.com/api/?name=SH&background=f59e0b&color=fff',
+        name: `FarmVille`,
+        iconUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=500&auto=format&fit=crop',
     },
     {
         id: 'i3',
-        name: `Chat`,
-        iconUrl: 'https://ui-avatars.com/api/?name=C&background=ec4899&color=fff',
+        name: `Pet Society`,
+        iconUrl: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?q=80&w=500&auto=format&fit=crop',
+    },
+    {
+        id: 'i4',
+        name: `Texas HoldEm`,
+        iconUrl: 'https://plus.unsplash.com/premium_photo-1694004710242-c90943f0c280?q=80',
+    },
+    {
+        id: 'i5',
+        name: `Quiz Planet`,
+        iconUrl: 'https://images.unsplash.com/photo-1611996575749-79a3a250f948?q=80',
     },
 ])
 
@@ -211,19 +233,79 @@ const trendingApps = ref<TrendingApp[]>([
         id: 't1',
         name: `Rock, Paper, Scissors, Lizard, Spock`,
         publisher: `0xShomari`,
-        iconUrl: 'https://i.ibb.co/xSCKqVbt/icon.webp',
+        iconUrl: 'https://i.ibb.co/xSCKqVbt/icon.webps',
         category: 'games',
     },
     {
-        id: 't2', name: 'DashPay Wallet', publisher: 'Dash Core Group', iconUrl: 'https://ui-avatars.com/api/?name=DW&background=3b82f6&color=fff', category: 'finance' },
+        id: 't2',
+        name: 'FarmVille',
+        publisher: 'Zynga',
+        iconUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=500&auto=format&fit=crop',
+        category: 'games'
+    },
     {
-        id: 't3', name: 'EvoVerse', publisher: 'CommunityDAO', iconUrl: 'https://ui-avatars.com/api/?name=EV&background=ec4899&color=fff', category: 'social' },
+        id: 't3',
+        name: 'Words with Friends',
+        publisher: 'Zynga',
+        iconUrl: 'https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?q=80&w=500&auto=format&fit=crop',
+        category: 'games'
+    },
     {
-        id: 't4', name: 'Mintable Art', publisher: 'Artisan Hub', iconUrl: 'https://ui-avatars.com/api/?name=MA&background=f59e0b&color=fff', category: 'art' },
+        id: 't4',
+        name: 'Candy Crush',
+        publisher: 'King',
+        iconUrl: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=500&auto=format&fit=crop',
+        category: 'games'
+    },
     {
-        id: 't5', name: 'DPNS Manager', publisher: 'Dash Core Group', iconUrl: 'https://ui-avatars.com/api/?name=DPNS&background=14b8a6&color=fff', category: 'utility' },
+        id: 't5',
+        name: 'Pet Society',
+        publisher: 'Playfish',
+        iconUrl: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?q=80&w=500&auto=format&fit=crop',
+        category: 'games'
+    },
     {
-        id: 't6', name: 'CoinFlip', publisher: 'Community Games', iconUrl: 'https://ui-avatars.com/api/?name=CF&background=8b5cf6&color=fff', category: 'games' },
+        id: 't6',
+        name: 'Mafia Wars',
+        publisher: 'Zynga',
+        iconUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=500&auto=format&fit=crop',
+        category: 'games'
+    },
+    {
+        id: 't7',
+        name: 'Texas HoldEm Poker',
+        publisher: 'Zynga',
+        iconUrl: 'https://plus.unsplash.com/premium_photo-1694004710242-c90943f0c280?q=80',
+        category: 'games'
+    },
+    {
+        id: 't8',
+        name: 'Restaurant City',
+        publisher: 'Playfish',
+        iconUrl: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=500&auto=format&fit=crop',
+        category: 'games'
+    },
+    {
+        id: 't9',
+        name: 'Quiz Planet',
+        publisher: 'Fandom',
+        iconUrl: 'https://images.unsplash.com/photo-1611996575749-79a3a250f948?q=80',
+        category: 'games'
+    },
+    {
+        id: 't10',
+        name: 'CityVille',
+        publisher: 'Zynga',
+        iconUrl: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=500&auto=format&fit=crop',
+        category: 'games'
+    },
+    {
+        id: 't11',
+        name: 'FishVille',
+        publisher: 'Zynga',
+        iconUrl: 'https://images.unsplash.com/photo-1592929043000-fbea34bc8ad5?q=80',
+        category: 'games'
+    },
 ])
 
 const categories = ref<Category[]>([
@@ -233,15 +315,30 @@ const categories = ref<Category[]>([
         icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />',
     },
     {
-        id: 'games', name: 'Games', icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />' },
+        id: 'games',
+        name: 'Games',
+        icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />',
+    },
     {
-        id: 'social', name: 'Social', icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962A3 3 0 0115 9.185V6.75a3 3 0 00-3-3h-1.5a3 3 0 00-3 3v2.435a3 3 0 01-1.07 2.275L6 15m3 0v6m0 0h6m-6 0H6" />' },
+        id: 'social',
+        name: 'Social',
+        icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m-7.5-2.962A3 3 0 0115 9.185V6.75a3 3 0 00-3-3h-1.5a3 3 0 00-3 3v2.435a3 3 0 01-1.07 2.275L6 15m3 0v6m0 0h6m-6 0H6" />',
+    },
     {
-        id: 'finance', name: 'Finance', icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.798 0m-15.798 0A60.07 60.07 0 012.25 5.25m15.798 13.5A60.07 60.07 0 002.25 5.25m15.798 13.5V5.25A2.25 2.25 0 0015.75 3h-6a2.25 2.25 0 00-2.25 2.25v13.5" />' },
+        id: 'finance',
+        name: 'Finance',
+        icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.798 0m-15.798 0A60.07 60.07 0 012.25 5.25m15.798 13.5A60.07 60.07 0 002.25 5.25m15.798 13.5V5.25A2.25 2.25 0 0015.75 3h-6a2.25 2.25 0 00-2.25 2.25v13.5" />',
+    },
     {
-        id: 'art', name: 'Art', icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.47 2.118 2.25 2.25 0 01-2.47-2.118c-.113-.028-.227-.06-.337-.098a2.25 2.25 0 01-2.47-2.118 2.25 2.25 0 01.337-.098 3 3 0 005.78-1.128 2.25 2.25 0 012.47-2.118 2.25 2.25 0 012.47 2.118.9.9 0 00.337.098 3 3 0 005.78 1.128 2.25 2.25 0 012.47 2.118 2.25 2.25 0 01-2.47 2.118.9.9 0 00-.337.098 3 3 0 00-5.78-1.128z" />' },
+        id: 'art',
+        name: 'Art',
+        icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.47 2.118 2.25 2.25 0 01-2.47-2.118c-.113-.028-.227-.06-.337-.098a2.25 2.25 0 01-2.47-2.118 2.25 2.25 0 01.337-.098 3 3 0 005.78-1.128 2.25 2.25 0 012.47-2.118 2.25 2.25 0 012.47 2.118.9.9 0 00.337.098 3 3 0 005.78 1.128 2.25 2.25 0 012.47 2.118 2.25 2.25 0 01-2.47 2.118.9.9 0 00-.337.098 3 3 0 00-5.78-1.128z" />',
+    },
     {
-        id: 'utility', name: 'Utility', icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.242 1.451l-1.043.827c-.295.234-.417.62-.292.968.065.176.12.354.16.533.127.564.018 1.18-.292 1.656l-1.043.827a1.125 1.125 0 01-1.451.242l-1.296-2.247a1.125 1.125 0 01-.49-1.37l.456-1.217c.133-.355.072-.75-.124-1.075a6.321 6.321 0 00-.22-.127c-.332-.185-.582-.496-.645-.87l-.213-1.281zm-2.64-1.281c-.09.542-.56.94-1.11.94H3.75c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.32 6.32 0 00-.22-.127c-.324-.196-.72-.257-1.075-.124l-1.217.456a1.125 1.125 0 01-1.37-.49L.324 2.653a1.125 1.125 0 01.242-1.451L1.61 0.376C1.905.142 2.29.02 2.664.143l1.217.456c.355.133.75.072 1.075-.124.073-.044.146-.087.22-.127.332-.185.582-.496.645-.87L7.05 1.281z" />' },
+        id: 'utility',
+        name: 'Utility',
+        icon: '<path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.242 1.451l-1.043.827c-.295.234-.417.62-.292.968.065.176.12.354.16.533.127.564.018 1.18-.292 1.656l-1.043.827a1.125 1.125 0 01-1.451.242l-1.296-2.247a1.125 1.125 0 01-.49-1.37l.456-1.217c.133-.355.072-.75-.124-1.075a6.321 6.321 0 00-.22-.127c-.332-.185-.582-.496-.645-.87l-.213-1.281zm-2.64-1.281c-.09.542-.56.94-1.11.94H3.75c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.063-.374-.313-.686-.645-.87a6.32 6.32 0 00-.22-.127c-.324-.196-.72-.257-1.075-.124l-1.217.456a1.125 1.125 0 01-1.37-.49L.324 2.653a1.125 1.125 0 01.242-1.451L1.61 0.376C1.905.142 2.29.02 2.664.143l1.217.456c.355.133.75.072 1.075-.124.073-.044.146-.087.22-.127.332-.185.582-.496.645-.87L7.05 1.281z" />',
+    },
 ])
 
 /* Computed property to dynamically filter the list. */
