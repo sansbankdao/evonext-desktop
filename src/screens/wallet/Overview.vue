@@ -268,25 +268,32 @@ const assetIconExists = (ticker: string) => {
 onMounted(async () => {
     await nextTick()
 
-    // Always ensure we have mock data if no identity is connected
+    // Ensure we have market data first
+    if (!System.currentDashPrice) {
+        await System.fetchDashPrice()
+    }
+
     if (!Identity.isConnected) {
         console.log('No identity found, loading mock data')
         Wallet.initializeMockData()
-    } else if (Identity.isConnected && Identity.username) {
+    } else {
         console.log('Using identity data for user:', Identity.username)
-        Wallet.user = {
-            name: Identity.username,
-            address: Identity.username
-        }
 
-        if (!Identity.balance) {
-            await Identity.fetchBalance()
-        }
-    }
+        // **FIX: Use the REAL identity ID from Identity.identity.id**
+        const realIdentityId = Identity.identity?.id
+        if (realIdentityId) {
+            Wallet.user = {
+                name: Identity.username || 'Unknown',
+                address: realIdentityId  // ✅ This is "9EMDaGV3QwxrPfaMeuuCTLxtpYv9VFjwrBNSHVpGa3gG"
+            }
+            console.log('✅ Setting wallet user with real identity ID:', realIdentityId)
 
-    // Ensure we have market data
-    if (!System.currentDashPrice) {
-        await System.fetchDashPrice()
+            // Fetch real balances AND transactions
+            await Wallet.refreshBalances()
+        } else {
+            console.warn('❌ No real identity ID found, falling back to mock data')
+            Wallet.initializeMockData()
+        }
     }
 })
 </script>

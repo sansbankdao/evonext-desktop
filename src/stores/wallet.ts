@@ -15,10 +15,128 @@ import {
     DUSD_DECIMAL_PLACES,
     SANS_DECIMAL_PLACES,
 } from '@/constants'
-import type { IAsset, IWalletState } from '@/types'
+import type { IAsset, ITransaction, IWalletState } from '@/types'
 
 import getNetwork from '@/libs/getNetwork'
 import getTokenBalances from '@/libs/getTokenBalances'
+
+/* API helper functions for transactions. */
+const API_BASE_URL = 'https://platform-explorer.pshenmic.dev'
+
+interface IdentityTransfer {
+    amount: number
+    sender: string | null
+    recipient: string
+    timestamp: string
+    txHash: string
+    type: string
+    blockHash: string
+    gasUsed: number
+}
+
+interface TokenTransition {
+    amount: number
+    recipient: string
+    owner: {
+        identifier: string
+        aliases: Array<{
+            alias: string
+            contested: boolean
+            documentId: string
+            status: string
+            timestamp: string
+        }>
+    }
+    action: string
+    stateTransitionHash: string
+    timestamp: string
+    publicNote: string | null
+}
+
+interface ApiResponse<T> {
+    resultSet: T[]
+    pagination: {
+        page: number
+        limit: number
+        total: number
+    }
+}
+
+/**
+ * Fetches identity credit transfers for a given identity
+ */
+const fetchIdentityTransfers = async (identityId: string, limit: number = 10): Promise<IdentityTransfer[]> => {
+    try {
+        const response = await fetch(
+            `${API_BASE_URL}/identity/${identityId}/transfers?page=1&limit=${limit}&order=desc`
+        )
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json() as ApiResponse<IdentityTransfer>
+        return data.resultSet
+    } catch (error) {
+        console.error('Failed to fetch identity transfers:', error)
+        return []
+    }
+}
+
+/**
+ * Fetches token transitions for a given token contract
+ */
+const fetchTokenTransitions = async (contractId: string, limit: number = 10): Promise<TokenTransition[]> => {
+    try {
+        const response = await fetch(
+            `${API_BASE_URL}/token/${contractId}/transitions?page=1&limit=${limit}&order=desc`
+        )
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json() as ApiResponse<TokenTransition>
+        return data.resultSet
+    } catch (error) {
+        console.error('Failed to fetch token transitions:', error)
+        return []
+    }
+}
+
+/**
+ * Converts atomic/satoshi amount to DASH for display
+ */
+const atomicToDash = (atomicAmount: number): number => {
+    const duffs = atomicAmount / 1000 // 1000 credits = 1 duff
+    return duffs / 100000000 // 100,000,000 duffs = 1 DASH
+}
+
+/**
+ * Formats a DASH amount with sign and ticker
+ */
+const formatDashAmount = (amount: number, isPositive: boolean): string => {
+    const sign = isPositive ? '+' : '-'
+    return `${sign}${Math.abs(amount).toFixed(6)} DASH`
+}
+
+/**
+ * Formats a token amount with sign and ticker
+ */
+const formatTokenAmount = (atomicAmount: number, ticker: string, decimals: number, isPositive: boolean): string => {
+    const amount = atomicAmount / (10 ** decimals)
+    const sign = isPositive ? '+' : '-'
+    return `${sign}${Math.abs(amount).toFixed(6)} ${ticker}`
+}
+
+/**
+ * Truncates a hash/address for display
+ */
+const truncateAddress = (address: string): string => {
+    if (!address) return 'Unknown'
+    if (address.length <= 16) return address
+    return `${address.slice(0, 8)}...${address.slice(-8)}`
+}
 
 export const useWalletStore = defineStore('wallet', {
     state: (): IWalletState => ({
@@ -141,7 +259,6 @@ export const useWalletStore = defineStore('wallet', {
             }
 
             const identityId = this.user.address
-            // const Settings = useSettingsStore()
             const network = await getNetwork()
             const system = useSystemStore()
 
@@ -236,6 +353,211 @@ export const useWalletStore = defineStore('wallet', {
             }
         },
 
+        /**
+         * Fetches real transactions from the Dash Platform explorer API
+         */
+        async fetchRealTransactions() {
+            if (!this.user?.address) {
+                console.warn('No user identity available for transaction fetch')
+                return
+            }
+
+            const identityId = this.user.address
+            const network = await getNetwork()
+
+            // Only support mainnet for now
+            if (network !== 'mainnet') {
+                console.log('Transaction fetching only available on Mainnet')
+                this.transactions = []
+                return
+            }
+
+            this.isLoading = true
+            console.log('Fetching real transactions for:', identityId)
+
+            try {
+                // Fetch identity transfers and token transitions concurrently
+                const [identityTransfers, dusdTransitions, sansTransitions] = await Promise.all([
+                    fetchIdentityTransfers(identityId),
+                    fetchTokenTransitions(DUSD_CONTRACT_ID),
+                    fetchTokenTransitions(SANS_CONTRACT_ID)
+                ])
+
+                // Transform identity transfers into transaction objects
+                const identityTransactions: ITransaction[] = identityTransfers.map(transfer => {
+                    const isSent = transfer.sender === identityId
+                    const isReceived = transfer.recipient === identityId
+
+                    let type: 'sent' | 'received'
+                    let title: string
+                    let subtitle: string
+                    let amountStr: string
+
+                    if (transfer.type === 'IDENTITY_CREATE') {
+                        type = 'received'
+                        title = 'New Identity Registered'
+                        subtitle = 'Identity Creation'
+                        const dashAmount = atomicToDash(transfer.amount)
+                        amountStr = formatDashAmount(dashAmount, true)
+                    } else if (transfer.type === 'IDENTITY_CREDIT_TRANSFER') {
+                        if (isSent) {
+                            type = 'sent'
+                            title = 'Sent DASH'
+                            subtitle = `To: ${truncateAddress(transfer.recipient)}`
+                            const dashAmount = atomicToDash(transfer.amount)
+                            amountStr = formatDashAmount(dashAmount, false)
+                        } else if (isReceived) {
+                            type = 'received'
+                            title = 'Received DASH'
+                            subtitle = `From: ${truncateAddress(transfer.sender || 'Unknown')}`
+                            const dashAmount = atomicToDash(transfer.amount)
+                            amountStr = formatDashAmount(dashAmount, true)
+                        } else {
+                            type = 'received'
+                            title = 'Credit Transfer'
+                            subtitle = 'Unknown'
+                            const dashAmount = atomicToDash(transfer.amount)
+                            amountStr = formatDashAmount(dashAmount, true)
+                        }
+                    } else {
+                        type = 'received'
+                        title = transfer.type
+                        subtitle = 'Unknown'
+                        const dashAmount = atomicToDash(transfer.amount)
+                        amountStr = formatDashAmount(dashAmount, true)
+                    }
+
+                    return {
+                        id: transfer.txHash,
+                        type,
+                        title,
+                        subtitle,
+                        amount: amountStr,
+                        status: 'Completed' as const,
+                        date: new Date(transfer.timestamp)
+                    }
+                })
+
+                // Transform DUSD transitions
+                const dusdTransactions: ITransaction[] = []
+                for (const transition of dusdTransitions) {
+                    if (transition.owner.identifier !== identityId && transition.recipient !== identityId) {
+                        continue
+                    }
+
+                    const isSent = transition.owner.identifier === identityId
+                    const isReceived = transition.recipient === identityId
+
+                    let type: 'sent' | 'received' = 'received'
+                    let title = ''
+                    let subtitle = ''
+                    let amountStr = ''
+
+                    switch (transition.action) {
+                        case 'TOKEN_MINT':
+                            type = 'received'
+                            title = 'Minted DUSD'
+                            subtitle = 'Token Mint'
+                            amountStr = formatTokenAmount(transition.amount, 'DUSD', DUSD_DECIMAL_PLACES, true)
+                            break
+
+                        case 'TOKEN_TRANSFER':
+                            if (isSent) {
+                                type = 'sent'
+                                title = 'Sent DUSD'
+                                subtitle = `To: ${truncateAddress(transition.recipient)}`
+                                amountStr = formatTokenAmount(transition.amount, 'DUSD', DUSD_DECIMAL_PLACES, false)
+                            } else if (isReceived) {
+                                type = 'received'
+                                title = 'Received DUSD'
+                                subtitle = `From: ${truncateAddress(transition.owner.identifier)}`
+                                amountStr = formatTokenAmount(transition.amount, 'DUSD', DUSD_DECIMAL_PLACES, true)
+                            }
+                            break
+
+                        default:
+                            continue
+                    }
+
+                    dusdTransactions.push({
+                        id: transition.stateTransitionHash,
+                        type,
+                        title,
+                        subtitle,
+                        amount: amountStr,
+                        status: 'Completed' as const,
+                        date: new Date(transition.timestamp)
+                    })
+                }
+
+                // Transform SANS transitions
+                const sansTransactions: ITransaction[] = []
+                for (const transition of sansTransitions) {
+                    if (transition.owner.identifier !== identityId && transition.recipient !== identityId) {
+                        continue
+                    }
+
+                    const isSent = transition.owner.identifier === identityId
+                    const isReceived = transition.recipient === identityId
+
+                    let type: 'sent' | 'received' = 'received'
+                    let title = ''
+                    let subtitle = ''
+                    let amountStr = ''
+
+                    switch (transition.action) {
+                        case 'TOKEN_MINT':
+                            type = 'received'
+                            title = 'Minted SANS'
+                            subtitle = 'Token Mint'
+                            amountStr = formatTokenAmount(transition.amount, 'SANS', SANS_DECIMAL_PLACES, true)
+                            break
+
+                        case 'TOKEN_TRANSFER':
+                            if (isSent) {
+                                type = 'sent'
+                                title = 'Sent SANS'
+                                subtitle = `To: ${truncateAddress(transition.recipient)}`
+                                amountStr = formatTokenAmount(transition.amount, 'SANS', SANS_DECIMAL_PLACES, false)
+                            } else if (isReceived) {
+                                type = 'received'
+                                title = 'Received SANS'
+                                subtitle = `From: ${truncateAddress(transition.owner.identifier)}`
+                                amountStr = formatTokenAmount(transition.amount, 'SANS', SANS_DECIMAL_PLACES, true)
+                            }
+                            break
+
+                        default:
+                            continue
+                    }
+
+                    sansTransactions.push({
+                        id: transition.stateTransitionHash,
+                        type,
+                        title,
+                        subtitle,
+                        amount: amountStr,
+                        status: 'Completed' as const,
+                        date: new Date(transition.timestamp)
+                    })
+                }
+
+                // Combine all transactions and sort by date (most recent first)
+                this.transactions = [
+                    ...identityTransactions,
+                    ...dusdTransactions,
+                    ...sansTransactions
+                ].sort((a, b) => b.date.getTime() - a.date.getTime())
+
+                console.log(`Loaded ${this.transactions.length} real transactions`)
+            } catch (error) {
+                console.error('Failed to fetch real transactions:', error)
+                this.transactions = []
+            } finally {
+                this.isLoading = false
+            }
+        },
+
         async refreshBalances() {
             this.isLoading = true
             console.log('Refreshing balances...')
@@ -247,11 +569,14 @@ export const useWalletStore = defineStore('wallet', {
             // Fetch live balances (CREDITS, DUSD, SANS)
             await this.fetchLiveBalances()
 
+            // Fetch real transactions
+            await this.fetchRealTransactions()
+
             // Update asset prices with new DASH price
             this.updateAssetPrices()
 
             this.isLoading = false
-            console.log('Balances refreshed.')
+            console.log('Balances and transactions refreshed.')
         },
     },
 })
