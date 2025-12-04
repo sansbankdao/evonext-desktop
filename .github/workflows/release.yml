@@ -20,11 +20,11 @@ jobs:
             README.md
           body_path: CHANGELOG.md
 
-  build-linux-ubuntu-2204:
+  build-linux-debian-11:
     needs: create-release
     runs-on: ubuntu-latest
     container:
-      image: ubuntu:22.04
+      image: debian:bullseye
       options: --privileged
     defaults:
       run:
@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Environment
+      - name: Setup Debian Environment
         run: |
           export DEBIAN_FRONTEND=noninteractive
           export TZ=America/New_York
@@ -40,33 +40,24 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends tzdata
 
-      - name: Install Basic Tools
+      - name: Install Dependencies
         run: |
+          echo "=== Installing dependencies for Debian Bullseye ==="
+          echo "Debian version:"
+          cat /etc/debian_version
+
+          # Update and install basic tools
+          apt-get update
           apt-get install -y --no-install-recommends curl wget build-essential pkg-config ca-certificates gnupg lsb-release software-properties-common
 
-      - name: Check Packages Are Available
-        run: |
-          echo "=== Checking Ubuntu Version ==="
-          lsb_release -a
-          echo "=== Checking if packages exist ==="
-          apt-cache show libwebkit2gtk-4.1-dev > /dev/null 2>&1 && echo "✓ libwebkit2gtk-4.1-dev available" || echo "✗ libwebkit2gtk-4.1-dev NOT available"
-          apt-cache show libglib2.0-dev > /dev/null 2>&1 && echo "✓ libglib2.0-dev available" || echo "✗ libglib2.0-dev NOT available"
+          # Install ALL Tauri dependencies in one command
+          apt-get install -y --no-install-recommends libwebkit2gtk-4.0-dev libjavascriptcoregtk-4.0-dev libglib2.0-dev libgtk-3-dev libappindicator3-dev librsvg2-dev libssl-dev patchelf libcairo2-dev libpango1.0-dev libatk1.0-dev libgdk-pixbuf2.0-dev libsoup2.4-dev
 
-      - name: Install Tauri Dependencies
-        run: |
-          echo "=== Installing all Tauri dependencies ==="
-          # All on one line to avoid parsing issues
-          apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev libglib2.0-dev libgtk-3-dev libappindicator3-dev librsvg2-dev libssl-dev patchelf libcairo2-dev libpango1.0-dev libatk1.0-dev libgdk-pixbuf2.0-dev libsoup-3.0-dev
+          # Install xdg-utils for AppImage bundling
+          apt-get install -y --no-install-recommends xdg-utils file desktop-file-utils libfuse2
 
-      - name: Install Optional Ayatana
-        run: |
-          echo "=== Installing optional packages ==="
-          apt-get install -y --no-install-recommends libayatana-appindicator3-dev 2>/dev/null || echo "libayatana-appindicator3-dev not available, continuing..."
-
-      - name: Clean Up
-        run: |
-          apt-get clean
-          rm -rf /var/lib/apt/lists/*
+          # Try to install ayatana (optional)
+          apt-get install -y --no-install-recommends libayatana-appindicator3-dev 2>/dev/null || echo "libayatana-appindicator3-dev not available"
 
       - name: Install Node.js 20
         run: |
@@ -74,7 +65,6 @@ jobs:
           curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
           apt-get install -y nodejs
           echo "Node.js $(node --version)"
-          echo "npm $(npm --version)"
 
       - name: Install Rust
         run: |
@@ -90,41 +80,41 @@ jobs:
 
       - name: Install pnpm
         run: |
-          echo "=== Installing pnpm ==="
           npm install -g pnpm@8
           echo "pnpm $(pnpm --version)"
 
       - name: Install frontend dependencies
+        run: pnpm install
+
+      - name: Verify Dependencies
         run: |
-          echo "=== Installing frontend dependencies ==="
-          pnpm install
+          echo "=== Verifying dependencies ==="
+          which xdg-open && echo "✓ xdg-open found"
 
-      - name: Verify Build Environment
+          echo "=== Checking library versions ==="
+          pkg-config --modversion glib-2.0 && echo "✓ GLib version: $(pkg-config --modversion glib-2.0)"
+          pkg-config --modversion gtk+-3.0 && echo "✓ GTK version: $(pkg-config --modversion gtk+-3.0)"
+
+          # Check WebKit version - might be 4.0 or not found
+          if pkg-config --exists webkit2gtk-4.0; then
+            echo "✓ WebKit2GTK 4.0 version: $(pkg-config --modversion webkit2gtk-4.0)"
+          elif pkg-config --exists webkit2gtk-4.1; then
+            echo "✓ WebKit2GTK 4.1 version: $(pkg-config --modversion webkit2gtk-4.1)"
+          else
+            echo "✗ WebKit2GTK not found via pkg-config"
+          fi
+
+      - name: Build Tauri Application (Try with WebKit 4.0)
+        id: build-debian
+        continue-on-error: true
         run: |
-          echo "=== Verifying build environment ==="
-          which cargo && echo "✓ cargo found"
-          which rustc && echo "✓ rustc found"
-          which node && echo "✓ node found"
-          which pnpm && echo "✓ pnpm found"
+          echo "=== Building Tauri on Debian Bullseye ==="
+          echo "Trying with WebKit2GTK 4.0 (Debian Bullseye default)"
 
-          echo "=== Checking critical libraries ==="
-          pkg-config --modversion glib-2.0 && echo "✓ glib-2.0 found" || echo "✗ glib-2.0 NOT found"
-          pkg-config --modversion gtk+-3.0 && echo "✓ gtk+-3.0 found" || echo "✗ gtk+-3.0 NOT found"
-          pkg-config --modversion webkit2gtk-4.1 && echo "✓ webkit2gtk-4.1 found" || echo "✗ webkit2gtk-4.1 NOT found"
-          pkg-config --modversion javascriptcoregtk-4.1 && echo "✓ javascriptcoregtk-4.1 found" || echo "✗ javascriptcoregtk-4.1 NOT found"
+          # Force pkg-config to find WebKit 4.0
+          export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig
+          echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
 
-      - name: Build Tauri Application
-        run: |
-          echo "=== Building Tauri application ==="
-          echo "Environment:"
-          echo "PKG_CONFIG_PATH=${PKG_CONFIG_PATH:-not set}"
-          echo "PATH: $PATH"
-
-          # Set PKG_CONFIG_PATH if not already set
-          export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig:${PKG_CONFIG_PATH:-}
-          echo "Using PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
-
-          # Build
           pnpm tauri build --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -132,7 +122,67 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           PATH: ${{ env.PATH }}:${{ env.CARGO_BIN }}
 
-      - name: Upload Linux Artifacts
+      - name: Fallback to Ubuntu 22.04 if Debian Fails
+        if: steps.build-debian.outcome == 'failure'
+        uses: addnab/docker-run-action@v3
+        with:
+          image: ubuntu:22.04
+          options: -v ${{ github.workspace }}:/workspace -w /workspace --privileged
+          shell: bash
+          run: |
+            echo "=== Debian 11 failed, falling back to Ubuntu 22.04 ==="
+
+            # Setup
+            export DEBIAN_FRONTEND=noninteractive
+            export TZ=America/New_York
+            ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
+
+            apt-get update
+            apt-get install -y --no-install-recommends tzdata
+
+            # Install Ubuntu 22.04 dependencies (WebKit 4.1)
+            apt-get install -y --no-install-recommends \
+              curl wget build-essential pkg-config ca-certificates \
+              libwebkit2gtk-4.1-dev \
+              libjavascriptcoregtk-4.1-dev \
+              libglib2.0-dev \
+              libgtk-3-dev \
+              libappindicator3-dev \
+              librsvg2-dev \
+              libssl-dev \
+              patchelf \
+              libcairo2-dev \
+              libpango1.0-dev \
+              libatk1.0-dev \
+              libgdk-pixbuf2.0-dev \
+              libsoup-3.0-dev \
+              xdg-utils \
+              file \
+              desktop-file-utils \
+              libfuse2
+
+            # Install Node.js
+            curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+            apt-get install -y nodejs
+            npm install -g pnpm@8
+
+            # Install Rust
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            source "$HOME/.cargo/env"
+            rustup default stable
+            rustup target add x86_64-unknown-linux-gnu
+
+            # Install dependencies and build
+            cd /workspace
+            pnpm install
+            pnpm tauri build --verbose
+
+            # Move artifacts to workspace
+            mkdir -p /workspace/debian-fallback-artifacts
+            cp -r src-tauri/target/release/bundle/* /workspace/debian-fallback-artifacts/
+
+      - name: Upload Linux Artifacts from Debian
+        if: steps.build-debian.outcome == 'success'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -140,6 +190,16 @@ jobs:
             src-tauri/target/release/bundle/appimage/*.AppImage
             src-tauri/target/release/bundle/deb/*.deb
             src-tauri/target/release/bundle/rpm/*.rpm
+
+      - name: Upload Linux Artifacts from Ubuntu Fallback
+        if: steps.build-debian.outcome == 'failure'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            debian-fallback-artifacts/appimage/*.AppImage
+            debian-fallback-artifacts/deb/*.deb
+            debian-fallback-artifacts/rpm/*.rpm
 
   build-macos:
     needs: create-release
@@ -204,7 +264,7 @@ jobs:
 
   publish-release:
     runs-on: ubuntu-latest
-    needs: [build-linux-ubuntu-2204, build-macos, build-windows]
+    needs: [build-linux-debian-11, build-macos, build-windows]
     steps:
       - name: Publish Release
         uses: softprops/action-gh-release@v2
