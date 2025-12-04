@@ -23,7 +23,7 @@ jobs:
   build-linux:
     needs: create-release
     runs-on: ubuntu-latest
-    container: ubuntu:20.04  # glibc 2.31 (Ubuntu 20.04+)
+    container: ubuntu:20.04
     steps:
       - uses: actions/checkout@v4
       - name: Install basic tools (non-interactive)
@@ -47,17 +47,20 @@ jobs:
           version: 8
       - name: Install frontend dependencies
         run: pnpm install
-      - name: Install Ubuntu 20.04 Tauri v2 dependencies
+      - name: Install COMPLETE Ubuntu 20.04 Tauri v2 dependencies
         run: |
           export DEBIAN_FRONTEND=noninteractive
           apt-get install -y \
+            libglib2.0-dev \
+            libgirepository1.0-dev \
+            libgtk-3-dev \
             libwebkit2gtk-4.0-dev \
             libappindicator3-dev \
+            libayatana-appindicator3-dev \
             librsvg2-dev \
             patchelf \
             libssl-dev \
-            libgtk-3-dev \
-            libayatana-appindicator3-dev
+            libgdk-pixbuf2.0-dev
       - name: Build Application
         run: pnpm tauri build
         env:
@@ -140,13 +143,15 @@ jobs:
   publish-release:
     runs-on: ubuntu-latest
     needs: [build-linux, build-macos, build-windows]
-    if: always()  # Runs even if builds fail (for cleanup)
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
+
+      - name: List artifacts (debug)
+        run: ls -laR artifacts/
 
       - name: Publish Release
         uses: softprops/action-gh-release@v2
