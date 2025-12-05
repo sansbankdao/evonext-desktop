@@ -1,18 +1,19 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Expanded Support for Older Linux Systems
+### Display Your Assets and Transaction History
 
-This latest version of EvoNext extends support to Linux systems running older Glibc (v2.35+).
+This latest version of EvoNext enables FULL support for both Sansnote (SANS) and Dash USD (DUSD).
 
 # Changelog
 
 ## Latest Features:
 
-- Package: Extended support to Glibc (v2.35+).
+- Assets: Display all assets.
+- History: Display your full transaction (aka transition) history.
 
 ## Bugfixes:
 
-- none
+- Removed mock (asset) data.
 
 ## Notes:
 
