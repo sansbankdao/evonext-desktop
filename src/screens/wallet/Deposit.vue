@@ -112,9 +112,9 @@ const darkMode = computed(() => Settings.theme === 'dark')
 const copyButtonText = ref('Copy Address')
 
 onMounted(() => {
-    if (!Wallet.user) {
-        Wallet.initializeMockData()
-    }
+    // if (!Wallet.user) {
+    //     Wallet.initializeMockData()
+    // }
 })
 
 const copyAddress = async () => {

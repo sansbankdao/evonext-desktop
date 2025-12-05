@@ -156,9 +156,9 @@ const getStatusClasses = (status: string) => {
 const assetIconExists = (_ticker: string) => true // Simplified
 
 onMounted(() => {
-    if (!Wallet.user) {
-        Wallet.initializeMockData()
-    }
+    // if (!Wallet.user) {
+    //     Wallet.initializeMockData()
+    // }
     if (!selectedAsset.value) {
         router.back() // Redirect if invalid ticker
     }

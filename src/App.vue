@@ -85,9 +85,9 @@ onMounted(async () => {
     await Identity.initFromStorage()
 
     // Initialize wallet (sets user identity for balance fetching)
-    if (Wallet.assets.length === 0) {
-        Wallet.initializeMockData()
-    }
+    // if (Wallet.assets.length === 0) {
+    //     Wallet.initializeMockData()
+    // }
 
     // Load LIVE wallet balances (CREDITS, DUSD, SANS)
     await Wallet.refreshBalances()

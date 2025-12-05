@@ -202,9 +202,9 @@ const setMaxAmount = () => {
 }
 
 onMounted(async () => {
-    if (Wallet.assets.length === 0) {
-        Wallet.initializeMockData()
-    }
+    // if (Wallet.assets.length === 0) {
+    //     Wallet.initializeMockData()
+    // }
 })
 
 const IDENTITY_IDX = 0

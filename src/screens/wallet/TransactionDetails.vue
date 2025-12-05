@@ -103,9 +103,9 @@ const getStatusClasses = (status: string) => {
 }
 
 onMounted(() => {
-    if (!Wallet.user) {
-        Wallet.initializeMockData()
-    }
+    // if (!Wallet.user) {
+    //     Wallet.initializeMockData()
+    // }
     if (!selectedTx.value) {
         router.back() // Redirect if invalid ID
     }
