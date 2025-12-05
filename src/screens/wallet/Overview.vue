@@ -275,7 +275,7 @@ onMounted(async () => {
 
     if (!Identity.isConnected) {
         console.log('No identity found, loading mock data')
-        Wallet.initializeMockData()
+        // Wallet.initializeMockData()
     } else {
         console.log('Using identity data for user:', Identity.username)
 
@@ -292,7 +292,7 @@ onMounted(async () => {
             await Wallet.refreshBalances()
         } else {
             console.warn('❌ No real identity ID found, falling back to mock data')
-            Wallet.initializeMockData()
+            // Wallet.initializeMockData()
         }
     }
 })

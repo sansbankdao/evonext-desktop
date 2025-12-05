@@ -189,7 +189,7 @@ const totalBalance = computed(() => {
     }
 
     // Fallback to mock
-    return { dash: 12345.67 / System.currentDashPrice, usd: 12345.67, credits: 0, duffs: 0 }
+    return { dash: 0.00, usd: 0.00, credits: 0, duffs: 0 }
 })
 
 const formatCurrency = (value: number) => {

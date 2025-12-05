@@ -179,51 +179,51 @@ export const useWalletStore = defineStore('wallet', {
         /**
          * Populates the store with mock data for development.
          */
-        initializeMockData() {
-            const system = useSystemStore()
-            const dashPrice = system.currentDashPrice
+        // initializeMockData() {
+        //     const system = useSystemStore()
+        //     const dashPrice = system.currentDashPrice
 
-            // Only DASH has mock balance, others will be loaded live
-            this.assets = [
-                { ticker: 'DASH', name: 'Dash Coins', amount: 50.00, usdValue: 50.00 * dashPrice },
-            ]
+        //     // Only DASH has mock balance, others will be loaded live
+        //     this.assets = [
+        //         { ticker: 'DASH', name: 'Dash Coins', amount: 50.00, usdValue: 50.00 * dashPrice },
+        //     ]
 
-            this.transactions = [
-                {
-                    id: 'tx1',
-                    type: 'sent',
-                    title: 'Sent DASH',
-                    subtitle: 'To: EWSqsaghuw...AkJWRTpY',
-                    amount: '-0.1 DASH',
-                    status: 'Completed',
-                    date: new Date('2024-01-15T10:30:00Z')
-                },
-                {
-                    id: 'tx2',
-                    type: 'received',
-                    title: 'Received DUSD',
-                    subtitle: 'From: 6Eb4tQdp24...cj1m87sj',
-                    amount: '+500.00 DUSD',
-                    status: 'Completed',
-                    date: new Date('2024-01-14T14:45:00Z')
-                },
-                {
-                    id: 'tx3',
-                    type: 'swap',
-                    title: 'Swap DASH to DUSD',
-                    subtitle: 'DashSwap Router',
-                    amount: '1.025 DASH',
-                    status: 'Pending...',
-                    date: new Date()
-                },
-            ]
+        //     this.transactions = [
+        //         {
+        //             id: 'tx1',
+        //             type: 'sent',
+        //             title: 'Sent DASH',
+        //             subtitle: 'To: EWSqsaghuw...AkJWRTpY',
+        //             amount: '-0.1 DASH',
+        //             status: 'Completed',
+        //             date: new Date('2024-01-15T10:30:00Z')
+        //         },
+        //         {
+        //             id: 'tx2',
+        //             type: 'received',
+        //             title: 'Received DUSD',
+        //             subtitle: 'From: 6Eb4tQdp24...cj1m87sj',
+        //             amount: '+500.00 DUSD',
+        //             status: 'Completed',
+        //             date: new Date('2024-01-14T14:45:00Z')
+        //         },
+        //         {
+        //             id: 'tx3',
+        //             type: 'swap',
+        //             title: 'Swap DASH to DUSD',
+        //             subtitle: 'DashSwap Router',
+        //             amount: '1.025 DASH',
+        //             status: 'Pending...',
+        //             date: new Date()
+        //         },
+        //     ]
 
-            this.balanceChange = {
-                isPositive: true,
-                percent: 1.25,
-                amount: 152.34,
-            }
-        },
+        //     this.balanceChange = {
+        //         isPositive: true,
+        //         percent: 1.25,
+        //         amount: 152.34,
+        //     }
+        // },
 
         /**
          * Updates USD values based on current DASH price and hardcoded token prices
