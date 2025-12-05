@@ -39,7 +39,7 @@
                     <!-- 2. Installed Apps -->
                     <div>
                         <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
-                            My Apps
+                            Installed Apps
                         </h2>
 
                         <div class="flex space-x-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-slate-500 dark:scrollbar-thumb-slate-700 scrollbar-track-slate-100 dark:scrollbar-track-slate-800">
@@ -171,7 +171,7 @@ const featuredApps = ref<FeaturedApp[]>([
     {
         id: 'f1',
         title: `Rock, Paper, Scissors, Lizard, Spock`,
-        description: `Ultimate P2P strategy game. Win real Dash USD prizes in every match.`,
+        description: `Come play the ultimate P2P strategy game with a chance to win real Dash USD in every match.`,
         imageUrl: 'https://i.ibb.co/7JwB98cQ/banner.webp',
     },
     {
@@ -209,12 +209,12 @@ const installedApps = ref<InstalledApp[]>([
     {
         id: 'i2',
         name: `FarmVille`,
-        iconUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=500&auto=format&fit=crop',
+        iconUrl: 'https://i.ibb.co/ZzXNGKD5/tea.png',
     },
     {
         id: 'i3',
         name: `Pet Society`,
-        iconUrl: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?q=80&w=500&auto=format&fit=crop',
+        iconUrl: 'https://i.ibb.co/zVqBq08C/dog.png',
     },
     {
         id: 'i4',

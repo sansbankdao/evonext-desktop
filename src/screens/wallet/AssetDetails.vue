@@ -9,6 +9,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                     </svg>
                 </button>
+
                 <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">
                     {{ selectedAsset?.name || 'Asset Details' }}
                 </h1>
@@ -30,15 +31,30 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
+
                     <div>
-                        <h2 class="text-4xl font-black text-slate-900 dark:text-slate-100 mb-1 tracking-tight">{{ selectedAsset.name }}</h2>
-                        <p class="text-2xl font-bold text-slate-600 dark:text-slate-400 font-mono tracking-widest uppercase">{{ selectedAsset.ticker }}</p>
+                        <h2 class="text-4xl font-black text-slate-900 dark:text-slate-100 mb-1 tracking-tight">
+                            {{ selectedAsset.name }}
+                        </h2>
+
+                        <p class="text-2xl font-bold text-slate-600 dark:text-slate-400 font-mono tracking-widest uppercase">
+                            {{ selectedAsset.ticker }}
+                        </p>
                     </div>
                 </div>
+
                 <div class="text-right">
-                    <p class="text-5xl font-black text-slate-900 dark:text-slate-100 mb-2">{{ selectedAsset.amount.toLocaleString() }}</p>
-                    <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mb-1 font-mono">{{ selectedAsset.ticker }}</p>
-                    <p class="text-xl text-slate-600 dark:text-slate-400 font-bold">{{ formatCurrency(selectedAsset.usdValue) }}</p>
+                    <p class="text-5xl font-black text-slate-900 dark:text-slate-100 mb-2">
+                        {{ selectedAsset.amount.toLocaleString() }}
+                    </p>
+
+                    <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mb-1 font-mono">
+                        {{ selectedAsset.ticker }}
+                    </p>
+
+                    <p class="text-xl text-slate-600 dark:text-slate-400 font-bold">
+                        {{ formatCurrency(selectedAsset.usdValue) }}
+                    </p>
                 </div>
             </div>
 
@@ -50,6 +66,7 @@
                     </svg>
                     <span>Send</span>
                 </button>
+
                 <button class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black py-5 px-8 rounded-2xl hover:from-emerald-600 hover:to-emerald-700 transition-all duration-200 shadow-2xl hover:shadow-3xl hover:-translate-y-1 focus:ring-4 focus:ring-emerald-400/40 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900 text-lg tracking-wide">
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -66,6 +83,7 @@
                     </svg>
                     Recent Transactions
                 </h3>
+
                 <div class="space-y-4 max-h-96 overflow-y-auto">
                     <div
                         v-for="tx in filteredTransactions"
@@ -81,29 +99,47 @@
                                 <svg v-if="tx.type === 'sent'" class="h-7 w-7 text-red-500 hover:text-red-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
                                 </svg>
+
                                 <svg v-if="tx.type === 'received'" class="h-7 w-7 text-emerald-500 hover:text-emerald-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                                 </svg>
                             </div>
+
                             <div>
-                                <p class="font-black text-2xl text-slate-900 dark:text-slate-100 truncate">{{ tx.title }}</p>
-                                <p class="text-lg text-slate-600 dark:text-slate-400 font-mono font-bold truncate">{{ tx.subtitle }}</p>
+                                <p class="font-black text-2xl text-slate-900 dark:text-slate-100 truncate">
+                                    {{ tx.title }}
+                                </p>
+
+                                <p class="text-lg text-slate-600 dark:text-slate-400 font-mono font-bold truncate">
+                                    {{ tx.subtitle }}
+                                </p>
                             </div>
                         </div>
+
                         <div class="text-right space-y-2">
-                            <p class="font-black text-3xl text-slate-900 dark:text-slate-100">{{ tx.amount }}</p>
+                            <p class="font-black text-3xl text-slate-900 dark:text-slate-100">
+                                {{ tx.amount }}
+                            </p>
+
                             <span class="px-6 py-3 rounded-2xl font-bold text-lg shadow-lg" :class="getStatusClasses(tx.status) + ' hover:shadow-xl transition-all duration-200'">
                                 {{ tx.status }}
                             </span>
                         </div>
                     </div>
                 </div>
+
                 <div v-if="filteredTransactions.length === 0" class="text-center py-16 text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-700/30 rounded-2xl p-8 border-2 border-slate-200/50 dark:border-slate-600">
                     <svg class="w-32 h-32 mx-auto mb-8 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <p class="text-3xl font-black mb-4 text-slate-600 dark:text-slate-300">No transactions</p>
-                    <p class="text-xl font-bold text-slate-500 dark:text-slate-400">for this asset yet</p>
+
+                    <p class="text-3xl font-black mb-4 text-slate-600 dark:text-slate-300">
+                        No transactions
+                    </p>
+
+                    <p class="text-xl font-bold text-slate-500 dark:text-slate-400">
+                        for this asset yet
+                    </p>
                 </div>
             </div>
         </div>
@@ -112,8 +148,14 @@
             <svg class="w-32 h-32 mx-auto mb-8 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h2 class="text-4xl font-black text-slate-600 dark:text-slate-400 mb-4">Asset Not Found</h2>
-            <p class="text-xl text-slate-500 dark:text-slate-400">Please select a valid asset from the overview</p>
+
+            <h2 class="text-4xl font-black text-slate-600 dark:text-slate-400 mb-4">
+                Asset Not Found
+            </h2>
+
+            <p class="text-xl text-slate-500 dark:text-slate-400">
+                Please select a valid asset from the overview
+            </p>
         </div>
     </main>
 </template>
