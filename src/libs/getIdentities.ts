@@ -132,7 +132,7 @@ export default async (): Promise<IIdentity[] | null> => {
         if (typeof hash160Result !== 'undefined' && hash160Result !== null) {
             identities.push({
                 id: hash160Result.identityId,
-                idx: i,
+                identity_idx: i,
                 publicKeys: hash160Result.regPubKeys.map((_key: IPublicKey) => {
                     return {
                         id: _key.id,
@@ -158,7 +158,7 @@ export default async (): Promise<IIdentity[] | null> => {
         if (typeof secp256k1Result !== 'undefined' && secp256k1Result !== null) {
             identities.push({
                 id: secp256k1Result.identityId,
-                idx: i,
+                identity_idx: i,
                 publicKeys: secp256k1Result.regPubKeys.map((_key: IPublicKey) => {
                     return {
                         id: _key.id,

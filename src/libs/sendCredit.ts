@@ -8,10 +8,8 @@ import { PrivateKeyWASM } from 'pshenmic-dpp'
 import getNetwork from './getNetwork'
 import getTransferKey from './getTransferKey'
 import type {
-    // IKeyTypes,
     ITxError,
     ITxSuccess,
-    // ITokenPaymentInfo,
 } from '@/types'
 
 // NOTE: Minimum credit transfer amount enforced by the protocol (0.000001 DASH).
@@ -53,13 +51,16 @@ export default async (
     /* Request identity nonce. */
     const identityNonce = await sdk.identities.getIdentityNonce(_identityId)
 
-    /* Create unsigned identity credit transfer state transition. */
-    const stateTransition = sdk.identities.createStateTransition('creditTransfer', {
+    const payload = {
         identityId: _identityId,
         amount: amountInCredits,
         recipientId: _receiver,
-        identityNonce: identityNonce + BigInt(1) // FIXME MAYBE INCREMENT MANUALLY??
-    })
+        identityNonce: (identityNonce + BigInt(1)) // FIXME MAYBE INCREMENT MANUALLY??
+    }
+
+    /* Create unsigned identity credit transfer state transition. */
+    const stateTransition = sdk.identities
+        .createStateTransition('creditTransfer', payload)
 
     /* Set public keys. */
     const identityPublicKeys = identity.getPublicKeys()
@@ -78,7 +79,6 @@ export default async (
 
     /* Wait for confirmation. */
     await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
-    alert('Transaction Successful -- Your TXID is:\n' + stateTransition.hash(false))
 
     /* Return transaction ID. */
     return { txid: stateTransition.hash(false) }

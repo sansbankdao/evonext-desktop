@@ -71,7 +71,6 @@ export const identityActions = () => ({
             state.isAuthenticated = true
 
             try {
-// alert(JSON.stringify(primaryIdentity, null, 2))
                 await this.queryIdentityDetails(primaryIdentity.id, primaryIdentity.identity_idx)
             } catch (error) {
                 console.warn('Failed to query detailed identity information:', error)
@@ -106,7 +105,8 @@ export const identityActions = () => ({
 
             /* Retrieve identity. */
             const identity = await sdk.identities.getIdentityByIdentifier(identityId)
-console.log('SDK Identity details:', identity)
+            console.log('SDK Identity details:', identity)
+
 
             const publicKeys = identity.getPublicKeys().map((_key, _index) => {
                 return {
@@ -120,14 +120,14 @@ console.log('SDK Identity details:', identity)
                     disabled_at: _key.disabledAt,
                 }
             })
-console.log('Identity public keys:', publicKeys)
+            console.log('Identity public keys:', publicKeys)
 
             /* Set revision. */
             const revision = identity.revision || BigInt(0)
-console.log('Identity revision:', revision)
-alert('identityId: ' + identityId)
-alert('identityIdx: ' + identityIdx)
-            await this.updateIdentityWithSdkData(identityId, identityIdx, publicKeys, revision)
+            console.log('Identity revision:', revision)
+
+            await this.updateIdentityWithSdkData(
+                identityId, identityIdx, publicKeys, revision)
 
             return {
                 identity,
@@ -151,7 +151,8 @@ alert('identityIdx: ' + identityIdx)
             }
 
             if (state.identity?.id) {
-                const details = await this.queryIdentityDetails(state.identity.id)
+                const details = await this.queryIdentityDetails(
+                    state.identity.id, state.identity.identity_idx)
                 return details.publicKeys || []
             }
 

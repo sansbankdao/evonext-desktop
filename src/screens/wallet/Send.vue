@@ -258,15 +258,18 @@ const handleSend = async () => {
 
             /* Request identity index. */
             const identityIdx = await getIdentityIdx()
-// alert('IDENTITY INDEX: ' + identityIdx)
+
             const result = await sendCredit(
                 identityId, identityIdx, recipient.value, credits)
             console.log('Send Credit Result:', result)
 
-            // if (confirm('Transaction successful! Would you like to view explorer.')) {
-            //     window.open(`https://platform-explorer.com/transaction/${result.txid}`)
-            // }
-
+            /* Validate result. */
+            if ('txid' in result) {
+                alert('Transaction Successful -- Your TXID is:\n' + result.txid)
+                // if (confirm('Transaction successful! Would you like to view explorer.')) {
+                //     window.open(`https://platform-explorer.com/transaction/${result.txid}`)
+                // }
+            }
         } else if (['SANS', 'DUSD'].includes(selectedAsset.value.ticker) && amount.value) {
             /* Get token contract ID based on network and ticker. */
             const isTestnet = (await getNetwork()) === 'testnet'
@@ -290,7 +293,7 @@ const handleSend = async () => {
 
             /* Request identity index. */
             const identityIdx = await getIdentityIdx()
-alert('IDENTITY INDEX: ' + identityIdx)
+
             const result = await sendToken(
                 identityId,
                 identityIdx,
@@ -300,10 +303,13 @@ alert('IDENTITY INDEX: ' + identityIdx)
             )
             console.log('Send Token Result:', result)
 
-            // if (confirm('Transaction successful! Would you like to view explorer.')) {
-            //     window.open(`https://platform-explorer.com/transaction/${result.txid}`)
-            // }
-
+            /* Validate result. */
+            if ('txid' in result) {
+                alert('Transaction Successful -- Your TXID is:\n' + result.txid)
+                // if (confirm('Transaction successful! Would you like to view explorer.')) {
+                //     window.open(`https://platform-explorer.com/transaction/${result.txid}`)
+                // }
+            }
         } else {
             console.log(`${selectedAsset.value.ticker} sending logic pending implementation.`)
             await new Promise(resolve => setTimeout(resolve, 2000))

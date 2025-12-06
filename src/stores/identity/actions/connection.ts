@@ -64,7 +64,8 @@ export const connectionActions = () => ({
             /* Search user identities. */
             const identity = await this.searchUserIdentities(network)
                 .catch((err: Error) => console.error(err))
-alert(JSON.stringify(identity, null, 2))
+
+            /* Validate identity. */
             if (identity) {
                 /* Set authentication flag. */
                 state.isAuthenticated = true
