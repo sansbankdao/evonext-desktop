@@ -27,7 +27,8 @@ export const storageActions = () => ({
             const identityData: IIdentityData = {
                 username: state.username || '',
                 identity_id: state.identity?.id || '',
-                identity_idx: state.identity?.idx || '',
+                // identity_idx: state.identity?.idx || 0,
+                identity_idx: state.identity?.identity_idx || 0,
                 balance: state.balance,
                 is_authenticated: state.isAuthenticated,
                 public_keys: state.publicKeys.length > 0 ? state.publicKeys : null,

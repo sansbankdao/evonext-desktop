@@ -78,6 +78,7 @@ export default async (
 
     /* Wait for confirmation. */
     await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+    alert('Transaction Successful -- Your TXID is:\n' + stateTransition.hash(false))
 
     /* Return transaction ID. */
     return { txid: stateTransition.hash(false) }

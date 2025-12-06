@@ -52,7 +52,7 @@ export interface ICurrency {
 
 export interface IIdentity {
     id: string;
-    idx: number;
+    identity_idx: number;
     publicKeys: IPublicKey[];
 }
 

@@ -71,7 +71,8 @@ export const identityActions = () => ({
             state.isAuthenticated = true
 
             try {
-                await this.queryIdentityDetails(primaryIdentity.id, primaryIdentity.idx)
+// alert(JSON.stringify(primaryIdentity, null, 2))
+                await this.queryIdentityDetails(primaryIdentity.id, primaryIdentity.identity_idx)
             } catch (error) {
                 console.warn('Failed to query detailed identity information:', error)
             }
@@ -124,7 +125,8 @@ console.log('Identity public keys:', publicKeys)
             /* Set revision. */
             const revision = identity.revision || BigInt(0)
 console.log('Identity revision:', revision)
-
+alert('identityId: ' + identityId)
+alert('identityIdx: ' + identityIdx)
             await this.updateIdentityWithSdkData(identityId, identityIdx, publicKeys, revision)
 
             return {

@@ -10,7 +10,7 @@ export default async (): Promise<number> => {
 
     /* Validate identity store. */
     if (typeof identityStore !== 'undefined' && identityStore !== null) {
-        return identityStore.idx
+        return identityStore.identity_idx
     } else {
         return 0 // NOTE: We default to ZERO (index).
     }

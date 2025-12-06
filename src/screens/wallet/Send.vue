@@ -258,7 +258,7 @@ const handleSend = async () => {
 
             /* Request identity index. */
             const identityIdx = await getIdentityIdx()
-
+// alert('IDENTITY INDEX: ' + identityIdx)
             const result = await sendCredit(
                 identityId, identityIdx, recipient.value, credits)
             console.log('Send Credit Result:', result)
@@ -290,7 +290,7 @@ const handleSend = async () => {
 
             /* Request identity index. */
             const identityIdx = await getIdentityIdx()
-
+alert('IDENTITY INDEX: ' + identityIdx)
             const result = await sendToken(
                 identityId,
                 identityIdx,
