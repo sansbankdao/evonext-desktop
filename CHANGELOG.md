@@ -1,8 +1,8 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### 100% Wallet Functionality On Both Mainnet and Testnet
+### Major Improved Wallet Functionality On Both Mainnet and Testnet
 
-This latest version of EvoNext enables FULL wallet support on Testnet, including complete transaction history.
+This latest version of EvoNext enables (nearly) FULL wallet support on Testnet, including complete transaction history.
 
 # Changelog
 
@@ -13,6 +13,7 @@ This latest version of EvoNext enables FULL wallet support on Testnet, including
 ## Bugfixes:
 
 - Added the platform http endpoint for Testnet.
+- Improved identity index handling.
 
 ## Notes:
 
