@@ -1,10 +1,14 @@
 // src/constants/index.ts
 
 /* DashSwap Endpoint */
-export const DASHSWAP_ENDPOINT = 'https://dashswap.xyz/v1/'
+export const DASHSWAP_ENDPOINT = 'https://dashswap.xyz/v1'
 
 /* Dash API (DAPI) Endpoint */
 export const DAPI_WEB_API_ENDPOINT = 'https://dashqt.org/v1/dapi'
+
+/* Platform HTTP Endpoints. */
+export const PLATFORM_HTTP_API_MAINNET = 'https://platform-explorer.pshenmic.dev'
+export const PLATFORM_HTTP_API_TESTNET = 'https://testnet.platform-explorer.pshenmic.dev'
 
 /* Dash USD (Mainnet) */
 export const DUSD_CONTRACT_ID = 'DYqxCsuDgYsEAJ2ADnimkwNdL7C4xbe4No4so19X9mmd'

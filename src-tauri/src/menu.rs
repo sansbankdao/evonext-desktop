@@ -2,11 +2,11 @@
 use tauri::{
     App,
     AppHandle,
-    Manager,
+    Manager, // WHY DO WE NEED THIS??
     Wry,
     menu::{CheckMenuItemBuilder, MenuBuilder, MenuItem, SubmenuBuilder},
     tray::TrayIconBuilder,
-    Emitter  // ← ADD THIS LINE
+    Emitter, // WHY DO WE NEED THIS??
 };
 
 pub fn setup_menus(app: &App) -> tauri::Result<()> {

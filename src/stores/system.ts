@@ -35,7 +35,7 @@ export const useSystemStore = defineStore('system', {
             this.error = null
 
             try {
-                const response = await fetch(DASHSWAP_ENDPOINT + 'ticker/dash')
+                const response = await fetch(DASHSWAP_ENDPOINT + '/ticker/dash')
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`)
                 }

@@ -20,8 +20,11 @@ import type { IAsset, ITransaction, IWalletState } from '@/types'
 import getNetwork from '@/libs/getNetwork'
 import getTokenBalances from '@/libs/getTokenBalances'
 
-/* API helper functions for transactions. */
-const API_BASE_URL = 'https://platform-explorer.pshenmic.dev'
+/* Import constants. */
+import {
+    PLATFORM_HTTP_API_MAINNET,
+    PLATFORM_HTTP_API_TESTNET,
+} from '@/constants'
 
 interface IdentityTransfer {
     amount: number
@@ -65,10 +68,21 @@ interface ApiResponse<T> {
 /**
  * Fetches identity credit transfers for a given identity
  */
-const fetchIdentityTransfers = async (identityId: string, limit: number = 10): Promise<IdentityTransfer[]> => {
+const fetchIdentityTransfers = async (
+    identityId: string,
+    limit: number = 10,
+): Promise<IdentityTransfer[]> => {
     try {
+        /* Request network. */
+        const network = await getNetwork()
+
+        /* Set API endpoint. */
+        const apiEndpoint = network === 'mainnet'
+            ? PLATFORM_HTTP_API_MAINNET : PLATFORM_HTTP_API_TESTNET
+
+        /* Request (remote) data. */
         const response = await fetch(
-            `${API_BASE_URL}/identity/${identityId}/transfers?page=1&limit=${limit}&order=desc`
+            `${apiEndpoint}/identity/${identityId}/transfers?page=1&limit=${limit}&order=desc`
         )
 
         if (!response.ok) {
@@ -86,10 +100,21 @@ const fetchIdentityTransfers = async (identityId: string, limit: number = 10): P
 /**
  * Fetches token transitions for a given token contract
  */
-const fetchTokenTransitions = async (contractId: string, limit: number = 10): Promise<TokenTransition[]> => {
+const fetchTokenTransitions = async (
+    contractId: string,
+    limit: number = 10,
+): Promise<TokenTransition[]> => {
     try {
+        /* Request network. */
+        const network = await getNetwork()
+
+        /* Set API endpoint. */
+        const apiEndpoint = network === 'mainnet'
+            ? PLATFORM_HTTP_API_MAINNET : PLATFORM_HTTP_API_TESTNET
+
+        /* Request (remote) data. */
         const response = await fetch(
-            `${API_BASE_URL}/token/${contractId}/transitions?page=1&limit=${limit}&order=desc`
+            `${apiEndpoint}/token/${contractId}/transitions?page=1&limit=${limit}&order=desc`
         )
 
         if (!response.ok) {
@@ -176,55 +201,6 @@ export const useWalletStore = defineStore('wallet', {
     },
 
     actions: {
-        /**
-         * Populates the store with mock data for development.
-         */
-        // initializeMockData() {
-        //     const system = useSystemStore()
-        //     const dashPrice = system.currentDashPrice
-
-        //     // Only DASH has mock balance, others will be loaded live
-        //     this.assets = [
-        //         { ticker: 'DASH', name: 'Dash Coins', amount: 50.00, usdValue: 50.00 * dashPrice },
-        //     ]
-
-        //     this.transactions = [
-        //         {
-        //             id: 'tx1',
-        //             type: 'sent',
-        //             title: 'Sent DASH',
-        //             subtitle: 'To: EWSqsaghuw...AkJWRTpY',
-        //             amount: '-0.1 DASH',
-        //             status: 'Completed',
-        //             date: new Date('2024-01-15T10:30:00Z')
-        //         },
-        //         {
-        //             id: 'tx2',
-        //             type: 'received',
-        //             title: 'Received DUSD',
-        //             subtitle: 'From: 6Eb4tQdp24...cj1m87sj',
-        //             amount: '+500.00 DUSD',
-        //             status: 'Completed',
-        //             date: new Date('2024-01-14T14:45:00Z')
-        //         },
-        //         {
-        //             id: 'tx3',
-        //             type: 'swap',
-        //             title: 'Swap DASH to DUSD',
-        //             subtitle: 'DashSwap Router',
-        //             amount: '1.025 DASH',
-        //             status: 'Pending...',
-        //             date: new Date()
-        //         },
-        //     ]
-
-        //     this.balanceChange = {
-        //         isPositive: true,
-        //         percent: 1.25,
-        //         amount: 152.34,
-        //     }
-        // },
-
         /**
          * Updates USD values based on current DASH price and hardcoded token prices
          */
@@ -366,11 +342,11 @@ export const useWalletStore = defineStore('wallet', {
             const network = await getNetwork()
 
             // Only support mainnet for now
-            if (network !== 'mainnet') {
-                console.log('Transaction fetching only available on Mainnet')
-                this.transactions = []
-                return
-            }
+            // if (network !== 'mainnet') {
+            //     console.log('Transaction fetching only available on Mainnet')
+            //     this.transactions = []
+            //     return
+            // }
 
             this.isLoading = true
             console.log('Fetching real transactions for:', identityId)
@@ -438,8 +414,10 @@ export const useWalletStore = defineStore('wallet', {
                     }
                 })
 
-                // Transform DUSD transitions
+                /* Transform DUSD transitions. */
                 const dusdTransactions: ITransaction[] = []
+
+                /* Handle DUSD transitions. */
                 for (const transition of dusdTransitions) {
                     if (transition.owner.identifier !== identityId && transition.recipient !== identityId) {
                         continue
@@ -490,8 +468,10 @@ export const useWalletStore = defineStore('wallet', {
                     })
                 }
 
-                // Transform SANS transitions
+                /* Transform SANS transitions. */
                 const sansTransactions: ITransaction[] = []
+
+                /* Handle SANS transitions. */
                 for (const transition of sansTransitions) {
                     if (transition.owner.identifier !== identityId && transition.recipient !== identityId) {
                         continue

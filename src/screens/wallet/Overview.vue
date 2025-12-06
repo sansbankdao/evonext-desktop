@@ -15,9 +15,11 @@
                         <p class="text-5xl font-black bg-gradient-to-r from-slate-900 to-slate-700 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent mb-2">
                             {{ formatCurrency(totalBalance.usd) }}
                         </p>
+
                         <p class="text-2xl font-bold text-slate-700 dark:text-slate-200 mb-2 font-mono">
                             {{ totalBalance.dash.toLocaleString(undefined, { maximumFractionDigits: 6 }) }} DASH
                         </p>
+
                         <p class="text-lg text-slate-600 dark:text-slate-400 font-mono">
                             {{ totalBalance.credits.toLocaleString() }} credits
                         </p>
@@ -27,6 +29,7 @@
                                 <path v-show="System.isPricePositive" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4 10-10" />
                                 <path v-show="!System.isPricePositive" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l-4 4-10 10" />
                             </svg>
+
                             <span class="text-lg font-bold" :class="System.isPricePositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
                                 {{ System.priceChange24h > 0 ? '+' : '' }}{{ System.priceChange24h.toFixed(2) }}% vs last 24h
                             </span>
@@ -37,6 +40,7 @@
                         <svg class="w-5 h-5 text-indigo-500 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.031 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                         </svg>
+
                         <span class="font-bold text-indigo-700 dark:text-indigo-300">
                             Dash Platform
                         </span>
@@ -74,6 +78,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                     </svg>
                 </div>
+
                 <p class="text-3xl font-black text-slate-900 dark:text-slate-100 mb-2">
                     Collectibles
                 </p>
@@ -121,23 +126,37 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </div>
+
                             <div class="group">
                                 <p class="font-black text-xl text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200">{{ asset.name }}</p>
                                 <p class="text-base text-slate-600 dark:text-slate-400 font-mono font-bold tracking-wide">{{ asset.ticker }}</p>
                             </div>
                         </div>
+
                         <div class="text-right space-y-1">
-                            <p class="font-black text-2xl text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200">{{ asset.amount.toLocaleString() }} {{ asset.ticker }}</p>
-                            <p class="text-lg text-slate-600 dark:text-slate-400 font-bold">{{ formatCurrency(asset.usdValue) }}</p>
+                            <p class="font-black text-2xl text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200">
+                                {{ asset.amount.toLocaleString() }} {{ asset.ticker }}
+                            </p>
+
+                            <p class="text-lg text-slate-600 dark:text-slate-400 font-bold">
+                                {{ formatCurrency(asset.usdValue) }}
+                            </p>
                         </div>
                     </div>
                 </div>
+
                 <div v-if="Wallet.assets.length === 0" class="text-center py-12 text-slate-500 dark:text-slate-400">
                     <svg class="w-24 h-24 mx-auto mb-6 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <p class="text-2xl font-bold mb-2 text-slate-600 dark:text-slate-300">No assets yet</p>
-                    <p class="text-lg">Start by depositing some!</p>
+
+                    <p class="text-2xl font-bold mb-2 text-slate-600 dark:text-slate-300">
+                        No assets yet
+                    </p>
+
+                    <p class="text-lg">
+                        Start by depositing some!
+                    </p>
                 </div>
             </div>
 
@@ -165,6 +184,8 @@
                                 <svg v-if="tx.type === 'sent'" class="h-6 w-6 text-red-500 hover:text-red-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
                                 </svg>
+
+
                                 <svg v-if="tx.type === 'received'" class="h-6 w-6 text-emerald-500 hover:text-emerald-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                                 </svg>
@@ -172,25 +193,42 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                                 </svg>
                             </div>
+
                             <div class="flex-1 min-w-0">
-                                <p class="font-black text-xl text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 truncate">{{ tx.title }}</p>
-                                <p class="text-base text-slate-600 dark:text-slate-400 font-bold font-mono truncate">{{ tx.subtitle }}</p>
+                                <p class="font-black text-xl text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 truncate">
+                                    {{ tx.title }}
+                                </p>
+
+                                <p class="text-base text-slate-600 dark:text-slate-400 font-bold font-mono truncate">
+                                    {{ tx.subtitle }}
+                                </p>
                             </div>
                         </div>
+
                         <div class="text-right space-y-2 min-w-0">
-                            <p class="font-black text-2xl text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200">{{ tx.amount }}</p>
+                            <p class="font-black text-2xl text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200">
+                                {{ tx.amount }}
+                            </p>
+
                             <span class="px-4 py-2 rounded-xl font-bold text-sm shadow-sm" :class="getStatusClasses(tx.status) + ' hover:shadow-md transition-all duration-200'">
                                 {{ tx.status }}
                             </span>
                         </div>
                     </div>
                 </div>
+
                 <div v-if="Wallet.transactions.length === 0" class="text-center py-16 text-slate-500 dark:text-slate-400">
                     <svg class="w-24 h-24 mx-auto mb-6 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    <p class="text-2xl font-bold mb-2 text-slate-600 dark:text-slate-300">No recent activity</p>
-                    <p class="text-lg">Make your first transaction!</p>
+
+                    <p class="text-2xl font-bold mb-2 text-slate-600 dark:text-slate-300">
+                        No recent activity
+                    </p>
+
+                    <p class="text-lg">
+                        Make your first transaction!
+                    </p>
                 </div>
             </div>
         </div>
@@ -268,19 +306,21 @@ const assetIconExists = (ticker: string) => {
 onMounted(async () => {
     await nextTick()
 
-    // Ensure we have market data first
+    /* Validate market data. */
     if (!System.currentDashPrice) {
         await System.fetchDashPrice()
     }
 
+    /* Validate identity connection. */
     if (!Identity.isConnected) {
         console.log('No identity found, loading mock data')
-        // Wallet.initializeMockData()
     } else {
         console.log('Using identity data for user:', Identity.username)
 
-        // **FIX: Use the REAL identity ID from Identity.identity.id**
+        /* Set (real?) identity ID. */
         const realIdentityId = Identity.identity?.id
+
+        /* Validate (real?) identity ID. */
         if (realIdentityId) {
             Wallet.user = {
                 name: Identity.username || 'Unknown',

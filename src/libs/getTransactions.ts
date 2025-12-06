@@ -1,7 +1,13 @@
 // src/libs/getTransactions.ts
 
-/* Initialize constants. */
-const API_BASE_URL = 'https://platform-explorer.pshenmic.dev'
+/* Import modules. */
+import getNetwork from '@/libs/getNetwork'
+
+/* Import constants. */
+import {
+    PLATFORM_HTTP_API_MAINNET,
+    PLATFORM_HTTP_API_TESTNET,
+} from '@/constants'
 
 interface IdentityTransfer {
     amount: number
@@ -45,10 +51,20 @@ interface ApiResponse<T> {
 /**
  * Fetches identity credit transfers for a given identity
  */
-export const fetchIdentityTransfers = async (identityId: string, limit: number = 10): Promise<IdentityTransfer[]> => {
+export const fetchIdentityTransfers = async (
+    identityId: string,
+    limit: number = 10,
+): Promise<IdentityTransfer[]> => {
     try {
+        /* Request network. */
+        const network = await getNetwork()
+
+        /* Set API endpoint. */
+        const apiEndpoint = network === 'mainnet'
+            ? PLATFORM_HTTP_API_MAINNET : PLATFORM_HTTP_API_TESTNET
+
         const response = await fetch(
-            `${API_BASE_URL}/identity/${identityId}/transfers?page=1&limit=${limit}&order=desc`
+            `${apiEndpoint}/identity/${identityId}/transfers?page=1&limit=${limit}&order=desc`
         )
 
         if (!response.ok) {
@@ -66,10 +82,21 @@ export const fetchIdentityTransfers = async (identityId: string, limit: number =
 /**
  * Fetches token transitions for a given token contract
  */
-export const fetchTokenTransitions = async (contractId: string, limit: number = 10): Promise<TokenTransition[]> => {
+export const fetchTokenTransitions = async (
+    contractId: string,
+    limit: number = 10,
+): Promise<TokenTransition[]> => {
     try {
+        /* Request network. */
+        const network = await getNetwork()
+
+        /* Set API endpoint. */
+        const apiEndpoint = network === 'mainnet'
+            ? PLATFORM_HTTP_API_MAINNET : PLATFORM_HTTP_API_TESTNET
+
+        /* Request (remote) data. */
         const response = await fetch(
-            `${API_BASE_URL}/token/${contractId}/transitions?page=1&limit=${limit}&order=desc`
+            `${apiEndpoint}/token/${contractId}/transitions?page=1&limit=${limit}&order=desc`
         )
 
         if (!response.ok) {
