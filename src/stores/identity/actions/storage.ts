@@ -27,6 +27,7 @@ export const storageActions = () => ({
             const identityData: IIdentityData = {
                 username: state.username || '',
                 identity_id: state.identity?.id || '',
+                identity_idx: state.identity?.idx || '',
                 balance: state.balance,
                 is_authenticated: state.isAuthenticated,
                 public_keys: state.publicKeys.length > 0 ? state.publicKeys : null,
@@ -64,7 +65,14 @@ export const storageActions = () => ({
         }
     },
 
-    async updateIdentityWithSdkData(this: any, identityId: string, sdkPublicKeys: any[], sdkRevision: bigint | number) {
+    async updateIdentityWithSdkData(
+        this: any,
+        identityId: string,
+        identityIdx: number,
+        sdkPublicKeys: any[],
+        sdkRevision: bigint | number
+    ) {
+        /* Set state. */
         const state = this as IIdentityState
 
         try {
@@ -79,9 +87,11 @@ export const storageActions = () => ({
             }))
 
             const revisionNum = typeof sdkRevision === 'bigint' ? Number(sdkRevision) : sdkRevision
+
             const identityData: IIdentityData = {
                 username: state.username || '',
                 identity_id: identityId,
+                identity_idx: identityIdx,
                 balance: state.balance,
                 is_authenticated: state.isAuthenticated,
                 public_keys: publicKeys,

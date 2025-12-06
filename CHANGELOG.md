@@ -1,19 +1,18 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Display Your Assets and Transaction History
+### 100% Wallet Functionality On Both Mainnet and Testnet
 
-This latest version of EvoNext enables FULL support for both Sansnote (SANS) and Dash USD (DUSD).
+This latest version of EvoNext enables FULL wallet support on Testnet, including complete transaction history.
 
 # Changelog
 
 ## Latest Features:
 
-- Assets: Display all assets.
-- History: Display your full transaction (aka transition) history.
+- History: Display your full (Testnet) transaction (aka transition) history.
 
 ## Bugfixes:
 
-- Removed mock (asset) data.
+- Added the platform http endpoint for Testnet.
 
 ## Notes:
 

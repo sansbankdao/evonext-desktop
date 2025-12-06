@@ -37,6 +37,7 @@ export const identityActions = () => ({
             }
 
             /* Select (primary) identity. */
+// FIXME Allow selection from MULTIPLE identities.
             const primaryIdentity = identities[0]
 
             /* Validate (primary) identity. */
@@ -70,7 +71,7 @@ export const identityActions = () => ({
             state.isAuthenticated = true
 
             try {
-                await this.queryIdentityDetails(primaryIdentity.id)
+                await this.queryIdentityDetails(primaryIdentity.id, primaryIdentity.idx)
             } catch (error) {
                 console.warn('Failed to query detailed identity information:', error)
             }
@@ -86,7 +87,11 @@ export const identityActions = () => ({
         }
     },
 
-    async queryIdentityDetails(this: any, identityId: string) {
+    async queryIdentityDetails(
+        this: any,
+        identityId: string,
+        identityIdx: number
+    ) {
         const state = this as IIdentityState
 
         /* Request network. */
@@ -120,10 +125,11 @@ console.log('Identity public keys:', publicKeys)
             const revision = identity.revision || BigInt(0)
 console.log('Identity revision:', revision)
 
-            await this.updateIdentityWithSdkData(identityId, publicKeys, revision)
+            await this.updateIdentityWithSdkData(identityId, identityIdx, publicKeys, revision)
 
             return {
                 identity,
+                identityIdx,
                 publicKeys,
                 revision: Number(revision)
             }

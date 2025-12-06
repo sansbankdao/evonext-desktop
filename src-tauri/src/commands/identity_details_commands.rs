@@ -1,25 +1,31 @@
 // src-tauri/src/commands/identity_details_commands.rs
+
 use tauri::{AppHandle, Wry};
 use crate::models::{IdentityData, IdentityPublicKey};
 use crate::constants::IDENTITY_FILE;
 use std::path::PathBuf;
 use tauri_plugin_store::StoreBuilder;
+
 #[tauri::command]
 pub fn update_identity_with_sdk_data(
     app_handle: AppHandle<Wry>,
     identity_id: String,
+    identity_idx: u8,
     public_keys: Vec<IdentityPublicKey>,
     revision: u64,
     public_key_ids: Vec<u32>,
 ) -> Result<(), String> {
     let path = IDENTITY_FILE.parse::<PathBuf>().unwrap();
+
     let store = StoreBuilder::new(&app_handle, path)
         .build()
         .map_err(|e| e.to_string())?;
+
     // Load existing identity data
     if let Some(json_value) = store.get("identity") {
         let mut identity_data: IdentityData = serde_json::from_value(json_value.clone())
             .map_err(|e| e.to_string())?;
+
         // Only update if the identity_id matches
         if identity_data.identity_id == identity_id {
             // Update with SDK data
@@ -39,12 +45,15 @@ pub fn update_identity_with_sdk_data(
         Err("No identity data found to update".to_string())
     }
 }
+
 #[tauri::command]
 pub fn get_identity_public_keys(app_handle: AppHandle<Wry>) -> Result<Option<Vec<IdentityPublicKey>>, String> {
     let path = IDENTITY_FILE.parse::<PathBuf>().unwrap();
+
     let store = StoreBuilder::new(&app_handle, path)
         .build()
         .map_err(|e| e.to_string())?;
+
     if let Some(json_value) = store.get("identity") {
         let identity_data: IdentityData = serde_json::from_value(json_value.clone())
             .map_err(|e| e.to_string())?;

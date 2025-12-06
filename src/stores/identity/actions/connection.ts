@@ -57,12 +57,16 @@ export const connectionActions = () => ({
         try {
             console.log(`Attempting to connect with a mnemonic.`)
 
+            /* Create payload. */
             const payload = { seed_phrase: seedPhrase }
             await invoke('save_mnemonic', { payload })
 
+            /* Search user identities. */
             const identity = await this.searchUserIdentities(network)
-
+                .catch((err: Error) => console.error(err))
+alert(JSON.stringify(identity, null, 2))
             if (identity) {
+                /* Set authentication flag. */
                 state.isAuthenticated = true
 
                 console.log('Seed connection successful. isAuthenticated:', state.isAuthenticated)
@@ -151,6 +155,7 @@ export const connectionActions = () => ({
                     payload: {
                         username: '',
                         identity_id: '',
+                        identity_idx: '',
                         balance: null,
                         is_authenticated: false,
                         public_keys: null,

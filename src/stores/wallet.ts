@@ -338,16 +338,10 @@ export const useWalletStore = defineStore('wallet', {
                 return
             }
 
+            /* Set identity ID. */
             const identityId = this.user.address
-            const network = await getNetwork()
 
-            // Only support mainnet for now
-            // if (network !== 'mainnet') {
-            //     console.log('Transaction fetching only available on Mainnet')
-            //     this.transactions = []
-            //     return
-            // }
-
+            /* Set loading flag. */
             this.isLoading = true
             console.log('Fetching real transactions for:', identityId)
 

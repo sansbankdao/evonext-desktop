@@ -7,12 +7,12 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
                 </svg>
 
-                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">
+                <h1 class="text-3xl font-bold text-slate-100">
                     Send Assets
                 </h1>
             </div>
 
-            <button @click="router.back()" class="flex items-center gap-1 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
+            <button @click="router.back()" class="flex items-center gap-1 text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
@@ -50,7 +50,10 @@
                         Available Balance: {{ selectedAsset.amount.toLocaleString() }} {{ selectedAsset.ticker }}
                     </p>
                 </div>
-                <p v-else class="text-sm text-amber-600 dark:text-amber-400 mt-2">No balance available for this currency.</p>
+
+                <p v-else class="text-sm text-amber-600 dark:text-amber-400 mt-2">
+                    No balance available for this currency.
+                </p>
             </div>
 
             <!-- Recipient Address -->
@@ -71,6 +74,7 @@
                         class="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg p-3 pl-10 text-slate-900 dark:text-slate-100 font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:bg-slate-100 dark:hover:bg-slate-700 pr-10"
                         required
                     />
+
                     <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                     </svg>
@@ -96,9 +100,11 @@
                         class="w-full bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg p-3 pl-10 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all hover:bg-slate-100 dark:hover:bg-slate-700 pr-20"
                         required
                     />
+
                     <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
                     </svg>
+
                     <button
                         type="button"
                         @click="setMaxAmount"
@@ -108,6 +114,7 @@
                         MAX
                     </button>
                 </div>
+
                 <p v-if="selectedAsset && amount" class="text-xs text-slate-600 dark:text-slate-400 mt-1">
                     (Max: {{ selectedAsset.amount.toLocaleString() }} {{ selectedAsset.ticker }})
                 </p>
@@ -123,11 +130,22 @@
 
             <!-- Transaction Preview -->
             <div v-if="isFormValid && selectedAsset && amount" class="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg space-y-2 border border-indigo-200 dark:border-indigo-800">
-                <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300">Preview</h3>
+                <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    Transaction Preview
+                </h3>
+
                 <div class="text-xs space-y-1 text-slate-600 dark:text-slate-400">
-                    <p>Send {{ amount.toLocaleString() }} {{ selectedAsset.ticker }} to {{ recipient.slice(0, 20) }}...</p>
-                    <p>Network fee: ~0.00001 DASH (estimated)</p>
-                    <p class="text-slate-500 dark:text-slate-500">Review details before confirming.</p>
+                    <p>
+                        Send {{ amount.toLocaleString() }} {{ selectedAsset.ticker }} to {{ recipient.slice(0, 20) }}...
+                    </p>
+
+                    <p>
+                        Network fee: ~0.00001 DASH (estimated)
+                    </p>
+
+                    <p class="text-slate-500 dark:text-slate-500">
+                        Review details before confirming.
+                    </p>
                 </div>
             </div>
 
@@ -143,7 +161,10 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span>{{ isSending ? 'Processing Transaction...' : 'Review & Send' }}</span>
+
+                <span>
+                    {{ isSending ? 'Processing Transaction...' : 'Review & Send' }}
+                </span>
             </button>
         </form>
     </main>
@@ -156,6 +177,7 @@ import { useRouter } from 'vue-router'
 
 import { useWalletStore } from '@/stores/wallet'
 
+import getIdentityIdx from '@/libs/getIdentityIdx'
 import getNetwork from '@/libs/getNetwork'
 import sendCredit from '@/libs/sendCredit'
 import sendToken from '@/libs/sendToken'
@@ -202,12 +224,8 @@ const setMaxAmount = () => {
 }
 
 onMounted(async () => {
-    // if (Wallet.assets.length === 0) {
-    //     Wallet.initializeMockData()
-    // }
+    // TBD
 })
-
-const IDENTITY_IDX = 0
 
 const handleSend = async () => {
     if (!isFormValid.value || !selectedAsset.value) {
@@ -238,8 +256,11 @@ const handleSend = async () => {
 
             console.log('IDENTITY ID', identityId)
 
+            /* Request identity index. */
+            const identityIdx = await getIdentityIdx()
+
             const result = await sendCredit(
-                identityId, IDENTITY_IDX, recipient.value, credits)
+                identityId, identityIdx, recipient.value, credits)
             console.log('Send Credit Result:', result)
 
             // if (confirm('Transaction successful! Would you like to view explorer.')) {
@@ -267,9 +288,12 @@ const handleSend = async () => {
             console.log('DECIMAL PLACES', decimalPlaces)
             console.log('CALCULATED ATOMIC UNITS', atomicUnits)
 
+            /* Request identity index. */
+            const identityIdx = await getIdentityIdx()
+
             const result = await sendToken(
                 identityId,
-                IDENTITY_IDX,
+                identityIdx,
                 tokenId,
                 recipient.value,
                 atomicUnits

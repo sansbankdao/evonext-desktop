@@ -1,4 +1,4 @@
-// src/libs/getMnemonic.ts
+// src/libs/getLicense.ts
 
 /* Import modules. */
 import { invoke } from '@tauri-apps/api/core'
