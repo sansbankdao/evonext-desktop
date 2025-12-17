@@ -1,33 +1,16 @@
 // src/stores/identity/actions/storage.ts
-
-/* Import modules. */
 import { invoke } from '@tauri-apps/api/core'
-
-/* Import types. */
-import type {
-    IIdentityData,
-    IIdentityPublicKey,
-    IIdentityState,
-} from '@/types'
-
-function hexHash160ToBase64(hex: string): string {
-    // Hex string → Uint8Array (binary data)
-    const matches = hex.match(/.{2}/g)
-    if (!matches) throw new Error(`Invalid hex string: ${hex}`)
-    const bytes = new Uint8Array(matches.map(byte => parseInt(byte, 16)))
-    // Uint8Array → Base64
-    return btoa(String.fromCharCode(...Array.from(bytes)))
-}
-
+import { StoreManager } from '@/utils/store'
+import { ErrorBoundary } from '@/utils/errors'
+import type { IIdentityState, IIdentityData, IIdentityPublicKey } from '@/types'
+import { validateIdentityData, createDefaultIdentityData, transformPublicKeys } from '../utils'
 export const storageActions = () => ({
     async saveToStorage(this: any) {
-        const state = this as IIdentityState
-
-        try {
+        return ErrorBoundary.wrap(async () => {
+            const state = this as IIdentityState
             const identityData: IIdentityData = {
                 username: state.username || '',
                 identity_id: state.identity?.id || '',
-                // identity_idx: state.identity?.idx || 0,
                 identity_idx: state.identity?.identity_idx || 0,
                 balance: state.balance,
                 is_authenticated: state.isAuthenticated,
@@ -36,23 +19,15 @@ export const storageActions = () => ({
                 created_at: state.lastConnected,
                 public_key_ids: state.publicKeys.map((key: IIdentityPublicKey) => key.id),
             }
-
-            await invoke('save_identity_data', {
-                payload: identityData
-            })
+            await StoreManager.save('identity', 'identity', identityData)
             console.log('Identity data saved to storage')
-        } catch (err) {
-            console.error('Failed to save identity data to storage:', err)
-        }
+        }, 'SAVE_IDENTITY_STORAGE_FAILED')
     },
-
     async loadFromStorage(this: any) {
-        const state = this as IIdentityState
-
-        try {
-            const identityData = await invoke('load_identity_data') as IIdentityData | null
-
-            if (identityData) {
+        return ErrorBoundary.wrap(async () => {
+            const state = this as IIdentityState
+            const identityData = await StoreManager.load<IIdentityData>('identity', 'identity')
+            if (identityData && validateIdentityData(identityData)) {
                 console.log('Loaded identity data from storage:', identityData)
                 state.username = identityData.username || null
                 state.balance = identityData.balance
@@ -60,12 +35,14 @@ export const storageActions = () => ({
                 state.publicKeys = identityData.public_keys || []
                 state.revision = identityData.revision
                 state.lastConnected = identityData.created_at
+            } else {
+                console.log('No valid identity data found in storage')
+                // Initialize with defaults if no data found
+                const defaultData = createDefaultIdentityData()
+                await StoreManager.save('identity', 'identity', defaultData)
             }
-        } catch (err) {
-            console.error('Failed to load identity data from storage:', err)
-        }
+        }, 'LOAD_IDENTITY_STORAGE_FAILED')
     },
-
     async updateIdentityWithSdkData(
         this: any,
         identityId: string,
@@ -73,45 +50,44 @@ export const storageActions = () => ({
         sdkPublicKeys: any[],
         sdkRevision: bigint | number
     ) {
-        /* Set state. */
-        const state = this as IIdentityState
-
-        try {
-            const publicKeys: IIdentityPublicKey[] = sdkPublicKeys.map((key: any, index: number) => ({
-                id: index,
-                type_: key.type_ || key.keyType || 'ecdsa',
-                purpose: Number(key.purpose || key.purposeNumber || 0),
-                security_level: Number(key.security_level || key.securityLevelNumber || 0),
-                data: key.data || hexHash160ToBase64(key.dataBytes || key.data || ''),
-                read_only: Boolean(key.read_only || key.readOnly || false),
-                disabled_at: key.disabled_at || key.disabledAt || null
-            }))
-
-            const revisionNum = typeof sdkRevision === 'bigint' ? Number(sdkRevision) : sdkRevision
-
+        return ErrorBoundary.wrap(async () => {
+            const state = this as IIdentityState
+            const publicKeys: IIdentityPublicKey[] = transformPublicKeys(sdkPublicKeys, identityIdx)
+            const revisionNum = typeof sdkRevision === 'bigint'
+                ? Number(sdkRevision)
+                : sdkRevision
             const identityData: IIdentityData = {
                 username: state.username || '',
                 identity_id: identityId,
                 identity_idx: identityIdx,
                 balance: state.balance,
                 is_authenticated: state.isAuthenticated,
-                public_keys: publicKeys,
+                public_keys: publicKeys.length > 0 ? publicKeys : null,
                 revision: revisionNum,
                 created_at: state.lastConnected || new Date().toISOString(),
                 public_key_ids: publicKeys.map(key => key.id)
             }
-
-            await invoke('save_identity_data', {
-                payload: identityData
-            })
-
+            await StoreManager.save('identity', 'identity', identityData)
             state.publicKeys = publicKeys
             state.revision = revisionNum
             state.lastConnected = new Date().toISOString()
             console.log('Identity SDK data saved successfully')
-        } catch (error) {
-            console.error('Failed to update identity with SDK data:', error)
-            throw error
-        }
+        }, 'UPDATE_IDENTITY_SDK_DATA_FAILED')
+    },
+    async clearStorage(this: any) {
+        return ErrorBoundary.wrap(async () => {
+            await Promise.all([
+                StoreManager.save('identity', 'identity', createDefaultIdentityData()),
+                StoreManager.save('license', 'license', { license_id: '' }),
+                StoreManager.save('mnemonic', 'mnemonic', { seed_phrase: '' }),
+                StoreManager.save('keys', 'keys', {
+                    identity_id: '',
+                    auth_key: '',
+                    transfer_key: '',
+                    encryption_key: ''
+                })
+            ])
+            console.log('All identity storage cleared')
+        }, 'CLEAR_IDENTITY_STORAGE_FAILED')
     },
 })
