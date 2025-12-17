@@ -1,4 +1,5 @@
 // src-tauri/src/constants.rs
+
 pub const ASSETS_FILE: &str = ".assets.json";
 pub const LICENSE_FILE: &str = ".license.json";
 pub const SAFU_FILE: &str = ".safu.json";

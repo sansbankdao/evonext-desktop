@@ -2,7 +2,7 @@
 
 use tauri::{AppHandle, Wry};
 use crate::models::IAssets;
-use crate::utils::store::StoreManager;
+use crate::utils::StoreManager;
 use crate::constants::ASSETS_FILE;
 
 #[tauri::command]

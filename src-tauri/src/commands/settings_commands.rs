@@ -1,7 +1,8 @@
 // src-tauri/src/commands/settings_commands.rs
+
 use tauri::{AppHandle, Wry};
 use crate::models::IAppSettings;
-use crate::utils::store::StoreManager;
+use crate::utils::StoreManager;
 use crate::constants::SETTINGS_FILE;
 
 #[tauri::command]

@@ -1,7 +1,8 @@
 // src-tauri/src/commands/mnemonic_commands.rs
+
 use tauri::{AppHandle, Wry};
 use crate::models::IMnemonic;
-use crate::utils::store::StoreManager;
+use crate::utils::StoreManager;
 use crate::constants::SAFU_FILE;
 
 #[tauri::command]

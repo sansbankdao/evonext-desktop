@@ -1,7 +1,8 @@
 // src-tauri/src/commands/license_commands.rs
+
 use tauri::{AppHandle, Wry};
 use crate::models::ILicense;
-use crate::utils::store::StoreManager;
+use crate::utils::StoreManager;
 use crate::constants::LICENSE_FILE;
 
 #[tauri::command]

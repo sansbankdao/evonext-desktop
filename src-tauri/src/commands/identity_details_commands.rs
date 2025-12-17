@@ -1,7 +1,8 @@
 // src-tauri/src/commands/identity_details_commands.rs
+
 use tauri::{AppHandle, Wry};
 use crate::models::{IdentityData, IdentityPublicKey};
-use crate::utils::store::StoreManager;
+use crate::utils::StoreManager;
 use crate::constants::IDENTITY_FILE;
 
 #[tauri::command]
@@ -15,7 +16,8 @@ pub fn update_identity_with_sdk_data(
     let manager = StoreManager::new(&app_handle);
 
     // Load existing identity data
-    let existing_data: Option<IdentityData> = manager.load(IDENTITY_FILE, "identity")
+    let existing_data: Option<IdentityData> = manager
+        .load::<IdentityData>(IDENTITY_FILE, "identity")  // ✅ Added explicit type parameter
         .map_err(|e| e.to_string())?;
 
     match existing_data {
@@ -51,7 +53,7 @@ pub fn get_identity_public_keys(app_handle: AppHandle<Wry>) -> Result<Option<Vec
     let manager = StoreManager::new(&app_handle);
 
     // Use StoreManager to load identity data
-    match manager.load(IDENTITY_FILE, "identity") {
+    match manager.load::<IdentityData>(IDENTITY_FILE, "identity") {  // ✅ Added explicit type parameter
         Ok(Some(identity_data)) => {
             Ok(identity_data.public_keys)
         }
@@ -71,7 +73,8 @@ pub fn delete_identity_public_keys(app_handle: AppHandle<Wry>) -> Result<(), Str
     let manager = StoreManager::new(&app_handle);
 
     // Load existing identity data
-    let existing_data: Option<IdentityData> = manager.load(IDENTITY_FILE, "identity")
+    let existing_data: Option<IdentityData> = manager
+        .load::<IdentityData>(IDENTITY_FILE, "identity")  // ✅ Added explicit type parameter
         .map_err(|e| e.to_string())?;
 
     match existing_data {
