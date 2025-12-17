@@ -1,4 +1,5 @@
 // src/libs/getTokenBalances.ts
+
 /* Import modules. */
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ErrorBoundary } from '@/utils/errors'
@@ -100,35 +101,37 @@ async function fetchTokenBalancesViaAPI(
 /**
  * Fetches token balances via DashPlatformSDK (fallback method)
  */
+// In src/libs/getTokenBalances.ts, replace the SDK call with HTTP API
 async function fetchTokenBalancesViaSDK(
     identityId: string,
     tokenContractIds: string[]
 ): Promise<TokenBalance[]> {
     return ErrorBoundary.wrap(async () => {
-        // Get network from environment
-        const network = import.meta.env.VITE_DEFAULT_NETWORK || 'testnet'
-
-        // Initialize SDK
-        const sdk = new DashPlatformSDK({
-            network: network as 'testnet' | 'mainnet'
-         })
-
         const balances: TokenBalance[] = []
 
-        // Fetch balances for each token contract
         for (const contractId of tokenContractIds) {
             try {
-                // Note: This assumes the SDK has a method to get token balance
-                // You might need to adjust this based on actual SDK methods
-                const balance = await sdk.tokens.getBalance(contractId, identityId)
+                // Try HTTP API first (more reliable)
+                const apiEndpoint = getPlatformEndpoint()
+                const response = await fetch(
+                    `${apiEndpoint}/token/${contractId}/balance/${identityId}`
+                )
 
-                balances.push({
-                    tokenId: { base58: () => contractId },
-                    balance: BigInt(balance || 0)
-                })
+                if (response.ok) {
+                    const data = await response.json()
+                    balances.push({
+                        tokenId: { base58: () => contractId },
+                        balance: BigInt(data.balance || 0)
+                    })
+                } else {
+                    // Fallback to 0 balance
+                    balances.push({
+                        tokenId: { base58: () => contractId },
+                        balance: BigInt(0)
+                    })
+                }
             } catch (error) {
-                log('warn', `SDK failed to fetch balance for token ${contractId}:`, error)
-                // Return zero balance on error
+                console.warn(`Failed to fetch balance for token ${contractId}:`, error)
                 balances.push({
                     tokenId: { base58: () => contractId },
                     balance: BigInt(0)
@@ -137,7 +140,6 @@ async function fetchTokenBalancesViaSDK(
         }
 
         return balances
-
     }, 'FETCH_TOKEN_BALANCES_VIA_SDK_FAILED')
 }
 

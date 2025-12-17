@@ -7,10 +7,6 @@ export function usePersistentState<T>(
   // key: string, // REMOVE this parameter since StoreManager doesn't use it anymore
   store: 'assets' | 'identity' | 'license' | 'mnemonic' | 'private_keys' | 'settings',
   defaultValue: T,
-  options?: {
-    serializer?: (value: T) => string
-    deserializer?: (value: string) => T
-  }
 ) {
   // Either use serializer/deserializer or remove them
   // const serializer = options?.serializer || JSON.stringify
