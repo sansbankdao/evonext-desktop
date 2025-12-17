@@ -1,4 +1,5 @@
 // src/constants/index.ts
+
 // Static application constants (never change)
 export const APP_NAME = 'EvoNext'
 export const APP_VERSION = '25.12.3'

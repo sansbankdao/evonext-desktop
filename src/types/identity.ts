@@ -1,5 +1,31 @@
 // src/types/identity.ts
 
+export interface IPublicKey {
+    type: number;
+    keyType: string;
+    purpose: number;
+    securityLevel: number;
+    contractBounds: any; // You might want to specify a proper typestring
+    dataBytes: string | null;
+    readOnly: boolean;
+    disabledAt: string | null;
+}
+
+export interface IUser {
+    docId?: string;
+    username: string;
+    displayName: string;
+    avatar: string;
+    avatarId?: string;
+    avatarData?: string;
+    bio?: string;
+    followers: number;
+    following: number;
+    verified?: boolean;
+    joinedAt: Date;
+    revision: number;
+}
+
 /* Base interface definitions. */
 export interface IExtendedPublicKey {
     keyType: string;
@@ -7,6 +33,7 @@ export interface IExtendedPublicKey {
 }
 
 export interface IIdentity {
+    id?: string;
     identity_idx: number;
     publicKeys: IPublicKey[];
 }

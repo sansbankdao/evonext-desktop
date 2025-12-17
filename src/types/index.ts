@@ -8,8 +8,9 @@ export * from './wallet'
 
 ////////////////////////////////////////////////////////////////////////////////
 /* Import types. */
-import { GasFeesPaidByWASM } from 'pshenmic-dpp'
-import type { IIdentity, IIdentityPublicKey, IPublicKey, IUser } from './identity'
+// import { GasFeesPaidByWASM } from 'pshenmic-dpp'
+import type { IIdentity, IIdentityPublicKey, IPublicKey } from './identity'
+
 export interface IApp {
     creatorId: IUser;
     canvasId: string;
@@ -19,6 +20,7 @@ export interface IApp {
     likes: number;
     createdAt: Date;
 }
+
 export interface IAppState {
     currentUser: IUser | null;
     theme: 'light' | 'dark';
@@ -30,6 +32,7 @@ export interface IAppState {
     setComposeOpen: (open: boolean) => void;
     setReplyingTo: (post: IPost | null) => void;
 }
+
 export interface IComment {
     author: IUser;
     content: string;
@@ -38,9 +41,11 @@ export interface IComment {
     liked?: boolean;
     postId: string;
 }
+
 export interface ICurrency {
     USD: any;
 }
+
 // Note: IIdentity is now imported from './identity'
 export interface IKeyTypes {
     masterKey: IPrivateKey | IPublicKey;
@@ -49,9 +54,11 @@ export interface IKeyTypes {
     transferKey: IPrivateKey | IPublicKey;
     encryptionKey: IPrivateKey | IPublicKey;
 }
+
 export interface ILicense {
     license_id: string;
 }
+
 export interface IMedia {
     type: 'image' | 'video' | 'gif';
     url: string;
@@ -60,9 +67,11 @@ export interface IMedia {
     width?: number;
     height?: number;
 }
+
 export interface IMnemonic {
     seed_phrase: string;
 }
+
 export interface INotification {
     type: 'like' | 'remix' | 'follow' | 'reply' | 'mention';
     from: IUser;
@@ -70,6 +79,7 @@ export interface INotification {
     createdAt: Date;
     read: boolean;
 }
+
 export interface IPost {
     author: IUser;
     content: string;
@@ -85,10 +95,12 @@ export interface IPost {
     replyTo?: IPost;
     quotedPost?: IPost;
 }
+
 export interface IPrivateKey extends IPublicKey {
     privateKeyHex: string;
     privateKeyWif: string;
 }
+
 // Note: IPublicKey is imported from './identity'
 export interface IToken {
     name: string;
@@ -100,6 +112,7 @@ export interface IToken {
     decimal_places: number;
     fiat: ICurrency;
 }
+
 export interface ITokenPaymentInfo {
     tokenContractId: string;
     tokenContractPosition: number;
@@ -107,19 +120,23 @@ export interface ITokenPaymentInfo {
     // Removed: GasFeesPaidByWASM import since it's from pshenmic-dpp
     gasFeesPaidBy: any; // Was: GasFeesPaidByWASM - use appropriate type if needed
 }
+
 export interface ITrend {
     topic: string;
     posts: number;
     category?: string;
 }
+
 export interface ITxError {
     code: number;
     message: string;
     suggestions?: string[];
 }
+
 export interface ITxSuccess {
     txid: string;
 }
+
 export interface IUser {
     docId?: string;         // Document that stores the user's profile
     username: string;       // From DPNS - not stored in profile document
@@ -134,36 +151,44 @@ export interface IUser {
     joinedAt: Date;
     revision: number;
 }
+
 ////////////////////////////////////////////////////////////////////////////////
+
 export interface IUser2 {
-    name: string
-    address: string
+    name: string;
+    address: string;
 }
+
 export interface IAsset {
-    ticker: string
-    name: string
-    amount: number
-    usdValue: number
+    ticker: string;
+    name: string;
+    amount: number;
+    usdValue: number;
 }
+
 export interface ITransaction {
-    type: 'sent' | 'received' | 'swap'
-    title: string
-    subtitle: string
-    amount: string // Formatted amount with +/- and ticker
-    status: 'Completed' | 'Pending...' | 'Failed'
-    date: Date
+    id?: string;
+    type: 'sent' | 'received' | 'swap';
+    title: string;
+    subtitle: string;
+    amount: string; // Formatted amount with +/- and ticker
+    status: 'Completed' | 'Pending...' | 'Failed';
+    date: Date;
 }
+
 export interface IBalanceChange {
-    isPositive: boolean
-    percent: number
-    amount: number
+    isPositive: boolean;
+    percent: number;
+    amount: number;
 }
+
 // New types for store operations
 export interface StoreOperationResult<T = void> {
     success: boolean;
     data?: T;
     error?: string;
 }
+
 export interface StoreKeys {
     assets: string;
     identity: string;
@@ -172,6 +197,7 @@ export interface StoreKeys {
     keys: string;
     settings: string;
 }
+
 // Type for environment configuration
 export interface EnvironmentConfig {
     defaultNetwork: 'testnet' | 'mainnet';
@@ -184,6 +210,7 @@ export interface EnvironmentConfig {
     enablePremiumFeatures: boolean;
     enableAutoUpdate: boolean;
 }
+
 // Key management types (from wallet types)
 export interface KeyDerivationResult {
     masterKey: any;  // PrivateKeyWASM instance
@@ -192,6 +219,7 @@ export interface KeyDerivationResult {
     transferKey: any;
     encryptionKey: any;
 }
+
 export interface DerivationPath {
     purpose: number;
     coinType: number;
@@ -200,108 +228,123 @@ export interface DerivationPath {
     identityIdx: number;
     keyIdx: number;
 }
+
 export interface IdentitySearchOptions {
     minIndexSearch?: number;
     queryRegistry?: boolean;
     signatureScheme?: 'ecdsa' | 'bls' | 'hash160';
 }
+
 export interface IdentitySearchResult {
     identities: IIdentity[];
     error?: string;
 }
+
 export interface TokenBalanceResult {
     tokenId: string;
     balance: bigint;
     formattedBalance: string;
     decimals: number;
 }
+
 // Wallet types that were in wallet.ts
 export interface IdentityTransfer {
-    amount: number
-    sender: string | null
-    recipient: string
-    timestamp: string
-    txHash: string
-    type: string
-    blockHash: string
-    gasUsed: number
+    amount: number;
+    sender: string | null;
+    recipient: string;
+    timestamp: string;
+    txHash: string;
+    type: string;
+    blockHash: string;
+    gasUsed: number;
 }
+
 export interface TokenTransition {
-    amount: number
-    recipient: string
+    amount: number;
+    recipient: string;
     owner: {
-        identifier: string
+        identifier: string;
         aliases: Array<{
-            alias: string
-            contested: boolean
-            documentId: string
-            status: string
-            timestamp: string
+            alias: string;
+            contested: boolean;
+            documentId: string;
+            status: string;
+            timestamp: string;
         }>
     }
-    action: string
-    stateTransitionHash: string
-    timestamp: string
-    publicNote: string | null
+    action: string;
+    stateTransitionHash: string;
+    timestamp: string;
+    publicNote: string | null;
 }
+
 export interface ApiResponse<T> {
-    resultSet: T[]
+    resultSet: T[];
     pagination: {
-        page: number
-        limit: number
-        total: number
+        page: number;
+        limit: number;
+        total: number;
     }
 }
+
 export interface TokenBalance {
     tokenId: {
-        base58: () => string
+        base58: () => string;
     }
-    balance: bigint
+    balance: bigint;
 }
+
 export interface BalanceResult {
-    credits: bigint
-    dash: bigint
-    tokens: TokenBalance[]
+    credits: bigint;
+    dash: bigint;
+    tokens: TokenBalance[];
 }
+
 export interface NetworkConfig {
-    isTestnet: boolean
-    platformEndpoint: string
-    dapiEndpoint: string
+    isTestnet: boolean;
+    platformEndpoint: string;
+    dapiEndpoint: string;
 }
+
 export interface TokenBalanceResponse {
-    tokenId: string
-    balance: bigint
-    formattedBalance: string
+    tokenId: string;
+    balance: bigint;
+    formattedBalance: string;
 }
+
 export interface AssetPriceUpdate {
-    ticker: string
-    usdValue: number
+    ticker: string;
+    usdValue: number;
 }
+
 // Wallet operation types
 export interface SendCreditParams {
-    identityId: string
-    identityIdx: number
-    receiver: string
-    credits: bigint
+    identityId: string;
+    identityIdx: number;
+    receiver: string;
+    credits: bigint;
 }
+
 export interface SendTokenParams {
-    identityId: string
-    identityIdx: number
-    tokenId: string
-    receiver: string
-    atomicUnits: bigint
+    identityId: string;
+    identityIdx: number;
+    tokenId: string;
+    receiver: string;
+    atomicUnits: bigint;
 }
+
 export interface TransactionResult {
-    success: boolean
-    data?: ITxSuccess
-    error?: ITxError
-    hash?: string
+    success: boolean;
+    data?: ITxSuccess;
+    error?: ITxError;
+    hash?: string;
 }
+
 // Wallet client interface
 export interface IWalletClient {
-    sendCredits(params: SendCreditParams): Promise<TransactionResult>
-    sendToken(params: SendTokenParams): Promise<TransactionResult>
-    getBalances(identityId: string): Promise<BalanceResult>
-    getTokenBalance(identityId: string, tokenId: string): Promise<bigint>
-    hasSufficientBalance(identityId: string, requiredCredits: bigint): Promise<boolean>
+    sendCredits(params: SendCreditParams): Promise<TransactionResult>;
+    sendToken(params: SendTokenParams): Promise<TransactionResult>;
+    getBalances(identityId: string): Promise<BalanceResult>;
+    getTokenBalance(identityId: string, tokenId: string): Promise<bigint>;
+    hasSufficientBalance(identityId: string, requiredCredits: bigint): Promise<boolean>;
 }
