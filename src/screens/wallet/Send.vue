@@ -182,10 +182,8 @@ import getNetwork from '@/libs/getNetwork'
 import sendCredit from '@/libs/sendCredit'
 import sendToken from '@/libs/sendToken'
 import {
-    DUSD_CONTRACT_ID,
-    TDUSD_CONTRACT_ID,
-    SANS_CONTRACT_ID,
-    TSANS_CONTRACT_ID,
+    getDUSDContractId,
+    getSANSContractId,
     DUSD_DECIMAL_PLACES,
     SANS_DECIMAL_PLACES,
 } from '@/constants'
@@ -277,10 +275,10 @@ const handleSend = async () => {
             let decimalPlaces: number
 
             if (selectedAsset.value.ticker === 'DUSD') {
-                tokenId = isTestnet ? TDUSD_CONTRACT_ID : DUSD_CONTRACT_ID
+                tokenId = getDUSDContractId()
                 decimalPlaces = DUSD_DECIMAL_PLACES
             } else {
-                tokenId = isTestnet ? TSANS_CONTRACT_ID : SANS_CONTRACT_ID
+                tokenId = getSANSContractId()
                 decimalPlaces = SANS_DECIMAL_PLACES
             }
 

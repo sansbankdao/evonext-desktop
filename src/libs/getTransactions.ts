@@ -1,7 +1,7 @@
 // src/libs/getTransactions.ts
 
 /* Import modules. */
-import getNetwork from '@/libs/getNetwork'
+import { getNetwork } from '@/libs'
 
 /* Import constants. */
 import {

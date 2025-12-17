@@ -14,7 +14,7 @@ export const connectionActions = () => ({
             try {
                 await this.loadFromStorage()
                 const [mnemonicData, keysData] = await Promise.all([
-                    StoreManager.load('mnemonic', 'mnemonic'),
+                    StoreManager.load('mnemonic'),
                     StoreManager.load('keys', 'keys')
                 ])
                 log('info', 'Loaded from storage - identity:', state.isAuthenticated, 'mnemonic:', !!mnemonicData, 'keys:', !!keysData)
@@ -54,7 +54,7 @@ export const connectionActions = () => ({
             try {
                 log('info', 'Attempting to connect with a mnemonic.')
                 const payload = { seed_phrase: seedPhrase }
-                await StoreManager.save('mnemonic', 'mnemonic', payload)
+                await StoreManager.save('mnemonic', payload)
                 const identity = await this.searchUserIdentities(network)
                     .catch((err: Error) => {
                         log('error', 'Failed to search for identities:', err)

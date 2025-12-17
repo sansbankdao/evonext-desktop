@@ -72,6 +72,8 @@ export interface IMnemonic {
     seed_phrase: string;
 }
 
+export type INetwork = 'testnet' | 'mainnet'
+
 export interface INotification {
     type: 'like' | 'remix' | 'follow' | 'reply' | 'mention';
     from: IUser;

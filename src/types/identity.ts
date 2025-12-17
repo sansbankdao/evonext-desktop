@@ -6,6 +6,7 @@ export interface IPublicKey {
     purpose: number;
     securityLevel: number;
     contractBounds: any; // You might want to specify a proper typestring
+    data: string;
     dataBytes: string | null;
     readOnly: boolean;
     disabledAt: string | null;
