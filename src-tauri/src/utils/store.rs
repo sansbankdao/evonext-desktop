@@ -32,6 +32,11 @@ impl From<serde_json::Error> for StoreError {
         StoreError::Json(error)
     }
 }
+impl From<tauri_plugin_store::Error> for StoreError {
+    fn from(error: tauri_plugin_store::Error) -> Self {
+        StoreError::Store(error.to_string())
+    }
+}
 pub struct StoreManager<'a> {
     app_handle: &'a AppHandle<Wry>,
 }
@@ -49,8 +54,7 @@ impl<'a> StoreManager<'a> {
             .parse::<PathBuf>()
             .map_err(|e| StoreError::InvalidPath(e.to_string()))?;
         let store = StoreBuilder::new(self.app_handle, path)
-            .build()
-            .map_err(|e| StoreError::Store(e.to_string()))?;
+            .build()?;
         match store.get(key) {
             Some(value) => {
                 let data: T = serde_json::from_value(value.clone())?;
@@ -62,15 +66,14 @@ impl<'a> StoreManager<'a> {
     pub fn save<T: Serialize>(
         &self,
         file_path: impl AsRef<str>,
-        key: &str,&T,
+        key: &str,&T,  // ✅ Fixed: proper parameter declaration
     ) -> Result<(), StoreError> {
         let path = file_path
             .as_ref()
             .parse::<PathBuf>()
             .map_err(|e| StoreError::InvalidPath(e.to_string()))?;
         let store = StoreBuilder::new(self.app_handle, path)
-            .build()
-            .map_err(|e| StoreError::Store(e.to_string()))?;
+            .build()?;
         let serialized = serde_json::to_value(data)?;
         store.set(key.to_string(), serialized);
         store.save()?;
@@ -86,8 +89,7 @@ impl<'a> StoreManager<'a> {
             .parse::<PathBuf>()
             .map_err(|e| StoreError::InvalidPath(e.to_string()))?;
         let store = StoreBuilder::new(self.app_handle, path)
-            .build()
-            .map_err(|e| StoreError::Store(e.to_string()))?;
+            .build()?;
         store.delete(key.to_string());
         store.save()?;
         Ok(())
