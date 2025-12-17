@@ -109,7 +109,9 @@ async function fetchTokenBalancesViaSDK(
         const network = import.meta.env.VITE_DEFAULT_NETWORK || 'testnet'
 
         // Initialize SDK
-        const sdk = new DashPlatformSDK({ network })
+        const sdk = new DashPlatformSDK({
+            network: network as 'testnet' | 'mainnet'
+         })
 
         const balances: TokenBalance[] = []
 

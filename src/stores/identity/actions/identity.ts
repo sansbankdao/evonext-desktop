@@ -22,7 +22,9 @@ export const identityActions = () => ({
             const primaryIdentity = identities[0]
             if (typeof primaryIdentity?.id !== 'undefined' && primaryIdentity?.id !== null) {
                 const network = await getNetwork()
-                const sdk = new DashPlatformSDK({ network })
+                const sdk = new DashPlatformSDK({
+                    network: network as 'testnet' | 'mainnet'
+                 })
                 const [document] = await sdk.names.searchByIdentity(primaryIdentity.id)
                 if (typeof document?.properties?.label !== 'undefined' && document?.properties?.label !== null) {
                     state.username = document.properties.label
@@ -53,7 +55,9 @@ export const identityActions = () => ({
             const state = this as IIdentityState
             const network = await getNetwork()
             log('info', 'Querying identity details for:', identityId)
-            const sdk = new DashPlatformSDK({ network })
+            const sdk = new DashPlatformSDK({
+                network: network as 'testnet' | 'mainnet'
+             })
             const identity = await sdk.identities.getIdentityByIdentifier(identityId)
             log('info', 'SDK Identity details:', identity)
             const publicKeys = identity.getPublicKeys().map((_key: any, _index: number) => ({

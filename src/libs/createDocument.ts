@@ -25,7 +25,9 @@ export default async (
     const network = await getNetwork()
 
     /* Initialize Dash Platform SDK. */
-    const sdk = new DashPlatformSDK({ network })
+    const sdk = new DashPlatformSDK({
+        network: network as 'testnet' | 'mainnet'
+    })
 
     /* Set data contract. */
     // TODO ADD FINAL DATA CONTRACT VALIDATION
