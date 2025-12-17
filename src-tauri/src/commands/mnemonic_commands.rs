@@ -11,7 +11,7 @@ pub fn load_mnemonic(app_handle: AppHandle<Wry>) -> Result<Option<IMnemonic>, St
 
     match manager.load(SAFU_FILE, "mnemonic") {
         Ok(data) => {
-            if let Some(mnemonic) = &data {
+            if let Some(_mnemonic) = &data {
                 println!("Mnemonic loaded successfully.");
             } else {
                 println!("No mnemonic found, returning None.");

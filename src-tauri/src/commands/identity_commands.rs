@@ -11,7 +11,7 @@ pub fn load_private_keys(app_handle: AppHandle<Wry>) -> Result<Option<IPrivateKe
 
     match manager.load(SAFU_FILE, "keys") {
         Ok(data) => {
-            if let Some(keys) = &data {
+            if let Some(_keys) = &data {
                 println!("Private keys loaded successfully.");
             } else {
                 println!("No private keys found, returning None.");
@@ -63,7 +63,7 @@ pub fn load_identity_data(app_handle: AppHandle<Wry>) -> Result<Option<IdentityD
 
     match manager.load(IDENTITY_FILE, "identity") {
         Ok(data) => {
-            if let Some(identity) = &data {
+            if let Some(_identity) = &data {
                 println!("Identity data loaded successfully.");
             } else {
                 println!("No identity data found, returning None.");

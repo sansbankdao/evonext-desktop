@@ -11,7 +11,7 @@ pub fn load_settings(app_handle: AppHandle<Wry>) -> Result<Option<IAppSettings>,
 
     match manager.load(SETTINGS_FILE, "settings") {
         Ok(data) => {
-            if let Some(settings) = &data {
+            if let Some(_settings) = &data {
                 println!("Settings loaded successfully.");
             } else {
                 println!("No settings found, returning None.");

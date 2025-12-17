@@ -11,7 +11,7 @@ pub fn load_license(app_handle: AppHandle<Wry>) -> Result<Option<ILicense>, Stri
 
     match manager.load(LICENSE_FILE, "license") {
         Ok(data) => {
-            if let Some(license) = &data {
+            if let Some(_license) = &data {
                 println!("License loaded successfully.");
             } else {
                 println!("No license found, returning None.");
