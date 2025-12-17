@@ -1,5 +1,14 @@
 // src/types/wallet.ts
-import type { IAsset, ITransaction, IBalanceChange, IUser2 } from './index'
+
+import type {
+    IAsset,
+    ITransaction,
+    IBalanceChange,
+    IUser2,
+    ITxSuccess,
+    ITxError,
+} from './index'
+
 export interface IWalletState {
     user: IUser2 | null
     assets: IAsset[]

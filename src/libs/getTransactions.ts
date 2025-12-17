@@ -1,13 +1,7 @@
 // src/libs/getTransactions.ts
 
 /* Import modules. */
-import { getNetwork } from '@/libs'
-
-/* Import constants. */
-import {
-    PLATFORM_HTTP_API_MAINNET,
-    PLATFORM_HTTP_API_TESTNET,
-} from '@/constants'
+import { getPlatformEndpoint } from '@/utils/env'
 
 interface IdentityTransfer {
     amount: number
@@ -56,12 +50,8 @@ export const fetchIdentityTransfers = async (
     limit: number = 10,
 ): Promise<IdentityTransfer[]> => {
     try {
-        /* Request network. */
-        const network = await getNetwork()
-
         /* Set API endpoint. */
-        const apiEndpoint = network === 'mainnet'
-            ? PLATFORM_HTTP_API_MAINNET : PLATFORM_HTTP_API_TESTNET
+        const apiEndpoint = getPlatformEndpoint()
 
         const response = await fetch(
             `${apiEndpoint}/identity/${identityId}/transfers?page=1&limit=${limit}&order=desc`
@@ -87,12 +77,8 @@ export const fetchTokenTransitions = async (
     limit: number = 10,
 ): Promise<TokenTransition[]> => {
     try {
-        /* Request network. */
-        const network = await getNetwork()
-
         /* Set API endpoint. */
-        const apiEndpoint = network === 'mainnet'
-            ? PLATFORM_HTTP_API_MAINNET : PLATFORM_HTTP_API_TESTNET
+        const apiEndpoint = getPlatformEndpoint()
 
         /* Request (remote) data. */
         const response = await fetch(

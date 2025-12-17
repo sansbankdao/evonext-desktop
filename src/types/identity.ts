@@ -52,6 +52,7 @@ export interface IIdentityData {
 }
 
 export interface IIdentityPublicKey {
+    id: number;
     type_: string;
     purpose: number;
     security_level: number;
