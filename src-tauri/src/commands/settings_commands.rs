@@ -1,38 +1,57 @@
 // src-tauri/src/commands/settings_commands.rs
 use tauri::{AppHandle, Wry};
 use crate::models::IAppSettings;
+use crate::utils::store::StoreManager;
 use crate::constants::SETTINGS_FILE;
-use std::path::PathBuf;
-use tauri_plugin_store::StoreBuilder;
 
 #[tauri::command]
 pub fn load_settings(app_handle: AppHandle<Wry>) -> Result<Option<IAppSettings>, String> {
-    let path = SETTINGS_FILE.parse::<PathBuf>().unwrap();
-    let store = StoreBuilder::new(&app_handle, path)
-        .build()
-        .map_err(|e| e.to_string())?;
+    let manager = StoreManager::new(&app_handle);
 
-    if let Some(json_value) = store.get("settings") {
-        let settings: IAppSettings = serde_json::from_value(json_value.clone())
-            .map_err(|e| e.to_string())?;
-        println!("Settings loaded successfully.");
-        Ok(Some(settings))
-    } else {
-        println!("NO Application settings found, returning default.");
-        Ok(None)
+    match manager.load(SETTINGS_FILE, "settings") {
+        Ok(data) => {
+            if let Some(settings) = &data {
+                println!("Settings loaded successfully.");
+            } else {
+                println!("No settings found, returning None.");
+            }
+            Ok(data)
+        }
+        Err(e) => {
+            println!("Failed to load settings: {}", e);
+            Err(e.to_string())
+        }
     }
 }
 
 #[tauri::command]
 pub fn save_settings(app_handle: AppHandle<Wry>, settings: IAppSettings) -> Result<(), String> {
-    let path = SETTINGS_FILE.parse::<PathBuf>().unwrap();
-    let store = StoreBuilder::new(&app_handle, path)
-        .build()
-        .map_err(|e| e.to_string())?;
+    let manager = StoreManager::new(&app_handle);
 
-    store.set("settings".to_string(), serde_json::to_value(settings).unwrap());
-    store.save().map_err(|e| e.to_string())?;
+    match manager.save(SETTINGS_FILE, "settings", &settings) {
+        Ok(_) => {
+            println!("Settings saved successfully.");
+            Ok(())
+        }
+        Err(e) => {
+            println!("Failed to save settings: {}", e);
+            Err(e.to_string())
+        }
+    }
+}
 
-    println!("Application Settings saved successfully.");
-    Ok(())
+#[tauri::command]
+pub fn delete_settings(app_handle: AppHandle<Wry>) -> Result<(), String> {
+    let manager = StoreManager::new(&app_handle);
+
+    match manager.delete(SETTINGS_FILE, "settings") {
+        Ok(_) => {
+            println!("Settings deleted successfully.");
+            Ok(())
+        }
+        Err(e) => {
+            println!("Failed to delete settings: {}", e);
+            Err(e.to_string())
+        }
+    }
 }
