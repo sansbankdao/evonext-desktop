@@ -1,12 +1,15 @@
 // src/types/index.ts
+
 export * from './explorer'
 export * from './identity'
 export * from './settings'
 export * from './system'
 export * from './wallet'
+
 ////////////////////////////////////////////////////////////////////////////////
-/* Import constants for type references */
-import type { IIdentity, IIdentityPublicKey } from './identity'
+/* Import types. */
+import { GasFeesPaidByWASM } from 'pshenmic-dpp'
+import type { IIdentity, IIdentityPublicKey, IPublicKey, IUser } from './identity'
 export interface IApp {
     creatorId: IUser;
     canvasId: string;
@@ -60,10 +63,6 @@ export interface IMedia {
 export interface IMnemonic {
     seed_phrase: string;
 }
-// Removed INetwork since network is now configured via environment
-// export interface INetwork {
-//     network: 'testnet' | 'mainnet';
-// }
 export interface INotification {
     type: 'like' | 'remix' | 'follow' | 'reply' | 'mention';
     from: IUser;
@@ -90,15 +89,7 @@ export interface IPrivateKey extends IPublicKey {
     privateKeyHex: string;
     privateKeyWif: string;
 }
-export interface IPublicKey {
-    type?: number;
-    keyType?: string;       // enumeration
-    purpose: string;
-    securityLevel: string;
-    contractBounds: any;    // FIXME What is the type??string;
-    readOnly: boolean;
-    disabledAt: boolean;
-}
+// Note: IPublicKey is imported from './identity'
 export interface IToken {
     name: string;
     ticker: string;
@@ -192,4 +183,125 @@ export interface EnvironmentConfig {
     balanceRefreshIntervalMs: number;
     enablePremiumFeatures: boolean;
     enableAutoUpdate: boolean;
+}
+// Key management types (from wallet types)
+export interface KeyDerivationResult {
+    masterKey: any;  // PrivateKeyWASM instance
+    authCritical: any;
+    authHigh: any;
+    transferKey: any;
+    encryptionKey: any;
+}
+export interface DerivationPath {
+    purpose: number;
+    coinType: number;
+    account: number;
+    change: number;
+    identityIdx: number;
+    keyIdx: number;
+}
+export interface IdentitySearchOptions {
+    minIndexSearch?: number;
+    queryRegistry?: boolean;
+    signatureScheme?: 'ecdsa' | 'bls' | 'hash160';
+}
+export interface IdentitySearchResult {
+    identities: IIdentity[];
+    error?: string;
+}
+export interface TokenBalanceResult {
+    tokenId: string;
+    balance: bigint;
+    formattedBalance: string;
+    decimals: number;
+}
+// Wallet types that were in wallet.ts
+export interface IdentityTransfer {
+    amount: number
+    sender: string | null
+    recipient: string
+    timestamp: string
+    txHash: string
+    type: string
+    blockHash: string
+    gasUsed: number
+}
+export interface TokenTransition {
+    amount: number
+    recipient: string
+    owner: {
+        identifier: string
+        aliases: Array<{
+            alias: string
+            contested: boolean
+            documentId: string
+            status: string
+            timestamp: string
+        }>
+    }
+    action: string
+    stateTransitionHash: string
+    timestamp: string
+    publicNote: string | null
+}
+export interface ApiResponse<T> {
+    resultSet: T[]
+    pagination: {
+        page: number
+        limit: number
+        total: number
+    }
+}
+export interface TokenBalance {
+    tokenId: {
+        base58: () => string
+    }
+    balance: bigint
+}
+export interface BalanceResult {
+    credits: bigint
+    dash: bigint
+    tokens: TokenBalance[]
+}
+export interface NetworkConfig {
+    isTestnet: boolean
+    platformEndpoint: string
+    dapiEndpoint: string
+}
+export interface TokenBalanceResponse {
+    tokenId: string
+    balance: bigint
+    formattedBalance: string
+}
+export interface AssetPriceUpdate {
+    ticker: string
+    usdValue: number
+}
+// Wallet operation types
+export interface SendCreditParams {
+    identityId: string
+    identityIdx: number
+    receiver: string
+    credits: bigint
+}
+export interface SendTokenParams {
+    identityId: string
+    identityIdx: number
+    tokenId: string
+    receiver: string
+    atomicUnits: bigint
+}
+export interface TransactionResult {
+    success: boolean
+    data?: ITxSuccess
+    error?: ITxError
+    hash?: string
+}
+// Wallet client interface
+export interface IWalletClient {
+    sendCredits(params: SendCreditParams): Promise<TransactionResult>
+    sendToken(params: SendTokenParams): Promise<TransactionResult>
+    getBalances(identityId: string): Promise<BalanceResult>
+    getTokenBalance(identityId: string, tokenId: string): Promise<bigint>
+    hasSufficientBalance(identityId: string, requiredCredits: bigint): Promise<boolean>
 }
