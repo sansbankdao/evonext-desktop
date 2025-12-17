@@ -1,7 +1,8 @@
 // src-tauri/src/models.rs
+
 use serde::{Serialize, Deserialize};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct IAppSettings {
     pub network: String,
     pub theme: String,
@@ -9,24 +10,24 @@ pub struct IAppSettings {
     pub profile: ProfileSettings,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct IAssets {
     pub identity_id: String,
     pub name: String,
     pub symbol: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ILicense {
     pub license_id: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct IMnemonic {
     pub seed_phrase: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct IPrivateKeys {
     pub identity_id: String,
     pub auth_key: String,
@@ -36,7 +37,7 @@ pub struct IPrivateKeys {
 
 // -----------------------------------------------------------------------------
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct IdentityData {
     pub username: String,
     pub identity_id: String,
@@ -50,7 +51,7 @@ pub struct IdentityData {
     pub public_key_ids: Option<Vec<u32>>, // This is the INDEX values you mentioned
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct IdentityPublicKey {
     pub id: u32, // This is the INDEX you wanted to save
     pub type_: String,
@@ -61,14 +62,14 @@ pub struct IdentityPublicKey {
     pub disabled_at: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NotificationSettings {
     pub messages: bool,
     pub mentions: bool,
     pub contact_requests: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ProfileSettings {
     pub display_name: String,
     pub username: String,
