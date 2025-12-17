@@ -48,7 +48,8 @@ export function transformPublicKeys(sdkKeys: any[], identityIdx: number): Identi
     return sdkKeys.map((key: any, index: number) => ({
         type_: key.type_ || key.keyType || 'ecdsa',
         purpose: Number(key.purpose || key.purposeNumber || 0),
-        security_level: Number(key.security_level || key.securityLevelNumber || 0),key.data || hexHash160ToBase64(key.dataBytes || key.data || ''),
+        security_level: Number(key.security_level || key.securityLevelNumber || 0),
+        data: key.data || hexHash160ToBase64(key.dataBytes || key.data || ''),
         read_only: Boolean(key.read_only || key.readOnly || false),
         disabled_at: key.disabled_at || key.disabledAt || null,
         created_at: key.created_at || new Date().toISOString()

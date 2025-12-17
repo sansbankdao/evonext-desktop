@@ -12,8 +12,7 @@ import {
 } from '@/constants'
 import { ErrorBoundary } from '@/utils/errors'
 import { log, isTestnet } from '@/utils/env'
-import getNetwork from '@/libs/getNetwork'
-import getTokenBalances from '@/libs/getTokenBalances'
+import { getNetwork, getTokenBalances } from '@/libs'
 
 /* Import utilities. */
 import { fetchIdentityTransfers, fetchTokenTransitions } from './api'

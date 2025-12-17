@@ -5,7 +5,7 @@ import { log } from '@/utils/env'
 import getIdentities from '@/libs/getIdentities'
 import getNetwork from '@/libs/getNetwork'
 import type { IIdentityState } from '@/types'
-import type { SDKIdentityDetails } from '../types'
+import type { SDKIdentityDetails } from '@/types'
 import { hexHash160ToBase64 } from '../utils'
 export const identityActions = () => ({
     async searchUserIdentities(this: any) {
@@ -59,7 +59,8 @@ export const identityActions = () => ({
             const publicKeys = identity.getPublicKeys().map((_key: any, _index: number) => ({
                 type_: _key.keyType,
                 purpose: _key.purposeNumber,
-                security_level: _key.securityLevelNumber,_key.data,
+                security_level: _key.securityLevelNumber,
+                data: _key.data,
                 dataB64: hexHash160ToBase64(_key.data),
                 read_only: _key.readOnly,
                 disabled_at: _key.disabledAt,

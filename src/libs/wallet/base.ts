@@ -42,7 +42,8 @@ export class WalletBase {
         try {
             const result = await operation()
             return {
-                success: true,result as ITxSuccess
+                success: true,
+                data: result as ITxSuccess
             }
         } catch (error: any) {
             log('error', `${errorCode}:`, error)
