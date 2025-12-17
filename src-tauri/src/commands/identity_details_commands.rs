@@ -10,7 +10,7 @@ use tauri_plugin_store::StoreBuilder;
 pub fn update_identity_with_sdk_data(
     app_handle: AppHandle<Wry>,
     identity_id: String,
-    identity_idx: u8,
+    // identity_idx: u8,
     public_keys: Vec<IdentityPublicKey>,
     revision: u64,
     public_key_ids: Vec<u32>,

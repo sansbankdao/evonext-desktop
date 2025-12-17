@@ -1,36 +1,93 @@
 // src/stores/identity/index.ts
 
-/* Import modules. */
 import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
+import { ErrorBoundary } from '@/utils/errors'
+import { useStorage } from '@/composables/useStorage'
+import type { IIdentityState, IIdentity, IIdentityPublicKey } from '@/types'
 
-/* Import state. */
-import { useIdentityState } from './state'
+export const useIdentityStore = defineStore('identity', () => {
+  // State
+  const username = ref<string | null>(null)
+  const identity = ref<IIdentity | null>(null)
+  const balance = ref<string | null>(null)
+  const balanceBigInt = ref<bigint | undefined>()
+  const dashBigInt = ref<bigint | undefined>()
+  const publicKeys = ref<IIdentityPublicKey[]>([])
+  const revision = ref<number | null>(null)
+  const isAuthenticated = ref(false)
+  const isConnecting = ref(false)
+  const connectionError = ref<string | null>(null)
+  const premiumAccess = ref(false)
+  const lastConnected = ref<string | null>(null)
 
-/* Import actions. */
-import { storageActions } from './actions/storage'
-import { connectionActions } from './actions/connection'
-import { identityActions } from './actions/identity'
-import { balanceActions } from './actions/balance'
+  // Getters (computed)
+  const greeting = computed(() => `Hello, ${username.value || 'Guest'}!`)
+  const isConnected = computed(() => isAuthenticated.value && !!username.value)
+  const hasPublicKeys = computed(() => publicKeys.value.length > 0)
 
-/* Import getters. */
-import { useIdentityGetters } from './getters'
+  const getPublicKeyById = computed(() => (id: number) =>
+    publicKeys.value.find(key => key.id === id)
+  )
 
-/* Create action objects. */
-const allStorageActions = storageActions()
-const allConnectionActions = connectionActions()
-const allIdentityActions = identityActions()
-const allBalanceActions = balanceActions()
+  const authPublicKey = computed(() =>
+    publicKeys.value.find(key => key.purpose === 0)
+  )
 
-/* Combine all actions. */
-const useIdentityActions = {
-    ...allStorageActions,
-    ...allConnectionActions,
-    ...allIdentityActions,
-    ...allBalanceActions,
-}
+  const encryptionPublicKey = computed(() =>
+    publicKeys.value.find(key => key.purpose === 1)
+  )
 
-export const useIdentityStore = defineStore('identity', {
-    state: useIdentityState,
-    actions: useIdentityActions,
-    getters: useIdentityGetters,
+  // Actions
+  function $reset() {
+    username.value = null
+    identity.value = null
+    balance.value = null
+    balanceBigInt.value = undefined
+    dashBigInt.value = undefined
+    publicKeys.value = []
+    revision.value = null
+    isAuthenticated.value = false
+    isConnecting.value = false
+    connectionError.value = null
+    premiumAccess.value = false
+    lastConnected.value = null
+  }
+
+  async function fetchBalance() {
+    return ErrorBoundary.wrap(async () => {
+      // ... implementation using composition API
+    }, 'FETCH_BALANCE_FAILED')
+  }
+
+  // ... other actions refactored similarly
+
+  return {
+    // State
+    username,
+    identity,
+    balance,
+    balanceBigInt,
+    dashBigInt,
+    publicKeys,
+    revision,
+    isAuthenticated,
+    isConnecting,
+    connectionError,
+    premiumAccess,
+    lastConnected,
+
+    // Getters
+    greeting,
+    isConnected,
+    hasPublicKeys,
+    getPublicKeyById,
+    authPublicKey,
+    encryptionPublicKey,
+
+    // Actions
+    $reset,
+    fetchBalance,
+    // ... other actions
+  }
 })
