@@ -9,7 +9,7 @@ export * from './wallet'
 ////////////////////////////////////////////////////////////////////////////////
 /* Import types. */
 // import { GasFeesPaidByWASM } from 'pshenmic-dpp'
-import type { IIdentity, IIdentityPublicKey, IPublicKey } from './identity'
+import type { IIdentity, IPublicKey } from './identity'
 
 export interface IApp {
     creatorId: IUser;

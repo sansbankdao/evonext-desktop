@@ -178,7 +178,7 @@ import { useRouter } from 'vue-router'
 import { useWalletStore } from '@/stores/wallet'
 
 import getIdentityIdx from '@/libs/getIdentityIdx'
-import getNetwork from '@/libs/getNetwork'
+// import getNetwork from '@/libs/getNetwork'
 import sendCredit from '@/libs/sendCredit'
 import sendToken from '@/libs/sendToken'
 import {
@@ -270,7 +270,7 @@ const handleSend = async () => {
             }
         } else if (['SANS', 'DUSD'].includes(selectedAsset.value.ticker) && amount.value) {
             /* Get token contract ID based on network and ticker. */
-            const isTestnet = (await getNetwork()) === 'testnet'
+            // const isTestnet = (await getNetwork()) === 'testnet'
             let tokenId: string
             let decimalPlaces: number
 

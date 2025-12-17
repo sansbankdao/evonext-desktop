@@ -2,7 +2,7 @@
 
 import { invoke } from '@tauri-apps/api/core'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import type { IdentityData, IdentityPublicKey } from '@/types'
+import type { IIdentityData, IIdentityPublicKey } from '@/types'
 /**
  * Convert hex string to base64
  */
@@ -44,7 +44,7 @@ export async function loadFromStore<T>(command: string): Promise<T | null> {
 /**
  * Transform SDK public keys to IdentityPublicKey format
  */
-export function transformPublicKeys(sdkKeys: any[], identityIdx: number): IdentityPublicKey[] {
+export function transformPublicKeys(sdkKeys: any[], identityIdx: number): IIdentityPublicKey[] {
     return sdkKeys.map((key: any, index: number) => ({
         type_: key.type_ || key.keyType || 'ecdsa',
         purpose: Number(key.purpose || key.purposeNumber || 0),
@@ -69,7 +69,7 @@ export function validateIdentityData(data: any): boolean {
 /**
  * Create default identity data
  */
-export function createDefaultIdentityData(username: string = ''): IdentityData {
+export function createDefaultIdentityData(username: string = ''): IIdentityData {
     return {
         username,
         identity_id: '',

@@ -2,13 +2,13 @@
 
 import { defineStore } from 'pinia'
 import { useSystemStore } from '../system'
-import type { IAsset, ITransaction, IWalletState } from '@/types'
+import type { IAsset, IWalletState } from '@/types'
 import {
     fetchLiveBalances,
     fetchRealTransactions,
     refreshBalances
 } from './actions'
-import { updateAssetPrices } from './actions/transforms'
+import { updateAssetPrices } from './actions'
 
 export const useWalletStore = defineStore('wallet', {
     state: (): IWalletState => ({

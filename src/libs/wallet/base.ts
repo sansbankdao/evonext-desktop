@@ -1,7 +1,7 @@
 // src/libs/wallet/base.ts
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import { PrivateKeyWASM } from 'pshenmic-dpp'
-import { ErrorBoundary, NetworkError } from '@/utils/errors'
+// import { PrivateKeyWASM } from 'pshenmic-dpp'
+import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
 import getNetwork from '../getNetwork'
 import getTransferKey from '../getTransferKey'

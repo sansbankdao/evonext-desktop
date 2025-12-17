@@ -1,5 +1,8 @@
 // src/libs/wallet/credits.ts
+
+import { PrivateKeyWASM } from 'pshenmic-dpp'
 import { WalletBase } from './base'
+import { ErrorBoundary } from '@/utils/errors'
 import { MIN_CREDIT_TRANSFER } from '@/types'
 import type { SendCreditParams, TransactionResult } from '@/types'
 export class CreditTransfer extends WalletBase {
@@ -51,7 +54,7 @@ export class CreditTransfer extends WalletBase {
                 await this.sdk!.stateTransitions.waitForStateTransitionResult(stateTransition)
                 // Return transaction ID
                 const hash = stateTransition.hash(false)
-                log('info', `Credit transfer successful. Hash: ${hash}`)
+                console.log('info', `Credit transfer successful. Hash: ${hash}`)
                 return this.createTransactionSuccess(hash)
             }, 'SEND_CREDITS_FAILED')
         }, 'CREDIT_TRANSFER_OPERATION_FAILED')

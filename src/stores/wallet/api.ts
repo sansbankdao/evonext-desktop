@@ -1,8 +1,8 @@
 // src/stores/wallet/api.ts
 /* Import modules. */
 import { ErrorBoundary, NetworkError } from '@/utils/errors'
-import { getPlatformEndpoint, log } from '@/utils/env'
-import type { IdentityTransfer, TokenTransition, ApiResponse } from './types'
+import { getPlatformEndpoint } from '@/utils/env'
+import type { IdentityTransfer, TokenTransition, ApiResponse } from '@/types'
 
 /**
  * Fetches identity credit transfers for a given identity

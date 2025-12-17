@@ -44,6 +44,7 @@ export class PrivateKeyManager {
         identityIdx: number,
         queryRegistry: boolean = false
     ): Promise<KeyDerivationResult> {
+        console.log('queryRegistry', queryRegistry)  // FIXME We need to implment this.
         return ErrorBoundary.wrap(async () => {
             if (!this.sdk) {
                 await this.initialize()
@@ -77,12 +78,12 @@ export class PrivateKeyManager {
     }
 
     async getTransferKey(identityIdx: number): Promise<string> {
-        const keys = await this.getPrivateKeys(identityIdx, false)
+        const keys = await this.getPrivateKeys(identityIdx)
         return keys.transferKey.WIF()
     }
 
     async getPublicKeyHash(identityIdx: number, keyIdx: number = 0): Promise<string> {
-        const keys = await this.getPrivateKeys(identityIdx, false)
+        const keys = await this.getPrivateKeys(identityIdx)
         const key = [keys.masterKey, keys.authCritical, keys.authHigh, keys.transferKey, keys.encryptionKey][keyIdx]
         const publicKey = key.getPublicKey()
         return binToHex(hash160(publicKey.bytes()))

@@ -14,7 +14,7 @@ export class BalanceChecker extends WalletBase {
             if (!this.sdk) {
                 await this.initialize()
             }
-            const config = this.getNetworkConfig()
+            // const config = this.getNetworkConfig()
             log('info', `Fetching balances for identity: ${identityId} on ${this.network}`)
             // Fetch CREDITS balance
             const creditsBalanceSatoshis = await getIdentityBalance(this.network, identityId)

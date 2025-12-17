@@ -1,7 +1,7 @@
 // src/stores/identity/actions/balance.ts
 
 import { getIdentityBalance } from '@evonext/platform'
-import { useSystemStore } from '../../system'
+// import { useSystemStore } from '../../system'
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
 import getNetwork from '@/libs/getNetwork'
@@ -12,7 +12,7 @@ export const balanceActions = () => ({
     async fetchBalance(this: any) {
         return ErrorBoundary.wrap(async () => {
             const state = this as any
-            const system = useSystemStore()
+            // const system = useSystemStore()
 
             log('info', 'fetchBalance called, identity:', state.identity?.id)
 

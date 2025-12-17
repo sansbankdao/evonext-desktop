@@ -1,5 +1,8 @@
 // src/libs/wallet/tokens.ts
+
+import { PrivateKeyWASM } from 'pshenmic-dpp'
 import { WalletBase } from './base'
+import { ErrorBoundary } from '@/utils/errors'
 import type { SendTokenParams, TransactionResult } from '@/types'
 export class TokenTransfer extends WalletBase {
     async send(params: SendTokenParams): Promise<TransactionResult> {
@@ -42,7 +45,7 @@ export class TokenTransfer extends WalletBase {
                 await this.sdk!.stateTransitions.waitForStateTransitionResult(stateTransition)
                 // Return transaction ID
                 const hash = stateTransition.hash(false)
-                log('info', `Token transfer successful. Hash: ${hash}, Token: ${params.tokenId}`)
+                console.log('info', `Token transfer successful. Hash: ${hash}, Token: ${params.tokenId}`)
                 return this.createTransactionSuccess(hash)
             }, 'SEND_TOKEN_FAILED')
         }, 'TOKEN_TRANSFER_OPERATION_FAILED')

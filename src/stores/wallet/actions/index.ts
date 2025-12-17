@@ -24,7 +24,7 @@ import {
 } from './transforms'
 
 /* Import types. */
-import type { ITransaction, IAsset } from '@/types'
+import type { ITransaction } from '@/types'
 
 export async function fetchLiveBalances(this: any) {
     return ErrorBoundary.wrap(async () => {

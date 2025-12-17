@@ -1,11 +1,11 @@
 // src/stores/identity/actions/connection.ts
-import { invoke } from '@tauri-apps/api/core'
+// import { invoke } from '@tauri-apps/api/core'
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
 import { StoreManager } from '@/utils/store'
 import getNetwork from '@/libs/getNetwork'
 import type { IIdentityState } from '@/types'
-import type { ConnectionResult } from '../types'
+import type { ConnectionResult } from '@/types'
 export const connectionActions = () => ({
     async initFromStorage(this: any) {
         return ErrorBoundary.wrap(async () => {
@@ -15,7 +15,7 @@ export const connectionActions = () => ({
                 await this.loadFromStorage()
                 const [mnemonicData, keysData] = await Promise.all([
                     StoreManager.load('mnemonic'),
-                    StoreManager.load('keys', 'keys')
+                    StoreManager.load('keys')
                 ])
                 log('info', 'Loaded from storage - identity:', state.isAuthenticated, 'mnemonic:', !!mnemonicData, 'keys:', !!keysData)
                 if (state.isAuthenticated && (mnemonicData || keysData)) {

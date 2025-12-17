@@ -6,8 +6,8 @@ import type { IIdentityState, IIdentityData, IIdentityPublicKey } from '@/types'
 import {
     validateIdentityData,
     createDefaultIdentityData,
-    transformPublicKeys
-} from './utils'
+    // transformPublicKeys
+} from '../utils'
 export const storageActions = () => ({
     async saveToStorage(this: any) {
         return ErrorBoundary.wrap(async () => {

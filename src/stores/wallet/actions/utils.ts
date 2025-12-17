@@ -1,6 +1,6 @@
 // src/stores/wallet/actions/utils.ts
 /* Import modules. */
-import { DUSD_DECIMAL_PLACES, SANS_DECIMAL_PLACES } from '@/constants'
+// import { DUSD_DECIMAL_PLACES, SANS_DECIMAL_PLACES } from '@/constants'
 /**
  * Converts atomic/satoshi amount to DASH for display
  */
