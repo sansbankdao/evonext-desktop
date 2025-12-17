@@ -1,19 +1,13 @@
 // src/types/index.ts
-
 export * from './explorer'
 export * from './identity'
 export * from './settings'
 export * from './system'
 export * from './wallet'
-
 ////////////////////////////////////////////////////////////////////////////////
-
-
-/* Import types. */
-import { GasFeesPaidByWASM } from 'pshenmic-dpp'
-
+/* Import constants for type references */
+import type { IIdentity, IIdentityPublicKey } from './identity'
 export interface IApp {
-    id: string;
     creatorId: IUser;
     canvasId: string;
     type: 'blog' | 'game' | null | undefined;
@@ -22,22 +16,18 @@ export interface IApp {
     likes: number;
     createdAt: Date;
 }
-
 export interface IAppState {
     currentUser: IUser | null;
     theme: 'light' | 'dark';
     isComposeOpen: boolean;
     replyingTo: IPost | null;
-
     setCurrentUser: (user: IUser | null) => void;
     setTheme: (theme: 'light' | 'dark') => void;
     toggleTheme: () => void;
     setComposeOpen: (open: boolean) => void;
     setReplyingTo: (post: IPost | null) => void;
 }
-
 export interface IComment {
-    id: string;
     author: IUser;
     content: string;
     createdAt: Date;
@@ -45,17 +35,10 @@ export interface IComment {
     liked?: boolean;
     postId: string;
 }
-
 export interface ICurrency {
     USD: any;
 }
-
-export interface IIdentity {
-    id: string;
-    identity_idx: number;
-    publicKeys: IPublicKey[];
-}
-
+// Note: IIdentity is now imported from './identity'
 export interface IKeyTypes {
     masterKey: IPrivateKey | IPublicKey;
     authCritical: IPrivateKey | IPublicKey;
@@ -63,13 +46,10 @@ export interface IKeyTypes {
     transferKey: IPrivateKey | IPublicKey;
     encryptionKey: IPrivateKey | IPublicKey;
 }
-
 export interface ILicense {
     license_id: string;
 }
-
 export interface IMedia {
-    id: string;
     type: 'image' | 'video' | 'gif';
     url: string;
     thumbnail?: string;
@@ -77,26 +57,21 @@ export interface IMedia {
     width?: number;
     height?: number;
 }
-
 export interface IMnemonic {
     seed_phrase: string;
 }
-
-export interface INetwork {
-    network: 'testnet' | 'mainnet';
-}
-
+// Removed INetwork since network is now configured via environment
+// export interface INetwork {
+//     network: 'testnet' | 'mainnet';
+// }
 export interface INotification {
-    id: string;
     type: 'like' | 'remix' | 'follow' | 'reply' | 'mention';
     from: IUser;
     post?: IPost;
     createdAt: Date;
     read: boolean;
 }
-
 export interface IPost {
-    id: string;
     author: IUser;
     content: string;
     createdAt: Date;
@@ -111,26 +86,20 @@ export interface IPost {
     replyTo?: IPost;
     quotedPost?: IPost;
 }
-
 export interface IPrivateKey extends IPublicKey {
     privateKeyHex: string;
     privateKeyWif: string;
 }
-
 export interface IPublicKey {
-    id: number;
     type?: number;
     keyType?: string;       // enumeration
     purpose: string;
     securityLevel: string;
-    contractBounds: any;    // FIXME What is the type??
-    data: string;
+    contractBounds: any;    // FIXME What is the type??string;
     readOnly: boolean;
     disabledAt: boolean;
 }
-
 export interface IToken {
-    id: string;
     name: string;
     ticker: string;
     token_id_hex: string;
@@ -140,32 +109,27 @@ export interface IToken {
     decimal_places: number;
     fiat: ICurrency;
 }
-
 export interface ITokenPaymentInfo {
     tokenContractId: string;
     tokenContractPosition: number;
     maximumTokenCost: bigint;
-    gasFeesPaidBy: GasFeesPaidByWASM;
+    // Removed: GasFeesPaidByWASM import since it's from pshenmic-dpp
+    gasFeesPaidBy: any; // Was: GasFeesPaidByWASM - use appropriate type if needed
 }
-
 export interface ITrend {
     topic: string;
     posts: number;
     category?: string;
 }
-
 export interface ITxError {
     code: number;
     message: string;
-    suggestions?: [string];
+    suggestions?: string[];
 }
-
 export interface ITxSuccess {
     txid: string;
 }
-
 export interface IUser {
-    id: string;
     docId?: string;         // Document that stores the user's profile
     username: string;       // From DPNS - not stored in profile document
     displayName: string;
@@ -179,25 +143,18 @@ export interface IUser {
     joinedAt: Date;
     revision: number;
 }
-
-
 ////////////////////////////////////////////////////////////////////////////////
-
-
 export interface IUser2 {
     name: string
     address: string
 }
-
 export interface IAsset {
     ticker: string
     name: string
     amount: number
     usdValue: number
 }
-
 export interface ITransaction {
-    id: string
     type: 'sent' | 'received' | 'swap'
     title: string
     subtitle: string
@@ -205,9 +162,34 @@ export interface ITransaction {
     status: 'Completed' | 'Pending...' | 'Failed'
     date: Date
 }
-
 export interface IBalanceChange {
     isPositive: boolean
     percent: number
     amount: number
+}
+// New types for store operations
+export interface StoreOperationResult<T = void> {
+    success: boolean;
+    data?: T;
+    error?: string;
+}
+export interface StoreKeys {
+    assets: string;
+    identity: string;
+    license: string;
+    mnemonic: string;
+    keys: string;
+    settings: string;
+}
+// Type for environment configuration
+export interface EnvironmentConfig {
+    defaultNetwork: 'testnet' | 'mainnet';
+    dashswapEndpoint: string;
+    dapiWebApiEndpoint: string;
+    platformHttpApiMainnet: string;
+    platformHttpApiTestnet: string;
+    priceUpdateIntervalMs: number;
+    balanceRefreshIntervalMs: number;
+    enablePremiumFeatures: boolean;
+    enableAutoUpdate: boolean;
 }
