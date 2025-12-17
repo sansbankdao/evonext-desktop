@@ -1,10 +1,13 @@
 // src/libs/wallet/balances.ts
+
 import { getIdentityBalance } from '@evonext/platform'
 import { WalletBase } from './base'
 import { getAllActiveTokens } from '@/constants'
 import { log } from '@/utils/env'
+import { ErrorBoundary } from '@/utils/errors'
 import getTokenBalances from '../getTokenBalances'
-import type { BalanceResult, TokenBalance, NetworkConfig } from '@/types'
+import type { BalanceResult } from '@/types'
+
 export class BalanceChecker extends WalletBase {
     async getBalances(identityId: string): Promise<BalanceResult> {
         return ErrorBoundary.wrap(async () => {

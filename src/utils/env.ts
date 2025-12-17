@@ -86,7 +86,7 @@ export function validateEnvironment() {
   if (!['testnet', 'mainnet'].includes(DEFAULT_NETWORK)) {
     throw new AppError(
       `Invalid DEFAULT_NETWORK: ${DEFAULT_NETWORK}. Must be 'testnet' or 'mainnet'.`,
-      'ENV_VALIDATION_ERROR'
+      1001
     )
   }
 
@@ -94,14 +94,14 @@ export function validateEnvironment() {
   if (PRICE_UPDATE_INTERVAL_MS < 10000) {
     throw new AppError(
       `PRICE_UPDATE_INTERVAL_MS too low: ${PRICE_UPDATE_INTERVAL_MS}. Minimum is 10000ms.`,
-      'ENV_VALIDATION_ERROR'
+      1002
     )
   }
 
   if (BALANCE_REFRESH_INTERVAL_MS < 30000) {
     throw new AppError(
       `BALANCE_REFRESH_INTERVAL_MS too low: ${BALANCE_REFRESH_INTERVAL_MS}. Minimum is 30000ms.`,
-      'ENV_VALIDATION_ERROR'
+      1003
     )
   }
 }

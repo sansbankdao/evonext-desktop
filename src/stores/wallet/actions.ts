@@ -16,7 +16,7 @@ import getTokenBalances from '@/libs/getTokenBalances'
 import { truncateAddress, formatDashAmount, formatTokenAmount, atomicToDash } from './utils'
 import { fetchIdentityTransfers, fetchTokenTransitions } from './api'
 import type { ITransaction, IAsset } from '@/types'
-import type { TokenTransition, IdentityTransfer } from './types'
+import type { TokenTransition, IdentityTransfer } from '@/types'
 
 /**
  * Updates USD values based on current DASH price and hardcoded token prices

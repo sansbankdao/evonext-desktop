@@ -1,5 +1,20 @@
 // src/types/settings.ts
 
+export interface IAppSettings {
+    network: 'testnet' | 'mainnet'
+    theme: string
+    notifications: {
+        messages: boolean
+        mentions: boolean
+        contact_requests: boolean
+    }
+    profile: {
+        display_name: string
+        username: string
+        bio: string
+    }
+}
+
 export interface IProfileSettings {
     display_name: string;
     username: string;

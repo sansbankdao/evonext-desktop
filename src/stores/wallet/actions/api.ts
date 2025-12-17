@@ -1,7 +1,7 @@
 // src/stores/wallet/actions/api.ts
 
 /* Import modules. */
-import { ErrorBoundary } from '@/utils/errors'
+import { ErrorBoundary, NetworkError } from '@/utils/errors'
 import { getPlatformEndpoint } from '@/utils/env'
 
 /* Import types. */
