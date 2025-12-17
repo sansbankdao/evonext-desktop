@@ -28,17 +28,18 @@ function createDefaultIdentityData(): IIdentityData {
         public_key_ids: null
     }
 }
-function transformPublicKeys(sdkKeys: any[]): IIdentityPublicKey[] {
-    return sdkKeys.map((key: any) => ({
-        type_: key.type || '',
-        purpose: key.purpose || 0,
-        security_level: key.securityLevel || key.security_level || 0,
-        read_only: key.readOnly || false,
-        disabled_at: key.disabledAt || null,
-        data: key.data || (key.dataBytes || ''),
-        data_bytes: key.dataBytes || ''
-    }))
-}
+// function transformPublicKeys(sdkKeys: any[]): IIdentityPublicKey[] {
+//     return sdkKeys.map((key: any) => ({
+//         id: key.id,
+//         type_: key.type || '',
+//         purpose: key.purpose || 0,
+//         security_level: key.securityLevel || key.security_level || 0,
+//         read_only: key.readOnly || false,
+//         disabled_at: key.disabledAt || null,
+//         data: key.data || (key.dataBytes || ''),
+//         data_bytes: key.dataBytes || ''
+//     }))
+// }
 export const storageActions = () => ({
     async saveToStorage(this: any) {
         return ErrorBoundary.wrap(async () => {

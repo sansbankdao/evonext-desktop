@@ -45,7 +45,7 @@ export async function loadFromStore<T>(command: string): Promise<T | null> {
 /**
  * Transform SDK public keys to IdentityPublicKey format
  */
-export function transformPublicKeys(sdkKeys: any[], identityIdx: number = 0): IIdentityPublicKey[] {
+export function transformPublicKeys(sdkKeys: any[]): IIdentityPublicKey[] {
     return sdkKeys.map((key: any, index: number) => ({
         id: index,
         type_: key.type_ || key.type || '',
