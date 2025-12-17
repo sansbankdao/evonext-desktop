@@ -6,6 +6,7 @@ import { StoreManager } from '@/utils/store'
 import getNetwork from '@/libs/getNetwork'
 import type { IIdentityState } from '@/types'
 import type { ConnectionResult } from '@/types'
+
 export const connectionActions = () => ({
     async initFromStorage(this: any) {
         return ErrorBoundary.wrap(async () => {
@@ -15,7 +16,7 @@ export const connectionActions = () => ({
                 await this.loadFromStorage()
                 const [mnemonicData, keysData] = await Promise.all([
                     StoreManager.load('mnemonic'),
-                    StoreManager.load('keys')
+                    StoreManager.load('private_keys')
                 ])
                 log('info', 'Loaded from storage - identity:', state.isAuthenticated, 'mnemonic:', !!mnemonicData, 'keys:', !!keysData)
                 if (state.isAuthenticated && (mnemonicData || keysData)) {
@@ -98,7 +99,7 @@ export const connectionActions = () => ({
                     transfer_key: transferKey.trim(),
                     encryption_key: encryptionKey.trim()
                 }
-                await StoreManager.save('keys', 'keys', payload)
+                await StoreManager.save('private_keys', payload)
                 const resolvedIdentityId = identityId.trim()
                 state.username = resolvedIdentityId
                 state.isAuthenticated = true
@@ -108,7 +109,7 @@ export const connectionActions = () => ({
                 }
                 log('info', 'Private keys connection successful. isAuthenticated:', state.isAuthenticated)
                 await this.saveToStorage()
-                return { success: true, identity: state.identity }
+                return { success: true, identity: state.identity || undefined }
             } catch (err: any) {
                 log('error', 'Private keys connection failed:', err)
                 state.connectionError = typeof err === 'string' ? err : 'Failed to connect with private keys.'

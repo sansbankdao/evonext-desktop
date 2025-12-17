@@ -1,5 +1,6 @@
 // src/stores/identity/utils.ts
-
+// @ts-ignore
+import { binToHex } from '@evonext/utils'
 import { invoke } from '@tauri-apps/api/core'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import type { IIdentityData, IIdentityPublicKey } from '@/types'
@@ -44,15 +45,17 @@ export async function loadFromStore<T>(command: string): Promise<T | null> {
 /**
  * Transform SDK public keys to IdentityPublicKey format
  */
-export function transformPublicKeys(sdkKeys: any[], identityIdx: number): IIdentityPublicKey[] {
+export function transformPublicKeys(sdkKeys: any[], identityIdx: number = 0): IIdentityPublicKey[] {
     return sdkKeys.map((key: any, index: number) => ({
-        type_: key.type_ || key.keyType || 'ecdsa',
-        purpose: Number(key.purpose || key.purposeNumber || 0),
-        security_level: Number(key.security_level || key.securityLevelNumber || 0),
-        data: key.data || hexHash160ToBase64(key.dataBytes || key.data || ''),
-        read_only: Boolean(key.read_only || key.readOnly || false),
+        id: index,
+        type_: key.type_ || key.type || '',
+        purpose: key.purpose || key.purposeNumber || 0,
+        security_level: key.security_level || key.securityLevel || key.securityLevelNumber || 0,
+        data: key.data || '',
+        data_bytes: key.dataBytes || (key.data ? binToHex(key.data) : ''),
+        read_only: key.read_only || key.readOnly || false,
         disabled_at: key.disabled_at || key.disabledAt || null,
-        created_at: key.created_at || new Date().toISOString()
+        created_at: key.created_at || null
     }))
 }
 /**
@@ -61,9 +64,11 @@ export function transformPublicKeys(sdkKeys: any[], identityIdx: number): IIdent
 export function validateIdentityData(data: any): boolean {
     return !!(
         data &&
+        typeof data.username === 'string' &&
         typeof data.identity_id === 'string' &&
-        data.identity_id.length > 0 &&
-        typeof data.identity_idx === 'number'
+        typeof data.identity_idx === 'number' &&
+        (data.balance === null || typeof data.balance === 'string') &&
+        typeof data.is_authenticated === 'boolean'
     )
 }
 /**

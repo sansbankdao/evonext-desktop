@@ -32,7 +32,7 @@ export const identityActions = () => ({
                     state.username = primaryIdentity.id
                 }
             } else {
-                state.username = primaryIdentity.id
+                state.username = primaryIdentity.id || null
             }
             state.identity = primaryIdentity
             state.isAuthenticated = true
@@ -52,7 +52,7 @@ export const identityActions = () => ({
         identityIdx: number
     ): Promise<SDKIdentityDetails> {
         return ErrorBoundary.wrap(async () => {
-            const state = this as IIdentityState
+            // const state = this as IIdentityState
             const network = await getNetwork()
             log('info', 'Querying identity details for:', identityId)
             const sdk = new DashPlatformSDK({

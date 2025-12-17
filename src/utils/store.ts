@@ -89,4 +89,7 @@ export class StoreManager {
             default: return null
         }
     }
+    static async remove(store: StoreType): Promise<void> {
+        return await invoke('remove_store', { store })
+    }
 }

@@ -57,6 +57,7 @@ export interface IIdentityPublicKey {
     purpose: number;
     security_level: number;
     data: string;
+    data_bytes: string;
     read_only: boolean;
     disabled_at: string | null;
 }
