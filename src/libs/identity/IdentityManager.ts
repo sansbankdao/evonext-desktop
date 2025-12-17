@@ -5,13 +5,12 @@ import { hash160 } from '@evonext/crypto'
 // @ts-ignore
 import { binToHex, hexToBin } from '@evonext/utils'
 import { ErrorBoundary } from '@/utils/errors'
-import { log } from '@/utils/env'
-import { DAPI_WEB_API_ENDPOINT, DEFAULT_IDENTITY_SEARCH_LIMIT, DEFAULT_QUERY_REGISTRY } from '@/constants'
+import { log, getDapiEndpoint } from '@/utils/env'
+import { DEFAULT_IDENTITY_SEARCH_LIMIT, DEFAULT_QUERY_REGISTRY } from '@/constants'
 import getNetwork from '../getNetwork'
 import { getPrivateKeyManager } from '../keys/PrivateKeyManager'
 import type {
     IdentitySearchOptions,
-    IdentitySearchResult,
     IIdentity,
     IPublicKey
 } from '@/types'
@@ -20,7 +19,7 @@ export class IdentityManager {
     private network: 'testnet' | 'mainnet' = 'testnet'
     async initialize(): Promise<void> {
         return ErrorBoundary.wrap(async () => {
-            this.network = await getNetwork() as 'testnet' | 'mainnet'
+            this.network = await getNetwork()
             this.sdk = new DashPlatformSDK({ network: this.network })
             log('info', `IdentityManager initialized for network: ${this.network}`)
         }, 'IDENTITY_MANAGER_INIT_FAILED')
@@ -149,7 +148,7 @@ export class IdentityManager {
                 params: _params,
                 network,
             })
-            const response = await fetch(DAPI_WEB_API_ENDPOINT, {
+            const response = await fetch(getDapiEndpoint(), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -186,7 +185,7 @@ export class IdentityManager {
                 const publicKeys = identity.getPublicKeys()
                 return {
                     identity_idx: 0, // Unknown for direct lookup
-                    publicKeys: publicKeys.map((_key: any, index: number) => ({
+                    publicKeys: publicKeys.map((_key: any, _index: number) => ({
                         type: this.getKeyTypeId(_key.keyType),
                         keyType: _key.keyType,
                         purpose: _key.purposeNumber,
