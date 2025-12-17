@@ -1,15 +1,15 @@
 // src/stores/wallet/index.ts
+
 import { defineStore } from 'pinia'
 import { useSystemStore } from '../system'
 import type { IAsset, ITransaction, IWalletState } from '@/types'
-// Import modular actions
 import {
     fetchLiveBalances,
     fetchRealTransactions,
     refreshBalances
 } from './actions'
-// Import utilities
 import { updateAssetPrices } from './actions/transforms'
+
 export const useWalletStore = defineStore('wallet', {
     state: (): IWalletState => ({
         user: null,

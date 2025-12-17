@@ -1,7 +1,8 @@
 // src/stores/identity/utils.ts
+
 import { invoke } from '@tauri-apps/api/core'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import type { IdentityData, IdentityPublicKey } from './types'
+import type { IdentityData, IdentityPublicKey } from '@/types'
 /**
  * Convert hex string to base64
  */
@@ -45,10 +46,9 @@ export async function loadFromStore<T>(command: string): Promise<T | null> {
  */
 export function transformPublicKeys(sdkKeys: any[], identityIdx: number): IdentityPublicKey[] {
     return sdkKeys.map((key: any, index: number) => ({
-        identity_idx: identityIdx,
         type_: key.type_ || key.keyType || 'ecdsa',
         purpose: Number(key.purpose || key.purposeNumber || 0),
-        security_level: Number(key.security_level || key.securityLevelNumber ||64(key.dataBytes || key.data || ''),
+        security_level: Number(key.security_level || key.securityLevelNumber || 0),key.data || hexHash160ToBase64(key.dataBytes || key.data || ''),
         read_only: Boolean(key.read_only || key.readOnly || false),
         disabled_at: key.disabled_at || key.disabledAt || null,
         created_at: key.created_at || new Date().toISOString()

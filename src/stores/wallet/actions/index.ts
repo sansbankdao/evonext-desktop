@@ -1,4 +1,5 @@
 // src/stores/wallet/actions/index.ts
+
 /* Import modules. */
 import { getIdentityBalance } from '@evonext/platform'
 import { useSystemStore } from '../../system'
@@ -13,6 +14,7 @@ import { ErrorBoundary } from '@/utils/errors'
 import { log, isTestnet } from '@/utils/env'
 import getNetwork from '@/libs/getNetwork'
 import getTokenBalances from '@/libs/getTokenBalances'
+
 /* Import utilities. */
 import { fetchIdentityTransfers, fetchTokenTransitions } from './api'
 import {
@@ -21,8 +23,10 @@ import {
     transformIdentityTransfer,
     transformTokenTransitions
 } from './transforms'
+
 /* Import types. */
 import type { ITransaction, IAsset } from '@/types'
+
 export async function fetchLiveBalances(this: any) {
     return ErrorBoundary.wrap(async () => {
         if (!this.user?.address) {
@@ -58,6 +62,7 @@ export async function fetchLiveBalances(this: any) {
         this.updateAssetPrices()
     }, 'FETCH_LIVE_BALANCES_FAILED')
 }
+
 export async function fetchRealTransactions(this: any) {
     return ErrorBoundary.wrap(async () => {
         if (!this.user?.address) {
@@ -107,6 +112,7 @@ export async function fetchRealTransactions(this: any) {
         }
     }, 'FETCH_REAL_TRANSACTIONS_FAILED')
 }
+
 export async function refreshBalances(this: any) {
     return ErrorBoundary.wrap(async () => {
         this.isLoading = true
