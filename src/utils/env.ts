@@ -4,7 +4,12 @@
  * Loads environment variables with fallbacks and validation.
  */
 
-import { AppError } from './errors'
+export class AppError extends Error {
+    constructor(message: string, public code?: number) {
+        super(message)
+        this.name = 'AppError'
+    }
+}
 
 // Development Configuration
 export const DEV_HOST = import.meta.env.VITE_DEV_HOST || 'localhost'
@@ -46,6 +51,10 @@ export const BALANCE_REFRESH_INTERVAL_MS = parseInt(
   import.meta.env.VITE_BALANCE_REFRESH_INTERVAL_MS || '60000',
   10
 )
+
+export const getDapiEndpoint = (): string => {
+    return import.meta.env.VITE_DAPI_WEB_API_ENDPOINT || 'https://dashqt.org/v1/dapi'
+}
 
 // Feature Flags
 export const ENABLE_PREMIUM_FEATURES = import.meta.env.VITE_ENABLE_PREMIUM_FEATURES !== 'false'

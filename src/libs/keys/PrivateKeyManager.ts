@@ -18,7 +18,7 @@ export class PrivateKeyManager {
 
     async initialize(): Promise<void> {
         return ErrorBoundary.wrap(async () => {
-            this.network = await getNetwork()
+            this.network = await getNetwork() as 'testnet' | 'mainnet'
             this.mnemonic = await getMnemonic()
             this.sdk = new DashPlatformSDK({ network: this.network })
             log('info', `PrivateKeyManager initialized for network: ${this.network}`)

@@ -3,7 +3,7 @@
 /* Import modules. */
 import { defineStore } from 'pinia'
 
-import { DASHSWAP_ENDPOINT } from '@/constants'
+import { DASHSWAP_ENDPOINT } from '@/utils/env'
 import type { IDashPriceData, ISystemState } from '@/types'
 
 export const useSystemStore = defineStore('system', {

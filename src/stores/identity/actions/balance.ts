@@ -1,49 +1,51 @@
 // src/stores/identity/actions/balance.ts
+
 import { getIdentityBalance } from '@evonext/platform'
+import { useSystemStore } from '../../system'
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
 import getNetwork from '@/libs/getNetwork'
-import { formatDash, dashAmount } from '../../../utils/dash'
-import type { IIdentityState } from '@/types'
-import type { BalanceResult } from '../types'
+
+// Remove: import type { BalanceResult } from '../types'
+
 export const balanceActions = () => ({
-    async fetchBalance(this: any): Promise<BalanceResult> {
+    async fetchBalance(this: any) {
         return ErrorBoundary.wrap(async () => {
-            const state = this as IIdentityState
+            const state = this as any
+            const system = useSystemStore()
+
             log('info', 'fetchBalance called, identity:', state.identity?.id)
-            const network = await getNetwork()
+
             if (!state.identity?.id) {
-                log('warn', 'No identity ID available for balance fetch')
-                state.balance = null
-                await this.saveToStorage()
-                return null
+                log('warn', 'No identity loaded, skipping balance fetch')
+                return
             }
-            log('info', 'Fetching balance for identity:', state.identity.id)
-            const balanceString = await getIdentityBalance(network, state.identity.id)
-            log('info', 'Balance string:', balanceString)
-            if (balanceString !== null && balanceString !== '0') {
-                state.balance = balanceString  // NOTE: Raw string for storage.
-                const balanceBigInt = BigInt(balanceString)
-                const dashBigInt = dashAmount(balanceBigInt)
-                const dashFormatted = formatDash(balanceBigInt)
-                state.balanceBigInt = balanceBigInt
-                state.dashBigInt = dashBigInt
-                log('info', 'Satoshis BigInt:', balanceBigInt.toString())
-                log('info', 'DASH BigInt:', dashBigInt.toString())
-                log('info', 'Formatted:', dashFormatted)
-                return {
-                    satoshis: balanceBigInt,
-                    dash: dashBigInt,
-                    formatted: dashFormatted,
-                    raw: balanceString
+
+            try {
+                const network = await getNetwork()
+                log('info', 'Fetching balance for identity:', state.identity.id)
+
+                // Cast network to SupportedNetwork
+                const balanceString = await getIdentityBalance(network as any, state.identity.id)
+
+                if (balanceString) {
+                    state.balance = balanceString
+                    state.balanceBigInt = BigInt(balanceString)
+                    state.dashBigInt = state.balanceBigInt / BigInt(100_000_000_000)
+                    log('info', 'Balance fetched successfully:', balanceString)
+                } else {
+                    log('warn', 'No balance found for identity')
+                    state.balance = null
+                    state.balanceBigInt = undefined
+                    state.dashBigInt = undefined
                 }
-            } else {
+            } catch (error) {
+                log('error', 'Failed to fetch balance:', error)
                 state.balance = null
                 state.balanceBigInt = undefined
                 state.dashBigInt = undefined
-                await this.saveToStorage()
-                return null
+                throw error
             }
         }, 'FETCH_BALANCE_FAILED')
-    },
+    }
 })

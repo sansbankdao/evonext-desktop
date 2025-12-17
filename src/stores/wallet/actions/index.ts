@@ -37,7 +37,7 @@ export async function fetchLiveBalances(this: any) {
         const system = useSystemStore()
         log('info', 'Fetching live balances for:', identityId, 'on', network)
         // Fetch CREDITS balance using @evonext/platform (DASH shows same)
-        const creditsBalanceSatoshis = await getIdentityBalance(network, identityId)
+        const creditsBalanceSatoshis = await getIdentityBalance(network as any, identityId)
             .catch(err => {
                 log('error', 'Failed to fetch identity balance:', err)
                 return null

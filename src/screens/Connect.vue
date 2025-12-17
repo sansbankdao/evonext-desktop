@@ -331,7 +331,7 @@ const connect = async () => {
             const seedPhrase = seedWords.join(' ')
 
             // Call store action (assume mainnet; make configurable if needed)
-            result = await identityStore.connectWithSeed(seedPhrase, network)
+            result = await identityStore.connectWithSeed(seedPhrase, network as 'testnet' | 'mainnet')
         } else { // privateKey
             // Trim inputs before passing
             const trimmedId = identityId.value.trim()
@@ -346,7 +346,7 @@ const connect = async () => {
                     trimmedAuth,
                     trimmedTransfer,
                     trimmedEncryption,
-                    network
+                    network as 'testnet' | 'mainnet'
             )
         }
 

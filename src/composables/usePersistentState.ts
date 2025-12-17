@@ -4,22 +4,22 @@ import { ref, watch } from 'vue'
 import { StoreManager } from '@/utils/store'
 
 export function usePersistentState<T>(
-  key: string,
-  store: 'assets' | 'identity' | 'license' | 'mnemonic' | 'private_keys' | 'settings', // Note: 'keys' -> 'private_keys'
+  // key: string, // REMOVE this parameter since StoreManager doesn't use it anymore
+  store: 'assets' | 'identity' | 'license' | 'mnemonic' | 'private_keys' | 'settings',
   defaultValue: T,
   options?: {
     serializer?: (value: T) => string
     deserializer?: (value: string) => T
   }
 ) {
-  // Remove unused serializer/deserializer or use them
-  const serializer = options?.serializer || JSON.stringify
-  const deserializer = options?.deserializer || JSON.parse
+  // Either use serializer/deserializer or remove them
+  // const serializer = options?.serializer || JSON.stringify
+  // const deserializer = options?.deserializer || JSON.parse
 
   const state = ref<T>(defaultValue)
 
   // Load initial state
-  StoreManager.load(store).then(saved => { // REMOVED: , key
+  StoreManager.load(store).then(saved => {
     if (saved !== null) {
       state.value = saved
     }
@@ -30,7 +30,7 @@ export function usePersistentState<T>(
   watch(state, (newValue) => {
     clearTimeout(saveTimeout)
     saveTimeout = setTimeout(() => {
-      StoreManager.save(store, newValue).catch(console.error) // REMOVED: , key
+      StoreManager.save(store, newValue).catch(console.error)
     }, 500)
   }, { deep: true })
 

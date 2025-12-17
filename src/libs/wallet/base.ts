@@ -11,7 +11,7 @@ export class WalletBase {
     protected network: 'testnet' | 'mainnet' = 'testnet'
     async initialize(): Promise<void> {
         return ErrorBoundary.wrap(async () => {
-            this.network = await getNetwork()
+            this.network = await getNetwork() as 'testnet' | 'mainnet'
             this.sdk = new DashPlatformSDK({ network: this.network })
             log('info', `WalletBase initialized for network: ${this.network}`)
         }, 'WALLET_BASE_INIT_FAILED')

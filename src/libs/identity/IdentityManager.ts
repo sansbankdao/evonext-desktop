@@ -20,7 +20,7 @@ export class IdentityManager {
     private network: 'testnet' | 'mainnet' = 'testnet'
     async initialize(): Promise<void> {
         return ErrorBoundary.wrap(async () => {
-            this.network = await getNetwork()
+            this.network = await getNetwork() as 'testnet' | 'mainnet'
             this.sdk = new DashPlatformSDK({ network: this.network })
             log('info', `IdentityManager initialized for network: ${this.network}`)
         }, 'IDENTITY_MANAGER_INIT_FAILED')

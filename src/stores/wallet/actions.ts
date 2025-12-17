@@ -9,7 +9,7 @@ import {
     DUSD_DECIMAL_PLACES,
     SANS_DECIMAL_PLACES
 } from '@/constants'
-import { ErrorBoundary, NetworkError } from '@/utils/errors'
+import { ErrorBoundary } from '@/utils/errors'
 import { log, isTestnet } from '@/utils/env'
 import getNetwork from '@/libs/getNetwork'
 import getTokenBalances from '@/libs/getTokenBalances'
@@ -59,7 +59,7 @@ export async function fetchLiveBalances(this: any) {
         log('info', 'Fetching live balances for:', identityId, 'on', network)
 
         // Fetch CREDITS balance using @evonext/platform (DASH shows same)
-        const creditsBalanceSatoshis = await getIdentityBalance(network, identityId)
+        const creditsBalanceSatoshis = await getIdentityBalance(network as any, identityId)
             .catch(err => {
                 log('error', 'Failed to fetch identity balance:', err)
                 return null
