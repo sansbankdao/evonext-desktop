@@ -101,14 +101,36 @@ export const identityActions = () => ({
                 }
 
                 const result = await response.json()
-                console.log('[DPNS] Response success:', result.success)
+                console.log('[DPNS] Full response:', result)
+                console.log('[DPNS] Response keys:', Object.keys(result))
+                console.log('[DPNS] result.success:', result.success)
+                console.log('[DPNS] result.result:', result.result)
 
-                if (result && result.success && result.result) {
-                    console.log('[DPNS] Found username:', result.result)
-                    return result.result
+                if (result) {
+                    // Check different possible response formats
+                    if (typeof result === 'string') {
+                        console.log('[DPNS] Got string response:', result)
+                        return result
+                    } else if (result.success && result.result) {
+                        console.log('[DPNS] Got result field:', result.result)
+                        return result.result
+                    } else if (result.success && result.data) {
+                        console.log('[DPNS] Got data field:', result.data)
+                        return result.data
+                    } else if (result.success && result.username) {
+                        console.log('[DPNS] Got username field:', result.username)
+                        return result.username
+                    } else if (result.result && typeof result.result === 'string') {
+                        console.log('[DPNS] Got result without success flag:', result.result)
+                        return result.result
+                    } else if (typeof result === 'object' && result[0]) {
+                        // Handle array response
+                        console.log('[DPNS] Got array response first item:', result[0])
+                        return result[0]
+                    }
                 }
 
-                console.log('[DPNS] No username found for identity')
+                console.log('[DPNS] No username found in response')
                 return null
             } catch (error) {
                 console.error('[DPNS] Failed to get username:', error)
