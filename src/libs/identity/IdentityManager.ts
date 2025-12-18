@@ -3,7 +3,7 @@ import { DashPlatformSDK } from 'dash-platform-sdk'
 // @ts-ignore
 import { hash160 } from '@evonext/crypto'
 // @ts-ignore
-import { binToHex, hexToBin } from '@evonext/utils'
+import { binToHex } from '@evonext/utils'
 import { ErrorBoundary } from '@/utils/errors'
 import { log, getDapiEndpoint } from '@/utils/env'
 import { DEFAULT_IDENTITY_SEARCH_LIMIT, DEFAULT_QUERY_REGISTRY } from '@/constants'
@@ -48,20 +48,25 @@ export class IdentityManager {
                     result = await this.searchBySecp256k1(i, queryRegistry)
                 }
                 if (result) {
-                    identities.push({
+                    console.log(`[DEBUG] Found identity at index ${i}: ${result.identityId}`)
+                    console.log(`[DEBUG] Public keys found: ${result.regPubKeys?.length || 0}`)
+                    // Map the DAPI response to our IIdentity interface
+                    const identity: IIdentity = {
+                        id: result.identityId,
                         identity_idx: i,
-                        publicKeys: result.regPubKeys.map((_key: IPublicKey) => ({
+                        publicKeys: (result.regPubKeys || []).map((_key: any) => ({
                             type: this.getKeyTypeId(_key.keyType),
                             keyType: _key.keyType,
-                            purpose: _key.purpose,
-                            securityLevel: _key.securityLevel,
-                            contractBounds: _key.contractBounds,
-                            data: _key.data,
-                            dataBytes: this.decodeBase64ToHex(_key.data),
-                            readOnly: _key.readOnly,
-                            disabledAt: _key.disabledAt,
+                            purpose: this.getPurposeNumber(_key.purpose),
+                            securityLevel: this.getSecurityLevelNumber(_key.securityLevel),
+                            contractBounds: _key.contractBounds || null,
+                            data: _key.data || '',
+                            dataBytes: this.decodeBase64ToHex(_key.dataB64 || ''),
+                            readOnly: _key.readOnly || false,
+                            disabledAt: _key.disabledAt || null,
                         }))
-                    })
+                    }
+                    identities.push(identity)
                     log('debug', `Found identity at index ${i}: ${result.identityId}`)
                     break // exit for-loop after first found identity
                 }
@@ -84,6 +89,24 @@ export class IdentityManager {
             default: return -1
         }
     }
+    private getPurposeNumber(purpose: string): number {
+        switch(purpose) {
+            case 'AUTHENTICATION': return 0
+            case 'TRANSFER': return 1
+            case 'ENCRYPTION': return 2
+            default: return 0
+        }
+    }
+    private getSecurityLevelNumber(securityLevel: string): number {
+        switch(securityLevel) {
+            case 'MASTER': return 0
+            case 'CRITICAL': return 1
+            case 'HIGH': return 2
+            case 'MEDIUM': return 3
+            case 'LOW': return 4
+            default: return 3 // MEDIUM as default
+        }
+    }
     private decodeBase64ToHex(base64String: string): string | null {
         try {
             const byteString = atob(base64String)
@@ -102,38 +125,56 @@ export class IdentityManager {
     private async searchByHash160(
         identityIdx: number,
         queryRegistry: boolean
-    ): Promise<{ identityId: string; regPubKeys: IPublicKey[] } | null> {
+    ): Promise<{ identityId: string; regPubKeys: any[] } | null> {
         return ErrorBoundary.wrap(async () => {
             const keyManager = getPrivateKeyManager()
             const privateKeys = await keyManager.getPrivateKeys(identityIdx, queryRegistry)
+            console.log(`[DEBUG HASH160] Getting private keys for index ${identityIdx}`)
+            console.log(`[DEBUG HASH160] Master key exists: ${!!privateKeys.masterKey}`)
             const publicKey = privateKeys.masterKey.getPublicKey()
+            const publicKeyBytes = publicKey.bytes()
+            console.log(`[DEBUG HASH160] Public key bytes length: ${publicKeyBytes.length}`)
             const publicKeyHash = binToHex(hash160(publicKey.bytes()))
+            console.log(`[DEBUG HASH160] Generated hash: ${publicKeyHash}`)
+            // Try get_identity_by_non_unique_public_key_hash first
+            console.log(`[DEBUG HASH160] Calling get_identity_by_non_unique_public_key_hash...`)
             const result = await this.queryWebAPI('get_identity_by_non_unique_public_key_hash', [publicKeyHash])
             if (result && typeof result === 'object' && result.result?.identityId) {
+                console.log(`[DEBUG HASH160] ✅ Found identity: ${result.result.identityId}`)
                 return {
                     identityId: result.result.identityId,
                     regPubKeys: result.result.publicKeys || []
                 }
             }
+            console.log(`[DEBUG HASH160] ❌ No identity found with hash160`)
             return null
         }, 'SEARCH_BY_HASH160_FAILED')
     }
     private async searchBySecp256k1(
         identityIdx: number,
         queryRegistry: boolean
-    ): Promise<{ identityId: string; regPubKeys: IPublicKey[] } | null> {
+    ): Promise<{ identityId: string; regPubKeys: any[] } | null> {
         return ErrorBoundary.wrap(async () => {
             const keyManager = getPrivateKeyManager()
             const privateKeys = await keyManager.getPrivateKeys(identityIdx, queryRegistry)
+            console.log(`[DEBUG SECP256K1] Getting private keys for index ${identityIdx}`)
+            console.log(`[DEBUG SECP256K1] Master key exists: ${!!privateKeys.masterKey}`)
             const publicKey = privateKeys.masterKey.getPublicKey()
+            const publicKeyBytes = publicKey.bytes()
+            console.log(`[DEBUG SECP256K1] Public key bytes length: ${publicKeyBytes.length}`)
             const publicKeyHash = binToHex(hash160(publicKey.bytes()))
+            console.log(`[DEBUG SECP256K1] Generated hash: ${publicKeyHash}`)
+            // Try get_identity_by_public_key_hash
+            console.log(`[DEBUG SECP256K1] Calling get_identity_by_public_key_hash...`)
             const result = await this.queryWebAPI('get_identity_by_public_key_hash', [publicKeyHash])
             if (result && typeof result === 'object' && result.result?.identityId) {
+                console.log(`[DEBUG SECP256K1] ✅ Found identity: ${result.result.identityId}`)
                 return {
                     identityId: result.result.identityId,
                     regPubKeys: result.result.publicKeys || []
                 }
             }
+            console.log(`[DEBUG SECP256K1] ❌ No identity found with secp256k1`)
             return null
         }, 'SEARCH_BY_SECP256K1_FAILED')
     }
@@ -148,6 +189,7 @@ export class IdentityManager {
                 params: _params,
                 network,
             })
+            console.log(`[DEBUG DAPI] Calling ${_method} with params:`, _params)
             const response = await fetch(getDapiEndpoint(), {
                 method: 'POST',
                 headers: {
@@ -155,22 +197,16 @@ export class IdentityManager {
                 },
                 body,
             })
+            console.log(`[DEBUG DAPI] Response status: ${response.status}`)
             if (!response.ok) {
+                const errorText = await response.text()
+                console.log(`[DEBUG DAPI] Error response:`, errorText)
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
             const result = await response.json()
-            const isIdentityLookup = _method.includes('get_identity_by_')
-            // Normalize "not found" responses for identity lookup methods
-            if (isIdentityLookup && (
-                result === null ||
-                (Array.isArray(result) && result.length === 0) ||
-                (result.error && typeof result.error === 'string' && (
-                    result.error.includes('Resource not found.') ||
-                    result.error.includes('not found')
-                ))
-            )) {
-                log('debug', `Normalized ${_method} to empty array (no results found)`)
-                return []
+            console.log(`[DEBUG DAPI] Response success: ${result.success}`)
+            if (result && result.success && result.result) {
+                console.log(`[DEBUG DAPI] Found identity: ${result.result.identityId}`)
             }
             return result
         }, 'QUERY_WEB_API_FAILED')
@@ -181,20 +217,22 @@ export class IdentityManager {
                 await this.initialize()
             }
             try {
+                console.log(`[DEBUG] Getting identity by ID: ${identityId}`)
                 const identity = await this.sdk!.identities.getIdentityByIdentifier(identityId)
                 const publicKeys = identity.getPublicKeys()
+                console.log(`[DEBUG] Found identity: ${identityId} with ${publicKeys.length} public keys`)
                 return {
                     identity_idx: 0, // Unknown for direct lookup
                     publicKeys: publicKeys.map((_key: any, _index: number) => ({
                         type: this.getKeyTypeId(_key.keyType),
                         keyType: _key.keyType,
-                        purpose: _key.purposeNumber,
-                        securityLevel: _key.securityLevelNumber,
-                        contractBounds: _key.contractBounds,
-                        data: _key.data,
-                        dataBytes: this.decodeBase64ToHex(_key.data),
-                        readOnly: _key.readOnly,
-                        disabledAt: _key.disabledAt,
+                        purpose: this.getPurposeNumber(_key.purpose),
+                        securityLevel: this.getSecurityLevelNumber(_key.securityLevel),
+                        contractBounds: _key.contractBounds || null,
+                        data: _key.data || '',
+                        dataBytes: this.decodeBase64ToHex(_key.dataB64 || ''),
+                        readOnly: _key.readOnly || false,
+                        disabledAt: _key.disabledAt || null,
                     }))
                 }
             } catch (error) {

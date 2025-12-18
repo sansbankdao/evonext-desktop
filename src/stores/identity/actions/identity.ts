@@ -1,4 +1,5 @@
 // src/stores/identity/actions/identity.ts
+
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
@@ -7,6 +8,7 @@ import getNetwork from '@/libs/getNetwork'
 import type { IIdentityState } from '@/types'
 import type { SDKIdentityDetails } from '@/types'
 import { hexHash160ToBase64 } from '../utils'
+
 export const identityActions = () => ({
     async searchUserIdentities(this: any) {
         return ErrorBoundary.wrap(async () => {
@@ -46,6 +48,7 @@ export const identityActions = () => ({
             return primaryIdentity
         }, 'SEARCH_USER_IDENTITIES_FAILED')
     },
+
     async queryIdentityDetails(
         this: any,
         identityId: string,
@@ -81,6 +84,7 @@ export const identityActions = () => ({
             }
         }, 'QUERY_IDENTITY_DETAILS_FAILED')
     },
+
     async getPublicKeys(this: any) {
         return ErrorBoundary.wrap(async () => {
             const state = this as IIdentityState
