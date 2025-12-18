@@ -23,7 +23,9 @@ export const identityActions = () => ({
             console.log('[DEBUG] Primary identity ID:', primaryIdentity?.id)
             console.log('[DEBUG] Primary identity object:', primaryIdentity)
             // DEBUGGING DPNS LOOKUP
+console.log('[DEBUG-outside] Checking primaryIdentity.id:', primaryIdentity?.id, 'type:', typeof primaryIdentity?.id)
             if (typeof primaryIdentity?.id !== 'undefined' && primaryIdentity?.id !== null) {
+console.log('[DEBUG-inside] Checking primaryIdentity.id:', primaryIdentity?.id, 'type:', typeof primaryIdentity?.id)
                 const network = await getNetwork()
                 console.log('[DEBUG] Network:', network)
                 const sdk = new DashPlatformSDK({
@@ -108,7 +110,7 @@ export const identityActions = () => ({
                 } : 'No keys')
                 const revision = identity.revision || BigInt(0)
                 const formattedKeys = publicKeys.map((_key: any, index: number) => ({
-                    id: _key.keyId || 0,
+                    id: _key.keyId || _key.id || 0,
                     type_: _key.keyType,
                     purpose: _key.purposeNumber,
                     security_level: _key.securityLevelNumber,
