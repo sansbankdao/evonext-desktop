@@ -1,4 +1,6 @@
 // src/libs/getPrivateKeys.ts
+
+/* Import modules. */
 import { getPrivateKeyManager } from './keys/PrivateKeyManager'
 import type { KeyDerivationResult } from '@/types'
 
@@ -7,5 +9,6 @@ export default async (
     queryRegistry: boolean = false
 ): Promise<KeyDerivationResult> => {
     const manager = getPrivateKeyManager()
+
     return manager.getPrivateKeys(identityIdx, queryRegistry)
 }
