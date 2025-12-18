@@ -1,5 +1,4 @@
-// src/libs/keys/PrivateKeyManager.ts
-
+// src/libs/keys/PrivateKeyManager.ts (updated)
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 // @ts-ignore
@@ -10,7 +9,7 @@ import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
 import getMnemonic from '../getMnemonic'
 import getNetwork from '../getNetwork'
-import type { KeyDerivationResult, DerivationPath } from '@/types'
+import type { KeyDerivationResult } from '@/types'
 
 export class PrivateKeyManager {
     private sdk: DashPlatformSDK | null = null
@@ -25,27 +24,12 @@ export class PrivateKeyManager {
             log('info', `PrivateKeyManager initialized for network: ${this.network}`)
         }, 'PRIVATE_KEY_MANAGER_INIT_FAILED')
     }
-//`m/9'/5'/5'/0'/0'/${_identityIdx}'/0'`
-    private getDerivationPath(identityIdx: number, keyIdx: number): DerivationPath {
-        // MAINNET -> m/9'/5'/5'/0'/0'/<IDENTITY_IDX>'/<KEY_IDX>'
-        // TESTNET -> m/9'/1'/5'/0'/0'/<IDENTITY_IDX>'/<KEY_IDX>'
-        const coinType = this.network === 'mainnet' ? 5 : 1
-
-        return {
-            purpose: 9,
-            coinType,
-            account: 5,
-            change: 0,
-            identityIdx,
-            keyIdx
-        }
-    }
 
     async getPrivateKeys(
         identityIdx: number,
         queryRegistry: boolean = false
     ): Promise<KeyDerivationResult> {
-        console.log('queryRegistry', queryRegistry)  // FIXME We need to implment this.
+        console.log('queryRegistry', queryRegistry)  // FIXME We need to implement this.
         return ErrorBoundary.wrap(async () => {
             if (!this.sdk) {
                 await this.initialize()
@@ -55,7 +39,7 @@ export class PrivateKeyManager {
             const seed = await this.sdk!.keyPair.mnemonicToSeed(this.mnemonic, undefined)
             const walletHDKey = this.sdk!.keyPair.seedToHdKey(seed)
 
-            // Derive all keys
+            // SDK handles network-specific derivation internally
             const keys = {
                 masterKey: this.deriveKey(walletHDKey, identityIdx, 0),
                 authCritical: this.deriveKey(walletHDKey, identityIdx, 1),
@@ -71,6 +55,7 @@ export class PrivateKeyManager {
     }
 
     private deriveKey(walletHDKey: any, identityIdx: number, keyIdx: number): any {
+        // SDK handles network-specific derivation: testnet vs mainnet
         const hdKey = this.sdk!.keyPair.deriveIdentityPrivateKey(
             walletHDKey, identityIdx, keyIdx, this.network
         )
@@ -90,17 +75,7 @@ export class PrivateKeyManager {
         return binToHex(hash160(publicKey.bytes()))
     }
 
-    async getDerivationInfo(identityIdx: number): Promise<DerivationPath[]> {
-        return ErrorBoundary.wrap(async () => {
-            const paths: DerivationPath[] = []
-
-            for (let keyIdx = 0; keyIdx < 5; keyIdx++) {
-                paths.push(this.getDerivationPath(identityIdx, keyIdx))
-            }
-
-            return paths
-        }, 'GET_DERIVATION_INFO_FAILED')
-    }
+    // Removed getDerivationInfo as it's not used and SDK handles derivation
 }
 
 // Singleton instance

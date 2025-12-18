@@ -19,6 +19,8 @@ import Favorites from '../screens/Favorites.vue'
 
 import Identity from '../screens/Identity.vue'
 import IdentityRegister from '../screens/Identity/Register.vue'
+import IdentityKeys from '../screens/Identity/ManageKeys.vue'
+import IdentityAddKey from '../screens/Identity/AddKey.vue'
 
 import Posts from '../screens/Posts.vue'
 import Settings from '../screens/Settings.vue'
@@ -51,6 +53,8 @@ const routes = [
             { path: 'favorites', component: Favorites },
             { path: 'identity', component: Identity },
             { path: 'identity/register', component: IdentityRegister },
+            { path: 'identity/:id/keys', component: IdentityKeys, name: 'IdentityKeys' },
+            { path: 'identity/:id/keys/add', component: IdentityAddKey, name: 'IdentityAddKey' },
             { path: 'posts', component: Posts },
             { path: 'settings', component: Settings },
             { path: 'stakeline', component: Stakeline },
@@ -83,16 +87,18 @@ router.beforeEach(async (_to, _from, next) => {
     const premiumRoutes = ['apps', 'community', 'favorites']
     const routeName = _to.path.split('/')[1] // NOTE: Get first path segment.
 
+    // Check if route requires premium access
     if (premiumRoutes.includes(routeName)) {
         if (network === 'testnet') {
-            // NOTE: Testnet, always allow.
+            // NOTE: Testnet, always allow (for development).
             next()
         } else {
-            // NOTE: Non-testnet, check license.
+            // NOTE: Mainnet, check license.
             if (isPremiumSansIdentity) {
                 next()
             } else {
                 // NOTE: Redirect to stakeline for upgrade.
+                console.log(`Premium route '${routeName}' requires license, redirecting to stakeline`)
                 next('/stakeline')
             }
         }

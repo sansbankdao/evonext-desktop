@@ -27,9 +27,66 @@
                         </div>
                     </div>
 
+                    <!-- Alert for missing transfer keys -->
+                    <div v-if="missingTransferKeys.length > 0" class="rounded-xl bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-2 border-amber-400/30 p-6">
+                        <div class="flex items-start gap-4">
+                            <div class="flex-shrink-0">
+                                <div class="rounded-full bg-amber-500/20 p-3">
+                                    <svg class="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.795-.833-2.565 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-lg font-semibold text-amber-800 dark:text-amber-300">
+                                    Missing TRANSFER Keys
+                                </h3>
+                                <p class="mt-1 text-sm text-amber-700 dark:text-amber-400">
+                                    {{ missingTransferKeys.length }} identit{{ missingTransferKeys.length === 1 ? 'y' : 'ies' }} cannot send transactions. Add TRANSFER keys to enable transfers.
+                                </p>
+                                <div class="mt-4 flex gap-3">
+                                    <RouterLink to="/identity/keys/add" class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-2 px-4 text-sm font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
+                                        Add Transfer Keys
+                                    </RouterLink>
+                                    <button @click="showMissingKeys = !showMissingKeys" class="inline-flex items-center gap-2 rounded-lg bg-amber-100 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:hover:bg-amber-900/50">
+                                        {{ showMissingKeys ? 'Hide Details' : 'Show Details' }}
+                                    </button>
+                                </div>
+                                <div v-if="showMissingKeys" class="mt-4 space-y-2">
+                                    <div v-for="identity in missingTransferKeys" :key="identity.id" class="rounded-lg bg-amber-50 dark:bg-amber-900/20 p-3">
+                                        <div class="flex items-center justify-between">
+                                            <span class="font-medium text-amber-900 dark:text-amber-200">{{ identity.displayName || identity.username }}</span>
+                                            <span class="text-xs font-mono text-amber-700 dark:text-amber-400 truncate ml-2">{{ identity.id.slice(0, 8) }}...{{ identity.id.slice(-8) }}</span>
+                                        </div>
+                                        <div class="mt-2 text-xs text-amber-700 dark:text-amber-400">
+                                            {{ identity.publicKeys?.length || 0 }} key{{ identity.publicKeys?.length !== 1 ? 's' : '' }} registered, no TRANSFER key found
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Grid of Identity Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Use v-for to loop through the identities -->
+                    <div v-if="loading" class="text-center py-12">
+                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+                        <p class="mt-4 text-slate-600 dark:text-slate-400">Loading identities...</p>
+                    </div>
+
+                    <div v-else-if="identities.length === 0" class="text-center py-12">
+                        <div class="mx-auto w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
+                            <svg class="h-6 w-6 text-slate-400 dark:text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                        </div>
+                        <h3 class="mt-4 text-lg font-semibold text-slate-900 dark:text-slate-100">No Identities Found</h3>
+                        <p class="mt-2 text-slate-600 dark:text-slate-400">
+                            No identities were found for your wallet. You can register a new identity to get started.
+                        </p>
+                    </div>
+
+                    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Use v-for to loop through actual identities -->
                         <div v-for="identity in identities" :key="identity.id"
                             class="bg-white dark:bg-slate-800 rounded-xl border-2 transition-all duration-200 flex flex-col shadow-xl hover:shadow-2xl hover:-translate-y-1
                                    border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600
@@ -38,10 +95,10 @@
 
                             <!-- Card Header -->
                             <div class="p-6 flex items-start gap-4">
-                                <img :src="identity.avatarUrl" :alt="identity.displayName" class="size-16 rounded-full flex-shrink-0 ring-2 ring-slate-200 dark:ring-slate-700 shadow-lg group-hover:scale-105 transition-transform duration-200"/>
+                                <img :src="getAvatar(identity)" :alt="identity.displayName" class="size-16 rounded-full flex-shrink-0 ring-2 ring-slate-200 dark:ring-slate-700 shadow-lg group-hover:scale-105 transition-transform duration-200"/>
                                 <div class="flex-1 min-w-0">
-                                    <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100 truncate">{{ identity.displayName }}</h2>
-                                    <p class="text-slate-600 dark:text-slate-400 text-sm truncate">{{ identity.username }}</p>
+                                    <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100 truncate">{{ identity.displayName || identity.username || 'Unnamed Identity' }}</h2>
+                                    <p class="text-slate-600 dark:text-slate-400 text-sm truncate">{{ identity.username || 'No DPNS name' }}</p>
                                 </div>
                                 <span v-if="identity.id === activeIdentityId" class="bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 text-cyan-700 dark:text-cyan-300 text-xs font-bold px-3 py-1 rounded-full border border-cyan-400/50 shadow-sm">
                                     Active
@@ -50,7 +107,34 @@
 
                             <!-- Card Body -->
                             <div class="px-6 pb-6 space-y-4 flex-1">
-                                <p class="text-slate-700 dark:text-slate-300 leading-relaxed text-sm">{{ identity.bio }}</p>
+                                <div>
+                                    <label class="text-xs font-medium text-slate-600 dark:text-slate-400 mb-2 block">Key Status</label>
+                                    <div class="space-y-2">
+                                        <div v-for="key in identity.publicKeys" :key="key.id"
+                                             class="flex items-center justify-between text-sm">
+                                            <span class="font-medium truncate">{{ getPurposeLabel(key.purpose) }}</span>
+                                            <span :class="getSecurityLevelClass(key.securityLevel)"
+                                                  class="px-2 py-1 text-xs rounded-full whitespace-nowrap">
+                                                {{ getSecurityLevelLabel(key.securityLevel) }}
+                                            </span>
+                                        </div>
+                                        <div v-if="!hasTransferKey(identity)" class="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                                            <div class="flex items-center gap-2 text-amber-800 dark:text-amber-300">
+                                                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                </svg>
+                                                <span class="font-semibold text-sm">Missing TRANSFER</span>
+                                            </div>
+                                            <p class="text-amber-700 dark:text-amber-400 text-xs mt-1">
+                                                Cannot send transactions
+                                            </p>
+                                            <RouterLink :to="`/identity/${identity.id}/keys/add`"
+                                                        class="mt-2 block w-full text-center rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-2 px-4 text-xs font-semibold">
+                                                Add Key
+                                            </RouterLink>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div>
                                     <label class="text-xs font-medium text-slate-600 dark:text-slate-400 mb-2 block">Identifier</label>
                                     <div class="relative">
@@ -63,13 +147,17 @@
                             </div>
 
                             <!-- Card Footer / Action -->
-                            <div class="mt-auto p-6 border-t border-slate-200 dark:border-slate-700">
+                            <div class="mt-auto p-6 border-t border-slate-200 dark:border-slate-700 space-y-3">
+                                <RouterLink :to="`/identity/${identity.id}/keys`"
+                                            class="block w-full text-center rounded-xl bg-gradient-to-r from-slate-400 to-slate-500 dark:from-slate-500 dark:to-slate-600 hover:from-slate-300 hover:to-slate-400 dark:hover:from-slate-400 dark:hover:to-slate-500 text-white py-3 px-6 text-sm font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
+                                    Manage Keys
+                                </RouterLink>
                                 <button v-if="identity.id !== activeIdentityId" @click="switchToIdentity(identity.id)"
-                                        class="w-full rounded-xl bg-gradient-to-r from-slate-500 to-slate-600 dark:from-slate-600 dark:to-slate-700 py-3 px-6 text-sm font-bold text-white shadow-lg hover:shadow-xl hover:-translate-y-0.5 hover:from-slate-400 hover:to-slate-500 dark:hover:from-slate-500 dark:hover:to-slate-600 transition-all duration-200 focus:ring-4 focus:ring-slate-400/30 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900">
-                                    Switch to this Identity
+                                        class="w-full rounded-xl bg-gradient-to-r from-slate-500 to-slate-600 dark:from-slate-600 dark:to-slate-700 hover:from-slate-400 hover:to-slate-500 dark:hover:from-slate-500 dark:hover:to-slate-600 text-white py-3 px-6 text-sm font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
+                                    Switch Identity
                                 </button>
                                 <div v-else class="text-center text-sm font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 dark:bg-cyan-500/20 px-6 py-4 rounded-xl border-2 border-cyan-400/30 shadow-sm">
-                                    This is your active identity
+                                    Active Identity
                                 </div>
                             </div>
                         </div>
@@ -81,83 +169,192 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
-// import { invoke } from '@tauri-apps/api/core'
-
 import getIdentities from '@/libs/getIdentities'
 import getMnemonic from '@/libs/getMnemonic'
+import { useIdentityStore } from '@/stores/identity'
 
 // Define the TypeScript interface for an Identity
 interface Identity {
     id: string;
-    avatarUrl: string;
-    displayName: string;
+    avatarUrl?: string;
+    displayName?: string;
     username: string;
-    bio: string;
+    bio?: string;
+    publicKeys?: any[];
+    identity_idx: number;
 }
 
-// Sample data representing the user's identities
-const identities = ref<Identity[]>([
-    {
-        id: 'BkEqcgfmNFY5TEy2atDhhFsDY1NZ6oPa4XPrDGuuWLVT',
-        avatarUrl: 'https://ui-avatars.com/api/?name=Alice&background=ec4899&color=fff',
-        displayName: 'Alice',
-        username: 'alice.dash',
-        bio: 'Exploring the frontiers of decentralized technology and sharing my journey. Founder of Project Artemis.',
-    },
-    {
-        id: '9yZ8fGAbCDEFG12345hijklmNOPQRSTuvwxyzABCDEF',
-        avatarUrl: 'https://ui-avatars.com/api/?name=Bob&background=8b5cf6&color=fff',
-        displayName: 'Bob (Dev)',
-        username: 'bob-dev.dash',
-        bio: 'Developer account for testing and contributing to open-source Dash projects. All posts are for testing purposes.',
-    },
-    {
-        id: 'GHiJkLmNoPqRsTuVwXyZaBcDeFgHiJkLmNoPqRsTuV',
-        avatarUrl: 'https://ui-avatars.com/api/?name=Photos&background=f59e0b&color=fff',
-        displayName: 'Photos by C',
-        username: 'c-photos.dash',
-        bio: 'A collection of my photography work. Exploring light, shadow, and the moments in between.',
-    },
-])
+const router = useRouter()
+const identityStore = useIdentityStore()
 
-// A ref to track the currently active identity ID
-const activeIdentityId = ref<string>('BkEqcgfmNFY5TEy2atDhhFsDY1NZ6oPa4XPrDGuuWLVT')
+// Refs
+const loading = ref(true)
+const showMissingKeys = ref(false)
+const identities = ref<Identity[]>([])
+const activeIdentityId = ref<string>('')
+
+// Computed
+const missingTransferKeys = computed(() => {
+    return identities.value.filter(identity => !hasTransferKey(identity))
+})
+
+// Helper functions
+const getAvatar = (identity: Identity): string => {
+    if (identity.avatarUrl) return identity.avatarUrl
+    const name = identity.displayName || identity.username || identity.id
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=ec4899&color=fff`
+}
+
+const getPurposeLabel = (purpose: number) => {
+    switch(purpose) {
+        case 0: return 'AUTHENTICATION'
+        case 1: return 'TRANSFER'
+        case 2: return 'ENCRYPTION'
+        case 3: return 'TRANSFER' // TRANSFER is also 3 in your JSON
+        default: return `Purpose ${purpose}`
+    }
+}
+
+const getSecurityLevelLabel = (level: number) => {
+    switch(level) {
+        case 0: return 'MASTER'
+        case 1: return 'CRITICAL'
+        case 2: return 'HIGH'
+        case 3: return 'MEDIUM'
+        case 4: return 'LOW'
+        default: return `Level ${level}`
+    }
+}
+
+const getSecurityLevelClass = (level: number) => {
+    switch(level) {
+        case 0: return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
+        case 1: return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+        case 2: return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300'
+        case 3: return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'
+        case 4: return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+        default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
+    }
+}
+
+const hasTransferKey = (identity: Identity): boolean => {
+    return identity?.publicKeys?.some((key: any) => key.purpose === 1 || key.purpose === 3) || false
+}
 
 // Function to handle switching identities
-const switchToIdentity = (id: string) => {
-    console.log(`Switching active identity to: ${id}`)
-    activeIdentityId.value = id
-};
+const switchToIdentity = async (id: string) => {
+    try {
+        console.log(`Switching active identity to: ${id}`)
+        // TODO: Implement identity switching logic
+        // This would involve:
+        // 1. Setting the active identity in the store
+        // 2. Updating local storage
+        // 3. Refreshing the app state
+
+        activeIdentityId.value = id
+        // Trigger notification
+        const event = new CustomEvent('notification', {
+            detail: {
+                type: 'success',
+                message: `Switched to identity ${id.slice(0, 8)}...${id.slice(-8)}`,
+                duration: 3000
+            }
+        })
+        window.dispatchEvent(event)
+    } catch (error) {
+        console.error('Failed to switch identity:', error)
+        const event = new CustomEvent('notification', {
+            detail: {
+                type: 'error',
+                message: 'Failed to switch identity',
+                duration: 5000
+            }
+        })
+        window.dispatchEvent(event)
+    }
+}
 
 // Placeholder for the copy function
 const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
-    // You could add a small "Copied!" notification here
+    const event = new CustomEvent('notification', {
+        detail: {
+            type: 'success',
+            message: 'Identifier copied to clipboard',
+            duration: 2000
+        }
+    })
+    window.dispatchEvent(event)
     console.log(`Copied to clipboard: ${text}`)
 }
 
 const init = async () => {
     try {
+        loading.value = true
+
+        /* Set active identity from store if available */
+        if (identityStore.identity?.id) {
+            activeIdentityId.value = identityStore.identity.id
+        }
+
         /* Request mnemonic. */
         const mnemonic = await getMnemonic()
         console.log('MNEMONIC IS', mnemonic)
 
-        const identities = await getIdentities()
-        console.log('IDENTITIES', identities)
+        /* Get identities from network */
+        const foundIdentities = await getIdentities()
+        console.log('IDENTITIES FOUND', foundIdentities)
+
+        if (foundIdentities && foundIdentities.length > 0) {
+            // Format identities for display
+            identities.value = foundIdentities.map((identity: any) => {
+                // Try to get DPNS name if available
+                const dpnsName = identity.username || identity.id
+
+                return {
+                    id: identity.id,
+                    username: dpnsName,
+                    displayName: dpnsName.split('.')[0] || 'Unnamed',
+                    bio: `Identity with ${identity.publicKeys?.length || 0} registered key${identity.publicKeys?.length !== 1 ? 's' : ''}`,
+                    publicKeys: identity.publicKeys || [],
+                    identity_idx: identity.identity_idx || 0
+                }
+            })
+
+            // If no active identity is set, use the first one
+            if (!activeIdentityId.value && identities.value.length > 0) {
+                activeIdentityId.value = identities.value[0].id
+            }
+        } else {
+            // No identities found, show empty state
+            identities.value = []
+        }
 
     } catch (error) {
         console.error('Failed to get credentials:', error)
+        const event = new CustomEvent('notification', {
+            detail: {
+                type: 'error',
+                message: 'Failed to load identities',
+                duration: 5000
+            }
+        })
+        window.dispatchEvent(event)
+    } finally {
+        loading.value = false
     }
 }
 
 onMounted(async () => {
-    init()
+    await init()
+    // Listen for identity changes
+    window.addEventListener('identity:updated', init)
 })
 
-// 4. Clean up the listener when the component is unmounted
 onUnmounted(() => {
-    // TODO
+    window.removeEventListener('identity:updated', init)
 })
 </script>
