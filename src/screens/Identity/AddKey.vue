@@ -12,7 +12,9 @@
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                             </svg>
-                            <span class="font-medium">Back to Identities</span>
+                            <span class="font-medium">
+                                Back to Identities
+                            </span>
                         </RouterLink>
                     </div>
 
@@ -21,6 +23,7 @@
                         <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
                             Add Transfer Key
                         </h1>
+
                         <p class="text-lg text-slate-600 dark:text-slate-400">
                             Select an identity and add a TRANSFER key to enable sending transactions.
                         </p>
@@ -29,7 +32,10 @@
                     <!-- Loading State -->
                     <div v-if="loading" class="text-center py-12">
                         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
-                        <p class="mt-4 text-slate-600 dark:text-slate-400">Loading identities...</p>
+
+                        <p class="mt-4 text-slate-600 dark:text-slate-400">
+                            Loading identities...
+                        </p>
                     </div>
 
                     <!-- No Identities -->
@@ -39,12 +45,15 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
+
                         <h3 class="text-xl font-semibold text-amber-800 dark:text-amber-300 mb-2">
                             No Identities Found
                         </h3>
+
                         <p class="text-amber-700 dark:text-amber-400 mb-6">
                             You need to have at least one identity before adding keys.
                         </p>
+
                         <RouterLink to="/identity/register" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-3 px-6 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
                             Register New Identity
                         </RouterLink>
@@ -57,6 +66,7 @@
                             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
                                 Select Identity
                             </label>
+
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div v-for="identity in identities" :key="identity.id"
                                      @click="selectedIdentity = identity"
@@ -70,25 +80,30 @@
                                                 {{ (identity.displayName || identity.username || 'ID').charAt(0).toUpperCase() }}
                                             </div>
                                         </div>
+
                                         <div class="flex-1 min-w-0">
                                             <h3 class="font-semibold text-slate-900 dark:text-slate-100 truncate">
                                                 {{ identity.displayName || identity.username || 'Unnamed Identity' }}
                                             </h3>
+
                                             <p class="text-sm text-slate-600 dark:text-slate-400 truncate">
                                                 {{ identity.username || identity.id.slice(0, 16) + '...' }}
                                             </p>
+
                                             <div class="mt-2 flex flex-wrap gap-1">
                                                 <span v-for="key in identity.publicKeys?.slice(0, 3)" :key="key.id"
                                                       :class="getKeyBadgeClass(key)"
                                                       class="text-xs px-2 py-1 rounded-full">
                                                     {{ getKeyTypeShort(key) }}
                                                 </span>
+
                                                 <span v-if="(identity.publicKeys?.length || 0) > 3"
                                                       class="text-xs text-slate-500 dark:text-slate-400">
                                                     +{{ (identity.publicKeys?.length || 0) - 3 }} more
                                                 </span>
                                             </div>
                                         </div>
+
                                         <div v-if="selectedIdentity?.id === identity.id" class="flex-shrink-0">
                                             <div class="size-6 rounded-full bg-cyan-500 flex items-center justify-center">
                                                 <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -97,12 +112,16 @@
                                             </div>
                                         </div>
                                     </div>
+
                                     <div v-if="!hasTransferKey(identity)" class="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
                                         <div class="flex items-center gap-2 text-amber-800 dark:text-amber-300">
                                             <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                                             </svg>
-                                            <span class="text-sm font-semibold">Missing TRANSFER Key</span>
+
+                                            <span class="text-sm font-semibold">
+                                                Missing TRANSFER Key
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -121,6 +140,7 @@
                                         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                             Identifier
                                         </label>
+
                                         <div class="font-mono text-sm bg-slate-200 dark:bg-slate-800 px-3 py-2 rounded-lg truncate">
                                             {{ selectedIdentity.id }}
                                         </div>
@@ -130,6 +150,7 @@
                                         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                             Current Keys
                                         </label>
+
                                         <div class="space-y-2">
                                             <div v-for="key in selectedIdentity.publicKeys" :key="key.id"
                                                  class="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -138,15 +159,18 @@
                                                         <span class="font-medium text-slate-900 dark:text-slate-100">
                                                             {{ getPurposeLabel(key.purpose) }}
                                                         </span>
+
                                                         <span :class="getSecurityLevelClass(key.securityLevel)"
                                                               class="px-2 py-0.5 text-xs rounded-full">
                                                             {{ getSecurityLevelLabel(key.securityLevel) }}
                                                         </span>
                                                     </div>
+
                                                     <div class="text-xs text-slate-500 dark:text-slate-400">
                                                         {{ key.type_ || key.keyType }}
                                                     </div>
                                                 </div>
+
                                                 <div class="text-right">
                                                     <div class="text-sm font-mono text-slate-600 dark:text-slate-300">
                                                         ID: {{ key.id }}
@@ -165,10 +189,12 @@
                                             <svg class="h-5 w-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
+
                                             <div>
                                                 <h4 class="font-semibold text-green-800 dark:text-green-300">
                                                     TRANSFER Key Already Present
                                                 </h4>
+
                                                 <p class="text-sm text-green-700 dark:text-green-400">
                                                     This identity already has a TRANSFER key, so sending transactions is already enabled.
                                                 </p>
@@ -186,25 +212,40 @@
                                                     </svg>
                                                 </div>
                                             </div>
+
                                             <div class="flex-1">
                                                 <h4 class="text-lg font-semibold text-amber-800 dark:text-amber-300">
                                                     TRANSFER Key Required
                                                 </h4>
+
                                                 <p class="mt-2 text-amber-700 dark:text-amber-400">
                                                     This identity is missing a TRANSFER key. Without it, you cannot send transactions. Adding a TRANSFER key will require a small fee for the identity update.
                                                 </p>
+
                                                 <div class="mt-4 space-y-3">
                                                     <div class="flex items-center gap-2 text-sm">
                                                         <div class="size-2 rounded-full bg-amber-500"></div>
-                                                        <span class="text-amber-700 dark:text-amber-300">Enables sending credits and tokens</span>
+
+                                                        <span class="text-amber-700 dark:text-amber-300">
+                                                            Enables sending credits and tokens
+                                                        </span>
                                                     </div>
+
                                                     <div class="flex items-center gap-2 text-sm">
                                                         <div class="size-2 rounded-full bg-amber-500"></div>
-                                                        <span class="text-amber-700 dark:text-amber-300">Requires an identity update transaction</span>
+
+                                                        <span class="text-amber-700 dark:text-amber-300">
+                                                            Requires an identity update transaction
+                                                        </span>
                                                     </div>
+
+
                                                     <div class="flex items-center gap-2 text-sm">
                                                         <div class="size-2 rounded-full bg-amber-500"></div>
-                                                        <span class="text-amber-700 dark:text-amber-300">Costs a small fee in credits</span>
+
+                                                        <span class="text-amber-700 dark:text-amber-300">
+                                                            Costs a small fee in credits
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -230,15 +271,18 @@
                                                                    ? 'border-cyan-500 bg-gradient-to-br from-cyan-500/5 to-cyan-600/5'
                                                                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'">
                                                             <input type="radio" v-model="keyType" value="ECDSA_SECP256K1" class="sr-only">
+
                                                             <div class="flex items-center justify-between w-full">
                                                                 <div>
                                                                     <div class="font-medium text-slate-900 dark:text-slate-100">
                                                                         ECDSA Secp256k1
                                                                     </div>
+
                                                                     <div class="text-sm text-slate-600 dark:text-slate-400 mt-1">
                                                                         Standard cryptographic key
                                                                     </div>
                                                                 </div>
+
                                                                 <div v-if="keyType === 'ECDSA_SECP256K1'" class="size-6 rounded-full bg-cyan-500 flex items-center justify-center">
                                                                     <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
@@ -257,10 +301,12 @@
                                                                     <div class="font-medium text-slate-900 dark:text-slate-100">
                                                                         ECDSA Hash160
                                                                     </div>
+
                                                                     <div class="text-sm text-slate-600 dark:text-slate-400 mt-1">
                                                                         Compressed public key hash
                                                                     </div>
                                                                 </div>
+
                                                                 <div v-if="keyType === 'ECDSA_HASH160'" class="size-6 rounded-full bg-cyan-500 flex items-center justify-center">
                                                                     <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
@@ -278,10 +324,11 @@
                                                     </label>
                                                     <select v-model="securityLevel"
                                                             class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-200">
-                                                        <option value="CRITICAL">CRITICAL (Highest Security)</option>
-                                                        <option value="HIGH">HIGH</option>
-                                                        <option value="MEDIUM">MEDIUM</option>
-                                                        <option value="LOW">LOW</option>
+                                                        <option value="MASTER">MASTER (0 - Highest)</option>
+                                                        <option value="CRITICAL">CRITICAL (1)</option>
+                                                        <option value="HIGH">HIGH (2)</option>
+                                                        <option value="MEDIUM">MEDIUM (3)</option>
+                                                        <option value="LOW">LOW (4)</option>
                                                     </select>
                                                 </div>
 
@@ -291,6 +338,7 @@
                                                         <span class="text-sm font-medium text-slate-700 dark:text-slate-300">
                                                             Estimated Cost
                                                         </span>
+
                                                         <span class="text-lg font-bold text-cyan-600 dark:text-cyan-400">
                                                             ~100 Credits
                                                         </span>
@@ -304,6 +352,7 @@
                                                 <div class="flex items-start gap-3">
                                                     <input type="checkbox" v-model="confirmed" id="confirm-add"
                                                            class="mt-1 h-4 w-4 text-cyan-600 focus:ring-cyan-500 border-slate-300 dark:border-slate-700 rounded">
+
                                                     <label for="confirm-add" class="text-sm text-slate-700 dark:text-slate-300">
                                                         I understand that adding this key requires an identity update transaction and will cost a small fee in credits.
                                                     </label>
@@ -343,14 +392,19 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import getIdentities from '@/libs/getIdentities'
-import { useIdentityStore } from '@/stores/identity'
+// import { useIdentityStore } from '@/stores/identity'
+import { getPrivateKeyManager } from '@/libs/keys/PrivateKeyManager'
+import { DashPlatformSDK } from 'dash-platform-sdk'
+// import { PrivateKeyWASM } from 'pshenmic-dpp'
+import getNetwork from '@/libs/getNetwork'
+// import getLicense from '@/libs/getLicense'
 
 const router = useRouter()
-const identityStore = useIdentityStore()
+// const identityStore = useIdentityStore()
 
 // State
 const loading = ref(true)
@@ -361,12 +415,30 @@ const securityLevel = ref('CRITICAL')
 const confirmed = ref(false)
 const isAdding = ref(false)
 
+// SDK Constants (from docs)
+const Purpose = {
+    AUTHENTICATION: 0,
+    TRANSFER: 1,
+    ENCRYPTION: 2
+}
+const SecurityLevel = {
+    MASTER: 0,
+    CRITICAL: 1,
+    HIGH: 2,
+    MEDIUM: 3,
+    LOW: 4
+}
+const KeyType = {
+    ECDSA_SECP256K1: 'ECDSA_SECP256K1',
+    ECDSA_HASH160: 'ECDSA_HASH160'
+}
+
 // Load identities
 const loadIdentities = async () => {
     try {
         loading.value = true
-        const foundIdentities = await getIdentities()
 
+        const foundIdentities = await getIdentities()
         if (foundIdentities && foundIdentities.length > 0) {
             identities.value = foundIdentities.map((identity: any) => ({
                 ...identity,
@@ -376,6 +448,7 @@ const loadIdentities = async () => {
 
             // Auto-select first identity missing transfer key
             const missingTransfer = identities.value.find(identity => !hasTransferKey(identity))
+
             if (missingTransfer) {
                 selectedIdentity.value = missingTransfer
             } else if (identities.value.length > 0) {
@@ -450,7 +523,7 @@ const showNotification = (type: 'success' | 'error' | 'info' | 'warning', messag
     window.dispatchEvent(event)
 }
 
-// Add transfer key function
+// Main function to add TRANSFER key
 const addTransferKey = async () => {
     if (!selectedIdentity.value || !confirmed.value) {
         showNotification('error', 'Please select an identity and confirm')
@@ -459,30 +532,159 @@ const addTransferKey = async () => {
 
     try {
         isAdding.value = true
+        showNotification('info', 'Starting key addition process...')
 
-        // TODO: Implement actual key addition logic
-        // 1. Get identity nonce and revision
-        // 2. Generate new key pair at index 3 (TRANSFER)
-        // 3. Create identity update state transition
-        // 4. Sign with MASTER authentication key
-        // 5. Broadcast transaction
+        // 1. Get identity details
+        const identityId = selectedIdentity.value.id
+        const identityIdx = selectedIdentity.value.identity_idx
+        const currentRevision = BigInt(selectedIdentity.value.revision || 0)
+        const newRevision = currentRevision + BigInt(1)
+        console.log('Identity details:', {
+            identityId,
+            identityIdx,
+            currentRevision: currentRevision.toString(),
+            newRevision: newRevision.toString()
+        })
 
-        // Simulating for now
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        // 2. Get network and initialize SDK
+        const network = await getNetwork() as 'testnet' | 'mainnet'
+        console.log('Using network:', network)
 
+        // Initialize SDK with current network
+        const sdk = new DashPlatformSDK({ network })
+
+        // 3. Get identity nonce from network
+        showNotification('info', 'Fetching identity nonce...')
+        const currentIdentityNonce = await sdk.identities.getIdentityNonce(identityId)
+        const identityNonce = currentIdentityNonce + BigInt(1)
+        console.log('Identity nonce:', {
+            current: currentIdentityNonce.toString(),
+            next: identityNonce.toString()
+        })
+
+        // 4. Get master private key (authentication key at index 0)
+        showNotification('info', 'Getting master authentication key...')
+        const keyManager = getPrivateKeyManager()
+        await keyManager.initialize()
+
+        // Get all private keys for this identity
+        const privateKeys = await keyManager.getPrivateKeys(identityIdx)
+        const masterPrivateKey = privateKeys.masterKey // Index 0
+        console.log('Master key obtained:', masterPrivateKey)
+
+        // 5. Determine next key ID
+        const existingKeys = selectedIdentity.value.publicKeys || []
+        const existingKeyIds = existingKeys.map((key: any) => key.id).sort((a: number, b: number) => a - b)
+        const nextKeyId = existingKeyIds.length > 0 ? Math.max(...existingKeyIds) + 1 : 0
+        console.log('Next key ID:', nextKeyId)
+        console.log('Existing key IDs:', existingKeyIds)
+
+        // 6. Generate new TRANSFER key pair (always use index 3 for transfer key)
+        showNotification('info', 'Generating new TRANSFER key...')
+        const transferPrivateKeyDerived = privateKeys.transferKey // Index 3
+        const transferPublicKey = transferPrivateKeyDerived.getPublicKey()
+        console.log('Transfer key generated:', {
+            keyId: nextKeyId,
+            publicKey: transferPublicKey.bytes().length,
+            type: keyType.value
+        })
+
+        // 7. Create new public key for identity update
+        const identityPublicKeyInCreation = {
+            id: nextKeyId,
+            purpose: Purpose.TRANSFER,
+            securityLevel: securityLevel.value === 'CRITICAL' ? SecurityLevel.CRITICAL :
+                         securityLevel.value === 'HIGH' ? SecurityLevel.HIGH :
+                         securityLevel.value === 'MEDIUM' ? SecurityLevel.MEDIUM :
+                         SecurityLevel.LOW,
+            // keyType: keyType.value === 'ECDSA_HASH160' ? KeyType.ECDSA_HASH160 : KeyType.ECDSA_SECP256K1,
+            keyType: (keyType.value === 'ECDSA_HASH160' ? 'ECDSA_HASH160' : 'ECDSA_SECP256K1') as any,
+            readOnly: false,
+            data: transferPublicKey.bytes(),
+            // signature: undefined // Will be populated in two-phase signing
+            signature: new Uint8Array()
+        }
+        console.log('Creating identity update state transition...')
+
+        // 8. TWO-PHASE SIGNING (as per SDK docs)
+        showNotification('info', 'Phase 1: Signing new key data...')
+
+        // Phase 1: Sign the state transition with the NEW TRANSFER key
+        let identityUpdateTransition = sdk.identities.createStateTransition('update', {
+            identityId,
+            revision: newRevision,
+            identityNonce,
+            addPublicKeys: [identityPublicKeyInCreation]
+        })
+
+        // Sign with the NEW TRANSFER private key
+        identityUpdateTransition.signByPrivateKey(transferPrivateKeyDerived, nextKeyId, KeyType.ECDSA_SECP256K1)
+
+        // Store the signature on the new public key
+        // identityPublicKeyInCreation.signature = identityUpdateTransition.signature
+        identityPublicKeyInCreation.signature = new Uint8Array(identityUpdateTransition.signature)
+        console.log('Phase 1 signature added to new key')
+
+        // Phase 2: Create final state transition with signed new key
+        showNotification('info', 'Phase 2: Creating final state transition...')
+        identityUpdateTransition = sdk.identities.createStateTransition('update', {
+            identityId,
+            revision: newRevision,
+            identityNonce,
+            addPublicKeys: [identityPublicKeyInCreation]
+        })
+
+        // Sign with MASTER authentication key (index 0, key ID 0)
+        // Find the master key ID from existing keys (purpose 0, highest security level)
+        const masterKey = existingKeys.find((key: any) =>
+            key.purpose === 0 && (key.security_level === 0 || key.security_level === 3)
+        )
+        const masterKeyId = masterKey ? masterKey.id : 0
+        console.log('Signing with master key ID:', masterKeyId)
+        identityUpdateTransition.signByPrivateKey(
+            masterPrivateKey,
+            masterKeyId,
+            KeyType.ECDSA_SECP256K1
+        )
+
+        // 9. Broadcast the state transition
+        showNotification('info', 'Broadcasting identity update...')
+        const result = await sdk.stateTransitions.broadcast(identityUpdateTransition)
+        console.log('Broadcast result:', result)
+
+        // 10. Wait for confirmation
+        showNotification('info', 'Waiting for confirmation...')
+        // Wait for transaction to be processed
+        await new Promise(resolve => setTimeout(resolve, 3000))
+        // Optionally wait for actual state transition result
+        // const transitionResult = await sdk.stateTransitions.waitForStateTransitionResult(identityUpdateTransition)
+        // console.log('State transition result:', transitionResult)
         showNotification('success', 'TRANSFER key added successfully!')
 
-        // Reload identities to update status
+        // 11. Reload identities to update status
         await loadIdentities()
 
-        // Navigate back to identity list
+        // 12. Navigate back to identity list after short delay
         setTimeout(() => {
             router.push('/identity')
         }, 1500)
-
     } catch (error: any) {
         console.error('Failed to add transfer key:', error)
-        showNotification('error', error.message || 'Failed to add transfer key')
+
+        // Provide more detailed error message
+        let errorMessage = error.message || 'Failed to add transfer key'
+
+        if (errorMessage.includes('insufficient')) {
+            errorMessage = 'Insufficient credits for identity update fee'
+        } else if (errorMessage.includes('nonce')) {
+            errorMessage = 'Nonce mismatch - please try again'
+        } else if (errorMessage.includes('revision')) {
+            errorMessage = 'Identity revision mismatch - please refresh'
+        } else if (errorMessage.includes('signature')) {
+            errorMessage = 'Signature verification failed'
+        }
+
+        showNotification('error', errorMessage)
     } finally {
         isAdding.value = false
     }
