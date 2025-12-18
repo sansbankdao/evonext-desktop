@@ -1,12 +1,13 @@
 // src/stores/identity/actions/identity.ts
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ErrorBoundary } from '@/utils/errors'
-import { log } from '@/utils/env'
+import { log, getDapiEndpoint } from '@/utils/env'
 import getIdentities from '@/libs/getIdentities'
 import getNetwork from '@/libs/getNetwork'
 import type { IIdentityState } from '@/types'
 import type { SDKIdentityDetails } from '@/types'
 import { hexHash160ToBase64 } from '../utils'
+
 export const identityActions = () => ({
     async searchUserIdentities(this: any) {
         return ErrorBoundary.wrap(async () => {
@@ -18,10 +19,12 @@ export const identityActions = () => ({
                 log('warn', 'No identities found for the provided credentials.')
                 return null
             }
+
             // FIXME: Allow selection from MULTIPLE identities.
             const primaryIdentity = identities[0]
             console.log('[DEBUG] Primary identity ID:', primaryIdentity?.id)
             console.log('[DEBUG] Primary identity object:', primaryIdentity)
+
             // Create SDK instance ONCE to avoid WebAssembly memory issues
             const network = await getNetwork()
             console.log('[DEBUG] Network:', network)
@@ -29,21 +32,21 @@ export const identityActions = () => ({
                 network: network as 'testnet' | 'mainnet'
             })
             console.log('[DEBUG] SDK instance created')
-            // DEBUGGING DPNS LOOKUP
+
+            // DEBUGGING DPNS LOOKUP - Use DAPI instead of broken SDK method
             if (typeof primaryIdentity?.id !== 'undefined' && primaryIdentity?.id !== null) {
-                console.log('[DEBUG] Calling sdk.names.searchByIdentity with:', primaryIdentity.id)
+                console.log('[DEBUG] Getting DPNS username from DAPI for:', primaryIdentity.id)
                 try {
-                    const [document] = await sdk.names.searchByIdentity(primaryIdentity.id)
-                    console.log('[DEBUG] DPNS search result:', document)
-                    if (typeof document?.properties?.label !== 'undefined' && document?.properties?.label !== null) {
-                        state.username = document.properties.label
+                    const dpnsUsername = await this.getDpnsUsername(primaryIdentity.id)
+                    if (dpnsUsername) {
+                        state.username = dpnsUsername
                         console.log('[DEBUG] Set username from DPNS:', state.username)
                     } else {
                         state.username = primaryIdentity.id
-                        console.log('[DEBUG] No DPNS label, using identity ID')
+                        console.log('[DEBUG] No DPNS name found, using identity ID')
                     }
                 } catch (dpnsError: any) {
-                    console.error('[DEBUG] DPNS search failed:', dpnsError)
+                    console.error('[DEBUG] DPNS lookup failed:', dpnsError)
                     console.error('[DEBUG] Error message:', dpnsError.message)
                     state.username = primaryIdentity.id
                     console.log('[DEBUG] Using identity ID due to DPNS error')
@@ -52,8 +55,10 @@ export const identityActions = () => ({
                 state.username = primaryIdentity.id || null
                 console.log('[DEBUG] No identity ID available')
             }
+
             state.identity = primaryIdentity
             state.isAuthenticated = true
+
             // Get detailed identity info using the SAME SDK instance
             console.log('[DEBUG] Calling queryIdentityDetails...')
             try {
@@ -62,11 +67,56 @@ export const identityActions = () => ({
                 console.error('[DEBUG] queryIdentityDetails failed:', error)
                 log('warn', 'Failed to query detailed identity information:', error?.message || error)
             }
+
             await this.fetchBalance()
             await this.saveToStorage()
             return primaryIdentity
         }, 'SEARCH_USER_IDENTITIES_FAILED')
     },
+
+    async getDpnsUsername(identityId: string): Promise<string | null> {
+        return ErrorBoundary.wrap(async () => {
+            try {
+                const network = await getNetwork()
+                const body = JSON.stringify({
+                    method: 'get_dpns_username',
+                    params: [identityId],
+                    network,
+                })
+
+                console.log('[DPNS] Fetching username for identity:', identityId)
+                const response = await fetch(getDapiEndpoint(), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body,
+                })
+
+                console.log('[DPNS] Response status:', response.status)
+                if (!response.ok) {
+                    const errorText = await response.text()
+                    console.log('[DPNS] Error response:', errorText)
+                    throw new Error(`HTTP error! status: ${response.status}`)
+                }
+
+                const result = await response.json()
+                console.log('[DPNS] Response success:', result.success)
+
+                if (result && result.success && result.result) {
+                    console.log('[DPNS] Found username:', result.result)
+                    return result.result
+                }
+
+                console.log('[DPNS] No username found for identity')
+                return null
+            } catch (error) {
+                console.error('[DPNS] Failed to get username:', error)
+                return null
+            }
+        }, 'GET_DPNS_USERNAME_FAILED')
+    },
+
     async queryIdentityDetails(
         this: any,
         identityId: string,
@@ -75,6 +125,7 @@ export const identityActions = () => ({
     ): Promise<SDKIdentityDetails> {
         return ErrorBoundary.wrap(async () => {
             console.log('[QUERY DETAILS] Starting with identityId:', identityId)
+
             try {
                 let sdkInstance = sdk
                 if (!sdkInstance) {
@@ -86,6 +137,7 @@ export const identityActions = () => ({
                 } else {
                     console.log('[QUERY DETAILS] Using provided SDK instance')
                 }
+
                 // Test SDK connection
                 console.log('[QUERY DETAILS] Testing SDK connection...')
                 try {
@@ -94,10 +146,12 @@ export const identityActions = () => ({
                 } catch (statusError: any) {
                     console.error('[QUERY DETAILS] SDK connection test failed:', statusError?.message || statusError)
                 }
+
                 // Get identity details
                 console.log('[QUERY DETAILS] Calling getIdentityByIdentifier...')
                 const identity = await sdkInstance.identities.getIdentityByIdentifier(identityId)
                 console.log('[QUERY DETAILS] Identity retrieved successfully')
+
                 const publicKeys = identity.getPublicKeys()
                 console.log('[QUERY DETAILS] Got public keys:', publicKeys.length)
                 console.log('[QUERY DETAILS] First key example:', publicKeys[0] ? {
@@ -111,6 +165,7 @@ export const identityActions = () => ({
                     readOnly: publicKeys[0].readOnly,
                     disabledAt: publicKeys[0].disabledAt
                 } : 'No keys')
+
                 const revision = identity.revision || BigInt(0)
                 const formattedKeys = publicKeys.map((_key: any, index: number) => ({
                     id: _key.keyId || _key.id || 0,
@@ -122,8 +177,10 @@ export const identityActions = () => ({
                     read_only: _key.readOnly,
                     disabled_at: _key.disabledAt,
                 }))
+
                 // Call update method
                 await this.updateIdentityWithSdkData(identityId, identityIdx, formattedKeys, revision)
+
                 return {
                     identity,
                     identityIdx,
@@ -135,9 +192,11 @@ export const identityActions = () => ({
                 console.error('[QUERY DETAILS] Error type:', typeof error)
                 console.error('[QUERY DETAILS] Error message:', error?.message || error)
                 console.error('[QUERY DETAILS] Error stack:', error?.stack)
+
                 if (error?.message && error.message.includes('ByteArrayAllocate')) {
                     console.error('[QUERY DETAILS] WebAssembly memory allocation error!')
                 }
+
                 // Return minimal data instead of throwing
                 return {
                     identity: null,
@@ -148,6 +207,7 @@ export const identityActions = () => ({
             }
         }, 'QUERY_IDENTITY_DETAILS_FAILED')
     },
+
     async getPublicKeys(this: any) {
         return ErrorBoundary.wrap(async () => {
             const state = this as IIdentityState
@@ -162,6 +222,7 @@ export const identityActions = () => ({
             return []
         }, 'GET_PUBLIC_KEYS_FAILED')
     },
+
     updateIdentityWithSdkData(
         this: any,
         identityId: string,
@@ -176,7 +237,9 @@ export const identityActions = () => ({
                 publicKeysCount: publicKeys.length,
                 revision: revision.toString()
             })
+
             const state = this as IIdentityState
+
             // Update public keys if we have them
             if (publicKeys && publicKeys.length > 0) {
                 state.publicKeys = publicKeys.map(key => ({
@@ -191,11 +254,13 @@ export const identityActions = () => ({
                 }))
                 console.log('[UPDATE SDK DATA] Updated public keys count:', state.publicKeys.length)
             }
+
             // Update revision
             if (revision) {
                 state.revision = Number(revision)
                 console.log('[UPDATE SDK DATA] Updated revision:', state.revision)
             }
+
             console.log('[UPDATE SDK DATA] Update complete')
         }, 'UPDATE_IDENTITY_WITH_SDK_DATA_FAILED')
     }
