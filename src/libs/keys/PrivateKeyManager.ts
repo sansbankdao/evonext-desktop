@@ -25,7 +25,7 @@ export class PrivateKeyManager {
             log('info', `PrivateKeyManager initialized for network: ${this.network}`)
         }, 'PRIVATE_KEY_MANAGER_INIT_FAILED')
     }
-
+//`m/9'/5'/5'/0'/0'/${_identityIdx}'/0'`
     private getDerivationPath(identityIdx: number, keyIdx: number): DerivationPath {
         // MAINNET -> m/9'/5'/5'/0'/0'/<IDENTITY_IDX>'/<KEY_IDX>'
         // TESTNET -> m/9'/1'/5'/0'/0'/<IDENTITY_IDX>'/<KEY_IDX>'
