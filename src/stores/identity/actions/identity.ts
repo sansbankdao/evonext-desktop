@@ -22,16 +22,15 @@ export const identityActions = () => ({
             const primaryIdentity = identities[0]
             console.log('[DEBUG] Primary identity ID:', primaryIdentity?.id)
             console.log('[DEBUG] Primary identity object:', primaryIdentity)
+            // Create SDK instance ONCE to avoid WebAssembly memory issues
+            const network = await getNetwork()
+            console.log('[DEBUG] Network:', network)
+            const sdk = new DashPlatformSDK({
+                network: network as 'testnet' | 'mainnet'
+            })
+            console.log('[DEBUG] SDK instance created')
             // DEBUGGING DPNS LOOKUP
-console.log('[DEBUG-outside] Checking primaryIdentity.id:', primaryIdentity?.id, 'type:', typeof primaryIdentity?.id)
             if (typeof primaryIdentity?.id !== 'undefined' && primaryIdentity?.id !== null) {
-console.log('[DEBUG-inside] Checking primaryIdentity.id:', primaryIdentity?.id, 'type:', typeof primaryIdentity?.id)
-                const network = await getNetwork()
-                console.log('[DEBUG] Network:', network)
-                const sdk = new DashPlatformSDK({
-                    network: network as 'testnet' | 'mainnet'
-                })
-                console.log('[DEBUG] SDK created for DPNS lookup')
                 console.log('[DEBUG] Calling sdk.names.searchByIdentity with:', primaryIdentity.id)
                 try {
                     const [document] = await sdk.names.searchByIdentity(primaryIdentity.id)
@@ -55,10 +54,10 @@ console.log('[DEBUG-inside] Checking primaryIdentity.id:', primaryIdentity?.id, 
             }
             state.identity = primaryIdentity
             state.isAuthenticated = true
-            // Get detailed identity info
+            // Get detailed identity info using the SAME SDK instance
             console.log('[DEBUG] Calling queryIdentityDetails...')
             try {
-                await this.queryIdentityDetails(primaryIdentity.id, primaryIdentity.identity_idx)
+                await this.queryIdentityDetails(primaryIdentity.id, primaryIdentity.identity_idx, sdk)
             } catch (error: any) {
                 console.error('[DEBUG] queryIdentityDetails failed:', error)
                 log('warn', 'Failed to query detailed identity information:', error?.message || error)
@@ -71,29 +70,33 @@ console.log('[DEBUG-inside] Checking primaryIdentity.id:', primaryIdentity?.id, 
     async queryIdentityDetails(
         this: any,
         identityId: string,
-        identityIdx: number
+        identityIdx: number,
+        sdk?: DashPlatformSDK // Accept optional SDK parameter
     ): Promise<SDKIdentityDetails> {
         return ErrorBoundary.wrap(async () => {
             console.log('[QUERY DETAILS] Starting with identityId:', identityId)
             try {
-                const network = await getNetwork()
-                console.log('[QUERY DETAILS] Network:', network)
-                // Create new SDK instance
-                const sdk = new DashPlatformSDK({
-                    network: network as 'testnet' | 'mainnet'
-                })
-                console.log('[QUERY DETAILS] SDK instance created')
+                let sdkInstance = sdk
+                if (!sdkInstance) {
+                    const network = await getNetwork()
+                    console.log('[QUERY DETAILS] Creating new SDK instance')
+                    sdkInstance = new DashPlatformSDK({
+                        network: network as 'testnet' | 'mainnet'
+                    })
+                } else {
+                    console.log('[QUERY DETAILS] Using provided SDK instance')
+                }
                 // Test SDK connection
                 console.log('[QUERY DETAILS] Testing SDK connection...')
                 try {
-                    const status = await sdk.node.status()
+                    const status = await sdkInstance.node.status()
                     console.log('[QUERY DETAILS] SDK connection test passed')
                 } catch (statusError: any) {
                     console.error('[QUERY DETAILS] SDK connection test failed:', statusError?.message || statusError)
                 }
                 // Get identity details
                 console.log('[QUERY DETAILS] Calling getIdentityByIdentifier...')
-                const identity = await sdk.identities.getIdentityByIdentifier(identityId)
+                const identity = await sdkInstance.identities.getIdentityByIdentifier(identityId)
                 console.log('[QUERY DETAILS] Identity retrieved successfully')
                 const publicKeys = identity.getPublicKeys()
                 console.log('[QUERY DETAILS] Got public keys:', publicKeys.length)
