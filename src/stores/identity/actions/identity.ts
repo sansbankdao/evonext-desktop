@@ -55,32 +55,62 @@ export const identityActions = () => ({
         identityIdx: number
     ): Promise<SDKIdentityDetails> {
         return ErrorBoundary.wrap(async () => {
-            // const state = this as IIdentityState
-            const network = await getNetwork()
-            log('info', 'Querying identity details for:', identityId)
-            const sdk = new DashPlatformSDK({
-                network: network as 'testnet' | 'mainnet'
-             })
-            const identity = await sdk.identities.getIdentityByIdentifier(identityId)
-            log('info', 'SDK Identity details:', identity)
-            const publicKeys = identity.getPublicKeys().map((_key: any, _index: number) => ({
-                type_: _key.keyType,
-                purpose: _key.purposeNumber,
-                security_level: _key.securityLevelNumber,
-                data: _key.data,
-                dataB64: hexHash160ToBase64(_key.data),
-                read_only: _key.readOnly,
-                disabled_at: _key.disabledAt,
-            }))
-            log('info', 'Identity public keys:', publicKeys)
-            const revision = identity.revision || BigInt(0)
-            log('info', 'Identity revision:', revision)
-            await this.updateIdentityWithSdkData(identityId, identityIdx, publicKeys, revision)
-            return {
-                identity,
-                identityIdx,
-                publicKeys,
-                revision: Number(revision)
+            console.log('[QUERY DETAILS] Starting with identityId:', identityId)
+            console.log('[QUERY DETAILS] identityId length:', identityId.length)
+            console.log('[QUERY DETAILS] identityId sample:', identityId.substring(0, 20) + '...')
+            try {
+                const network = await getNetwork()
+                console.log('[QUERY DETAILS] Network:', network)
+                // Create new SDK instance
+                const sdk = new DashPlatformSDK({
+                    network: network as 'testnet' | 'mainnet'
+                })
+                console.log('[QUERY DETAILS] SDK instance created')
+                // Test a simple SDK call first - USING CORRECT METHOD FROM DOCS
+                console.log('[QUERY DETAILS] Testing SDK with node.status()...')
+                try {
+                    const status = await sdk.node.status()
+                    console.log('[QUERY DETAILS] SDK node.status() succeeded')
+                    console.log('[QUERY DETAILS] Latest block hash:', status.chain.latestBlockHash)
+                    console.log('[QUERY DETAILS] Epoch:', status.time.epoch)
+                } catch (statusError: any) {
+                    console.error('[QUERY DETAILS] SDK node.status() failed:', statusError)
+                    console.error('[QUERY DETAILS] Error message:', statusError.message)
+                }
+                // Now try getIdentityByIdentifier - FROM DOCS
+                console.log('[QUERY DETAILS] Calling identities.getIdentityByIdentifier with:', identityId)
+                const identity = await sdk.identities.getIdentityByIdentifier(identityId)
+                console.log('[QUERY DETAILS] Identity retrieved successfully')
+                const publicKeys = identity.getPublicKeys()
+                console.log('[QUERY DETAILS] Got public keys:', publicKeys.length)
+                const revision = identity.revision || BigInt(0)
+                const formattedKeys = publicKeys.map((_key: any, _index: number) => ({
+                    type_: _key.keyType,
+                    purpose: _key.purposeNumber,
+                    security_level: _key.securityLevelNumber,
+                    data: _key.data,
+                    dataB64: hexHash160ToBase64(_key.data),
+                    read_only: _key.readOnly,
+                    disabled_at: _key.disabledAt,
+                }))
+                await this.updateIdentityWithSdkData(identityId, identityIdx, formattedKeys, revision)
+                return {
+                    identity,
+                    identityIdx,
+                    publicKeys: formattedKeys,
+                    revision: Number(revision)
+                }
+            } catch (error: any) {
+                console.error('[QUERY DETAILS] Full error:', error)
+                console.error('[QUERY DETAILS] Error name:', error.name)
+                console.error('[QUERY DETAILS] Error message:', error.message)
+                console.error('[QUERY DETAILS] Error stack:', error.stack)
+                // Check if it's the ByteArrayAllocate error
+                if (error.message && error.message.includes('ByteArrayAllocate')) {
+                    console.error('[QUERY DETAILS] ByteArrayAllocate error - WebAssembly memory issue')
+                    console.error('[QUERY DETAILS] This is likely a WASM loading issue in the SDK')
+                }
+                throw error // Re-throw to see original error
             }
         }, 'QUERY_IDENTITY_DETAILS_FAILED')
     },
