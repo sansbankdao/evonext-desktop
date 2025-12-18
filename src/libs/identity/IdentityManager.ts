@@ -199,6 +199,11 @@ export class IdentityManager {
             })
             console.log(`[DEBUG DAPI] Response status: ${response.status}`)
             if (!response.ok) {
+                // 404 means no identity found - this is expected for some keys
+                if (response.status === 404) {
+                    console.log(`[DEBUG DAPI] No identity found (404) for method: ${_method}`)
+                    return null // Return null instead of throwing
+                }
                 const errorText = await response.text()
                 console.log(`[DEBUG DAPI] Error response:`, errorText)
                 throw new Error(`HTTP error! status: ${response.status}`)
