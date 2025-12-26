@@ -1,4 +1,5 @@
 // src/stores/identity/index.ts
+
 import { defineStore } from 'pinia'
 import { useIdentityState } from './state'
 import { useIdentityGetters } from './getters'
@@ -6,6 +7,7 @@ import { storageActions } from './actions/storage'
 import { connectionActions } from './actions/connection'
 import { balanceActions } from './actions/balance'
 import { identityActions } from './actions/identity'
+
 /* Combine all actions. */
 const useIdentityActions = {
     ...storageActions(),
@@ -13,6 +15,7 @@ const useIdentityActions = {
     ...identityActions(),
     ...balanceActions(),
 }
+
 export const useIdentityStore = defineStore('identity', {
     state: useIdentityState,
     actions: useIdentityActions,
