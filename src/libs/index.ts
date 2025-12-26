@@ -12,6 +12,9 @@ export { default as sendToken } from './sendToken'
 // Identity exports
 export * from './identity'
 
+// Poss exports
+export * from './posts'
+
 // Wallet exports
 export * from './wallet'
 

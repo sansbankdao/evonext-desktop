@@ -1,6 +1,7 @@
 // src/types/posts.ts
 
 export interface IPostDocument {
+    id: string;
     ownerId: string;
     dataContractId: string;
     documentTypeName: string | null;
@@ -26,6 +27,7 @@ export interface IPostDocument {
 }
 
 export interface IPost {
+    id: string;
     ownerId: string;
     author: IPostAuthor;
     content: string;
@@ -112,6 +114,7 @@ export interface PostsFetchResult {
 }
 
 export interface PostsFetchOptions {
+    id?: string;
     ownerId?: string;
     limit?: number;
     fromDate?: Date;
