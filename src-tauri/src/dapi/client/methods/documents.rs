@@ -2,6 +2,7 @@
 
 use serde_json::Value;
 use std::collections::HashMap;
+use chrono::{DateTime, Utc};
 
 use crate::dapi::types::{DAPIError, Network};
 use super::super::DAPIClient;
@@ -92,11 +93,10 @@ impl DAPIClient {
         start_after: Option<String>,
         start_at: Option<String>,
     ) -> Result<Vec<Value>, DAPIError> {
-        use crate::constants::{EVONEXT_CONTRACT_ID_MAINNET, EVONEXT_CONTRACT_ID_TESTNET};
-
+        // Get contract IDs from constants
         let contract_id = match network {
-            Network::Mainnet => EVONEXT_CONTRACT_ID_MAINNET,
-            Network::Testnet => EVONEXT_CONTRACT_ID_TESTNET,
+            Network::Mainnet => "6fBkKSne1xQ5GCPW9fdwEkH7nk8oYPu48vYiYssWzhX8", // EVONEXT_CONTRACT_ID_MAINNET
+            Network::Testnet => "465jdPpFCZefhb4g2k2FpCcrKpPYhJJskDqbGFsKu6wb", // EVONEXT_CONTRACT_ID_TESTNET
         };
 
         self.get_documents(
@@ -141,7 +141,7 @@ impl DAPIClient {
         is_sensitive: Option<bool>,
         hashtag: Option<String>,
     ) -> Result<Vec<Value>, DAPIError> {
-        let mut where_clause = serde_json::Map::new();
+        let mut where_clause = HashMap::new();
 
         if let Some(lang) = language {
             where_clause.insert("language".to_string(), Value::String(lang));
@@ -158,7 +158,7 @@ impl DAPIClient {
         let where_value = if where_clause.is_empty() {
             None
         } else {
-            Some(Value::Object(where_clause))
+            Some(Value::Object(where_clause.into_iter().collect()))
         };
 
         let order_by = serde_json::json!({

@@ -159,9 +159,28 @@ impl DAPIClient {
 
     /// Validate DPNS username format
     pub fn validate_dpns_username(username: &str) -> bool {
-        // Basic validation: 3-63 characters, alphanumeric and hyphens, not starting/ending with hyphen
-        let re = regex::Regex::new(r"^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$").unwrap();
-        re.is_match(username) && username.len() >= 3 && username.len() <= 63
+        // Basic validation without regex:
+        // 1. Length between 3 and 63 characters
+        if username.len() < 3 || username.len() > 63 {
+            return false;
+        }
+
+        // 2. Must contain only alphanumeric characters and hyphens
+        if !username.chars().all(|c| c.is_alphanumeric() || c == '-') {
+            return false;
+        }
+
+        // 3. Cannot start or end with hyphen
+        if username.starts_with('-') || username.ends_with('-') {
+            return false;
+        }
+
+        // 4. Cannot contain consecutive hyphens (optional, but good practice)
+        if username.contains("--") {
+            return false;
+        }
+
+        true
     }
 
     /// Normalize DPNS username (lowercase, etc.)

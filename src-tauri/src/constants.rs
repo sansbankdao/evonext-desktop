@@ -30,16 +30,27 @@ pub const PLATFORM_HTTP_API_MAINNET: &str = "https://platform-explorer.pshenmic.
 #[allow(dead_code)]
 pub const PLATFORM_HTTP_API_TESTNET: &str = "https://testnet.platform-explorer.pshenmic.dev";
 
+// -----------------------------------------------------------------------------
+// DATA CONTRACTS
+// -----------------------------------------------------------------------------
 #[allow(dead_code)]
 pub const DUSD_CONTRACT_ID_MAINNET: &str = "DYqxCsuDgYsEAJ2ADnimkwNdL7C4xbe4No4so19X9mmd";
 #[allow(dead_code)]
 pub const DUSD_CONTRACT_ID_TESTNET: &str = "3oTHkj8nqn82QkZRHkmUmNBX696nzE1rg1fwPRpemEdz";
 
 #[allow(dead_code)]
+pub const EVONEXT_CONTRACT_ID_MAINNET: &str = "6fBkKSne1xQ5GCPW9fdwEkH7nk8oYPu48vYiYssWzhX8";
+#[allow(dead_code)]
+pub const EVONEXT_CONTRACT_ID_TESTNET: &str = "465jdPpFCZefhb4g2k2FpCcrKpPYhJJskDqbGFsKu6wb";
+
+#[allow(dead_code)]
 pub const SANS_CONTRACT_ID_MAINNET: &str = "AxAYWyXV6mrm8Sq7vc7wEM18wtL8a8rgj64SM3SDmzsB";
 #[allow(dead_code)]
 pub const SANS_CONTRACT_ID_TESTNET: &str = "A36eJF2kyYXwxCtJGsgbR3CTAscUFaNxZN199V7dLZ";
 
+// -----------------------------------------------------------------------------
+// TOKEN DETAILS + METADATA
+// -----------------------------------------------------------------------------
 #[allow(dead_code)]
 pub const DUSD_DECIMAL_PLACES: u8 = 6;
 #[allow(dead_code)]
