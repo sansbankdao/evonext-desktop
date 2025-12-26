@@ -4,7 +4,7 @@ use tauri::command;
 use serde_json::{Value, json};
 use std::collections::HashMap;
 
-use crate::dapi::client::get_dapi_client;
+use crate::dapi::client::{get_dapi_client, DAPIClient, MethodParamInfo};
 use crate::dapi::types::{Network, DAPIError};
 
 #[command]
@@ -20,9 +20,27 @@ pub async fn dapi_request(
         Network::Testnet // Default to testnet
     };
 
+    // Convert HashMap params to Vec<Value> for DAPI array format
+    let method_info = match MethodParamInfo::for_method(&method) {
+        Ok(info) => info,
+        Err(e) => return Err(e.to_string()),
+    };
+
+    let mut params_array = Vec::new();
+
+    // Convert params hashmap to array in the correct order
+    for param_name in &method_info.required_params {
+        if let Some(value) = params.get(*param_name) {
+            params_array.push(value.clone());
+        } else {
+            // For missing required params, push null
+            params_array.push(Value::Null);
+        }
+    }
+
     let client = get_dapi_client();
 
-    match client.request::<Value>(method.clone(), params, network).await {
+    match client.request::<Value>(method.clone(), params_array, network).await {
         Ok(result) => Ok(result),
         Err(e) => {
             tracing::error!("DAPI request failed for {}: {}", method, e);
@@ -107,7 +125,17 @@ pub async fn get_identity_balance(
     };
     let with_proof = with_proof.unwrap_or(false);
 
-    match client.get_identity_balance(identity_id, network, with_proof).await {
+    let method = if with_proof {
+        "get_identity_balance_with_proof_info".to_string()
+    } else {
+        "get_identity_balance".to_string()
+    };
+
+    let params = vec![
+        Value::String(identity_id),
+    ];
+
+    match client.request::<Value>(method, params, network).await {
         Ok(balances) => Ok(balances),
         Err(e) => {
             tracing::error!("Failed to get identity balance: {}", e);
@@ -202,7 +230,8 @@ pub async fn get_platform_status(
         Network::Testnet
     };
 
-    match client.get_status(network).await {
+    let params = vec![];
+    match client.request::<Value>("get_status".to_string(), params, network).await {
         Ok(status) => Ok(status),
         Err(e) => {
             tracing::error!("Failed to get platform status: {}", e);
@@ -231,10 +260,10 @@ pub async fn get_identities_balances(
         "get_identities_balances".to_string()
     };
 
-    let mut params = HashMap::new();
-    params.insert("ids".to_string(), Value::Array(
-        identity_ids.into_iter().map(Value::String).collect()
-    ));
+    let ids_array: Vec<Value> = identity_ids.into_iter().map(Value::String).collect();
+    let params = vec![
+        Value::Array(ids_array),
+    ];
 
     match client.request::<Value>(method, params, network).await {
         Ok(balances) => Ok(balances),
@@ -265,8 +294,9 @@ pub async fn get_data_contract_info(
         "data_contract_fetch".to_string()
     };
 
-    let mut params = HashMap::new();
-    params.insert("contractId".to_string(), Value::String(contract_id));
+    let params = vec![
+        Value::String(contract_id),
+    ];
 
     match client.request::<Value>(method, params, network).await {
         Ok(contracts) => Ok(contracts),
@@ -297,8 +327,9 @@ pub async fn get_token_contract_info(
         "get_token_contract_info".to_string()
     };
 
-    let mut params = HashMap::new();
-    params.insert("dataContractId".to_string(), Value::String(contract_id));
+    let params = vec![
+        Value::String(contract_id),
+    ];
 
     match client.request::<Value>(method, params, network).await {
         Ok(contracts) => Ok(contracts),
@@ -329,10 +360,10 @@ pub async fn get_token_statuses(
         "get_token_statuses".to_string()
     };
 
-    let mut params = HashMap::new();
-    params.insert("tokenIds".to_string(), Value::Array(
-        token_ids.into_iter().map(Value::String).collect()
-    ));
+    let token_ids_array: Vec<Value> = token_ids.into_iter().map(Value::String).collect();
+    let params = vec![
+        Value::Array(token_ids_array),
+    ];
 
     match client.request::<Value>(method, params, network).await {
         Ok(statuses) => Ok(statuses),
@@ -363,8 +394,9 @@ pub async fn get_total_supply(
         "get_token_total_supply".to_string()
     };
 
-    let mut params = HashMap::new();
-    params.insert("tokenId".to_string(), Value::String(token_id));
+    let params = vec![
+        Value::String(token_id),
+    ];
 
     match client.request::<Value>(method, params, network).await {
         Ok(supply) => Ok(supply),
@@ -394,7 +426,7 @@ pub async fn get_current_epoch(
         "get_current_epoch".to_string()
     };
 
-    let mut params = HashMap::new();
+    let params = vec![];
 
     match client.request::<Value>(method, params, network).await {
         Ok(epoch) => Ok(epoch),
@@ -424,7 +456,7 @@ pub async fn get_total_credits_in_platform(
         "get_total_credits_in_platform".to_string()
     };
 
-    let mut params = HashMap::new();
+    let params = vec![];
 
     match client.request::<Value>(method, params, network).await {
         Ok(credits) => Ok(credits),
@@ -437,9 +469,7 @@ pub async fn get_total_credits_in_platform(
 
 // Helper function to convert params from array to object format
 pub fn params_array_to_object(method: &str, params_array: Vec<Value>) -> Result<HashMap<String, Value>, String> {
-    use crate::dapi::client::DAPIClient;
-
-    let method_info = DAPIClient::get_method_info(method)
+    let method_info = MethodParamInfo::for_method(method)
         .map_err(|e| e.to_string())?;
 
     let mut params = HashMap::new();
