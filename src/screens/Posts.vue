@@ -48,7 +48,10 @@
                     <!-- Loading State -->
                     <div v-if="postsStore.isLoading && postsStore.posts.length === 0" class="flex flex-col items-center justify-center py-12">
                         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
-                        <p class="mt-4 text-slate-600 dark:text-slate-400">Loading posts from blockchain...</p>
+
+                        <p class="mt-4 text-slate-600 dark:text-slate-400">
+                            Loading posts from blockchain...
+                        </p>
                     </div>
 
                     <!-- Error State -->
@@ -57,8 +60,12 @@
                             <svg class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.998-.833-2.732 0L4.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
                             </svg>
-                            <p class="text-red-800 dark:text-red-300">{{ postsStore.error }}</p>
+
+                            <p class="text-red-800 dark:text-red-300">
+                                {{ postsStore.error }}
+                            </p>
                         </div>
+
                         <button
                             @click="loadPosts"
                             class="mt-4 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-medium hover:from-red-600 hover:to-red-700 transition-all duration-200"
@@ -76,10 +83,15 @@
                                 <svg class="h-16 w-16 mx-auto text-slate-400 dark:text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                                 </svg>
-                                <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">No Posts Yet</h3>
+
+                                <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                                    No Posts Yet
+                                </h3>
+
                                 <p class="text-slate-600 dark:text-slate-400 mb-6">
                                     Be the first to share something with the community!
                                 </p>
+
                                 <button
                                     @click="showComposeModal = true"
                                     class="px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-xl font-medium hover:from-cyan-600 hover:to-cyan-700 transition-all duration-200 shadow-lg hover:shadow-xl"
@@ -94,7 +106,7 @@
                                 <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl flex flex-col gap-4 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
                                     <div class="flex items-start gap-4">
                                         <div v-if="identityStore.identity" class="flex items-start gap-4 w-full">
-                                            <img :src="identityStore.avatar || 'https://ui-avatars.com/api/?name=You&background=8b5cf6&color=fff'" alt="Your Avatar" class="size-12 rounded-full ring-2 ring-slate-200 dark:ring-slate-700 shadow-md"/>
+                                            <img :src="identityStore.identity?.avatarUrl || 'https://ui-avatars.com/api/?name=You&background=8b5cf6&color=fff'" alt="Your Avatar" class="size-12 rounded-full ring-2 ring-slate-200 dark:ring-slate-700 shadow-md"/>
                                             <div class="flex-1">
                                                 <button
                                                     @click="showComposeModal = true"
@@ -137,7 +149,11 @@
                                 <svg class="h-16 w-16 mx-auto text-slate-400 dark:text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                                 </svg>
-                                <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">Remix Feature Coming Soon</h3>
+
+                                <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                                    Remix Feature Coming Soon
+                                </h3>
+
                                 <p class="text-slate-600 dark:text-slate-400">
                                     The remix feature is under development. Check back soon!
                                 </p>
@@ -170,7 +186,10 @@
             <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-2xl w-full border-2 border-slate-200 dark:border-slate-700">
                 <div class="p-6">
                     <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100">Create Post</h3>
+                        <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100">
+                            Create Post
+                        </h3>
+
                         <button
                             @click="showComposeModal = false"
                             class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 transition-colors"
@@ -183,10 +202,16 @@
 
                     <div class="space-y-6">
                         <div class="flex items-start gap-4">
-                            <img :src="identityStore.avatar || 'https://ui-avatars.com/api/?name=You&background=8b5cf6&color=fff'" alt="Your Avatar" class="size-12 rounded-full ring-2 ring-slate-200 dark:ring-slate-700"/>
+                            <img :src="identityStore?.identity?.avatarUrl || 'https://ui-avatars.com/api/?name=You&background=8b5cf6&color=fff'" alt="Your Avatar" class="size-12 rounded-full ring-2 ring-slate-200 dark:ring-slate-700"/>
+
                             <div class="flex-1">
-                                <p class="font-bold text-slate-900 dark:text-slate-100">{{ identityStore.username || 'You' }}</p>
-                                <p class="text-sm text-slate-500 dark:text-slate-400">Posting to the blockchain</p>
+                                <p class="font-bold text-slate-900 dark:text-slate-100">
+                                    {{ identityStore.username || 'You' }}
+                                </p>
+
+                                <p class="text-sm text-slate-500 dark:text-slate-400">
+                                    Posting to the blockchain
+                                </p>
                             </div>
                         </div>
 
@@ -205,7 +230,10 @@
                                     <span>Contains sensitive content</span>
                                 </label>
                             </div>
-                            <div>{{ remainingCharacters }}/500</div>
+
+                            <div>
+                                {{ remainingCharacters }}/500
+                            </div>
                         </div>
 
                         <div class="flex items-center gap-6 pt-4 border-t-2 border-slate-200 dark:border-slate-700">
@@ -215,6 +243,7 @@
                             >
                                 Cancel
                             </button>
+
                             <button
                                 @click="createPost"
                                 :disabled="!canPost || postsStore.isLoading"

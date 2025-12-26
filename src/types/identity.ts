@@ -37,6 +37,11 @@ export interface IIdentity {
     id?: string;
     identity_idx: number;
     publicKeys: IPublicKey[];
+    avatarUrl?: string;
+    avatarHash?: string;
+    avatarFingerprint?: string;
+    displayName?: string;
+    publicMessage?: string;
 }
 
 export interface IIdentityData {
