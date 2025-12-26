@@ -957,6 +957,7 @@ name = "evonext"
 version = "25.12.4"
 dependencies = [
  "chrono",
+ "lazy_static",
  "lru_time_cache",
  "reqwest",
  "serde",

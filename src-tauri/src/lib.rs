@@ -1,6 +1,7 @@
 // src-tauri/src/lib.rs
 
 mod commands;
+mod dapi;
 mod models;
 mod menu;
 mod constants;
@@ -34,6 +35,16 @@ pub fn run() {
             commands::identity_details_commands::update_identity_with_sdk_data,
             commands::identity_details_commands::get_identity_public_keys,
             commands::identity_details_commands::delete_identity_public_keys,
+            // Add DAPI commands
+            commands::dapi_commands::dapi_request,
+            commands::dapi_commands::dapi_request_array,
+            commands::dapi_commands::get_posts,
+            commands::dapi_commands::get_identity_info,
+            commands::dapi_commands::get_identity_balance,
+            commands::dapi_commands::get_token_balances,
+            commands::dapi_commands::resolve_dpns_name,
+            commands::dapi_commands::get_dpns_username,
+            commands::dapi_commands::get_platform_status,
         ])
         .setup(|app| {
             menu::setup_menus(app)?;

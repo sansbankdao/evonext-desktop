@@ -23,11 +23,12 @@ tauri-plugin-store = { version = "2.4.0" }
 tauri-plugin-updater = { version = "2.4.0" }
 
 # New Dependencies for DAPI Integration
-reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
-tokio = { version = "1.47", features = ["full"] }
+lazy_static = "1.4"
 lru_time_cache = "0.11"
-tower = { version = "0.4", features = ["limit", "load-shed", "util"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 thiserror = "1.0"
+tokio = { version = "1.47", features = ["full"] }
+tower = { version = "0.4", features = ["limit", "load-shed", "util"] }
 tracing = "0.1"
 
 [features]
