@@ -959,6 +959,7 @@ dependencies = [
  "chrono",
  "lazy_static",
  "lru_time_cache",
+ "regex",
  "reqwest",
  "serde",
  "serde_json",
