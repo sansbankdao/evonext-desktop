@@ -132,13 +132,16 @@ impl DAPIClient {
         params.push(key_request_type.map(Value::String).unwrap_or(Value::Null));
 
         if let Some(ids) = key_ids {
-            params.push(Value::Array(ids.into_iter().map(|id| Value::Number(id.into())).collect()));
+            let id_values: Vec<Value> = ids.into_iter()
+                .map(|id| Value::Number(id.into()))
+                .collect();
+            params.push(Value::Array(id_values));
         } else {
             params.push(Value::Null);
         }
 
-        params.push(limit.map(Value::Number).map(|n| n.into()).unwrap_or(Value::Null));
-        params.push(offset.map(Value::Number).map(|n| n.into()).unwrap_or(Value::Null));
+        params.push(limit.map(|l| Value::Number(l.into())).unwrap_or(Value::Null));
+        params.push(offset.map(|o| Value::Number(o.into())).unwrap_or(Value::Null));
 
         self.request(method, params, network).await
     }
@@ -234,7 +237,9 @@ impl DAPIClient {
 
         // Add purposes if provided
         if let Some(purposes_vec) = purposes {
-            let purposes_array: Vec<Value> = purposes_vec.into_iter().map(|p| Value::Number(p.into())).collect();
+            let purposes_array: Vec<Value> = purposes_vec.into_iter()
+                .map(|p| Value::Number(p.into()))
+                .collect();
             params.push(Value::Array(purposes_array));
         } else {
             params.push(Value::Null);

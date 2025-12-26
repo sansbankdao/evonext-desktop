@@ -1,6 +1,7 @@
 // src-tauri/src/dapi/client/methods/system.rs
 
 use serde_json::Value;
+use serde::Deserialize;
 use crate::dapi::types::{DAPIError, Network};
 use super::super::DAPIClient;
 
@@ -48,8 +49,8 @@ impl DAPIClient {
         let mut params = vec![];
 
         // Add optional parameters
-        params.push(start_epoch.map(Value::Number).map(|n| n.into()).unwrap_or(Value::Null));
-        params.push(count.map(Value::Number).map(|n| n.into()).unwrap_or(Value::Null));
+        params.push(start_epoch.map(|s| Value::Number(s.into())).unwrap_or(Value::Null));
+        params.push(count.map(|c| Value::Number(c.into())).unwrap_or(Value::Null));
         params.push(ascending.map(Value::Bool).unwrap_or(Value::Null));
 
         self.request(method, params, network).await
@@ -73,8 +74,8 @@ impl DAPIClient {
         let mut params = vec![];
 
         // Add optional parameters
-        params.push(start_epoch.map(Value::Number).map(|n| n.into()).unwrap_or(Value::Null));
-        params.push(count.map(Value::Number).map(|n| n.into()).unwrap_or(Value::Null));
+        params.push(start_epoch.map(|s| Value::Number(s.into())).unwrap_or(Value::Null));
+        params.push(count.map(|c| Value::Number(c.into())).unwrap_or(Value::Null));
         params.push(ascending.map(Value::Bool).unwrap_or(Value::Null));
 
         self.request(method, params, network).await
@@ -154,8 +155,8 @@ impl DAPIClient {
         let mut params = vec![];
 
         // Add optional parameters
-        params.push(end_time_ms.map(Value::Number).map(|n| n.into()).unwrap_or(Value::Null));
-        params.push(limit.map(Value::Number).map(|n| n.into()).unwrap_or(Value::Null));
+        params.push(end_time_ms.map(|e| Value::Number(e.into())).unwrap_or(Value::Null));
+        params.push(limit.map(|l| Value::Number(l.into())).unwrap_or(Value::Null));
 
         self.request(method, params, network).await
     }
@@ -231,7 +232,7 @@ impl DAPIClient {
 }
 
 /// Structured epoch information
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct EpochInfo {
     pub index: u64,
     pub start_height: u64,

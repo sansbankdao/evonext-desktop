@@ -1,5 +1,6 @@
 // src-tauri/src/dapi/client/base.rs
 
+use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use serde::{Deserialize, Serialize};
@@ -7,7 +8,7 @@ use serde_json::Value;
 use tracing::{info, error};
 
 use crate::constants::DAPI_WEB_API_ENDPOINT;
-use super::{validate_dapi_params, MethodParamInfo};
+use super::validation::{validate_dapi_params, MethodParamInfo};
 use super::cache::Cache;
 use crate::dapi::types::{DAPIError, DAPIRequest, DAPIResponse, Network};
 
@@ -30,25 +31,26 @@ impl DAPIClient {
     where
         T: for<'de> Deserialize<'de> + Serialize + Clone + Send + Sync + std::fmt::Debug,
     {
-        use std::collections::HashMap;
-
         // Convert array params to hashmap for validation
         let method_info = MethodParamInfo::for_method(&method)?;
         let mut params_map = HashMap::new();
 
-        for (i, value) in params.into_iter().enumerate() {
+        // Clone params for use in validation before they're consumed
+        let params_clone = params.clone();
+
+        for (i, value) in params_clone.into_iter().enumerate() {
             if i < method_info.required_params.len() {
                 params_map.insert(method_info.required_params[i].to_string(), value);
             }
         }
 
-        // Validate parameters
+        // Validate parameters using the hashmap
         validate_dapi_params(&method, &params_map)?;
 
         // Create request - params should be an array for DAPI
         let request = DAPIRequest {
             method: method.clone(),
-            params: Value::Array(params),
+            params: Value::Array(params), // Use the original params vector
             network: Some(network.as_str().to_string()),
         };
 
