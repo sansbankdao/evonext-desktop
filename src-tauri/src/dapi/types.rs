@@ -1,31 +1,11 @@
 // src-tauri/src/dapi/types.rs
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use serde_json::Value;
+use std::fmt::{Debug, Formatter};
+use thiserror::Error;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct DAPIRequest {
-    pub method: String,
-    #[serde(default)]
-    pub params: HashMap<String, serde_json::Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub network: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct DAPIResponse<T = serde_json::Value> {
-    pub success: bool,
-    pub method: String,
-    #[serde(default)]
-    pub params: Vec<serde_json::Value>,
-    pub network: String,
-    #[serde(default)]
-    pub result: Vec<T>,
-}
-
-#[derive(Debug, thiserror::Error)]
+#[derive(Error, Debug)]
 pub enum DAPIError {
     #[error("HTTP request failed: {0}")]
     RequestFailed(String),
@@ -42,11 +22,95 @@ pub enum DAPIError {
     #[error("Invalid parameter type for {0}: expected {1}, got {2}")]
     InvalidParameterType(String, String, String),
 
-    #[error("JSON serialization error: {0}")]
+    #[error("JSON serialization/deserialization error: {0}")]
     SerializationError(String),
 
     #[error("Network not specified")]
     NetworkNotSpecified,
+
+    #[error("Deserialization error: {0}")]
+    DeserializationError(String),
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DAPIRequest {
+    pub method: String,
+    #[serde(default)]
+    pub params: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub network: Option<String>,
+}
+
+impl Debug for DAPIRequest {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DAPIRequest")
+            .field("method", &self.method)
+            .field("network", &self.network)
+            .field("params_type", &self.params.to_string())
+            .finish()
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct DAPIResponse {
+    pub success: bool,
+    pub method: String,
+    #[serde(default)]
+    pub params: Vec<Value>,
+    pub network: String,
+    #[serde(default)]
+    pub result: Value,
+}
+
+impl Debug for DAPIResponse {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DAPIResponse")
+            .field("success", &self.success)
+            .field("method", &self.method)
+            .field("network", &self.network)
+            .field("result_type", &match &self.result {
+                Value::Null => "null".to_string(),
+                Value::Bool(_) => "bool".to_string(),
+                Value::Number(_) => "number".to_string(),
+                Value::String(_) => "string".to_string(),
+                Value::Array(arr) => format!("array[{}]", arr.len()),
+                Value::Object(_) => "object".to_string(),
+            })
+            .finish()
+    }
+}
+
+impl DAPIResponse {
+    pub fn into_result<T>(self) -> Result<Vec<T>, DAPIError>
+    where
+        T: for<'de> Deserialize<'de> + Debug,
+    {
+        if !self.success {
+            return Err(DAPIError::APIFailed(format!("DAPI request failed for method: {}", self.method)));
+        }
+
+        match self.result {
+            Value::Array(arr) => {
+                let mut items = Vec::with_capacity(arr.len());
+                for item in arr {
+                    let parsed: T = serde_json::from_value(item)
+                        .map_err(|e| DAPIError::DeserializationError(e.to_string()))?;
+                    items.push(parsed);
+                }
+                Ok(items)
+            }
+            Value::Object(_) => {
+                // Single object response
+                let parsed: T = serde_json::from_value(self.result)
+                    .map_err(|e| DAPIError::DeserializationError(e.to_string()))?;
+                Ok(vec![parsed])
+            }
+            Value::Null => Ok(Vec::new()),
+            _ => Ok(Vec::new()), // For non-array/non-object responses
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -161,5 +225,5 @@ pub struct TokenContractInfo {
     pub total_supply: u64,
     pub decimals: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<serde_json::Value>,
+    pub metadata: Option<Value>,
 }
