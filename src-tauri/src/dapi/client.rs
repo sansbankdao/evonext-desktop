@@ -1,6 +1,7 @@
 // src-tauri/src/dapi/client.rs
 
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use lru_time_cache::LruCache;
@@ -13,9 +14,9 @@ use crate::constants::DAPI_WEB_API_ENDPOINT;
 use super::types::{DAPIError, DAPIRequest, DAPIResponse, Network};
 
 #[derive(Debug, Clone)]
-struct MethodParamInfo {
-    required_params: Vec<&'static str>,
-    param_types: HashMap<&'static str, &'static str>,
+pub struct MethodParamInfo {
+    pub required_params: Vec<&'static str>,
+    pub param_types: HashMap<&'static str, &'static str>,
 }
 
 pub struct DAPIClient {
@@ -33,7 +34,7 @@ impl DAPIClient {
         }
     }
 
-    fn get_method_info(method: &str) -> Result<MethodParamInfo, DAPIError> {
+    pub fn get_method_info(method: &str) -> Result<MethodParamInfo, DAPIError> {
         let info = match method {
             // Documents
             "get_documents" | "get_documents_with_proof_info" => MethodParamInfo {
@@ -162,10 +163,10 @@ impl DAPIClient {
             _ => {
                 // For unknown methods, allow any params but log warning
                 warn!("Unknown DAPI method: {}, skipping validation", method);
-                return Ok(MethodParamInfo {
+                MethodParamInfo {
                     required_params: vec![],
                     param_types: HashMap::new(),
-                });
+                }
             }
         };
 
@@ -191,7 +192,7 @@ impl DAPIClient {
                             return Err(DAPIError::InvalidParameterType(
                                 param_name.clone(),
                                 "string".to_string(),
-                                param_value.to_string(),
+                                format!("{:?}", param_value),
                             ));
                         }
                     }
@@ -200,7 +201,7 @@ impl DAPIClient {
                             return Err(DAPIError::InvalidParameterType(
                                 param_name.clone(),
                                 "number".to_string(),
-                                param_value.to_string(),
+                                format!("{:?}", param_value),
                             ));
                         }
                     }
@@ -209,7 +210,7 @@ impl DAPIClient {
                             return Err(DAPIError::InvalidParameterType(
                                 param_name.clone(),
                                 "array".to_string(),
-                                param_value.to_string(),
+                                format!("{:?}", param_value),
                             ));
                         }
                     }
@@ -218,7 +219,7 @@ impl DAPIClient {
                             return Err(DAPIError::InvalidParameterType(
                                 param_name.clone(),
                                 "object".to_string(),
-                                param_value.to_string(),
+                                format!("{:?}", param_value),
                             ));
                         }
                     }
@@ -227,7 +228,7 @@ impl DAPIClient {
                             return Err(DAPIError::InvalidParameterType(
                                 param_name.clone(),
                                 "boolean".to_string(),
-                                param_value.to_string(),
+                                format!("{:?}", param_value),
                             ));
                         }
                     }
@@ -244,22 +245,28 @@ impl DAPIClient {
 
     pub async fn request<T>(&self, method: String, params: HashMap<String, Value>, network: Network) -> Result<Vec<T>, DAPIError>
     where
-        T: for<'de> Deserialize<'de> + Clone + Send + Sync,
+        T: for<'de> Deserialize<'de> + Serialize + Clone + Send + Sync + Debug,
     {
         // Validate parameters based on method
         Self::validate_params(&method, &params)?;
 
-        // Create request
+        // Create request - params should be an object
+        let params_value = Value::Object(
+            params.into_iter()
+                .map(|(k, v)| (k, v))
+                .collect()
+        );
+
         let request = DAPIRequest {
             method: method.clone(),
-            params,
+            params: params_value,
             network: Some(network.as_str().to_string()),
         };
 
-        // Generate cache key (simple hash of method + params)
-        let cache_key = format!("{}-{:?}", method, serde_json::to_string(&request.params).unwrap_or_default());
+        // Generate cache key
+        let cache_key = format!("{}-{}", method, request.params.to_string());
 
-        // Check cache first (5 minute TTL is default in LruCache)
+        // Check cache first
         if let Some(cached) = self.cache.lock().await.get(&cache_key) {
             if let Ok(result) = serde_json::from_value::<Vec<T>>(cached.clone()) {
                 info!("Cache hit for method: {}", method);
@@ -286,7 +293,7 @@ impl DAPIClient {
             return Err(DAPIError::RequestFailed(format!("HTTP {}: {}", status, error_text)));
         }
 
-        let api_response: DAPIResponse<T> = response
+        let api_response: DAPIResponse = response
             .json()
             .await
             .map_err(|e| {
@@ -299,8 +306,10 @@ impl DAPIClient {
             return Err(DAPIError::APIFailed(format!("DAPI method {} failed", method)));
         }
 
+        // Convert response to typed result
+        let result = api_response.into_result::<T>()?;
+
         // Cache the result
-        let result = api_response.result.clone();
         let cache_value = serde_json::to_value(&result)
             .map_err(|e| DAPIError::SerializationError(e.to_string()))?;
 
@@ -310,7 +319,6 @@ impl DAPIClient {
         Ok(result)
     }
 
-    // Convenience methods for common operations
     pub async fn get_documents(
         &self,
         data_contract_id: String,
@@ -445,7 +453,6 @@ impl DAPIClient {
     }
 }
 
-// Global client instance
 lazy_static! {
     static ref DAPI_CLIENT: DAPIClient = DAPIClient::new(DAPI_WEB_API_ENDPOINT.to_string());
 }
