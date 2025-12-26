@@ -1,3 +1,5 @@
+# src-tauri/Cargo.toml
+
 [package]
 name = "evonext"
 version = "25.12.4"
@@ -19,8 +21,14 @@ tauri = { version = "2.4.0", features = ["tray-icon", "image-png"] }
 tauri-plugin-opener = { version = "2.4.0" }
 tauri-plugin-store = { version = "2.4.0" }
 tauri-plugin-updater = { version = "2.4.0" }
-# tauri-plugin-stronghold = { version = "2.3.0", features = ["full"] }
-# tokio = { version = "1.47.1", features = ["full"] } # Stronghold is async
+
+# New Dependencies for DAPI Integration
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+tokio = { version = "1.47", features = ["full"] }
+lru_time_cache = "0.11"
+tower = { version = "0.4", features = ["limit", "load-shed", "util"] }
+thiserror = "1.0"
+tracing = "0.1"
 
 [features]
 # This section is used for custom features. You can leave it as is.
