@@ -33,8 +33,8 @@ importers:
         specifier: 2.9.0
         version: 2.9.0
       dash-platform-sdk:
-        specifier: 1.3.0-dev.10
-        version: 1.3.0-dev.10(pshenmic-dpp@1.1.0-dev.7)
+        specifier: 1.3.0-dev.12
+        version: 1.3.0-dev.12(pshenmic-dpp@1.1.2-dev.4)
       monaco-editor:
         specifier: 0.55.1
         version: 0.55.1
@@ -42,8 +42,8 @@ importers:
         specifier: 3.0.3
         version: 3.0.3(typescript@5.6.3)(vue@3.5.22(typescript@5.6.3))
       pshenmic-dpp:
-        specifier: 1.1.0-dev.7
-        version: 1.1.0-dev.7
+        specifier: 1.1.2-dev.4
+        version: 1.1.2-dev.4
       qrcode.vue:
         specifier: 3.6.0
         version: 3.6.0(vue@3.5.22(typescript@5.6.3))
@@ -974,6 +974,12 @@ packages:
     peerDependencies:
       pshenmic-dpp: 1.1.0-dev.7
 
+  dash-platform-sdk@1.3.0-dev.12:
+    resolution: {integrity: sha512-Djes1CCWcG38QQQkXr9q0gavOTYSCZk+4LLK1PC6BfTKS4dyMo7PMbdpabeERC01F5TpI7KTH8YKVSpFNPwMrQ==}
+    engines: {node: '>=20.19.0 <=24'}
+    peerDependencies:
+      pshenmic-dpp: 1.1.2-dev.4
+
   data-urls@6.0.0:
     resolution: {integrity: sha512-BnBS08aLUM+DKamupXs3w2tJJoqU+AkaE/+6vQxi/G/DPmIZFJJp9Dkb1kM03AZx8ADehDUZgsNxju3mPXZYIA==}
     engines: {node: '>=20'}
@@ -1495,6 +1501,9 @@ packages:
 
   pshenmic-dpp@1.1.0-dev.7:
     resolution: {integrity: sha512-99Hdy48OE2T+dZjp2XscHS+59RA82fqpJub53APuONO51xHwFsP9tWWAd/0vB3TW3jwEJUnVjkgPrbyuOOhlKw==}
+
+  pshenmic-dpp@1.1.2-dev.4:
+    resolution: {integrity: sha512-4OdOiVyTA+orOmhXj9+/oht00odUW/GKoLMBRyC9HwtrPPnxtXlaQv1JdPkrgbp4Z6BVxJuBJK7qAKmk+8PKFw==}
 
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
@@ -2706,6 +2715,17 @@ snapshots:
       cbor-x: 1.6.0
       pshenmic-dpp: 1.1.0-dev.7
 
+  dash-platform-sdk@1.3.0-dev.12(pshenmic-dpp@1.1.2-dev.4):
+    dependencies:
+      '@bufbuild/protobuf': 2.10.1
+      '@protobuf-ts/grpcweb-transport': 2.11.1
+      '@scure/base': 1.2.6
+      '@scure/bip32': 2.0.1
+      '@scure/bip39': 2.0.1
+      '@scure/btc-signer': 2.0.1
+      cbor-x: 1.6.0
+      pshenmic-dpp: 1.1.2-dev.4
+
   data-urls@6.0.0:
     dependencies:
       whatwg-mimetype: 4.0.0
@@ -3208,6 +3228,10 @@ snapshots:
   proto-list@1.2.4: {}
 
   pshenmic-dpp@1.1.0-dev.7:
+    dependencies:
+      fflate: 0.8.2
+
+  pshenmic-dpp@1.1.2-dev.4:
     dependencies:
       fflate: 0.8.2
 

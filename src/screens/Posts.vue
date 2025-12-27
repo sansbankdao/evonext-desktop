@@ -7,9 +7,20 @@
                 <div class="flex flex-col gap-8">
                     <!-- Page Header -->
                     <div class="space-y-2">
-                        <p class="text-xl text-slate-600 dark:text-slate-400">
-                            Discover the latest updates or share your own take on the conversation.
-                        </p>
+                        <div class="flex items-center justify-between">
+                            <p class="text-xl text-slate-600 dark:text-slate-400">
+                                Discover the latest updates or share your own take on the conversation.
+                            </p>
+                            <div class="flex items-center gap-2">
+                                <div class="px-3 py-1 bg-slate-200 dark:bg-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300">
+                                    {{ currentNetwork.toUpperCase() }}
+                                </div>
+                                <div v-if="identityStore.isAuthenticated && identityStore.username"
+                                     class="px-3 py-1 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-lg text-sm font-medium">
+                                    @{{ identityStore.username }}
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Tab Navigation -->
@@ -18,7 +29,7 @@
                             <nav class="-mb-px flex space-x-1 p-2" aria-label="Tabs">
                                 <!-- Active Tab -->
                                 <button
-                                    @click="activeTab = 'posts'"
+                                    @click="setTab('posts')"
                                     :class="[
                                         'flex-1 py-3 px-4 rounded-xl font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 focus:ring-4 focus:ring-cyan-400/30 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900',
                                         activeTab === 'posts'
@@ -31,7 +42,7 @@
 
                                 <!-- Remix Tab -->
                                 <button
-                                    @click="activeTab = 'remix'"
+                                    @click="setTab('remix')"
                                     :class="[
                                         'flex-1 py-3 px-4 rounded-xl font-medium transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 focus:ring-4 focus:ring-cyan-400/30 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900',
                                         activeTab === 'remix'
@@ -46,28 +57,25 @@
                     </div>
 
                     <!-- Loading State -->
-                    <div v-if="postsStore.isLoading && postsStore.posts.length === 0" class="flex flex-col items-center justify-center py-12">
+                    <div v-if="isLoading && posts.length === 0" class="flex flex-col items-center justify-center py-12">
                         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
-
                         <p class="mt-4 text-slate-600 dark:text-slate-400">
-                            Loading posts from blockchain...
+                            Loading posts from {{ currentNetwork.toUpperCase() }} blockchain...
                         </p>
                     </div>
 
                     <!-- Error State -->
-                    <div v-else-if="postsStore.error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6">
+                    <div v-else-if="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6">
                         <div class="flex items-center gap-3">
                             <svg class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.998-.833-2.732 0L4.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
                             </svg>
-
                             <p class="text-red-800 dark:text-red-300">
-                                {{ postsStore.error }}
+                                {{ error }}
                             </p>
                         </div>
-
                         <button
-                            @click="loadPosts"
+                            @click="retryFetch"
                             class="mt-4 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-medium hover:from-red-600 hover:to-red-700 transition-all duration-200"
                         >
                             Retry
@@ -75,28 +83,29 @@
                     </div>
 
                     <!-- Tab Content Area -->
-                    <div v-if="!postsStore.isLoading || postsStore.posts.length > 0">
+                    <div v-if="!isLoading || posts.length > 0">
                         <!-- TAB CONTENT: POSTS -->
                         <div v-if="activeTab === 'posts'" class="flex flex-col gap-6">
                             <!-- No Posts State -->
-                            <div v-if="postsStore.posts.length === 0 && !postsStore.isLoading" class="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-12 text-center">
+                            <div v-if="posts.length === 0 && !isLoading" class="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-12 text-center">
                                 <svg class="h-16 w-16 mx-auto text-slate-400 dark:text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                                 </svg>
-
                                 <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">
                                     No Posts Yet
                                 </h3>
-
                                 <p class="text-slate-600 dark:text-slate-400 mb-6">
-                                    Be the first to share something with the community!
+                                    Be the first to share something with the {{ currentNetwork.toUpperCase() }} community!
                                 </p>
-
                                 <button
                                     @click="showComposeModal = true"
-                                    class="px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-xl font-medium hover:from-cyan-600 hover:to-cyan-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                                    :disabled="!isAuthenticated"
+                                    :class="[
+                                        'px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl',
+                                        !isAuthenticated ? 'opacity-50 cursor-not-allowed' : 'hover:from-cyan-600 hover:to-cyan-700'
+                                    ]"
                                 >
-                                    Create Your First Post
+                                    {{ isAuthenticated ? 'Create Your First Post' : 'Connect Wallet to Post' }}
                                 </button>
                             </div>
 
@@ -105,8 +114,12 @@
                                 <!-- Create Post Card -->
                                 <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl flex flex-col gap-4 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
                                     <div class="flex items-start gap-4">
-                                        <div v-if="identityStore.identity" class="flex items-start gap-4 w-full">
-                                            <img :src="identityStore.identity?.avatarUrl || 'https://ui-avatars.com/api/?name=You&background=8b5cf6&color=fff'" alt="Your Avatar" class="size-12 rounded-full ring-2 ring-slate-200 dark:ring-slate-700 shadow-md"/>
+                                        <div v-if="isAuthenticated && identityStore.identity" class="flex items-start gap-4 w-full">
+                                            <img
+                                                :src="identityStore.identity?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(identityStore.username || 'You')}&background=8b5cf6&color=fff`"
+                                                alt="Your Avatar"
+                                                class="size-12 rounded-full ring-2 ring-slate-200 dark:ring-slate-700 shadow-md"
+                                            />
                                             <div class="flex-1">
                                                 <button
                                                     @click="showComposeModal = true"
@@ -121,7 +134,7 @@
                                                 Connect your wallet to create posts
                                             </p>
                                             <button
-                                                @click="$router.push('/connect')"
+                                                @click="router.push('/connect')"
                                                 class="mt-4 px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-xl font-medium hover:from-cyan-600 hover:to-cyan-700 transition-all duration-200"
                                             >
                                                 Connect Wallet
@@ -130,16 +143,69 @@
                                     </div>
                                 </div>
 
+                                <!-- Network Indicator & Filters -->
+                                <div class="flex items-center justify-between px-4">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-sm text-slate-500 dark:text-slate-400">
+                                            Showing posts from {{ currentNetwork.toUpperCase() }}
+                                        </span>
+                                        <span class="text-xs bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 px-2 py-1 rounded">
+                                            {{ posts.length }} {{ posts.length === 1 ? 'post' : 'posts' }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-4">
+                                        <label class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 cursor-pointer">
+                                            <input type="checkbox" v-model="showSensitive" class="rounded border-slate-300 dark:border-slate-600 text-cyan-600 focus:ring-cyan-500" />
+                                            <span>Show sensitive content</span>
+                                        </label>
+                                        <select v-model="languageFilter"
+                                                class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                                            <option value="">All Languages</option>
+                                            <option value="en">English</option>
+                                            <option value="es">Spanish</option>
+                                            <option value="fr">French</option>
+                                            <option value="de">German</option>
+                                            <option value="zh">Chinese</option>
+                                            <option value="ja">Japanese</option>
+                                            <option value="ko">Korean</option>
+                                            <option value="ru">Russian</option>
+                                            <option value="ar">Arabic</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Search Bar -->
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    </div>
+                                    <input
+                                        v-model="searchQuery"
+                                        type="text"
+                                        placeholder="Search posts..."
+                                        class="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                                    />
+                                </div>
+
                                 <!-- Post Items -->
-                                <PostItem
-                                    v-for="post in postsStore.sortedPosts"
-                                    :key="post.id || post.ownerId + '-' + post.createdAt.getTime()"
-                                    :post="post"
-                                    @like="handleLike"
-                                    @repost="handleRepost"
-                                    @bookmark="handleBookmark"
-                                    @share="handleShare"
-                                />
+                                <div v-if="filteredPostsData.length === 0 && searchQuery" class="text-center py-8">
+                                    <p class="text-slate-500 dark:text-slate-400">
+                                        No posts found for "{{ searchQuery }}"
+                                    </p>
+                                </div>
+                                <div v-else class="space-y-4">
+                                    <PostItem
+                                        v-for="post in filteredPostsData"
+                                        :key="post.id || post.ownerId + '-' + post.createdAt.getTime()"
+                                        :post="post"
+                                        @like="handleLike"
+                                        @repost="handleRepost"
+                                        @bookmark="handleBookmark"
+                                        @share="handleShare"
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -149,11 +215,9 @@
                                 <svg class="h-16 w-16 mx-auto text-slate-400 dark:text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                                 </svg>
-
                                 <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">
                                     Remix Feature Coming Soon
                                 </h3>
-
                                 <p class="text-slate-600 dark:text-slate-400">
                                     The remix feature is under development. Check back soon!
                                 </p>
@@ -162,20 +226,23 @@
                     </div>
 
                     <!-- Load More Button -->
-                    <div v-if="postsStore.hasNextPage" class="text-center">
+                    <div v-if="hasMorePosts && activeTab === 'posts'" class="text-center">
                         <button
-                            @click="loadMorePosts"
-                            :disabled="postsStore.isLoading"
+                            @click="loadMore"
+                            :disabled="isLoading"
                             :class="[
                                 'px-6 py-3 rounded-xl font-medium transition-all duration-200',
-                                postsStore.isLoading
+                                isLoading
                                     ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-500 cursor-not-allowed'
                                     : 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-white hover:from-cyan-600 hover:to-cyan-700 shadow-lg hover:shadow-xl'
                             ]"
                         >
-                            <span v-if="postsStore.isLoading">Loading...</span>
+                            <span v-if="isLoading">Loading...</span>
                             <span v-else>Load More Posts</span>
                         </button>
+                        <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                            Showing {{ filteredPostsData.length }} of {{ totalPosts }} posts
+                        </p>
                     </div>
                 </div>
             </div>
@@ -189,28 +256,34 @@
                         <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100">
                             Create Post
                         </h3>
-
-                        <button
-                            @click="showComposeModal = false"
-                            class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 transition-colors"
-                        >
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-1 bg-slate-200 dark:bg-slate-700 rounded text-xs font-medium text-slate-700 dark:text-slate-300">
+                                {{ currentNetwork.toUpperCase() }}
+                            </span>
+                            <button
+                                @click="showComposeModal = false"
+                                class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 transition-colors"
+                            >
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="space-y-6">
                         <div class="flex items-start gap-4">
-                            <img :src="identityStore?.identity?.avatarUrl || 'https://ui-avatars.com/api/?name=You&background=8b5cf6&color=fff'" alt="Your Avatar" class="size-12 rounded-full ring-2 ring-slate-200 dark:ring-slate-700"/>
-
+                            <img
+                                :src="identityStore.identity?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(identityStore.username || 'You')}&background=8b5cf6&color=fff`"
+                                alt="Your Avatar"
+                                class="size-12 rounded-full ring-2 ring-slate-200 dark:ring-slate-700"
+                            />
                             <div class="flex-1">
                                 <p class="font-bold text-slate-900 dark:text-slate-100">
                                     {{ identityStore.username || 'You' }}
                                 </p>
-
                                 <p class="text-sm text-slate-500 dark:text-slate-400">
-                                    Posting to the blockchain
+                                    Posting to {{ currentNetwork.toUpperCase() }} blockchain
                                 </p>
                             </div>
                         </div>
@@ -224,11 +297,23 @@
                         ></textarea>
 
                         <div class="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-4">
                                 <label class="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" v-model="isSensitive" class="rounded border-slate-300 dark:border-slate-600 text-cyan-600 focus:ring-cyan-500" />
                                     <span>Contains sensitive content</span>
                                 </label>
+                                <select v-model="postLanguage"
+                                        class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                                    <option value="en">English</option>
+                                    <option value="es">Spanish</option>
+                                    <option value="fr">French</option>
+                                    <option value="de">German</option>
+                                    <option value="zh">Chinese</option>
+                                    <option value="ja">Japanese</option>
+                                    <option value="ko">Korean</option>
+                                    <option value="ru">Russian</option>
+                                    <option value="ar">Arabic</option>
+                                </select>
                             </div>
 
                             <div>
@@ -236,7 +321,7 @@
                             </div>
                         </div>
 
-                        <div class="flex items-center gap-6 pt-4 border-t-2 border-slate-200 dark:border-slate-700">
+                        <div class="pt-4 border-t-2 border-slate-200 dark:border-slate-700 flex items-center gap-6">
                             <button
                                 @click="showComposeModal = false"
                                 class="px-6 py-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
@@ -245,17 +330,17 @@
                             </button>
 
                             <button
-                                @click="createPost"
-                                :disabled="!canPost || postsStore.isLoading"
+                                @click="createPostAction"
+                                :disabled="!canPost || isLoading"
                                 :class="[
                                     'px-6 py-3 rounded-xl font-medium transition-all duration-200 flex-1',
-                                    !canPost || postsStore.isLoading
+                                    !canPost || isLoading
                                         ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-500 cursor-not-allowed'
                                         : 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-white hover:from-cyan-600 hover:to-cyan-700 shadow-lg hover:shadow-xl'
                                 ]"
                             >
-                                <span v-if="postsStore.isLoading">Posting...</span>
-                                <span v-else>Post to Blockchain</span>
+                                <span v-if="isLoading">Posting...</span>
+                                <span v-else>Post to {{ currentNetwork.toUpperCase() }}</span>
                             </button>
                         </div>
                     </div>
@@ -266,30 +351,85 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import PostItem from '@/components/PostItem.vue'
-import { usePostsStore } from '@/stores/posts'
+import { usePosts } from '@/composables/usePosts'
 import { useIdentityStore } from '@/stores/identity'
+import { useSettingsStore } from '@/stores/settings'
+import type { IPost } from '@/types/posts'
 
-const activeTab = ref<'posts' | 'remix'>('posts')
+const router = useRouter()
+const identityStore = useIdentityStore()
+const settingsStore = useSettingsStore()
+
+// Use the new composable
+const postsComposable = usePosts()
+
+// Destructure with renamed methods to avoid conflicts
+const {
+    activeTab,
+    searchQuery,
+    languageFilter,
+    showSensitive,
+    isLoading,
+    error,
+    posts,
+    userPosts,
+    totalPosts,
+    hasMorePosts,
+    isAuthenticated,
+    currentNetwork,
+
+    fetchPosts,
+    fetchMorePosts,
+    createPost,
+    likePost,
+    bookmarkPost,
+    setTab,
+    clearFilters,
+    startAutoRefresh,
+    stopAutoRefresh,
+    getPostById
+} = postsComposable
+
+// Create computed property for filtered posts
+const filteredPostsData = computed(() => {
+    let filtered = posts.value
+
+    // Apply search filter
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        filtered = filtered.filter(post =>
+            post.content.toLowerCase().includes(query) ||
+            post.author.displayName?.toLowerCase().includes(query) ||
+            post.author.username?.toLowerCase().includes(query) ||
+            (post.hashtag && post.hashtag.toLowerCase().includes(query))
+        )
+    }
+
+    // Apply language filter
+    if (languageFilter.value) {
+        filtered = filtered.filter(post => post.language === languageFilter.value)
+    }
+
+    // Apply sensitive content filter
+    if (!showSensitive.value) {
+        filtered = filtered.filter(post => !post.isSensitive)
+    }
+
+    return filtered
+})
+
+// Local state for compose modal
 const showComposeModal = ref(false)
 const newPostContent = ref('')
 const isSensitive = ref(false)
-
-const postsStore = usePostsStore()
-const identityStore = useIdentityStore()
+const postLanguage = ref('en')
 
 const remainingCharacters = computed(() => 500 - newPostContent.value.length)
 const canPost = computed(() => newPostContent.value.trim().length > 0 && newPostContent.value.length <= 500)
-
-const loadPosts = async () => {
-    await postsStore.fetchPosts()
-}
-
-const loadMorePosts = async () => {
-    await postsStore.fetchMorePosts()
-}
 
 const handleContentInput = () => {
     if (newPostContent.value.length > 500) {
@@ -297,28 +437,38 @@ const handleContentInput = () => {
     }
 }
 
-const createPost = async () => {
+const retryFetch = () => {
+    fetchPosts()
+}
+
+const loadMore = () => {
+    fetchMorePosts()
+}
+
+const createPostAction = async () => {
     if (!canPost.value) return
 
-    const post = await postsStore.createNewPost(newPostContent.value.trim(), {
-        isSensitive: isSensitive.value,
-        language: 'en'
-    })
+    try {
+        const post = await createPost(newPostContent.value.trim(), {
+            isSensitive: isSensitive.value,
+            language: postLanguage.value
+        })
 
-    if (post) {
-        showComposeModal.value = false
-        newPostContent.value = ''
-        isSensitive.value = false
-        await loadPosts() // Refresh the posts list
+        if (post) {
+            showComposeModal.value = false
+            newPostContent.value = ''
+            isSensitive.value = false
+            // Refresh posts list
+            await fetchPosts()
+        }
+    } catch (err: any) {
+        console.error('Failed to create post:', err)
+        // Error is already handled in the composable
     }
 }
 
-const handleLike = async (postId: string, isLiked: boolean) => {
-    if (isLiked) {
-        await postsStore.unlikePostById(postId)
-    } else {
-        await postsStore.likePostById(postId)
-    }
+const handleLike = async (postId: string) => {
+    await likePost(postId)
 }
 
 const handleRepost = async (postId: string) => {
@@ -327,25 +477,62 @@ const handleRepost = async (postId: string) => {
     alert('Repost functionality coming soon!')
 }
 
-const handleBookmark = async (postId: string, isBookmarked: boolean) => {
-    if (isBookmarked) {
-        await postsStore.unbookmarkPostById(postId)
-    } else {
-        await postsStore.bookmarkPostById(postId)
-    }
+const handleBookmark = async (postId: string) => {
+    await bookmarkPost(postId)
 }
 
 const handleShare = (postId: string) => {
-    console.log('Sharing:', postId)
-    // TODO: Implement share functionality
-    navigator.clipboard.writeText(`https://app.evonext/posts/${postId}`)
-    alert('Post link copied to clipboard!')
+    const post = getPostById(postId)
+    const shareText = post
+        ? `Check out this post on EvoNext by ${post.author.displayName}: ${post.content.substring(0, 100)}...`
+        : 'Check out this post on EvoNext!'
+
+    if (navigator.share) {
+        navigator.share({
+            title: 'EvoNext Post',
+            text: shareText,
+            url: `https://app.evonext.app/posts/${postId}`
+        }).catch(console.error)
+    } else {
+        navigator.clipboard.writeText(`https://app.evonext.app/posts/${postId}`)
+            .then(() => alert('Post link copied to clipboard!'))
+            .catch(console.error)
+    }
 }
 
-onMounted(async () => {
-    await loadPosts()
-    if (identityStore.isAuthenticated) {
-        await postsStore.initializeLikedPosts(identityStore.identity?.id)
+// Watch for network changes to refresh posts
+watch(
+    () => settingsStore.network,
+    () => {
+        fetchPosts()
     }
+)
+
+// Watch for authentication changes
+watch(
+    () => identityStore.isAuthenticated,
+    (isAuth) => {
+        if (isAuth) {
+            // Re-fetch posts when user connects
+            fetchPosts()
+        }
+    }
+)
+
+onMounted(async () => {
+    // Start auto-refresh
+    startAutoRefresh()
+
+    // Initialize posts
+    await fetchPosts()
+})
+
+onUnmounted(() => {
+    // Clean up auto-refresh
+    stopAutoRefresh()
 })
 </script>
+
+<style scoped>
+/* Add any component-specific styles here */
+</style>
