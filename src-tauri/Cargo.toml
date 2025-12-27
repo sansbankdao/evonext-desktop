@@ -23,7 +23,7 @@ tauri-plugin-opener = { version = "2.4.0" }
 tauri-plugin-store = { version = "2.4.0" }
 tauri-plugin-updater = { version = "2.4.0" }
 tauri-plugin-dialog = { version = "2.4.0" }
-tauri-plugin-shell = { version = "2.4.0" } # tauri-plugin-shell = "2.3.3"
+tauri-plugin-shell = { version = "2.3.3" } # latest v2.3.3
 tauri-plugin-fs = { version = "2.4.0" }
 
 # New Dependencies for DAPI Integration
