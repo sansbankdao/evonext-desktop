@@ -1,52 +1,55 @@
 {
-    "$schema": "https://schema.tauri.app/config/2",
-    "productName": "EvoNext",
-    "version": "25.12.4",
-    "identifier": "app.evonext",
-    "build": {
-        "beforeBuildCommand": "pnpm build",
-        "beforeDevCommand": "pnpm dev",
-        "devUrl": "http://localhost:1420",
-        "frontendDist": "../dist"
-    },
-    "app": {
-        "windows": [
-            {
-                "title": "ΞvoNext",
-                "width": 1440,
-                "height": 720,
-                "fullscreen": false,
-                "resizable": true
-            }
-        ],
-        "security": {
-            "capabilities": [
-                "listen-capability",
-                "main-capability"
-            ],
-            "csp": null
-        }
-    },
-    "bundle": {
-        "active": true,
-        "targets": "all",
-        "icon": [
-            "icons/32x32.png",
-            "icons/128x128.png",
-            "icons/128x128@2x.png",
-            "icons/icon.icns",
-            "icons/icon.ico"
-        ],
-        "resources": ["icons/icon.png"],
-        "createUpdaterArtifacts": true
-    },
-    "plugins": {
-        "updater": {
-            "active": true,
-            "endpoints": [
-                "https://releases.evonext.app/{{target}}/{{arch}}/{{current_version}}"
-            ],
-            "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU3MjRDODk4MkNGMzE1RjgKUldUNEZmTXNtTWdrNTc4eHdJVzNIRkZERXZjaU8xaEVCb3pJSGhsVHpwbHZ4UW5KblJldUdPMy8K"
-        }
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "EvoNext",
+  "version": "25.12.4",
+  "identifier": "app.evonext",
+  "build": {
+    "beforeBuildCommand": "pnpm build",
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "ΞvoNext",
+        "width": 1440,
+        "height": 720,
+        "fullscreen": false,
+        "resizable": true,
+        "center": true,
+        "minWidth": 800,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "capabilities": [
+        "listen-capability",
+        "main-capability"
+      ],
+      "csp": "default-src 'self' blob: data: filesystem: ws: wss:; img-src 'self' blob: data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' https: blob: wss: ws:; font-src 'self' data:;"
     }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": ["icons/icon.png"],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://releases.evonext.app/{{target}}/{{arch}}/{{current_version}}"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU3MjRDODk4MkNGMzE1RjgKUldUNEZmTXNtTWdrNTc4eHdJVzNIRkZERXZjaU8xaEVCb3pJSGhsVHpwbHZ4UW5KblJldUdPMy8K"
+    }
+  }
 }
