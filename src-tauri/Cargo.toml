@@ -2,7 +2,7 @@
 
 [package]
 name = "evonext"
-version = "25.12.4"
+version = "25.12.25"
 description = "Free and Fearless — Discover safe spaces to Explore. Curate. Share YOUR Truth — secured by Dash Platform."
 authors = ["Sansbank DAO developers"]
 edition = "2021"
@@ -22,6 +22,9 @@ tauri-plugin-http = { version = "2.4.0" }
 tauri-plugin-opener = { version = "2.4.0" }
 tauri-plugin-store = { version = "2.4.0" }
 tauri-plugin-updater = { version = "2.4.0" }
+tauri-plugin-dialog = { version = "2.4.0" }
+tauri-plugin-shell = { version = "2.4.0" } # tauri-plugin-shell = "2.3.3"
+tauri-plugin-fs = { version = "2.4.0" }
 
 # New Dependencies for DAPI Integration
 lazy_static = "1.4"

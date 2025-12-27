@@ -10,10 +10,18 @@ mod utils;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // --- 1. Initialize Existing Plugins ---
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_http::init())
+
+        // --- 2. Initialize NEW Plugins (Fixes the build error) ---
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
+
+        // --- 3. Register Commands ---
         .invoke_handler(tauri::generate_handler![
             commands::asset_commands::load_assets,
             commands::asset_commands::save_assets,
@@ -36,7 +44,6 @@ pub fn run() {
             commands::identity_details_commands::update_identity_with_sdk_data,
             commands::identity_details_commands::get_identity_public_keys,
             commands::identity_details_commands::delete_identity_public_keys,
-            // Add DAPI commands
             commands::dapi_commands::dapi_request,
             commands::dapi_commands::dapi_request_array,
             commands::dapi_commands::get_posts,
