@@ -1,10 +1,11 @@
+// vite.config.ts
+
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
 
 const host = process.env.TAURI_DEV_HOST
 
-// https://vite.dev/config/
 export default defineConfig(async () => ({
     plugins: [vue()],
 
@@ -14,10 +15,20 @@ export default defineConfig(async () => ({
         },
     },
 
-    /* Prevent Vite from obscuring rust errors. */
+    /*
+     * CRITICAL FIX: Disable source maps.
+     * WebKit often crashes when requesting source maps via the custom Tauri protocol
+     * while DevTools is opening.
+     */
+    css: {
+        devSourcemap: false,
+    },
+    build: {
+        sourcemap: false,
+    },
+
     clearScreen: false,
 
-    // NOTE: Tauri expects a fixed port, fail if that port is not available.
     server: {
         port: 1420,
         strictPort: true,
@@ -30,7 +41,6 @@ export default defineConfig(async () => ({
             }
         : undefined,
         watch: {
-            // NOTE: Tell Vite to ignore watching `src-tauri`.
             ignored: ['**/src-tauri/**'],
         },
     },
