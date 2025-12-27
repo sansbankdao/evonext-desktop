@@ -4,6 +4,7 @@
   "description": "Capability for the main window",
   "windows": ["main"],
   "permissions": [
+    "core:default",
     "core:path:default",
     "core:event:default",
     "core:window:default",
@@ -14,6 +15,31 @@
     "core:window:allow-set-title",
 
     "updater:allow-check",
-    "updater:allow-download-and-install"
+    "updater:allow-download-and-install",
+
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "dialog:allow-message",
+    "dialog:default",
+
+    "shell:allow-open",
+
+    "fs:allow-read-file",
+    "fs:allow-write-file",
+    "fs:allow-read-dir",
+    "fs:allow-create-dir",
+    "fs:allow-remove-dir",
+    "fs:allow-remove-file",
+    "fs:allow-rename-file",
+    "fs:allow-exists",
+
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://dashqt.org/**" },
+        { "url": "https://platform-explorer.pshenmic.dev/**" },
+        { "url": "https://api.dashswap.org/**" }
+      ]
+    }
   ]
 }
