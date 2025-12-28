@@ -1,17 +1,21 @@
 // src-tauri/src/constants.rs
 
 #[allow(dead_code)]
-pub const ASSETS_FILE: &str = ".assets.json";
+pub const ASSETS_MAINNET_FILE: &str = ".assets-mainnet.json";
+#[allow(dead_code)]
+pub const ASSETS_TESTNET_FILE: &str = ".assets-testnet.json";
 #[allow(dead_code)]
 pub const LICENSE_FILE: &str = ".license.json";
 #[allow(dead_code)]
-pub const SAFU_FILE: &str = ".safu.json";
+pub const SAFU_MAINNET_FILE: &str = ".safu-mainnet.json";
+#[allow(dead_code)]
+pub const SAFU_TESTNET_FILE: &str = ".safu-testnet.json";
 #[allow(dead_code)]
 pub const SETTINGS_FILE: &str = ".settings.json";
 #[allow(dead_code)]
-pub const IDENTITY_FILE: &str = ".identity.json";
+pub const IDENTITY_MAINNET_FILE: &str = ".identity-mainnet.json";
 #[allow(dead_code)]
-pub const MNEMONIC_FILE: &str = ".mnemonic.json";
+pub const IDENTITY_TESTNET_FILE: &str = ".identity-testnet.json";
 
 #[allow(dead_code)]
 pub const MIN_CREDIT_TRANSFER: u64 = 100_000;
