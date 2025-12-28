@@ -27,7 +27,7 @@
         "listen-capability",
         "main-capability"
       ],
-      "csp": "default-src 'self' blob: data: filesystem: ws: wss:; img-src 'self' blob: data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' https: blob: wss: ws:; font-src 'self' data:;"
+      "csp": "default-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data: filesystem: ws: wss:; img-src 'self' blob: data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob:; worker-src 'self' blob: data:; connect-src 'self' https: blob: wss: ws: https://dashqt.org https://dash-testnet-dapi.com https://platform-explorer.pshenmic.dev https://api.dashswap.org; font-src 'self' data:;"
     }
   },
   "bundle": {

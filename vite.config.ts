@@ -17,8 +17,7 @@ export default defineConfig(async () => ({
 
     /*
      * CRITICAL FIX: Disable source maps.
-     * WebKit often crashes when requesting source maps via the custom Tauri protocol
-     * while DevTools is opening.
+     * Prevents WebKit Protocol Handler crashes during DevTools inspection.
      */
     css: {
         devSourcemap: false,
@@ -38,6 +37,7 @@ export default defineConfig(async () => ({
                 protocol: 'ws',
                 host,
                 port: 1421,
+                overlay: false // Disable overlay to prevent renderer lock-up on errors
             }
         : undefined,
         watch: {
