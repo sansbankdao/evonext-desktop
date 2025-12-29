@@ -45,6 +45,7 @@
                     :placeholder="(index + 1).toString()"
                     class="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 rounded-xl pt-10 pb-3 px-4 text-center text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-4 focus:ring-cyan-400/30 focus:border-cyan-500 focus:bg-white dark:focus:bg-slate-800 transition-all duration-200 font-mono text-sm tracking-wide shadow-sm hover:shadow-md hover:border-slate-300 dark:hover:border-slate-500 focus:outline-none"
                     :aria-label="`Seed word ${index + 1}`"
+                    @input="emitUpdate"
                 >
             </div>
         </div>
@@ -60,35 +61,41 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+
 interface Props {
     wordCount: '12' | '24'
     seedWords: string[]
 }
+
 interface Emits {
     (e: 'update:wordCount', count: '12' | '24'): void
     (e: 'update:seedWords', words: string[]): void
+    (e: 'paste', words: string[]): void
 }
+
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
 const wordCount = ref(props.wordCount)
 const seedWords = ref([...props.seedWords])
+
 // Watch word count changes and adjust array size
 watch(wordCount, (newCount) => {
     emit('update:wordCount', newCount)
     const count = parseInt(newCount, 10)
     if (seedWords.value.length > count) {
-        // Truncate if going to fewer words
         seedWords.value = seedWords.value.slice(0, count)
     } else if (seedWords.value.length < count) {
-        // Add empty slots if going to more words
         seedWords.value = [...seedWords.value, ...Array(count - seedWords.value.length).fill('')]
     }
     emit('update:seedWords', seedWords.value)
 })
+
 // Watch seed words changes
 watch(seedWords, (newWords) => {
     emit('update:seedWords', newWords)
 }, { deep: true })
+
 // Handle paste event
 const handlePaste = (event: ClipboardEvent) => {
     const pastedText = event.clipboardData?.getData('text') || ''
@@ -98,18 +105,24 @@ const handlePaste = (event: ClipboardEvent) => {
         .split(/\s+/)
         .map((w) => w.trim())
         .filter((w) => w.length > 0)
+
     const totalSlots = seedWords.value.length
+
+    // Clear all fields first
+    seedWords.value = Array(totalSlots).fill('')
+
     // Distribute words across slots
     for (let i = 0; i < Math.min(words.length, totalSlots); i++) {
         seedWords.value[i] = words[i]
     }
-    // Fill remaining slots with empty strings
-    for (let i = words.length; i < totalSlots; i++) {
-        if (seedWords.value[i] === undefined) {
-            seedWords.value[i] = ''
-        }
-    }
-    // Update the parent
+
+    // Emit the updated seed words to parent
+    emit('update:seedWords', seedWords.value)
+    // Emit paste event with words for parent
+    emit('paste', words)
+}
+
+const emitUpdate = () => {
     emit('update:seedWords', seedWords.value)
 }
 </script>
