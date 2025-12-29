@@ -14,6 +14,7 @@ import Apps from '../screens/Apps.vue'
 import Bootstrap from '../screens/Bootstrap.vue'
 import Community from '../screens/Community.vue'
 import Connect from '../screens/Connect.vue'
+import Disconnect from '../screens/Disconnect.vue'
 import Explorer from '../screens/Explorer.vue'
 import Favorites from '../screens/Favorites.vue'
 
@@ -66,7 +67,7 @@ const routes = [
             { path: 'wallet/asset/:ticker', component: WalletAssetDetails },
             { path: 'wallet/transaction/:id', component: WalletTransactionDetails },
             { path: 'connect', component: Connect },
-            { path: 'disconnect', component: Connect },
+            { path: 'disconnect', component: Disconnect },
         ]
     }
 ]

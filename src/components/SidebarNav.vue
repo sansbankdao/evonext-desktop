@@ -29,13 +29,12 @@
             </nav>
         </div>
 
-        <!-- Disconnect Identity -->
+        <!-- Disconnect / Connect Identity -->
         <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
-            <button @click="handleDisconnect" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300 transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-x-1 border border-red-200 dark:border-red-700 hover:border-red-400 dark:hover:border-red-500 group">
-                <ArrowLeftStartOnRectangleIcon class="size-5 transition-transform duration-200 group-hover:scale-110" />
-
+            <button @click="handleDisconnect" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-x-1 group border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600">
+                <component :is="isConnected ? ArrowLeftStartOnRectangleIcon : ArrowRightStartOnRectangleIcon" class="size-5 transition-transform duration-200 group-hover:scale-110" />
                 <span class="font-medium">
-                    Disconnect
+                    {{ isConnected ? 'Disconnect' : 'Connect' }}
                 </span>
             </button>
         </div>
@@ -43,31 +42,29 @@
 </template>
 
 <script setup lang="ts">
-/* Import modules. */
-// import { invoke } from '@tauri-apps/api/tauri'
 import { computed, ref } from 'vue'
-// import { invoke } from '@tauri-apps/api/core'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
+import { useIdentityStore } from '@/stores/identity'
 
 import {
     AdjustmentsHorizontalIcon,
     ArrowLeftStartOnRectangleIcon,
+    ArrowRightStartOnRectangleIcon,
     BookmarkSquareIcon,
     HashtagIcon,
     HomeIcon,
     MagnifyingGlassIcon,
-    // SparklesIcon,
     Squares2X2Icon,
     UserGroupIcon,
     UsersIcon,
     WalletIcon,
 } from '@heroicons/vue/24/solid'
 
-/* Initialize (navigation) router. */
+/* Initialize router and store. */
 const router = useRouter()
+const identityStore = useIdentityStore()
 
-// @ts-ignore
-const path = computed(() => useRoute().path)
+const isConnected = computed(() => !!identityStore.identity?.id)
 
 const navLinks = ref([
     {
@@ -117,21 +114,8 @@ const navLinks = ref([
     },
 ])
 
-const handleDisconnect = async () => {
-    console.log('Disconnecting...')
-    // Optional: Call a Rust command if you need backend logic
-    // await invoke('disconnect_user')
-    // Logic to clear user state, redirect to login, etc.
-
-    /* Return home. */
-    router.push('/connect')
+const handleDisconnect = () => {
+    const targetPath = isConnected.value ? '/disconnect' : '/connect'
+    router.push(targetPath)
 }
-
-// const greetMsg = ref('')
-// const name = ref('')
-
-// async function greet() {
-//     // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-//     greetMsg.value = await invoke('greet', { name: name.value })
-// }
 </script>
