@@ -1,6 +1,5 @@
 // src/types/explorer.ts
 
-// Define the TypeScript interfaces for our data
 export interface ITrendingPost {
     id: string;
     imageUrl: string;
@@ -16,4 +15,10 @@ export interface IFeaturedIdentity {
     displayName: string;
     username: string;
     avatarUrl: string;
+}
+
+export interface ITrend {
+    topic: string;
+    posts: number;
+    category?: string;
 }

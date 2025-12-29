@@ -1,5 +1,33 @@
 // src/types/posts.ts
 
+import type { IUser } from './identity'
+
+export interface IMedia {
+    type: 'image' | 'video' | 'gif';
+    url: string;
+    thumbnail?: string;
+    alt?: string;
+    width?: number;
+    height?: number;
+}
+
+export interface IComment {
+    author: IUser;
+    content: string;
+    createdAt: Date;
+    likes: number;
+    liked?: boolean;
+    postId: string;
+}
+
+export interface INotification {
+    type: 'like' | 'remix' | 'follow' | 'reply' | 'mention';
+    from: IUser;
+    post?: IPost;
+    createdAt: Date;
+    read: boolean;
+}
+
 export interface IPostDocument {
     id: string;
     ownerId: string;
@@ -29,31 +57,28 @@ export interface IPostDocument {
 export interface IPost {
     id: string;
     ownerId: string;
-    author: IPostAuthor;
+    author: IUser;
     content: string;
     createdAt: Date;
     updatedAt: Date;
     likes: number;
     remixes: number;
     replies: number;
+    views: number;
     bookmarks?: number;
     isSensitive: boolean;
     language: string;
     remix?: string;
     hashtag?: string;
+    media?: IMedia[];
     mediaUrls?: string[];
     mentionIds?: string[];
     replyToPostId?: string;
+    replyTo?: IPost;
+    quotedPost?: IPost;
     liked?: boolean;
+    remixed?: boolean;
     bookmarked?: boolean;
-}
-
-export interface IPostAuthor {
-    displayName: string;
-    username: string;
-    avatar: string;
-    bio?: string;
-    verified?: boolean;
 }
 
 export interface IPostStats {

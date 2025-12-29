@@ -7,12 +7,12 @@ export interface IAppSettings {
         messages: boolean;
         mentions: boolean;
         contact_requests: boolean;
-    }
+    };
     profile: {
         display_name: string;
         username: string;
         bio: string;
-    }
+    };
 }
 
 export interface IProfileSettings {

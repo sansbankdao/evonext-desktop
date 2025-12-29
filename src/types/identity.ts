@@ -1,24 +1,43 @@
 // src/types/identity.ts
 
+/* Import types. */
+// import { GasFeesPaidByWASM } from 'pshenmic-dpp'
+
 export interface IPublicKey {
     type: number;
     keyType: string;
     purpose: number;
     securityLevel: number;
-    contractBounds: any; // You might want to specify a proper typestring
+    contractBounds: any; // FIXME Specify a proper type.
     data: string;
     dataBytes: string | null;
     readOnly: boolean;
     disabledAt: string | null;
 }
 
+export interface IPrivateKey extends IPublicKey {
+    privateKeyHex: string;
+    privateKeyWif: string;
+}
+
+export interface IKeyTypes {
+    masterKey: IPrivateKey | IPublicKey;
+    authCritical: IPrivateKey | IPublicKey;
+    authHigh: IPrivateKey | IPublicKey;
+    transferKey: IPrivateKey | IPublicKey;
+    encryptionKey: IPrivateKey | IPublicKey;
+}
+
 export interface IUser {
-    docId?: string;
-    username: string;
+    docId?: string;         // Document that stores the user's profile
+    username: string;       // From DPNS - not stored in profile document
     displayName: string;
-    avatar: string;
-    avatarId?: string;
-    avatarData?: string;
+    name?: string;          // TBD (from IUser2)
+    identityId?: string;    // TBD (from IUser2)
+    address?: string;       // TBD (from IUser2)
+    avatar: string;         // URL for display
+    avatarId?: string;      // Reference to avatar document (32-byte array as string)
+    avatarData?: string;    // The encoded avatar string (16-128 chars)
     bio?: string;
     followers: number;
     following: number;
@@ -89,18 +108,25 @@ export interface ConnectionResult {
     error?: string;
 }
 
-export interface BalanceResult {
-    satoshis: bigint;
-    dash: bigint;
-    formatted: string;
-    raw: string;
-}
-
 export interface SDKIdentityDetails {
     identity: any; // Keep as any since it's from SDK
     identityIdx: number;
     publicKeys: any[]; // Keep as any since it's from SDK
     revision: number;
+}
+
+export interface IdentitySearchOptions {
+    minIndexSearch?: number;
+    queryRegistry?: boolean;
+    signatureScheme?: 'ecdsa' | 'bls' | 'hash160';
+}
+
+export interface IdentitySearchResult {
+    identities?: IIdentity[];
+    username?: string;
+    balance?: string;
+    publicKeys?: IIdentityPublicKey[];
+    error?: string;
 }
 
 export interface StorageKeys {
@@ -117,10 +143,4 @@ export interface KeyGenerationResult {
     authHigh: any;
     transferKey: any;
     encryptionKey: any;
-}
-
-export interface IdentitySearchResult {
-    username?: string;
-    balance?: string;
-    publicKeys?: IIdentityPublicKey[];
 }
