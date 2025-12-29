@@ -16,8 +16,9 @@ pub fn update_identity_with_sdk_data(
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "identity")?;
 
+    // Add explicit type annotation here
     let existing_data: Option<IdentityData> = manager
-        .load(filename, "identity")
+        .load::<IdentityData>(filename, "identity")
         .map_err(|e| e.to_string())?;
 
     match existing_data {
@@ -48,7 +49,8 @@ pub fn get_identity_public_keys(app_handle: AppHandle<Wry>, network: String) -> 
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "identity")?;
 
-    match manager.load(filename, "identity") {
+    // Add explicit type annotation here
+    match manager.load::<IdentityData>(filename, "identity") {
         Ok(Some(identity_data)) => {
             Ok(identity_data.public_keys)
         }
@@ -68,8 +70,9 @@ pub fn delete_identity_public_keys(app_handle: AppHandle<Wry>, network: String) 
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "identity")?;
 
+    // Add explicit type annotation here
     let existing_data: Option<IdentityData> = manager
-        .load(filename, "identity")
+        .load::<IdentityData>(filename, "identity")
         .map_err(|e| e.to_string())?;
 
     match existing_data {

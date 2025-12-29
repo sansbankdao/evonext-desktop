@@ -9,7 +9,7 @@ pub fn load_assets(app_handle: AppHandle<Wry>, network: String) -> Result<Option
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
 
-    match manager.load(filename, "assets") {
+    match manager.load::<IAssets>(filename, "assets") {
         Ok(data) => {
             if let Some(assets) = &data {
                 println!("Assets loaded successfully for {}: {:?}", network, assets);
@@ -30,7 +30,7 @@ pub fn save_assets(app_handle: AppHandle<Wry>, network: String, payload: IAssets
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
 
-    match manager.save(filename, "assets", &payload) {
+    match manager.save::<IAssets>(filename, "assets", &payload) {
         Ok(_) => {
             println!("Assets saved successfully for {}: {:?}", network, payload);
             Ok(())
