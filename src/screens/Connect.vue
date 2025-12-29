@@ -10,13 +10,16 @@
                         Securely access your identity using one of the methods below. Your data stays local.
                     </p>
                 </div>
+
                 <!-- Connection Method Tabs -->
                 <ConnectMethodTabs
-                    :connectionMethod="connectionMethod"
+                    :model-value="connectionMethod"
                     @update-connection-method="updateConnectionMethod"
                 />
+
                 <!-- Security Warning -->
                 <SecurityWarning />
+
                 <!-- Form Container -->
                 <form @submit.prevent="connect" class="space-y-6">
                     <!-- SEED PHRASE FORM -->
@@ -26,6 +29,7 @@
                         v-model:seedWords="seedWords"
                         @paste="handlePaste"
                     />
+
                     <!-- PRIVATE KEYS FORM -->
                     <ConnectPrivateKeyForm
                         v-if="connectionMethod === 'privateKey'"
@@ -38,11 +42,13 @@
                         @use-discovered-identity="useDiscoveredIdentity"
                         @use-manual-identity="useManualIdentity"
                     />
+
                     <!-- Error Message Display -->
                     <ConnectErrorDisplay
                         v-if="identityStore.connectionError"
                         :error="identityStore.connectionError"
                     />
+
                     <!-- Action Button -->
                     <div class="pt-6">
                         <button
@@ -74,8 +80,10 @@ import SecurityWarning from '@/components/connect/SecurityWarning.vue'
 import ConnectSeedForm from '@/components/connect/ConnectSeedForm.vue'
 import ConnectPrivateKeyForm from '@/components/connect/ConnectPrivateKeyForm.vue'
 import ConnectErrorDisplay from '@/components/connect/ConnectErrorDisplay.vue'
+
 const router = useRouter()
 const identityStore = useIdentityStore()
+
 // --- Component State ---
 const connectionMethod = ref<'seed' | 'privateKey'>('seed')
 const wordCount = ref<'12' | '24'>('12')
@@ -85,9 +93,11 @@ const transferKey = ref('')
 const encryptionKey = ref('')
 const discoveredIdentity = ref<any>(null)
 const manualIdentityId = ref('')
+
 const updateConnectionMethod = (method: 'seed' | 'privateKey') => {
     connectionMethod.value = method
 }
+
 const handlePaste = (words: string[]) => {
     const totalSlots = seedWords.length
     seedWords.length = 0
@@ -95,6 +105,7 @@ const handlePaste = (words: string[]) => {
         seedWords.push(words[i] || '')
     }
 }
+
 // Watch for changes in the word count and resize the seedWords array accordingly.
 watch(wordCount, (newCount) => {
     const count = parseInt(newCount, 10)
@@ -103,6 +114,7 @@ watch(wordCount, (newCount) => {
         seedWords.push('')
     }
 })
+
 const isFormValid = computed(() => {
     if (connectionMethod.value === 'seed') {
         return seedWords.every(word => word.trim() !== '')
@@ -115,10 +127,12 @@ const isFormValid = computed(() => {
         return hasKeys && hasIdentity
     }
 })
+
 const discoverIdentity = async () => {
     // Placeholder - implement actual discovery logic
     console.log('Discovering identity from keys...')
 }
+
 const useDiscoveredIdentity = () => {
     if (discoveredIdentity.value) {
         // Set the identity ID from discovered identity
@@ -126,20 +140,27 @@ const useDiscoveredIdentity = () => {
         console.log('Using discovered identity:', discoveredIdentity.value)
     }
 }
+
 const useManualIdentity = () => {
     if (manualIdentityId.value.trim()) {
         console.log('Using manual identity ID:', manualIdentityId.value)
     }
 }
+
 const connect = async () => {
     if (!isFormValid.value) return
+
     identityStore.clearConnectionError()
+
     const network = await getNetwork()
+
     if (network !== 'mainnet' && network !== 'testnet') {
         identityStore.connectionError = 'Invalid network configuration'
         return
     }
+
     let result
+
     try {
         if (connectionMethod.value === 'seed') {
             const seedPhrase = seedWords.join(' ')
@@ -148,12 +169,15 @@ const connect = async () => {
             const trimmedAuth = authKey.value.trim()
             const trimmedTransfer = transferKey.value.trim()
             const trimmedEncryption = encryptionKey.value.trim()
+
             // Use discovered identity if available, otherwise manual ID
             const identityId = discoveredIdentity.value?.identityId || manualIdentityId.value.trim()
+
             if (!identityId) {
                 identityStore.connectionError = 'Please enter an identity ID or discover one from your keys'
                 return
             }
+
             result = await identityStore.connectWithPrivateKeys(
                 identityId,
                 trimmedAuth,
@@ -162,6 +186,7 @@ const connect = async () => {
                 network
             )
         }
+
         if (result.success) {
             alert('Connection Successful! Navigating to home screen...')
             router.push('/')
