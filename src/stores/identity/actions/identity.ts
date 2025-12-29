@@ -1,4 +1,5 @@
 // src/stores/identity/actions/identity.ts
+
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { ErrorBoundary } from '@/utils/errors'
 import { log, getDapiEndpoint } from '@/utils/env'
@@ -13,8 +14,10 @@ export const identityActions = () => ({
         return ErrorBoundary.wrap(async () => {
             const state = this as IIdentityState
             log('info', 'Searching for user identities...')
+
             const identities = await getIdentities()
             log('info', 'Identities found:', identities)
+
             if (!identities || identities.length === 0) {
                 log('warn', 'No identities found for the provided credentials.')
                 return null
@@ -28,6 +31,7 @@ export const identityActions = () => ({
             // Create SDK instance ONCE to avoid WebAssembly memory issues
             const network = await getNetwork()
             console.log('[DEBUG] Network:', network)
+
             const sdk = new DashPlatformSDK({
                 network: network as 'testnet' | 'mainnet'
             })

@@ -1,4 +1,5 @@
 // src/stores/identity/actions/connection.ts
+
 // import { invoke } from '@tauri-apps/api/core'
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
@@ -12,13 +13,17 @@ export const connectionActions = () => ({
         return ErrorBoundary.wrap(async () => {
             const state = this as IIdentityState
             const network = await getNetwork()
+
             try {
                 await this.loadFromStorage()
+
                 const [mnemonicData, keysData] = await Promise.all([
                     StoreManager.load('mnemonic'),
                     StoreManager.load('private_keys')
                 ])
+
                 log('info', 'Loaded from storage - identity:', state.isAuthenticated, 'mnemonic:', !!mnemonicData, 'keys:', !!keysData)
+
                 if (state.isAuthenticated && (mnemonicData || keysData)) {
                     log('info', 'Found stored identity and credentials, verifying state...')
                     await this.searchUserIdentities(network)
@@ -52,6 +57,7 @@ export const connectionActions = () => ({
             const state = this as IIdentityState
             state.isConnecting = true
             state.connectionError = null
+
             try {
                 log('info', 'Attempting to connect with a mnemonic.')
                 const payload = { seed_phrase: seedPhrase }
@@ -91,6 +97,7 @@ export const connectionActions = () => ({
             const state = this as IIdentityState
             state.isConnecting = true
             state.connectionError = null
+
             try {
                 log('info', 'Attempting to connect with private keys.')
                 const payload = {
@@ -99,20 +106,26 @@ export const connectionActions = () => ({
                     transfer_key: transferKey.trim(),
                     encryption_key: encryptionKey.trim()
                 }
+
                 await StoreManager.save('private_keys', payload)
+
                 const resolvedIdentityId = identityId.trim()
                 state.username = resolvedIdentityId
                 state.isAuthenticated = true
                 const identity = await this.searchUserIdentities(network)
+
                 if (identity) {
                     state.identity = identity
                 }
                 log('info', 'Private keys connection successful. isAuthenticated:', state.isAuthenticated)
+
                 await this.saveToStorage()
+
                 return { success: true, identity: state.identity || undefined }
             } catch (err: any) {
                 log('error', 'Private keys connection failed:', err)
                 state.connectionError = typeof err === 'string' ? err : 'Failed to connect with private keys.'
+
                 return { success: false, error: state.connectionError }
             } finally {
                 state.isConnecting = false
@@ -128,12 +141,14 @@ export const connectionActions = () => ({
     async logout(this: any) {
         return ErrorBoundary.wrap(async () => {
             const state = this as IIdentityState
+
             try {
                 await this.clearStorage()
             } catch (err) {
                 log('error', 'Error clearing storage during logout:', err)
                 // Continue with state reset even if storage fails
             }
+
             // Reset all state
             state.username = null
             state.identity = null

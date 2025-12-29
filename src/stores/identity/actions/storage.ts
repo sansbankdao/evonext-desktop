@@ -1,4 +1,5 @@
 // src/stores/identity/actions/storage.ts
+
 import { StoreManager } from '@/utils/store'
 import { ErrorBoundary } from '@/utils/errors'
 import type {
@@ -7,14 +8,16 @@ import type {
     IIdentityPublicKey,
     IPublicKey
 } from '@/types'
+
 // Helper functions that should be defined in utils.ts
 function validateIdentityData(data: any): data is IIdentityData {
     return data &&
-           typeof data.username === 'string' &&
-           typeof data.identity_id === 'string' &&
-           typeof data.identity_idx === 'number' &&
-           (data.balance === null || typeof data.balance === 'string')
+        typeof data.username === 'string' &&
+        typeof data.identity_id === 'string' &&
+        typeof data.identity_idx === 'number' &&
+        (data.balance === null || typeof data.balance === 'string')
 }
+
 function createDefaultIdentityData(): IIdentityData {
     return {
         username: '',
@@ -28,6 +31,7 @@ function createDefaultIdentityData(): IIdentityData {
         public_key_ids: null
     }
 }
+
 // function transformPublicKeys(sdkKeys: any[]): IIdentityPublicKey[] {
 //     return sdkKeys.map((key: any) => ({
 //         id: key.id,
@@ -40,10 +44,12 @@ function createDefaultIdentityData(): IIdentityData {
 //         data_bytes: key.dataBytes || ''
 //     }))
 // }
+
 export const storageActions = () => ({
     async saveToStorage(this: any) {
         return ErrorBoundary.wrap(async () => {
             const state = this as IIdentityState
+
             // Add default id to identity if it doesn't exist
             const identityId = state.identity?.id ||
                               (state.identity?.publicKeys && state.identity.publicKeys.length > 0 ?
@@ -59,14 +65,17 @@ export const storageActions = () => ({
                 created_at: state.lastConnected,
                 public_key_ids: state.publicKeys.map((key: IIdentityPublicKey) => key.id || key.purpose || 0),
             }
+
             await StoreManager.save('identity', identityData)
             console.log('Identity data saved to storage')
         }, 'SAVE_IDENTITY_STORAGE_FAILED')
     },
+
     async loadFromStorage(this: any) {
         return ErrorBoundary.wrap(async () => {
             const state = this as IIdentityState
             const identityData = await StoreManager.load<IIdentityData>('identity')
+
             if (identityData && validateIdentityData(identityData)) {
                 console.log('Loaded identity data from storage:', identityData)
                 state.username = identityData.username || null
@@ -75,6 +84,7 @@ export const storageActions = () => ({
                 state.publicKeys = identityData.public_keys || []
                 state.revision = identityData.revision
                 state.lastConnected = identityData.created_at
+
                 // If we have identity data but no identity object, create a basic one
                 if (!state.identity && identityData.identity_id) {
                     state.identity = {
@@ -113,6 +123,7 @@ export const storageActions = () => ({
             }
         }, 'LOAD_IDENTITY_STORAGE_FAILED')
     },
+
     async clearStorage(this: any) {
         return ErrorBoundary.wrap(async () => {
             await StoreManager.remove('identity')
@@ -133,19 +144,24 @@ export const storageActions = () => ({
             state.lastConnected = null
         }, 'CLEAR_IDENTITY_STORAGE_FAILED')
     },
+
     async getIdentityFromStorage(): Promise<IIdentityData | null> {
         return ErrorBoundary.wrap(async () => {
             const identityData = await StoreManager.load<IIdentityData>('identity')
+
             if (identityData && validateIdentityData(identityData)) {
                 return identityData
             }
+
             return null
         }, 'GET_IDENTITY_FROM_STORAGE_FAILED')
     },
+
     async updateBalanceInStorage(this: any, newBalance: string) {
         return ErrorBoundary.wrap(async () => {
             const state = this as IIdentityState
             const identityData = await StoreManager.load<IIdentityData>('identity')
+
             if (identityData && validateIdentityData(identityData)) {
                 identityData.balance = newBalance
                 await StoreManager.save('identity', identityData)
