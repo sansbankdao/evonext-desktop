@@ -1,4 +1,4 @@
-<!-- src/screens/Connect.vue -->
+<!-- src/screens/Connect.vue (Updated with proper typing) -->
 <template>
     <main>
         <Header title="Connect to Platform" />
@@ -165,27 +165,27 @@
                                                 <div class="flex items-center gap-2 mb-1">
                                                     <span :class="[
                                                         'px-2 py-1 rounded text-xs font-medium',
-                                                        discoveredIdentity.publicKeys?.filter(k => k.purpose === 'AUTHENTICATION').length ?
+                                                        keyCounts.authenticationKeys > 0 ?
                                                         'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
                                                         'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
                                                     ]">
-                                                        Auth: {{ discoveredIdentity.publicKeys?.filter(k => k.purpose === 'AUTHENTICATION').length || 0 }}
+                                                        Auth: {{ keyCounts.authenticationKeys }}
                                                     </span>
                                                     <span :class="[
                                                         'px-2 py-1 rounded text-xs font-medium',
-                                                        discoveredIdentity.publicKeys?.filter(k => k.purpose === 'TRANSFER').length ?
+                                                        keyCounts.transferKeys > 0 ?
                                                         'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
                                                         'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
                                                     ]">
-                                                        Transfer: {{ discoveredIdentity.publicKeys?.filter(k => k.purpose === 'TRANSFER').length || 0 }}
+                                                        Transfer: {{ keyCounts.transferKeys }}
                                                     </span>
                                                     <span :class="[
                                                         'px-2 py-1 rounded text-xs font-medium',
-                                                        discoveredIdentity.publicKeys?.filter(k => k.purpose === 'ENCRYPTION').length ?
+                                                        keyCounts.encryptionKeys > 0 ?
                                                         'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
                                                         'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'
                                                     ]">
-                                                        Encryption: {{ discoveredIdentity.publicKeys?.filter(k => k.purpose === 'ENCRYPTION').length || 0 }}
+                                                        Encryption: {{ keyCounts.encryptionKeys }}
                                                     </span>
                                                 </div>
                                             </div>
@@ -281,13 +281,12 @@ import { ref, reactive, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import getNetwork from '@/libs/getNetwork'
 import { useIdentityStore } from '@/stores/identity'
-import { IdentityDiscoveryService } from '@/services/identityDiscovery.service'
+import { IdentityDiscoveryService, type DiscoveredIdentity } from '@/services/identityDiscovery.service'
 import Header from '@/components/Header.vue'
 import ConnectMethodTabs from '@/components/connect/ConnectMethodTabs.vue'
 import SecurityWarning from '@/components/connect/SecurityWarning.vue'
 import ConnectSeedForm from '@/components/connect/ConnectSeedForm.vue'
 import ConnectErrorDisplay from '@/components/connect/ConnectErrorDisplay.vue'
-
 const router = useRouter()
 const identityStore = useIdentityStore()
 
@@ -299,7 +298,7 @@ const seedWords = reactive<string[]>(Array(12).fill(''))
 // Single private key input
 const privateKey = ref('')
 const selectedKeyType = ref<'authentication' | 'transfer' | 'encryption' | 'unknown'>('unknown')
-const discoveredIdentity = ref<any>(null)
+const discoveredIdentity = ref<DiscoveredIdentity | null>(null)
 const manualIdentityId = ref('')
 const showManualIdentity = ref(false)
 const isDiscovering = ref(false)
@@ -310,6 +309,7 @@ const updateConnectionMethod = (method: 'seed' | 'privateKey') => {
     discoveredIdentity.value = null
     manualIdentityId.value = ''
     showManualIdentity.value = false
+    privateKey.value = ''
 }
 
 const handlePaste = (words: string[]) => {
@@ -343,6 +343,14 @@ const isFormValid = computed(() => {
     }
 })
 
+// Key counts computed property
+const keyCounts = computed(() => {
+    if (!discoveredIdentity.value?.publicKeys) {
+        return { authenticationKeys: 0, transferKeys: 0, encryptionKeys: 0 }
+    }
+    return IdentityDiscoveryService.extractKeyTypes(discoveredIdentity.value)
+})
+
 // Clear discovered identity when user changes the key
 const clearDiscoveredIdentity = () => {
     discoveredIdentity.value = null
@@ -364,14 +372,8 @@ const discoverIdentity = async () => {
             identityStore.connectionError = 'Invalid network configuration'
             return
         }
-
-        const result = await IdentityDiscoveryService.discoverIdentityWithDPNS(
-            selectedKeyType.value === 'authentication' ? privateKey.value : '',
-            selectedKeyType.value === 'transfer' ? privateKey.value : '',
-            selectedKeyType.value === 'encryption' ? privateKey.value : '',
-            network
-        )
-
+        // Use single key discovery
+        const result = await IdentityDiscoveryService.discoverIdentityFromSingleKey(privateKey.value, network)
         if (result.success && result.identity) {
             discoveredIdentity.value = result.identity
             manualIdentityId.value = result.identity.identityId
