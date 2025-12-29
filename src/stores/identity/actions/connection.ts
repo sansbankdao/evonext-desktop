@@ -3,9 +3,40 @@
 import { invoke } from '@tauri-apps/api/core'
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
-
 import type { IIdentityState } from '@/types'
 import type { ConnectionResult } from '@/types'
+
+interface Settings {
+    network: 'mainnet' | 'testnet'
+    [key: string]: any
+}
+
+interface MnemonicData {
+    seed_phrase: string
+}
+
+interface PrivateKeysData {
+    identity_id: string
+    auth_key: string
+    transfer_key: string
+    encryption_key: string
+}
+
+interface IdentityData {
+    identity_id: string
+    is_authenticated: boolean
+    [key: string]: any
+}
+
+interface IdentityLookupResponse {
+    success: boolean
+    identityId?: string
+    result?: {
+        identityId: string
+        [key: string]: any
+    }
+    [key: string]: any
+}
 
 export const connectionActions = () => ({
     async initFromStorage(this: any) {
@@ -13,35 +44,32 @@ export const connectionActions = () => ({
             const state = this as IIdentityState
 
             // Get current network from settings
-            const network = await invoke('load_settings').then(settings => settings?.network || 'mainnet')
+            const settings = await invoke<Settings>('load_settings')
+            const network = settings?.network || 'mainnet'
             log('info', 'Initializing from storage for network:', network)
-
             try {
                 // Load data using network-specific files
                 const [mnemonicData, keysData] = await Promise.all([
-                    invoke('load_mnemonic', { network }),
-                    invoke('load_private_keys', { network })
+                    invoke<MnemonicData | null>('load_mnemonic', { network }),
+                    invoke<PrivateKeysData | null>('load_private_keys', { network })
                 ])
                 log('info', 'Loaded from storage - mnemonic:', !!mnemonicData, 'keys:', !!keysData)
-
                 // Load identity data
-                const identityData = await invoke('load_identity_data', { network })
+                const identityData = await invoke<IdentityData | null>('load_identity_data', { network })
                 state.isAuthenticated = identityData?.is_authenticated || false
-
                 if (state.isAuthenticated && (mnemonicData || keysData)) {
                     log('info', 'Found stored identity and credentials, verifying state...')
                     await this.searchUserIdentities(network)
                 } else if (!state.isAuthenticated && (mnemonicData || keysData)) {
                     log('info', 'Found stored credentials but no authenticated identity, re-authenticating...')
                     if (mnemonicData) {
-                        await this.connectWithSeed((mnemonicData as any).seed_phrase, network)
+                        await this.connectWithSeed(mnemonicData.seed_phrase, network)
                     } else if (keysData) {
-                        const keys = keysData as any
                         await this.connectWithPrivateKeys(
-                            keys.identity_id,
-                            keys.auth_key,
-                            keys.transfer_key,
-                            keys.encryption_key,
+                            keysData.identity_id,
+                            keysData.auth_key,
+                            keysData.transfer_key,
+                            keysData.encryption_key,
                             network
                         )
                     }
@@ -52,6 +80,7 @@ export const connectionActions = () => ({
             }
         }, 'INIT_FROM_STORAGE_FAILED')
     },
+
     async connectWithSeed(
         this: any,
         seedPhrase: string,
@@ -61,7 +90,6 @@ export const connectionActions = () => ({
             const state = this as IIdentityState
             state.isConnecting = true
             state.connectionError = null
-
             try {
                 log('info', 'Attempting to connect with seed phrase on network:', network)
                 // Save mnemonic to network-specific file
@@ -69,11 +97,13 @@ export const connectionActions = () => ({
                     network,
                     payload: { seed_phrase: seedPhrase }
                 })
+
                 const identity = await this.searchUserIdentities(network)
                     .catch((err: Error) => {
                         log('error', 'Failed to search for identities:', err)
                         throw err
                     })
+
                 if (identity) {
                     state.isAuthenticated = true
                     log('info', 'Seed connection successful. isAuthenticated:', state.isAuthenticated)
@@ -92,6 +122,7 @@ export const connectionActions = () => ({
             }
         }, 'CONNECT_WITH_SEED_FAILED')
     },
+
     async connectWithPrivateKeys(
         this: any,
         identityId: string,
@@ -152,27 +183,44 @@ export const connectionActions = () => ({
             }
         }, 'CONNECT_WITH_PRIVATE_KEYS_FAILED')
     },
+
     async derivePublicKeyHash(this: any, privateKey: string): Promise<string | null> {
         // TODO: Implement private key to public key hash conversion
         // This would use @evonext/crypto or similar library
         return null
     },
-    async findIdentityByPublicKeyHash(this: any, publicKeyHash: string, network: string): Promise<string | null> {
+
+    async findIdentityByPublicKeyHash(
+        this: any,
+        publicKeyHash: string,
+        network: string
+    ): Promise<string | null> {
         try {
-            const result = await invoke('get_identity_by_public_key_hash', {
+            const result = await invoke<IdentityLookupResponse>('get_identity_by_public_key_hash', {
                 params: [publicKeyHash],
                 network
             })
+
             if (result?.success && result?.identityId) {
                 return result.identityId
             }
+
+            if (result?.success && result?.result?.identityId) {
+                return result.result.identityId
+            }
+
             // Try non-unique lookup as fallback
-            const result2 = await invoke('get_identity_by_non_unique_public_key_hash', {
+            const result2 = await invoke<IdentityLookupResponse>('get_identity_by_non_unique_public_key_hash', {
                 params: [publicKeyHash],
                 network
             })
+
             if (result2?.success && result2?.identityId) {
                 return result2.identityId
+            }
+
+            if (result2?.success && result2?.result?.identityId) {
+                return result2.result.identityId
             }
             return null
         } catch (error) {
@@ -180,16 +228,17 @@ export const connectionActions = () => ({
             return null
         }
     },
+
     login(this: any, username: string) {
         const state = this as IIdentityState
         state.username = username
         state.isAuthenticated = true
         this.saveToStorage()
     },
+
     async logout(this: any) {
         return ErrorBoundary.wrap(async () => {
             const state = this as IIdentityState
-
             try {
                 await this.clearStorage()
             } catch (err) {
@@ -209,11 +258,13 @@ export const connectionActions = () => ({
             log('info', 'User logged out successfully')
         }, 'LOGOUT_FAILED')
     },
+
     setPremiumAccess(this: any, hasAccess: boolean) {
         const state = this as IIdentityState
         state.premiumAccess = hasAccess
         this.saveToStorage()
     },
+
     clearConnectionError(this: any) {
         const state = this as IIdentityState
         state.connectionError = null
