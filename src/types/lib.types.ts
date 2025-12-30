@@ -23,6 +23,24 @@ export interface DerivationResult {
     publicKey: Uint8Array;
 }
 
+export interface DerivationDebugInfo {
+    error?: string;
+    input?: string;
+    reason?: string;
+    hash?: string;
+    format?: KeyType;
+    description?: string;
+    step?: string;
+    [key: string]: any;
+}
+
+export interface KeyHashDerivationResult {
+    success?: boolean;
+    hashes: string[];
+    keyType: KeyType | string;
+    debug?: DerivationDebugInfo;
+}
+
 // Fix for getPrivateKeys.ts
 export type PrivateKeys = {
     masterKey: PrivateKeyWASMInstance;

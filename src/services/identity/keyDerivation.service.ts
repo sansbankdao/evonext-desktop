@@ -114,7 +114,7 @@ export class KeyDerivationService {
 
             switch (keyFormat.format) {
                 case 'WIF':
-                    return await this.deriveFromWIF(cleanKey, network)
+                    return await this.deriveFromWIF(cleanKey)
 
                 case 'HEX_PRIVATE':
                     return await this.deriveFromHexPrivateKey(cleanKey, network)
@@ -132,7 +132,7 @@ export class KeyDerivationService {
                         debug: {
                             error: 'Unsupported key format',
                             input: cleanKey.substring(0, 20) + '...',
-                            description: keyFormat.description
+                            // description: keyFormat.description
                         }
                     }
             }
@@ -144,7 +144,7 @@ export class KeyDerivationService {
                 keyType: 'UNKNOWN',
                 debug: {
                     error: error.message,
-                    stack: error.stack
+                    // stack: error.stack
                 }
             }
         }
@@ -153,18 +153,12 @@ export class KeyDerivationService {
     /**
      * Derive from WIF private key
      */
-    private static async deriveFromWIF(
-        wif: string,
-        network: 'mainnet' | 'testnet'
-    ): Promise<DerivationResult> {
+    private static async deriveFromWIF(wif: string): Promise<DerivationResult> {
         try {
             console.log('[KeyDerivation] Parsing WIF:', wif.substring(0, 16) + '...')
 
-            // Import necessary crypto functions
-            const { publicKeyToPublicKeyHash } = await import('@dashevo/wallet-lib/src/utils/crypto')
-
             // Create private key instance
-            const privateKey = PrivateKeyWASM.fromWIF(wif, network)
+            const privateKey = PrivateKeyWASM.fromWIF(wif)
 
             // Get public key
             const publicKey = privateKey.getPublicKey()
@@ -180,7 +174,7 @@ export class KeyDerivationService {
                 keyType: 'WIF',
                 debug: {
                     input: wif.substring(0, 16) + '...',
-                    hash: publicKeyHash
+                    // hash: publicKeyHash
                 }
             }
 
@@ -230,7 +224,7 @@ export class KeyDerivationService {
                 keyType: 'HEX_PRIVATE',
                 debug: {
                     input: '0x' + normalizedHex.substring(0, 16) + '...',
-                    hash: publicKeyHash
+                    // hash: publicKeyHash
                 }
             }
 
@@ -283,7 +277,7 @@ export class KeyDerivationService {
                 keyType,
                 debug: {
                     input: normalizedKey.substring(0, 16) + '...',
-                    hash: publicKeyHash
+                    // hash: publicKeyHash
                 }
             }
 
