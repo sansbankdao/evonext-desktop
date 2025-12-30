@@ -3,7 +3,7 @@
 import { defineStore } from 'pinia'
 import { ref, reactive, computed } from 'vue'
 import type { DiscoveredIdentity } from '@/services/identity/types'
-// import type { ConnectionMethod } from './types/connect.types'
+
 type ConnectionMethod = 'seed' | 'privateKey'
 
 export const useConnectStore = defineStore('connect', () => {
