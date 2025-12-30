@@ -64,11 +64,11 @@ export interface AssociatedKey {
 }
 
 export interface DiscoveryResult {
-    success: boolean;
-    identities?: DiscoveredIdentity[];
-    identity?: DiscoveredIdentity;
-    detectedKeyType?: string;
-    associatedKeys?: AssociatedKey[]; // FIXED: This is the correct type
-    error?: string;
-    debug?: any;
+    success: boolean
+    identities?: DiscoveredIdentity[] | null // Changed from optional to potentially null
+    identity?: DiscoveredIdentity | null // Changed from optional to potentially null
+    detectedKeyType?: string | null // Using null instead of undefined
+    associatedKeys?: AssociatedKey[] | null
+    error?: string
+    debug?: any
 }
