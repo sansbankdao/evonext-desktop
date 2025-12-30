@@ -2,7 +2,7 @@
 
 import { invoke } from '@tauri-apps/api/core'
 import { log } from '@/utils/env'
-import type { DiscoveredIdentity, IdentityLookupResult } from '@/types/identity'
+import type { DiscoveredIdentity, IdentityLookupResult, IdentityDiscoveryDetails } from '@/types'
 import type { IdentityLookupResponse } from '@/types/lib.types'
 
 /**
@@ -21,7 +21,7 @@ export class IdentityDiscoveryService {
         try {
             log('info', `Looking up identity for public key hash: ${publicKeyHash} on ${network}`)
 
-            // FIXED: Pass network as top-level parameter, not inside params
+            // FIXED: Pass network as top-level parameter, not inside params array
             const result = await invoke<IdentityLookupResponse>('get_identity_by_public_key_hash', {
                 publicKeyHash,
                 network
@@ -257,6 +257,16 @@ export class IdentityDiscoveryService {
             description: 'Cannot determine key format. Please check input.',
             icon: 'QuestionMarkCircleIcon'
         }
+    }
+
+    public static getKeyDescription(keyType: string): string {
+        const info = this.detectKeyFormat(keyType)
+        return info.description
+    }
+
+    public static getKeyIcon(keyType: string): string {
+        const info = this.detectKeyFormat(keyType)
+        return info.icon
     }
 
     /**
