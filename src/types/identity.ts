@@ -165,3 +165,15 @@ export interface IdentityLookupResult {
     identity?: DiscoveredIdentity;
     error?: string;
 }
+
+export interface IdentityDiscoveryDetails {
+    detectedKeyType: string;
+    keyDescription: string;
+    keyIcon: string;
+    associatedKeys: Array<{
+        purpose: string;
+        securityLevel: string;
+        keyType: string;
+        derivedFromInput: boolean;
+    }>;
+}

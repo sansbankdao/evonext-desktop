@@ -2,12 +2,8 @@
 
 import { invoke } from '@tauri-apps/api/core'
 import { log } from '@/utils/env'
-
-import type {
-    DiscoveredIdentity,
-    IdentityLookupResult,
-    IdentityLookupResponse,
-} from '@/types'
+import type { DiscoveredIdentity, IdentityLookupResult } from '@/types/identity'
+import type { IdentityLookupResponse } from '@/types/lib.types'
 
 /**
  * Service for discovering Dash Platform identities from a single private key.
@@ -24,10 +20,13 @@ export class IdentityDiscoveryService {
     ): Promise<IdentityLookupResult> {
         try {
             log('info', `Looking up identity for public key hash: ${publicKeyHash} on ${network}`)
+
+            // FIXED: Pass network as top-level parameter, not inside params
             const result = await invoke<IdentityLookupResponse>('get_identity_by_public_key_hash', {
-                params: [publicKeyHash],
+                publicKeyHash,
                 network
             })
+
             if (result?.success && result?.result?.identityId) {
                 log('info', `Found identity via unique lookup: ${result.result.identityId}`)
                 return {
@@ -53,6 +52,7 @@ export class IdentityDiscoveryService {
             }
         }
     }
+
     /**
      * Get identity by non-unique public key hash
      * This method is used when there might be multiple identities associated with the same key
@@ -63,10 +63,13 @@ export class IdentityDiscoveryService {
     ): Promise<IdentityLookupResult> {
         try {
             log('info', `Looking up identity for non-unique public key hash: ${publicKeyHash} on ${network}`)
+
+            // FIXED: Pass network as top-level parameter
             const result = await invoke<IdentityLookupResponse>('get_identity_by_non_unique_public_key_hash', {
-                params: [publicKeyHash],
+                publicKeyHash,
                 network
             })
+
             if (result?.success && result?.result?.identityId) {
                 log('info', `Found identity via non-unique lookup: ${result.result.identityId}`)
                 return {
@@ -92,63 +95,170 @@ export class IdentityDiscoveryService {
             }
         }
     }
+
     /**
-     * Discover identity from a single private key (Authentication, Transfer, or Encryption)
-     * Will return the identity and ALL registered keys associated with it
+     * Discover identity from any key (WIF, HEX, or public key format)
+     * Automatically determines key type and returns the identity with all associated keys
      */
-    static async discoverIdentityFromSingleKey(
-        privateKey: string,
+    static async discoverIdentityFromAnyKey(
+        keyInput: string,
         network: 'mainnet' | 'testnet'
-    ): Promise<IdentityLookupResult> {
+    ): Promise<{
+        success: boolean
+        identity?: DiscoveredIdentity
+        detectedKeyType?: string
+        associatedKeys?: Array<{
+            purpose: string
+            securityLevel: string
+            keyType: string
+            derivedFromInput: boolean
+        }>
+        error?: string
+    }> {
         try {
-            if (!privateKey.trim()) {
+            if (!keyInput.trim()) {
                 return {
                     success: false,
-                    error: 'No private key provided'
+                    detectedKeyType: 'unknown',
+                    error: 'No key provided'
                 }
             }
-            log('info', `Discovering identity from private key on ${network}`)
-            // Derive public key hash from private key
-            const publicKeyHash = await this.derivePublicKeyHashFromPrivateKey(privateKey)
+
+            log('info', `Discovering identity from key input on ${network}`)
+
+            // Detect key format
+            const keyInfo = this.detectKeyFormat(keyInput)
+            log('info', `Detected key format: ${keyInfo.format}`)
+
+            // Derive public key hash
+            const publicKeyHash = await this.derivePublicKeyHashFromPrivateKey(keyInput)
             if (!publicKeyHash) {
                 return {
                     success: false,
-                    error: 'Failed to derive public key from private key. Please check key format.'
+                    detectedKeyType: keyInfo.format,
+                    error: 'Failed to derive public key from key. Please check key format.'
                 }
             }
+
             log('info', `Derived public key hash: ${publicKeyHash}`)
+
             // Try unique lookup first (exact match)
             const uniqueResult = await this.getIdentityByPublicKeyHash(publicKeyHash, network)
             if (uniqueResult.success && uniqueResult.identity) {
-                // Try to get DPNS username
+                // Get DPNS username
                 const dpnsUsername = await this.getDPNSUsername(uniqueResult.identity.identityId, network)
                 if (dpnsUsername) {
                     uniqueResult.identity.dpnsUsername = dpnsUsername
                 }
-                return uniqueResult
+
+                // Extract key details
+                const keyInfo = this.extractKeyInformation(uniqueResult.identity, publicKeyHash)
+
+                return {
+                    success: true,
+                    identity: uniqueResult.identity,
+                    detectedKeyType: keyInfo.type,
+                    associatedKeys: keyInfo.associatedKeys
+                }
             }
-            // Try non-unique lookup as fallback (search all identities)
+
+            // Try non-unique lookup as fallback
             const nonUniqueResult = await this.getIdentityByNonUniquePublicKeyHash(publicKeyHash, network)
             if (nonUniqueResult.success && nonUniqueResult.identity) {
-                // Try to get DPNS username
+                // Get DPNS username
                 const dpnsUsername = await this.getDPNSUsername(nonUniqueResult.identity.identityId, network)
                 if (dpnsUsername) {
                     nonUniqueResult.identity.dpnsUsername = dpnsUsername
                 }
-                return nonUniqueResult
+
+                // Extract key details
+                const keyInfo = this.extractKeyInformation(nonUniqueResult.identity, publicKeyHash)
+
+                return {
+                    success: true,
+                    identity: nonUniqueResult.identity,
+                    detectedKeyType: keyInfo.type,
+                    associatedKeys: keyInfo.associatedKeys
+                }
             }
+
             return {
                 success: false,
+                detectedKeyType: keyInfo.format,
                 error: 'No identity found for this key. The key may not be registered or the network may be incorrect.'
             }
         } catch (error: any) {
-            log('error', 'Failed to discover identity from single key:', error)
+            log('error', 'Failed to discover identity from key:', error)
             return {
                 success: false,
+                detectedKeyType: 'unknown',
                 error: `Discovery failed: ${error.message || 'Unknown error'}`
             }
         }
     }
+
+    /**
+     * Detect key format and provide user-friendly description
+     */
+    private static detectKeyFormat(keyInput: string): {
+        format: string
+        description: string
+        icon: string
+    } {
+        const cleanKey = keyInput.trim()
+
+        // Check WIF format (starts with 'c', 'K', or 'L')
+        if (/^[cKL][0-9A-Za-z]{50,}$/.test(cleanKey)) {
+            return {
+                format: 'WIF (Wallet Import Format)',
+                description: 'Private key in WIF format. Typically starts with "c" (testnet) or "K"/"L" (mainnet).',
+                icon: 'LockClosedIcon'
+            }
+        }
+
+        // Check HEX format (64 characters for private key)
+        if (/^[0-9a-fA-F]{64}$/.test(cleanKey)) {
+            return {
+                format: 'HEX Private Key',
+                description: '64-character hexadecimal private key.',
+                icon: 'KeyIcon'
+            }
+        }
+
+        // Check compressed public key (66 hex chars)
+        if (/^0[23][0-9a-fA-F]{64}$/.test(cleanKey)) {
+            return {
+                format: 'Compressed Public Key',
+                description: '66-character compressed public key (starts with 02 or 03).',
+                icon: 'IdentificationIcon'
+            }
+        }
+
+        // Check uncompressed public key (130 hex chars)
+        if (/^04[0-9a-fA-F]{128}$/.test(cleanKey)) {
+            return {
+                format: 'Uncompressed Public Key',
+                description: '130-character uncompressed public key (starts with 04).',
+                icon: 'IdentificationIcon'
+            }
+        }
+
+        // Check for potential extended key (xpub/xprv)
+        if (/^[tx][pbr]ub[a-km-zA-HJ-NP-Z1-9]{100,}$/.test(cleanKey)) {
+            return {
+                format: 'Extended Public/Private Key',
+                description: 'Extended key format (xpub, xprv, tpub, tprv).',
+                icon: 'DatabaseIcon'
+            }
+        }
+
+        return {
+            format: 'Unknown Format',
+            description: 'Cannot determine key format. Please check input.',
+            icon: 'QuestionMarkCircleIcon'
+        }
+    }
+
     /**
      * Derive public key hash from a private key (WIF or HEX format)
      * TODO: Implement actual crypto derivation using @evonext/crypto
@@ -157,28 +267,33 @@ export class IdentityDiscoveryService {
         try {
             // Remove whitespace
             const cleanKey = privateKey.trim()
+
             // Check if it's WIF format (starts with 'c', 'K', or 'L')
             if (/^[cKL][0-9A-Za-z]{50,}$/.test(cleanKey)) {
                 // WIF format
                 log('info', `Detected WIF format: ${cleanKey.substring(0, 8)}...`)
                 return await this.deriveFromWIF(cleanKey)
             }
+
             // Check if it's HEX format (64 characters for private key)
             if (/^[0-9a-fA-F]{64}$/.test(cleanKey)) {
                 // HEX format
                 log('info', `Detected HEX format: ${cleanKey.substring(0, 8)}...`)
                 return await this.deriveFromHex(cleanKey)
             }
+
             // Check if it might be a compressed key (66 hex chars)
             if (/^0[23][0-9a-fA-F]{64}$/.test(cleanKey)) {
                 log('info', `Detected compressed public key: ${cleanKey.substring(0, 8)}...`)
                 return this.hashPublicKey(cleanKey)
             }
+
             // Check if it might be an uncompressed key (130 hex chars starting with 04)
             if (/^04[0-9a-fA-F]{128}$/.test(cleanKey)) {
                 log('info', `Detected uncompressed public key: ${cleanKey.substring(0, 8)}...`)
                 return this.hashPublicKey(cleanKey)
             }
+
             log('warn', 'Unsupported key format. Must be: WIF (starts with cN/Kw), private key HEX (64 chars), or public key HEX (66/130 chars).')
             return null
         } catch (error) {
@@ -186,6 +301,82 @@ export class IdentityDiscoveryService {
             return null
         }
     }
+
+    /**
+     * Extract detailed information about the found keys
+     */
+    private static extractKeyInformation(
+        identity: DiscoveredIdentity,
+        inputKeyHash: string
+    ): {
+        type: string
+        associatedKeys: Array<{
+            purpose: string
+            securityLevel: string
+            keyType: string
+            derivedFromInput: boolean
+        }>
+    } {
+        const publicKeys = identity.publicKeys || []
+        let detectedKeyType = 'Unknown Key'
+        const associatedKeys = []
+
+        for (const key of publicKeys) {
+            // Check if this key matches our input (by purpose or other heuristic)
+            // TODO: Actually compare key hashes once we have proper crypto
+            const matchesInput = false // Placeholder
+
+            associatedKeys.push({
+                purpose: this.getKeyPurposeDisplay(key.purpose),
+                securityLevel: this.getSecurityLevelDisplay(key.securityLevel),
+                keyType: key.keyType,
+                derivedFromInput: matchesInput
+            })
+
+            // Determine key type based on purpose
+            if (key.purpose === 'AUTHENTICATION') {
+                detectedKeyType = 'Authentication Key'
+            } else if (key.purpose === 'TRANSFER') {
+                detectedKeyType = 'Transfer Key'
+            } else if (key.purpose === 'ENCRYPTION') {
+                detectedKeyType = 'Encryption Key'
+            }
+        }
+
+        return {
+            type: detectedKeyType,
+            associatedKeys
+        }
+    }
+
+    /**
+     * Get user-friendly display for key purpose
+     */
+    private static getKeyPurposeDisplay(purpose: string): string {
+        const purposeMap: Record<string, string> = {
+            'AUTHENTICATION': 'Authentication',
+            'TRANSFER': 'Transfer',
+            'ENCRYPTION': 'Encryption',
+            'KEY_MANAGEMENT': 'Key Management',
+            'SIGNING': 'Signing',
+            'MASTER': 'Master'
+        }
+        return purposeMap[purpose] || purpose
+    }
+
+    /**
+     * Get user-friendly display for security level
+     */
+    private static getSecurityLevelDisplay(securityLevel: string): string {
+        const levelMap: Record<string, string> = {
+            'CRITICAL': 'Critical',
+            'HIGH': 'High',
+            'MEDIUM': 'Medium',
+            'LOW': 'Low'
+        }
+        return levelMap[securityLevel] || securityLevel
+    }
+
     /**
      * Derive public key hash from WIF format
      * TODO: Implement actual WIF decoding and public key derivation
@@ -202,6 +393,7 @@ export class IdentityDiscoveryService {
             return null
         }
     }
+
     /**
      * Derive public key hash from HEX format
      * TODO: Implement actual crypto derivation
@@ -216,6 +408,7 @@ export class IdentityDiscoveryService {
             return null
         }
     }
+
     /**
      * Hash a public key (simplified version)
      * In reality: RIPEMD160(SHA256(publicKey))
@@ -229,10 +422,12 @@ export class IdentityDiscoveryService {
                 '03c2f5424644bf866bbbaf5e96fd45c357e9f230e7efeb8d5ec8ce1449efb8a1fa': '95589738d1c04694b8abf53d3f060fca12761523',
                 '02f3a8c4b20477eb8a12f339d71b3bbd8498c2a5e0999b86bb1903fd102482b50b': '89c5f11ef3ca5ad7e724cd94c3cc3765f5630886'
             }
+
             // Check if we have a simulation for this key
             if (simulatedHashes[publicKeyHex.toLowerCase()]) {
                 return simulatedHashes[publicKeyHex.toLowerCase()]
             }
+
             // If no simulation, generate a deterministic hash
             // This is temporary until real crypto is implemented
             const hash = Buffer.from(publicKeyHex).toString('hex').substring(0, 40)
@@ -243,6 +438,7 @@ export class IdentityDiscoveryService {
             return null
         }
     }
+
     /**
      * Get DPNS username for an identity ID
      */
@@ -262,10 +458,13 @@ export class IdentityDiscoveryService {
                     network,
                 }),
             })
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
+
             const result = await response.json()
+
             if (result.success && result.result) {
                 return result.result
             } else if (result.data) {
@@ -273,14 +472,33 @@ export class IdentityDiscoveryService {
             } else if (result.username) {
                 return result.username
             }
+
             return null
         } catch (error) {
             log('warn', `Failed to get DPNS username for ${identityId}:`, error)
             return null
         }
     }
+
     /**
      * Wrapper for legacy compatibility
+     * @deprecated Use discoverIdentityFromAnyKey instead
+     */
+    static async discoverIdentityFromSingleKey(
+        privateKey: string,
+        network: 'mainnet' | 'testnet'
+    ): Promise<IdentityLookupResult> {
+        const result = await this.discoverIdentityFromAnyKey(privateKey, network)
+        return {
+            success: result.success,
+            identity: result.identity,
+            error: result.error
+        }
+    }
+
+    /**
+     * Wrapper for legacy compatibility
+     * @deprecated Use discoverIdentityFromAnyKey instead
      */
     static async discoverIdentityWithDPNS(
         authKey: string,
@@ -296,18 +514,25 @@ export class IdentityDiscoveryService {
                 error: 'No keys provided'
             }
         }
+
         // Try each key until we find an identity
         for (const key of keys) {
-            const result = await this.discoverIdentityFromSingleKey(key, network)
+            const result = await this.discoverIdentityFromAnyKey(key, network)
             if (result.success) {
-                return result
+                return {
+                    success: true,
+                    identity: result.identity,
+                    error: undefined
+                }
             }
         }
+
         return {
             success: false,
             error: 'No identity found for any of the provided keys'
         }
     }
+
     /**
      * Extract key types from discovered identity
      */
