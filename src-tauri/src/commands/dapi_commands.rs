@@ -481,45 +481,68 @@ struct DAPIParams {
 pub async fn get_identity_by_public_key_hash(
     public_key_hash: String,
     network: Option<String>,
-) -> Result<serde_json::Value, String> {
+) -> Result<Value, String> {
     let client = get_dapi_client();
     let network_value = network.unwrap_or_else(|| "testnet".to_string());
-
     let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
-
-    // Prepare the JSON-RPC request exactly as the DAPI expects
-    let body = serde_json::json!({
-        "method": "get_identity_by_public_key_hash",
-        "params": [public_key_hash],
-        "network": network_value
-    });
-
-    let response = client.make_request(body, network_enum).await
-        .map_err(|e| format!("DAPI request failed: {}", e))?;
-
-    Ok(response)
+    let params = vec![json!(public_key_hash)];
+    match client.request::<Value>("get_identity_by_public_key_hash".to_string(), params, network_enum).await {
+        Ok(result) => {
+            // Wrap the result in the expected format that matches your DAPI response structure
+            let response = json!({
+                "success": true,
+                "method": "get_identity_by_public_key_hash",
+                "params": [public_key_hash],
+                "network": network_value,
+                "result": result
+            });
+            Ok(response)
+        }
+        Err(e) => {
+            tracing::error!("Failed to get identity by public key hash: {}", e);
+            let error_response = json!({
+                "success": false,
+                "method": "get_identity_by_public_key_hash",
+                "params": [public_key_hash],
+                "network": network_value,
+                "error": e.to_string()
+            });
+            Ok(error_response)
+        }
+    }
 }
-
 #[tauri::command]
 pub async fn get_identity_by_non_unique_public_key_hash(
     public_key_hash: String,
     network: Option<String>,
-) -> Result<serde_json::Value, String> {
+) -> Result<Value, String> {
     let client = get_dapi_client();
     let network_value = network.unwrap_or_else(|| "testnet".to_string());
-
     let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
-
-    let body = serde_json::json!({
-        "method": "get_identity_by_non_unique_public_key_hash",
-        "params": [public_key_hash],
-        "network": network_value
-    });
-
-    let response = client.make_request(body, network_enum).await
-        .map_err(|e| format!("DAPI request failed: {}", e))?;
-
-    Ok(response)
+    let params = vec![json!(public_key_hash)];
+    match client.request::<Value>("get_identity_by_non_unique_public_key_hash".to_string(), params, network_enum).await {
+        Ok(result) => {
+            let response = json!({
+                "success": true,
+                "method": "get_identity_by_non_unique_public_key_hash",
+                "params": [public_key_hash],
+                "network": network_value,
+                "result": result
+            });
+            Ok(response)
+        }
+        Err(e) => {
+            tracing::error!("Failed to get identity by non-unique public key hash: {}", e);
+            let error_response = json!({
+                "success": false,
+                "method": "get_identity_by_non_unique_public_key_hash",
+                "params": [public_key_hash],
+                "network": network_value,
+                "error": e.to_string()
+            });
+            Ok(error_response)
+        }
+    }
 }
 
 #[tauri::command]
@@ -529,19 +552,35 @@ pub async fn get_identity_by_id(
 ) -> Result<serde_json::Value, String> {
     let client = get_dapi_client();
     let network_value = network.unwrap_or_else(|| "testnet".to_string());
-
     let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
 
-    let body = serde_json::json!({
-        "method": "get_identity",  // Assuming this is the correct method name
-        "params": [identity_id],
-        "network": network_value
-    });
+    // Use the client.request method (not make_request)
+    let params = vec![json!(identity_id)];
 
-    let response = client.make_request(body, network_enum).await
-        .map_err(|e| format!("DAPI request failed: {}", e))?;
-
-    Ok(response)
+    match client.request::<serde_json::Value>("getIdentity".to_string(), params, network_enum).await {
+        Ok(result) => {
+            // Wrap in the expected response format
+            let response = json!({
+                "success": true,
+                "method": "getIdentity",
+                "params": [identity_id],
+                "network": network_value,
+                "result": result
+            });
+            Ok(response)
+        }
+        Err(e) => {
+            tracing::error!("Failed to get identity by ID: {}", e);
+            let error_response = json!({
+                "success": false,
+                "method": "getIdentity",
+                "params": [identity_id],
+                "network": network_value,
+                "error": e.to_string()
+            });
+            Ok(error_response)
+        }
+    }
 }
 
 // Helper function to convert params from array to object format
