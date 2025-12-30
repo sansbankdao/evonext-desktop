@@ -3,46 +3,11 @@
 import { invoke } from '@tauri-apps/api/core'
 import { log } from '@/utils/env'
 
-export interface DiscoveredIdentity {
-    identityId: string
-    balance: string
-    revision: string
-    publicKeys?: Array<{
-        purpose: string
-        securityLevel: string
-        keyType: string
-        dataB64: string
-        data?: string
-        readOnly: boolean
-    }>
-    dpnsUsername?: string
-}
-export interface IdentityLookupResult {
-    success: boolean
-    identity?: DiscoveredIdentity
-    error?: string
-}
-
-interface IdentityLookupResponse {
-    success: boolean
-    identityId?: string
-    result?: {
-        identityId: string
-        balance: string
-        revision: string
-        publicKeys?: Array<{
-            purpose: string
-            securityLevel: string
-            keyType: string
-            data: string
-            dataB64: string
-            readOnly: boolean
-        }>
-        publicKeyHash: string
-        dpnsUsername?: string
-    }
-    [key: string]: any
-}
+import type {
+    DiscoveredIdentity,
+    IdentityLookupResult,
+    IdentityLookupResponse,
+} from '@/types'
 
 /**
  * Service for discovering Dash Platform identities from a single private key.

@@ -57,3 +57,24 @@ export interface APIError {
     message?: string;
     code?: number;
 }
+
+export interface IdentityLookupResponse {
+    success: boolean;
+    identityId?: string;
+    result?: {
+        identityId: string;
+        balance: string;
+        revision: string;
+        publicKeys?: Array<{
+            purpose: string;
+            securityLevel: string;
+            keyType: string;
+            data: string;
+            dataB64: string;
+            readOnly: boolean;
+        }>;
+        publicKeyHash: string;
+        dpnsUsername?: string;
+    };
+    [key: string]: any;
+}

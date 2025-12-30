@@ -144,3 +144,24 @@ export interface KeyGenerationResult {
     transferKey: any;
     encryptionKey: any;
 }
+
+export interface DiscoveredIdentity {
+    identityId: string;
+    balance: string;
+    revision: string;
+    publicKeys?: Array<{
+        purpose: string;
+        securityLevel: string;
+        keyType: string;
+        dataB64: string;
+        data?: string;
+        readOnly: boolean;
+    }>;
+    dpnsUsername?: string;
+}
+
+export interface IdentityLookupResult {
+    success: boolean;
+    identity?: DiscoveredIdentity;
+    error?: string;
+}
