@@ -1,16 +1,20 @@
 // src/services/identity/discovery/IdentityManager.ts
+
 import { KeyDiscovery } from './KeyDiscovery'
 import { SeedDiscovery } from './SeedDiscovery'
 import { DAPIService } from './DAPIService'
 import { KeyDerivationService } from '../keyDerivation.service'
 import type { DiscoveryResult, DiscoveryOptions } from '../types'
+
 export class IdentityManager {
     private keyDiscovery: KeyDiscovery
     private seedDiscovery: SeedDiscovery
+
     constructor() {
         this.keyDiscovery = new KeyDiscovery()
         this.seedDiscovery = new SeedDiscovery()
     }
+
     /**
      * Discover identity from any key format
      */
@@ -20,6 +24,7 @@ export class IdentityManager {
     ): Promise<DiscoveryResult> {
         return this.keyDiscovery.discoverFromKey(keyInput, options)
     }
+
     /**
      * Discover identities from seed phrase
      */
@@ -33,6 +38,7 @@ export class IdentityManager {
             maxKeyIndex: options.maxKeyIndex || 5
         })
     }
+
     /**
      * Get DPNS username for an identity
      */
@@ -42,6 +48,7 @@ export class IdentityManager {
     ): Promise<string | null> {
         return DAPIService.getDPNSUsername(identityId, network)
     }
+
     /**
      * Get identity by ID
      */
@@ -51,12 +58,14 @@ export class IdentityManager {
     ): Promise<DiscoveryResult> {
         return DAPIService.getIdentityById(identityId, network)
     }
+
     /**
      * Detect key format
      */
     detectKeyFormat(keyInput: string): ReturnType<typeof KeyDerivationService.detectKeyFormat> {
         return KeyDerivationService.detectKeyFormat(keyInput)
     }
+
     /**
      * Cleanup resources
      */
@@ -64,11 +73,14 @@ export class IdentityManager {
         KeyDerivationService.cleanup()
     }
 }
+
 // Singleton instance
 let identityManager: IdentityManager | null = null
+
 export function getIdentityManager(): IdentityManager {
     if (!identityManager) {
         identityManager = new IdentityManager()
     }
+
     return identityManager
 }

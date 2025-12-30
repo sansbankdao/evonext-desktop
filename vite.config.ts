@@ -12,6 +12,12 @@ export default defineConfig(async () => ({
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src'),
+            '@services': path.resolve(__dirname, './src/services'),
+            '@components': path.resolve(__dirname, './src/components'),
+            '@stores': path.resolve(__dirname, './src/stores'),
+            '@utils': path.resolve(__dirname, './src/utils'),
+            '@libs': path.resolve(__dirname, './src/libs'),
+            '@types': path.resolve(__dirname, './src/types'),
         },
     },
 
