@@ -1,12 +1,15 @@
 // src/services/identity/discovery/SeedDiscovery.ts
+
 import { KeyDerivationService } from '../keyDerivation.service'
-import { DAPIService } from './DAPIService'
+import { DAPIService, type DAPIHashSearchResult } from './DAPIService'
 import type { DiscoveredIdentity, DiscoveryResult } from '../types'
+
 export interface SeedDiscoveryOptions {
     network: 'mainnet' | 'testnet'
     maxIdentityIndex: number
     maxKeyIndex: number
 }
+
 export class SeedDiscovery {
     /**
      * Discover identities from seed phrase
@@ -18,8 +21,10 @@ export class SeedDiscovery {
         try {
             console.log(`[SeedDiscovery] Starting seed discovery on ${options.network}`)
             console.log(`[SeedDiscovery] Seed phrase (word count): ${seedPhrase.trim().split(/\s+/).length} words`)
+
             // Validate seed phrase
             const words = seedPhrase.trim().split(/\s+/)
+
             if (words.length !== 12 && words.length !== 24) {
                 return {
                     success: false,
@@ -27,6 +32,7 @@ export class SeedDiscovery {
                     debug: { step: 'validation', wordCount: words.length }
                 }
             }
+
             // Step 1: Derive all keys from seed
             const derivationResults = await KeyDerivationService.deriveAllKeysFromSeed(
                 seedPhrase,
@@ -34,7 +40,9 @@ export class SeedDiscovery {
                 options.maxIdentityIndex,
                 options.maxKeyIndex
             )
+
             const successfulDerivations = derivationResults.filter(r => r.success)
+
             if (successfulDerivations.length === 0) {
                 return {
                     success: false,
@@ -51,6 +59,7 @@ export class SeedDiscovery {
                 }
             }
             console.log(`[SeedDiscovery] Derived ${successfulDerivations.length} successful identity indexes`)
+
             // Step 2: Prepare all search promises
             const searchPromises: Promise<{
                 identityIndex: number
@@ -58,6 +67,7 @@ export class SeedDiscovery {
                 hash: string
                 result: DAPIHashSearchResult
             }>[] = []
+
             for (const derivationResult of successfulDerivations) {
                 for (const key of derivationResult.keys) {
                     // Create a promise that resolves with the correct structure
@@ -74,7 +84,9 @@ export class SeedDiscovery {
                 }
             }
             console.log(`[SeedDiscovery] Searching ${searchPromises.length} derived public key hashes...`)
+
             const searchResults = await Promise.all(searchPromises)
+
             // Step 3: Collect unique identities found
             const identityMap = new Map<string, {
                 identity: DiscoveredIdentity
@@ -82,10 +94,12 @@ export class SeedDiscovery {
                 foundByKeyIndex: number
                 foundByHash: string
             }>()
+
             for (const searchResult of searchResults) {
                 if (searchResult.result.success && searchResult.result.data) {
                     const identityData = searchResult.result.data
                     const identityId = identityData.identityId || identityData.id
+
                     if (identityId && !identityMap.has(identityId)) {
                         // Get DPNS username
                         const dpnsUsername = await this.getDPNSUsernameFromData(identityData, options.network)
@@ -105,7 +119,9 @@ export class SeedDiscovery {
                     }
                 }
             }
+
             const identities = Array.from(identityMap.values()).map(item => item.identity)
+
             if (identities.length > 0) {
                 console.log(`[SeedDiscovery] Found ${identities.length} unique identities from seed`)
                 return {
@@ -166,11 +182,14 @@ export class SeedDiscovery {
         if (identityData.dpnsUsername || identityData.username) {
             return identityData.dpnsUsername || identityData.username
         }
+
         // If not, fetch it separately
         const identityId = identityData.identityId || identityData.id
+
         if (identityId) {
             return await DAPIService.getDPNSUsername(identityId, network)
         }
+
         return null
     }
 
@@ -195,6 +214,7 @@ export class SeedDiscovery {
      */
     static extractKeyMetrics(identity: DiscoveredIdentity) {
         const publicKeys = identity.publicKeys || []
+
         return {
             authenticationKeys: publicKeys.filter((k: any) => k.purpose === 'AUTHENTICATION').length,
             transferKeys: publicKeys.filter((k: any) => k.purpose === 'TRANSFER').length,
