@@ -6,8 +6,16 @@ export {
     deriveAllPossibleHashes,
     deriveAllKeysFromSeed,
 } from './keyDerivation.service'
+
 export { DAPIService } from './discovery/DAPIService'
+
 export { KeyDiscovery } from './discovery/KeyDiscovery'
+
 export { SeedDiscovery } from './discovery/SeedDiscovery'
-export { IdentityManager } from './discovery/IdentityManager'
+
+export {
+    IdentityManager,
+    getIdentityManager,
+} from './discovery/IdentityManager'
+
 export * from './types'

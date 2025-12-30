@@ -1,6 +1,8 @@
 // src/services/identity/discovery/DAPIService.ts
+
 import { invoke } from '@tauri-apps/api/core'
 import type { DAPIResponse, DiscoveredIdentity } from '../types'
+
 export interface DAPIHashSearchResult {
     success: boolean
     data?: any
@@ -8,6 +10,7 @@ export interface DAPIHashSearchResult {
     searchType: 'unique' | 'non-unique' | 'none'
     debug?: any
 }
+
 export class DAPIService {
     static async queryIdentityByHash(
         publicKeyHash: string,
@@ -26,7 +29,8 @@ export class DAPIService {
             console.log(`[DAPI] ${method} response success:`, response?.success)
             if (response?.success && response?.result) {
                 return {
-                    success: true,response.result,
+                    success: true,
+                    data: response.result,
                     searchType: unique ? 'unique' : 'non-unique',
                     debug: { method, hash: publicKeyHash, unique, response }
                 }
@@ -47,6 +51,7 @@ export class DAPIService {
             }
         }
     }
+
     static async getDPNSUsername(
         identityId: string,
         network: 'mainnet' | 'testnet'
@@ -74,6 +79,7 @@ export class DAPIService {
             return null
         }
     }
+
     static async getIdentityById(
         identityId: string,
         network: 'mainnet' | 'testnet'
@@ -90,7 +96,8 @@ export class DAPIService {
                 const identityData = Array.isArray(result) ? result[0] : result
                 if (identityData) {
                     return {
-                        success: true,identityData,
+                        success: true,
+                        data: identityData,
                         searchType: 'none',
                         debug: { method: 'get_identity_info', identityId, response }
                     }
@@ -112,6 +119,7 @@ export class DAPIService {
             }
         }
     }
+
     static async searchByHash(
         publicKeyHash: string,
         network: 'mainnet' | 'testnet'

@@ -82,12 +82,15 @@ const seedWords = ref([...props.seedWords])
 // Watch word count changes and adjust array size
 watch(wordCount, (newCount) => {
     emit('update:wordCount', newCount)
+
     const count = parseInt(newCount, 10)
+
     if (seedWords.value.length > count) {
         seedWords.value = seedWords.value.slice(0, count)
     } else if (seedWords.value.length < count) {
         seedWords.value = [...seedWords.value, ...Array(count - seedWords.value.length).fill('')]
     }
+
     emit('update:seedWords', seedWords.value)
 })
 
@@ -99,6 +102,7 @@ watch(seedWords, (newWords) => {
 // Handle paste event
 const handlePaste = (event: ClipboardEvent) => {
     const pastedText = event.clipboardData?.getData('text') || ''
+
     // Split by whitespace and clean up
     const words = pastedText
         .toLowerCase()
@@ -113,11 +117,12 @@ const handlePaste = (event: ClipboardEvent) => {
 
     // Distribute words across slots
     for (let i = 0; i < Math.min(words.length, totalSlots); i++) {
-        seedWords.value[i] = words[i]
+        seedWords.value[i] = words[i] || ''
     }
 
     // Emit the updated seed words to parent
     emit('update:seedWords', seedWords.value)
+
     // Emit paste event with words for parent
     emit('paste', words)
 }
