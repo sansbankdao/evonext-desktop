@@ -1,30 +1,22 @@
 // src/services/identity/discovery/BaseDiscovery.ts
 
-// src/services/identity/discovery/BaseDiscovery.ts
-import type { DiscoveredIdentity, AssociatedKey, DiscoveryOptions, DiscoveryResult } from '../types'
+import type {
+    DiscoveredIdentity,
+    AssociatedKey,
+    DiscoveryOptions,
+    DiscoveryResult,
+} from '../types'
 
 export abstract class BaseDiscovery {
-    /**
-     * Network to use for discovery
-     */
     protected network: 'mainnet' | 'testnet' = 'testnet'
 
-    /**
-     * Set the network for discovery operations
-     */
     setNetwork(network: 'mainnet' | 'testnet'): this {
         this.network = network
         return this
     }
 
-    /**
-     * Abstract method to perform discovery
-     */
     abstract discover(input: string, options?: DiscoveryOptions): Promise<DiscoveryResult>
 
-    /**
-     * Format balance from DAPI response
-     */
     protected formatBalance(balance: any): string {
         if (balance === undefined || balance === null) return '0'
         if (typeof balance === 'number') return balance.toString()
@@ -36,9 +28,6 @@ export abstract class BaseDiscovery {
         }
     }
 
-    /**
-     * Format revision from DAPI response
-     */
     protected formatRevision(revision: any): string {
         if (revision === undefined || revision === null) return '0'
         if (typeof revision === 'number') return revision.toString()
@@ -50,9 +39,6 @@ export abstract class BaseDiscovery {
         }
     }
 
-    /**
-     * Extract associated keys from identity data
-     */
     protected extractAssociatedKeys(publicKeys: any[]): AssociatedKey[] {
         if (!Array.isArray(publicKeys) || publicKeys.length === 0) {
             return []
@@ -67,9 +53,6 @@ export abstract class BaseDiscovery {
         }))
     }
 
-    /**
-     * Convert key purpose to display string
-     */
     protected getKeyPurposeDisplay(purpose: string): string {
         if (!purpose) return 'Unknown'
 
@@ -84,9 +67,6 @@ export abstract class BaseDiscovery {
         return purposeMap[purpose.toUpperCase()] || purpose
     }
 
-    /**
-     * Convert security level to display string
-     */
     protected getSecurityLevelDisplay(securityLevel: string): string {
         if (!securityLevel) return 'Unknown'
 
@@ -100,16 +80,10 @@ export abstract class BaseDiscovery {
         return levelMap[securityLevel.toUpperCase()] || securityLevel
     }
 
-    /**
-     * Validate network parameter
-     */
     protected validateNetwork(network?: 'mainnet' | 'testnet'): 'mainnet' | 'testnet' {
         return network || this.network
     }
 
-    /**
-     * Parse DAPI response into DiscoveredIdentity
-     */
     protected parseIdentityData(identityData: any): DiscoveredIdentity {
         return {
             identityId: identityData.identityId || identityData.id || '',
@@ -120,9 +94,6 @@ export abstract class BaseDiscovery {
         }
     }
 
-    /**
-     * Create a debug info object
-     */
     protected createDebugInfo(step: string, data?: any): any {
         return {
             step,
@@ -132,40 +103,35 @@ export abstract class BaseDiscovery {
         }
     }
 
-    /**
-     * Create error result
-     */
     protected createErrorResult(error: string, debug?: any): DiscoveryResult {
         return {
             success: false,
             error,
-            debug: debug || this.createDebugInfo('error')
+            debug: debug || this.createDebugInfo('error'),
+            identities: null,
+            identity: null,
+            detectedKeyType: null,
+            associatedKeys: null
         }
     }
 
-    /**
-     * Create success result
-     */
     protected createSuccessResult(
-        identity?: DiscoveredIdentity,
-        identities?: DiscoveredIdentity[],
-        detectedKeyType?: string,
-        associatedKeys?: AssociatedKey[],
+        identity?: DiscoveredIdentity | null,
+        identities?: DiscoveredIdentity[] | null,
+        detectedKeyType?: string | null,
+        associatedKeys?: AssociatedKey[] | null,
         debug?: any
     ): DiscoveryResult {
         return {
             success: true,
-            identity,
-            identities,
-            detectedKeyType,
-            associatedKeys,
+            identity: identity || null,
+            identities: identities || null,
+            detectedKeyType: detectedKeyType || null,
+            associatedKeys: associatedKeys || null,
             debug: debug || this.createDebugInfo('success')
         }
     }
 
-    /**
-     * Handle and log errors
-     */
     protected handleError(error: any, context: string): DiscoveryResult {
         console.error(`[Discovery] ${context} error:`, error)
 
@@ -183,17 +149,11 @@ export abstract class BaseDiscovery {
         })
     }
 
-    /**
-     * Check if input looks like a seed phrase
-     */
     protected isSeedPhrase(input: string): boolean {
         const words = input.trim().split(/\s+/)
         return words.length === 12 || words.length === 24
     }
 
-    /**
-     * Check if input looks like a private key
-     */
     protected isPrivateKey(input: string): boolean {
         const cleanInput = input.trim()
         // WIF format
@@ -207,9 +167,6 @@ export abstract class BaseDiscovery {
         return false
     }
 
-    /**
-     * Check if input looks like a public key
-     */
     protected isPublicKey(input: string): boolean {
         const cleanInput = input.trim()
         // Compressed public key
@@ -223,9 +180,6 @@ export abstract class BaseDiscovery {
         return false
     }
 
-    /**
-     * Sanitize debug output for display
-     */
     protected sanitizeDebugOutput(debug: any): any {
         if (!debug) return debug
 

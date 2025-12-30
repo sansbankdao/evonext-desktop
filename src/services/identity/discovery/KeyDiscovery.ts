@@ -1,15 +1,26 @@
 // src/services/identity/discovery/KeyDiscovery.ts
 
 import { KeyDerivationService } from '../keyDerivation.service'
-import { DAPIService } from './DAPIService'
+import { DAPIService, type DAPIHashSearchResult } from './DAPIService'
+import { BaseDiscovery } from './BaseDiscovery'
 import type {
-    AssociatedKey,
     DiscoveredIdentity,
     DiscoveryResult,
     DiscoveryOptions,
+    AssociatedKey,
 } from '../types'
 
-export class KeyDiscovery {
+export class KeyDiscovery extends BaseDiscovery {
+    /**
+     * Implement the abstract discover method from BaseDiscovery
+     */
+    async discover(
+        input: string,
+        options: DiscoveryOptions = { network: 'testnet' }
+    ): Promise<DiscoveryResult> {
+        return this.discoverFromKey(input, options)
+    }
+
     /**
      * Main discovery method for any key format
      */
@@ -23,13 +34,17 @@ export class KeyDiscovery {
 
             // Step 1: Derive all possible hashes from the key
             const derivationResult = await KeyDerivationService.deriveAllPossibleHashes(keyInput, options.network)
+
             if (derivationResult.hashes.length === 0) {
-                return {
-                    success: false,
-                    error: 'Could not derive any public key hashes from the provided key',
-                    debug: derivationResult.debug
-                }
+                return this.createErrorResult(
+                    'Could not derive any public key hashes from the provided key',
+                    {
+                        ...derivationResult.debug,
+                        ...this.createDebugInfo('hash_derivation_failed')
+                    }
+                )
             }
+
             console.log(`[KeyDiscovery] Derived ${derivationResult.hashes.length} possible hashes:`)
             derivationResult.hashes.forEach((hash, i) => {
                 console.log(`[KeyDiscovery] Hash ${i}: ${hash.substring(0, 24)}...`)
@@ -43,6 +58,7 @@ export class KeyDiscovery {
 
             // Step 3: Find first successful result
             const successfulResult = results.find(result => result.success)
+
             if (successfulResult && successfulResult.data) {
                 const identityData = successfulResult.data
                 console.log(`[KeyDiscovery] Found identity: ${identityData.identityId || identityData.id}`)
@@ -62,20 +78,30 @@ export class KeyDiscovery {
                 // Extract key information
                 const associatedKeys = this.extractAssociatedKeys(discoveredIdentity.publicKeys)
 
-                return {
-                    success: true,
-                    identity: discoveredIdentity,
-                    detectedKeyType: derivationResult.keyType,
+                // Determine which hash found the identity
+                const foundHashIndex = results.findIndex(r =>
+                    r.success && r.data &&
+                    (r.data.identityId === discoveredIdentity.identityId || r.data.id === discoveredIdentity.identityId)
+                )
+                const foundHash = foundHashIndex >= 0 ? derivationResult.hashes[foundHashIndex] : 'unknown'
+
+                return this.createSuccessResult(
+                    discoveredIdentity,
+                    null, // identities (not used for single key discovery)
+                    derivationResult.keyType,
                     associatedKeys,
-                    debug: {
+                    {
                         step: 'comprehensive_search',
                         searchType: successfulResult.searchType,
                         derivedHashes: derivationResult.hashes,
-                        foundHash: derivationResult.hashes[results.findIndex(r => r.success)],
+                        foundHash,
+                        foundHashIndex,
+                        dpnsUsername,
+                        keyType: derivationResult.keyType,
                         ...successfulResult.debug,
-                        dpnsUsername
+                        ...this.createDebugInfo('key_discovery_success')
                     }
-                }
+                )
             }
 
             // Step 4: If no identity found
@@ -85,11 +111,9 @@ export class KeyDiscovery {
                 .map(r => r.error)
                 .join('; ')
 
-            return {
-                success: false,
-                detectedKeyType: derivationResult.keyType,
-                error: errors || 'No identity found. The key may not be registered on this network.',
-                debug: {
+            return this.createErrorResult(
+                errors || 'No identity found. The key may not be registered on this network.',
+                {
                     step: 'comprehensive_search_failed',
                     derivedHashes: derivationResult.hashes,
                     keyType: derivationResult.keyType,
@@ -98,30 +122,14 @@ export class KeyDiscovery {
                         error: r.error,
                         searchType: r.searchType,
                         debug: r.debug
-                    }))
+                    })),
+                    ...this.createDebugInfo('key_discovery_failed')
                 }
-            }
-        } catch (error: any) {
-            console.error('[KeyDiscovery] Search failed:', error)
-            return {
-                success: false,
-                error: `Discovery failed: ${error.message || 'Unknown error'}`,
-                debug: { step: 'exception', error: error.stack }
-            }
-        }
-    }
+            )
 
-    /**
-     * Helper to extract associated keys from identity data
-     */
-    private extractAssociatedKeys(publicKeys: any[]): AssociatedKey[] {
-        return (publicKeys || []).map(key => ({
-            purpose: this.getKeyPurposeDisplay(key.purpose),
-            securityLevel: this.getSecurityLevelDisplay(key.securityLevel),
-            keyType: key.keyType || 'UNKNOWN',
-            data: key.data || key.dataB64 || '',
-            derivedFromInput: false // We would need to compare with input key to determine this
-        }))
+        } catch (error: any) {
+            return this.handleError(error, 'Key Discovery')
+        }
     }
 
     /**
@@ -138,56 +146,10 @@ export class KeyDiscovery {
 
         // If not, fetch it separately
         const identityId = identityData.identityId || identityData.id
-
         if (identityId) {
             return await DAPIService.getDPNSUsername(identityId, network)
         }
 
         return null
-    }
-
-    /**
-     * Format balance from DAPI response
-     */
-    private formatBalance(balance: any): string {
-        if (!balance && balance !== 0) return '0'
-        return balance.toString()
-    }
-
-    /**
-     * Format revision from DAPI response
-     */
-    private formatRevision(revision: any): string {
-        if (!revision && revision !== 0) return '0'
-        return revision.toString()
-    }
-
-    /**
-     * Convert key purpose to display string
-     */
-    private getKeyPurposeDisplay(purpose: string): string {
-        const purposeMap: Record<string, string> = {
-            'AUTHENTICATION': 'Authentication',
-            'TRANSFER': 'Transfer',
-            'ENCRYPTION': 'Encryption',
-            'KEY_MANAGEMENT': 'Key Management',
-            'SIGNING': 'Signing',
-            'MASTER': 'Master'
-        }
-        return purposeMap[purpose] || purpose
-    }
-
-    /**
-     * Convert security level to display string
-     */
-    private getSecurityLevelDisplay(securityLevel: string): string {
-        const levelMap: Record<string, string> = {
-            'CRITICAL': 'Critical',
-            'HIGH': 'High',
-            'MEDIUM': 'Medium',
-            'LOW': 'Low',
-            'MASTER': 'Master'
-        }
-        return levelMap[securityLevel] || securityLevel
     }
 }
