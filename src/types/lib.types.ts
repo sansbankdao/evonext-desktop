@@ -78,3 +78,11 @@ export interface IdentityLookupResponse {
     };
     [key: string]: any;
 }
+
+export interface TauriCommandResponse<T = any> {
+    success: boolean;
+    error?: string;
+    result?: T;
+    // Allow flexible response shapes
+    [key: string]: any;
+}

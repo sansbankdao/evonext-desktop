@@ -24,6 +24,7 @@
                     <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
                         Enter as WIF (starts with cN/Kw) or raw HEX (64 characters). Accepts any key type.
                     </p>
+                    <!-- Using local ref for value binding to avoid mutation warnings -->
                     <input
                         type="password"
                         v-model="privateKey"
@@ -82,7 +83,6 @@
                         Identity Details
                     </label>
                     <div class="space-y-3">
-                        <!-- Identity ID -->
                         <div class="flex items-start gap-2">
                             <span class="text-slate-500 dark:text-slate-400 font-medium min-w-[120px] pt-1">Identity ID:</span>
                             <div class="flex-1">
@@ -99,13 +99,11 @@
                             </div>
                         </div>
 
-                        <!-- DPNS Name -->
                         <div v-if="discoveredIdentity.dpnsUsername" class="flex items-center gap-2">
                             <span class="text-slate-500 dark:text-slate-400 font-medium min-w-[120px]">DPNS Name:</span>
                             <span class="text-blue-600 dark:text-blue-400 font-medium">{{ discoveredIdentity.dpnsUsername }}</span>
                         </div>
 
-                        <!-- Balance -->
                         <div class="flex items-center gap-2">
                             <span class="text-slate-500 dark:text-slate-400 font-medium min-w-[120px]">Balance:</span>
                             <span class="text-emerald-600 dark:text-emerald-400 font-bold">
@@ -113,7 +111,6 @@
                             </span>
                         </div>
 
-                        <!-- Revision -->
                         <div class="flex items-center gap-2">
                             <span class="text-slate-500 dark:text-slate-400 font-medium min-w-[120px]">Revision:</span>
                             <span class="text-slate-700 dark:text-slate-300">{{ discoveredIdentity.revision }}</span>
@@ -154,7 +151,7 @@
             </div>
         </div>
 
-        <!-- Manual Identity -->
+        <!-- Manual Identity Toggle -->
         <div v-if="!discoveredIdentity && !showManualIdentity" class="text-center">
             <button
                 @click="showManualIdentity = true"
@@ -171,7 +168,7 @@
                     <div class="w-6 h-6 rounded-full bg-slate-500 text-white flex items-center justify-center text-xs font-bold">2</div>
                     <h3 class="font-bold text-slate-700 dark:text-slate-300">Enter Identity Manually</h3>
                 </div>
-                <button @click="showManualIdentity = false" class="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                <button @click="toggleManualIdentity" class="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
                     Cancel
                 </button>
             </div>
@@ -188,18 +185,29 @@
                 <input
                     id="manualIdentityId"
                     type="text"
-                    v-model="manualIdentityId"
+                    v-model="localManualId"
                     placeholder="username.dash or 5DbLwAxGBzUzo81VewMUwn4b5P4bpv9FNFybi25XB5Bk"
                     class="w-full px-4 py-3 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-4 focus:ring-slate-400/30 focus:border-slate-500 focus:bg-white dark:focus:bg-slate-800 transition-all duration-200 font-mono text-sm"
-                    @input="handleManualInput"
                 />
+            </div>
+            <div class="pt-2">
+                <button
+                    @click.prevent="handleConfirmManual"
+                    :disabled="!localManualId.trim()"
+                    class="w-full py-2 px-4 bg-slate-500 hover:bg-slate-600 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Use this Identity ID
+                </button>
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import type { DiscoveredIdentity, IdentityDiscoveryDetails } from '@/types'
 
 interface Props {
@@ -219,8 +227,22 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+// Local state to avoid mutating props directly
 const privateKey = ref('')
 const showManualIdentity = ref(false)
+const localManualId = ref(props.manualIdentityId)
+
+// Sync local manual ID back to parent
+watch(localManualId, (newVal) => {
+    emit('update:manualIdentityId', newVal)
+})
+
+// Watch prop changes to sync local state if parent updates (e.g., clear)
+watch(() => props.manualIdentityId, (newVal) => {
+    if (newVal !== localManualId.value) {
+        localManualId.value = newVal
+    }
+})
 
 const handleKeyInput = () => {
     emit('reset-discovery')
@@ -232,8 +254,14 @@ const handleDiscover = () => {
     emit('discover-identity', privateKey.value.trim())
 }
 
-const handleManualInput = () => {
-    emit('update:manualIdentityId', manualIdentityId.value)
+const toggleManualIdentity = () => {
+    showManualIdentity.value = !showManualIdentity.value
+}
+
+const handleConfirmManual = () => {
+    if (!localManualId.value.trim()) return
+    emit('use-manual-identity', localManualId.value.trim())
+    showManualIdentity.value = false
 }
 
 const copyToClipboard = (text: string) => {

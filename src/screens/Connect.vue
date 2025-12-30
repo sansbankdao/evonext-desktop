@@ -4,25 +4,20 @@
         <Header title="Connect to Platform" />
         <section class="flex items-center justify-center min-h-[calc(100vh-140px)] px-4">
             <div class="max-w-2xl w-full mx-auto space-y-8 border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-8 bg-white dark:bg-slate-900">
-                <!-- Page Header -->
                 <div class="text-center space-y-3">
                     <p class="text-slate-600 dark:text-slate-400 text-xl leading-relaxed">
-                        Securely access your identity using one of the methods below. Your data stays local.
+                        Securely access your identity using one of methods below. Your data stays local.
                     </p>
                 </div>
 
-                <!-- Connection Method Tabs -->
                 <ConnectMethodTabs
                     :model-value="connectionMethod"
                     @update-connection-method="updateConnectionMethod"
                 />
 
-                <!-- Security Warning -->
                 <SecurityWarning />
 
-                <!-- Form Container -->
                 <form @submit.prevent="connect" class="space-y-6">
-                    <!-- SEED PHRASE FORM -->
                     <ConnectSeedForm
                         v-if="connectionMethod === 'seed'"
                         v-model:wordCount="wordCount"
@@ -30,7 +25,6 @@
                         @paste="handlePaste"
                     />
 
-                    <!-- SINGLE PRIVATE KEY FORM -->
                     <KeyDiscoveryForm
                         v-else
                         :discovered-identity="discoveredIdentity"
@@ -43,7 +37,6 @@
                         @use-manual-identity="handleUseManualIdentity"
                     />
 
-                    <!-- Helper Text -->
                     <div class="text-xs text-slate-500 dark:text-slate-400 text-center italic p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
                         <svg class="w-4 h-4 inline mr-2 -ml-0.5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -56,13 +49,11 @@
                         </span>
                     </div>
 
-                    <!-- Error Message Display -->
                     <ConnectErrorDisplay
                         v-if="identityStore.connectionError"
                         :error="identityStore.connectionError"
                     />
 
-                    <!-- Action Button -->
                     <div class="pt-6">
                         <button
                             type="submit"
@@ -99,12 +90,13 @@ import KeyDiscoveryForm from '@/components/connect/KeyDiscoveryForm.vue'
 const router = useRouter()
 const identityStore = useIdentityStore()
 
-// --- Component State ---
 const connectionMethod = ref<'seed' | 'privateKey'>('seed')
 const wordCount = ref<'12' | '24'>('12')
 const seedWords = reactive<string[]>(Array(12).fill(''))
 
-// Private key discovery state
+// Single key flow state
+// We need to track the key entered by the user so we can pass it to the store
+const currentInputKey = ref('')
 const discoveredIdentity = ref<DiscoveredIdentity | null>(null)
 const discoveryDetails = ref<IdentityDiscoveryDetails | null>(null)
 const manualIdentityId = ref('')
@@ -135,8 +127,8 @@ const isFormValid = computed(() => {
     if (connectionMethod.value === 'seed') {
         return seedWords.every(word => word.trim() !== '')
     } else {
-        const hasIdentity = discoveredIdentity.value || manualIdentityId.value.trim() !== ''
-        return hasIdentity
+        // Must have a discovered identity OR a manual ID
+        return discoveredIdentity.value || manualIdentityId.value.trim() !== ''
     }
 })
 
@@ -144,6 +136,7 @@ const handleResetDiscovery = () => {
     discoveredIdentity.value = null
     discoveryDetails.value = null
     manualIdentityId.value = ''
+    currentInputKey.value = ''
 }
 
 const handleDiscoverIdentity = async (key: string) => {
@@ -162,7 +155,6 @@ const handleDiscoverIdentity = async (key: string) => {
             return
         }
 
-        // Use the new enhanced discovery method
         const result = await IdentityDiscoveryService.discoverIdentityFromAnyKey(key, network)
 
         if (result.success && result.identity && result.associatedKeys) {
@@ -170,7 +162,9 @@ const handleDiscoverIdentity = async (key: string) => {
             manualIdentityId.value = result.identity.identityId
             identityStore.clearConnectionError()
 
-            // Map the result to our UI detail type
+            // Store the key so we can pass it to the store connection method
+            currentInputKey.value = key
+
             discoveryDetails.value = {
                 detectedKeyType: result.detectedKeyType || 'Unknown',
                 keyDescription: IdentityDiscoveryService.getKeyDescription(result.detectedKeyType || ''),
@@ -179,7 +173,6 @@ const handleDiscoverIdentity = async (key: string) => {
             }
         } else {
             identityStore.connectionError = result.error || 'Failed to discover identity. Please enter Identity ID manually.'
-            // If discovery fails, we implicitly show manual input by clearing discovery
         }
     } catch (err: any) {
         console.error('Error discovering identity:', err)
@@ -191,19 +184,17 @@ const handleDiscoverIdentity = async (key: string) => {
 
 const handleUseManualIdentity = (id: string) => {
     manualIdentityId.value = id
-    discoveredIdentity.value = {
-        identityId: id,
-        balance: '0',
-        revision: '0',
-        publicKeys: []
-    }
+    // If manual ID is used, we might not have a key, but the store handles 'null' by re-prompting
+    // or checking storage. However, for the specific 'connectWithSingleKey' flow,
+    // we might just clear the discoveredIdentity to signal manual mode.
+    discoveredIdentity.value = null
+    currentInputKey.value = ''
 }
 
 const connect = async () => {
     if (!isFormValid.value) return
 
     identityStore.clearConnectionError()
-
     const network = await getNetwork()
 
     if (network !== 'mainnet' && network !== 'testnet') {
@@ -211,13 +202,15 @@ const connect = async () => {
         return
     }
 
-    let result
-
     try {
         if (connectionMethod.value === 'seed') {
-            // FIX: Ensure network is passed correctly to the seed handler
             const seedPhrase = seedWords.join(' ')
-            result = await identityStore.connectWithSeed(seedPhrase, network)
+            const result = await identityStore.connectWithSeed(seedPhrase, network)
+
+            if (result.success) {
+                alert('Connection Successful! Navigating to home screen...')
+                router.push('/')
+            }
         } else {
             const identityId = discoveredIdentity.value?.identityId || manualIdentityId.value.trim()
 
@@ -226,28 +219,22 @@ const connect = async () => {
                 return
             }
 
-            // For single key mode, pass the identityId directly.
-            // Note: The store handles the actual key material if it was stored during discovery,
-            // or we might need to pass the raw key if the store expects it.
-            // Assuming the store can handle just Identity ID if keys were already discovered
-            // or we need to pass the raw key. Based on the regression error, it seems
-            // we might need to pass the raw key back.
-            // We will use `null` for keys here to rely on store discovery,
-            // or pass the last used key if available.
-            result = await identityStore.connectWithPrivateKeys(
+            // Use the NEW store method
+            // We pass the key we captured during discovery.
+            // If user entered manual ID, currentInputKey is empty.
+            // The store should handle the empty key case if necessary (e.g. error or prompt).
+            const result = await identityStore.connectWithSingleKey(
+                currentInputKey.value,
                 identityId,
-                null, // auth key
-                null, // transfer key
-                null, // encryption key
                 network
             )
-        }
 
-        if (result.success) {
-            alert('Connection Successful! Navigating to home screen...')
-            router.push('/')
-        } else {
-            console.error('Connection failed:', result.error)
+            if (result.success) {
+                alert('Connection Successful! Navigating to home screen...')
+                router.push('/')
+            } else {
+                console.error('Connection failed:', result.error)
+            }
         }
     } catch (err: any) {
         console.error('Unexpected error in connect:', err)
