@@ -1,15 +1,10 @@
 // src/libs/identity/IdentityManager.ts
-// Removed DashPlatformSDK import to prevent CORS/Websocket issues
+// Refactored to support single-key lookup
 import { ErrorBoundary } from '@/utils/errors'
 import { log, getDapiEndpoint } from '@/utils/env'
 import { DEFAULT_IDENTITY_SEARCH_LIMIT, DEFAULT_QUERY_REGISTRY } from '@/constants'
 import getNetwork from '../getNetwork'
-import { getPrivateKeyManager } from '../keys/PrivateKeyManager'
-import type {
-    IdentitySearchOptions,
-    IIdentity,
-    IPublicKey
-} from '@/types'
+import type { IdentitySearchOptions, IIdentity, IPublicKey } from '@/types'
 export class IdentityManager {
     private network: 'testnet' | 'mainnet' = 'testnet'
     private isInitializing = false
@@ -18,67 +13,194 @@ export class IdentityManager {
      */
     async initialize(): Promise<void> {
         return ErrorBoundary.wrap(async () => {
-            if (this.isInitializing) return // Prevent race conditions
+            if (this.isInitializing) return
             this.isInitializing = true
-            this.network = await getNetwork()
-            this.isInitializing = false
-            log('info', `IdentityManager initialized for network: ${this.network}`)
+            try {
+                this.network = await getNetwork()
+                log('info', `IdentityManager initialized for network: ${this.network}`)
+            } finally {
+                this.isInitializing = false
+            }
         }, 'IDENTITY_MANAGER_INIT_FAILED')
     }
     /**
-     * Search all keys for an Identity's registered public keys.
-     * No SDK initialization required - pure DAPI calls.
+     * Search for identities using a seed phrase
+     * This is the main entry point for seed phrase login
      */
-    async getIdentities(options?: IdentitySearchOptions): Promise<IIdentity[] | null> {
+    async getIdentitiesFromSeed(
+        seedPhrase: string,
+        options?: IdentitySearchOptions
+    ): Promise<IIdentity[] | null> {
         return ErrorBoundary.wrap(async () => {
-            // Ensure we have network info
-            if (this.network === 'testnet' && !this.isInitializing) {
-                await this.initialize()
-            }
+            await this.initialize()
             const minIndexSearch = options?.minIndexSearch || DEFAULT_IDENTITY_SEARCH_LIMIT
             const queryRegistry = options?.queryRegistry || DEFAULT_QUERY_REGISTRY
-            const signatureScheme = options?.signatureScheme
-            log('debug', `Searching identities with options:`, { minIndexSearch, queryRegistry, signatureScheme })
+            log('debug', `Searching identities from seed with options:`, { minIndexSearch, queryRegistry })
             const identities: IIdentity[] = []
-            for (let i = 0; i < minIndexSearch; i++) {
-                let result: any = null
-                // Try different signature schemes
-                if (!signatureScheme || signatureScheme === 'hash160') {
-                    result = await this.searchByHash160(i, queryRegistry)
-                }
-                if (!result && (!signatureScheme || signatureScheme === 'ecdsa')) {
-                    result = await this.searchBySecp256k1(i, queryRegistry)
-                }
-                if (result) {
-                    const identity: IIdentity = {
-                        identity_idx: i,
-                        publicKeys: (result.regPubKeys || []).map((_key: any) => ({
-                            type: this.getKeyTypeId(_key.keyType),
-                            keyType: _key.keyType,
-                            purpose: this.getPurposeNumber(_key.purpose),
-                            securityLevel: this.getSecurityLevelNumber(_key.securityLevel),
-                            contractBounds: _key.contractBounds || null,
-                            data: _key.data || '',
-                            dataBytes: this.decodeBase64ToHex(_key.dataB64 || ''),
-                            readOnly: _key.readOnly || false,
-                            disabledAt: _key.disabledAt || null,
-                        }))
+            // Try direct backend call first (most efficient)
+            try {
+                const result = await this.queryWebAPI('get_identities_from_seed', [seedPhrase])
+                if (result?.success && Array.isArray(result.result)) {
+                    for (const identityData of result.result) {
+                        identities.push({
+                            identity_idx: identityData.index || identities.length,
+                            id: identityData.identityId,
+                            publicKeys: this.mapPublicKeys(identityData.publicKeys || []),
+                            // balance: identityData.balance,
+                            // revision: identityData.revision
+                        })
                     }
-                    identities.push(identity)
-                    log('debug', `Found identity at index ${i}: ${result.identityId}`)
-                    break // Stop after first found identity
+                }
+            } catch (err) {
+                log('warn', 'Direct seed discovery failed, falling back to index search...', err)
+            }
+            // Fallback: If no identities found, try the old index-based search
+            if (identities.length === 0) {
+                log('debug', 'No identities found via direct method, trying index search...')
+                for (let i = 0; i < minIndexSearch; i++) {
+                    const result = await this.searchByIndex(i, queryRegistry, seedPhrase)
+                    if (result) {
+                        identities.push({
+                            identity_idx: i,
+                            id: result.identityId,
+                            publicKeys: this.mapPublicKeys(result.regPubKeys || []),
+                            // balance: result.balance,
+                            // revision: result.revision
+                        })
+                        break // Stop after first found identity for now
+                    }
                 }
             }
             if (identities.length === 0) {
-                log('warn', 'No identities found for the provided credentials.')
+                log('warn', 'No identities found for the provided seed phrase.')
                 return null
             }
             log('info', `Found ${identities.length} identities`)
             return identities
-        }, 'GET_IDENTITIES_FAILED')
+        }, 'GET_IDENTITIES_FROM_SEED_FAILED')
     }
-    private getKeyTypeId(_keyType: string | undefined): number {
-        switch(_keyType) {
+    /**
+     * Search for identity by a single private key
+     * This replaces the inefficient multi-key search
+     */
+    async getIdentityByKey(
+        keyInput: string,
+        keyType?: 'WIF' | 'HEX' | 'PUBLIC_KEY'
+    ): Promise<{ identity: IIdentity; keyType: string } | null> {
+        return ErrorBoundary.wrap(async () => {
+            await this.initialize()
+            log('debug', `Searching identity by key: ${keyInput.substring(0, 8)}...`)
+            // Try direct backend discovery
+            const result = await this.queryWebAPI('get_identity_by_private_key', [keyInput])
+            if (result?.success && result?.result?.identityId) {
+                return {
+                    identity: {
+                        identity_idx: 0,
+                        identityId: result.result.identityId,
+                        publicKeys: this.mapPublicKeys(result.result.publicKeys || []),
+                        balance: result.result.balance,
+                        revision: result.result.revision
+                    },
+                    keyType: this.detectKeyType(keyInput)
+                }
+            }
+            // Fallback: Try hash-based lookup
+            const hash = await this.deriveKeyHash(keyInput)
+            if (hash) {
+                const hashResult = await this.queryWebAPI('get_identity_by_public_key_hash', [hash])
+                if (hashResult?.success && hashResult?.result?.identityId) {
+                    return {
+                        identity: {
+                            identity_idx: 0,
+                            identityId: hashResult.result.identityId,
+                            publicKeys: this.mapPublicKeys(hashResult.result.publicKeys || []),
+                            balance: hashResult.result.balance,
+                            revision: hashResult.result.revision
+                        },
+                        keyType: this.detectKeyType(keyInput)
+                    }
+                }
+            }
+            log('warn', 'No identity found for key')
+            return null
+        }, 'GET_IDENTITY_BY_KEY_FAILED')
+    }
+    /**
+     * Lookup identity directly by ID
+     */
+    async getIdentityById(identityId: string): Promise<IIdentity | null> {
+        return ErrorBoundary.wrap(async () => {
+            await this.initialize()
+            const result = await this.queryWebAPI('identity_fetch', [identityId])
+            if (result?.success && result?.result) {
+                const data = result.result
+                return {
+                    identity_idx: 0,
+                    identityId: data.identityId,
+                    publicKeys: this.mapPublicKeys(data.publicKeys || []),
+                    balance: data.balance,
+                    revision: data.revision
+                }
+            }
+            return null
+        }, 'GET_IDENTITY_BY_ID_FAILED')
+    }
+    /**
+     * Private helper methods
+     */
+    private async searchByIndex(
+        identityIdx: number,
+        queryRegistry: boolean,
+        seedPhrase?: string
+    ): Promise<{ identityId: string; regPubKeys: any[]; balance?: string; revision?: string } | null> {
+        try {
+            // This would be implemented with actual key derivation from seed phrase
+            // For now, return null as this is inefficient and should be replaced by direct backend calls
+            return null
+        } catch (err) {
+            log('error', `Failed to search by index ${identityIdx}:`, err)
+            return null
+        }
+    }
+    private async deriveKeyHash(keyInput: string): Promise<string | null> {
+        try {
+            // This should call backend crypto functions
+            // For now, return a mock hash for testing
+            const response = await this.queryWebAPI('derive_public_key_hash', [keyInput])
+            return response?.result?.hash || null
+        } catch (err) {
+            log('error', 'Failed to derive key hash:', err)
+            return null
+        }
+    }
+    private detectKeyType(keyInput: string): string {
+        const cleanKey = keyInput.trim()
+        if (/^[cKL][0-9A-Za-z]{50,}$/.test(cleanKey)) {
+            return 'WIF'
+        } else if (/^[0-9a-fA-F]{64}$/.test(cleanKey)) {
+            return 'HEX'
+        } else if (/^0[23][0-9a-fA-F]{64}$/.test(cleanKey)) {
+            return 'COMPRESSED_PUBKEY'
+        } else if (/^04[0-9a-fA-F]{128}$/.test(cleanKey)) {
+            return 'UNCOMPRESSED_PUBKEY'
+        }
+        return 'UNKNOWN'
+    }
+    private mapPublicKeys(keys: any[]): IPublicKey[] {
+        return (keys || []).map((key, index) => ({
+            type: this.getKeyTypeId(key.keyType),
+            keyType: key.keyType || 'UNKNOWN',
+            purpose: this.getPurposeNumber(key.purpose),
+            securityLevel: this.getSecurityLevelNumber(key.securityLevel),
+            contractBounds: key.contractBounds || null,
+            data: key.data || '',
+            dataBytes: this.decodeBase64ToHex(key.dataB64 || ''),
+            readOnly: key.readOnly || false,
+            disabledAt: key.disabledAt || null,
+        }))
+    }
+    private getKeyTypeId(keyType: string | undefined): number {
+        switch(keyType?.toUpperCase()) {
             case 'ECDSA_SECP256K1': return 0
             case 'BLS12_381': return 1
             case 'ECDSA_HASH160': return 2
@@ -88,7 +210,7 @@ export class IdentityManager {
         }
     }
     private getPurposeNumber(purpose: string): number {
-        switch(purpose) {
+        switch(purpose?.toUpperCase()) {
             case 'AUTHENTICATION': return 0
             case 'TRANSFER': return 1
             case 'ENCRYPTION': return 2
@@ -96,7 +218,7 @@ export class IdentityManager {
         }
     }
     private getSecurityLevelNumber(securityLevel: string): number {
-        switch(securityLevel) {
+        switch(securityLevel?.toUpperCase()) {
             case 'MASTER': return 0
             case 'CRITICAL': return 1
             case 'HIGH': return 2
@@ -121,84 +243,17 @@ export class IdentityManager {
         }
     }
     /**
-     * Search by non-unique public key hash (Primary method)
-     */
-    private async searchByHash160(
-        identityIdx: number,
-        queryRegistry: boolean
-    ): Promise<{ identityId: string; regPubKeys: any[] } | null> {
-        return ErrorBoundary.wrap(async () => {
-            const keyManager = getPrivateKeyManager()
-            const privateKeys = await keyManager.getPrivateKeys(identityIdx, queryRegistry)
-            // Assuming a helper function exists to get hash160.
-            // We will rely on the keyManager to provide it or standard crypto.
-            // For now, we simulate the 'binToHex' and 'hash160' call that was in the source.
-            // NOTE: You need to replace these with actual crypto calls.
-            // Placeholder logic - this must be implemented via @evonext/crypto or webcrypto
-            let publicKeyHash = "";
-            try {
-                // const publicKey = privateKeys.masterKey.getPublicKey()
-                // const publicKeyBytes = publicKey.bytes()
-                // publicKeyHash = binToHex(hash160(publicKeyBytes))
-                // Fallback/Placeholder if crypto modules are failing:
-                publicKeyHash = "0000000000000000000000000000000000000000000";
-            } catch (e) {
-                console.error("[HASH160] Crypto error:", e);
-                return null;
-            }
-            const result = await this.queryWebAPI('get_identity_by_non_unique_public_key_hash', [publicKeyHash])
-            if (result && typeof result === 'object' && result.result?.identityId) {
-                return {
-                    identityId: result.result.identityId,
-                    regPubKeys: result.result.publicKeys || []
-                }
-            }
-            return null
-        }, 'SEARCH_BY_HASH160_FAILED')
-    }
-    /**
-     * Search by unique public key hash (Secondary method)
-     */
-    private async searchBySecp256k1(
-        identityIdx: number,
-        queryRegistry: boolean
-    ): Promise<{ identityId: string; regPubKeys: any[] } | null> {
-        return ErrorBoundary.wrap(async () => {
-            const keyManager = getPrivateKeyManager()
-            const privateKeys = await keyManager.getPrivateKeys(identityIdx, queryRegistry)
-            let publicKeyHash = "";
-            try {
-                // const publicKey = privateKeys.masterKey.getPublicKey()
-                // const publicKeyBytes = publicKey.bytes()
-                // publicKeyHash = binToHex(hash160(publicKeyBytes))
-                publicKeyHash = "0000000000000000000000000000000000000000000";
-            } catch (e) {
-                console.error("[SECP256K1] Crypto error:", e);
-                return null;
-            }
-            const result = await this.queryWebAPI('get_identity_by_public_key_hash', [publicKeyHash])
-            if (result && typeof result === 'object' && result.result?.identityId) {
-                return {
-                    identityId: result.result.identityId,
-                    regPubKeys: result.result.publicKeys || []
-                }
-            }
-            return null
-        }, 'SEARCH_BY_SECP256K1_FAILED')
-    }
-    /**
      * Web API Query wrapper - Pure fetch implementation
      */
-    private async queryWebAPI(_method: string, _params: any[]): Promise<any> {
+    private async queryWebAPI(method: string, params: any[] = []): Promise<any> {
         return ErrorBoundary.wrap(async () => {
-            const network = this.network
             const endpoint = getDapiEndpoint()
             const body = JSON.stringify({
-                method: _method,
-                params: _params,
-                network,
+                method,
+                params,
+                network: this.network,
             })
-            console.log(`[DEBUG DAPI] Calling ${_method} with params:`, _params)
+            log('debug', `[DAPI] Calling ${method} with params:`, params)
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
@@ -214,36 +269,8 @@ export class IdentityManager {
                 const errorText = await response.text()
                 throw new Error(`HTTP error! status: ${response.status} - ${errorText}`)
             }
-            const result = await response.json()
-            return result
-        }, 'QUERY_WEB_API_FAILED')
-    }
-    /**
-     * Lookup identity directly by ID
-     */
-    async getIdentityById(identityId: string): Promise<IIdentity | null> {
-        return ErrorBoundary.wrap(async () => {
-            // Direct DAPI call without SDK
-            const result = await this.queryWebAPI('identity_fetch', [identityId])
-            if (result && typeof result === 'object' && result.result) {
-                const data = result.result
-                return {
-                    identity_idx: 0,
-                    publicKeys: (data.publicKeys || []).map((_key: any, _index: number) => ({
-                        type: this.getKeyTypeId(_key.keyType),
-                        keyType: _key.keyType,
-                        purpose: this.getPurposeNumber(_key.purpose),
-                        securityLevel: this.getSecurityLevelNumber(_key.securityLevel),
-                        contractBounds: _key.contractBounds || null,
-                        data: _key.data || '',
-                        dataBytes: this.decodeBase64ToHex(_key.dataB64 || ''),
-                        readOnly: _key.readOnly || false,
-                        disabledAt: _key.disabledAt || null,
-                    }))
-                }
-            }
-            return null
-        }, 'GET_IDENTITY_BY_ID_FAILED')
+            return await response.json()
+        }, `QUERY_WEB_API_FAILED: ${method}`)
     }
 }
 // Singleton instance

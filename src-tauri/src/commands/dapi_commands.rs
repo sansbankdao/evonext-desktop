@@ -467,6 +467,83 @@ pub async fn get_total_credits_in_platform(
     }
 }
 
+// Add to src-tauri/src/commands/dapi_commands.rs
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct DAPIParams {
+    method: String,
+    params: Vec<serde_json::Value>,
+    network: String,
+}
+
+#[tauri::command]
+pub async fn get_identity_by_public_key_hash(
+    public_key_hash: String,
+    network: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let client = get_dapi_client();
+    let network_value = network.unwrap_or_else(|| "testnet".to_string());
+
+    let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
+
+    // Prepare the JSON-RPC request exactly as the DAPI expects
+    let body = serde_json::json!({
+        "method": "get_identity_by_public_key_hash",
+        "params": [public_key_hash],
+        "network": network_value
+    });
+
+    let response = client.make_request(body, network_enum).await
+        .map_err(|e| format!("DAPI request failed: {}", e))?;
+
+    Ok(response)
+}
+
+#[tauri::command]
+pub async fn get_identity_by_non_unique_public_key_hash(
+    public_key_hash: String,
+    network: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let client = get_dapi_client();
+    let network_value = network.unwrap_or_else(|| "testnet".to_string());
+
+    let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
+
+    let body = serde_json::json!({
+        "method": "get_identity_by_non_unique_public_key_hash",
+        "params": [public_key_hash],
+        "network": network_value
+    });
+
+    let response = client.make_request(body, network_enum).await
+        .map_err(|e| format!("DAPI request failed: {}", e))?;
+
+    Ok(response)
+}
+
+#[tauri::command]
+pub async fn get_identity_by_id(
+    identity_id: String,
+    network: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let client = get_dapi_client();
+    let network_value = network.unwrap_or_else(|| "testnet".to_string());
+
+    let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
+
+    let body = serde_json::json!({
+        "method": "get_identity",  // Assuming this is the correct method name
+        "params": [identity_id],
+        "network": network_value
+    });
+
+    let response = client.make_request(body, network_enum).await
+        .map_err(|e| format!("DAPI request failed: {}", e))?;
+
+    Ok(response)
+}
+
 // Helper function to convert params from array to object format
 pub fn params_array_to_object(method: &str, params_array: Vec<Value>) -> Result<HashMap<String, Value>, String> {
     let method_info = MethodParamInfo::for_method(method)

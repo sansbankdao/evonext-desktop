@@ -74,8 +74,24 @@ export interface IWalletState {
 }
 
 // Key management types
+export interface DerivedKey {
+    keyIndex: number
+    purpose: string
+    securityLevel: string
+    privateKey: any // PrivateKeyWASM instance
+    publicKey: string // hex
+    publicKeyHash: string // hex
+}
+
 export interface KeyDerivationResult {
-    masterKey: any;  // PrivateKeyWASM instance
+    identityIndex: number
+    keys: DerivedKey[]
+    success: boolean
+    error?: string
+}
+
+export interface EvoNextKeyDerivationResult {
+    masterKey: any;
     authCritical: any;
     authHigh: any;
     transferKey: any;
