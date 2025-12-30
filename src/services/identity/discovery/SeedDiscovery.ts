@@ -34,7 +34,8 @@ export class SeedDiscovery {
                 options.maxIdentityIndex,
                 options.maxKeyIndex
             )
-            if (!derivationResults.some(r => r.success)) {
+            const successfulDerivations = derivationResults.filter(r => r.success)
+            if (successfulDerivations.length === 0) {
                 return {
                     success: false,
                     error: 'Failed to derive any keys from seed phrase. Please check your seed phrase.',
@@ -49,27 +50,27 @@ export class SeedDiscovery {
                     }
                 }
             }
-            console.log(`[SeedDiscovery] Derived ${derivationResults.filter(r => r.success).length} successful identity indexes`)
-            // Step 2: Search for identities using all derived hashes
+            console.log(`[SeedDiscovery] Derived ${successfulDerivations.length} successful identity indexes`)
+            // Step 2: Prepare all search promises
             const searchPromises: Promise<{
                 identityIndex: number
                 keyIndex: number
                 hash: string
-                result: ReturnType<typeof DAPIService.searchByHash>
+                result: DAPIHashSearchResult
             }>[] = []
-            for (const derivationResult of derivationResults) {
-                if (derivationResult.success && derivationResult.keys.length > 0) {
-                    for (const key of derivationResult.keys) {
-                        searchPromises.push(
-                            DAPIService.searchByHash(key.publicKeyHash, options.network)
-                                .then(result => ({
-                                    identityIndex: derivationResult.identityIndex,
-                                    keyIndex: key.keyIndex,
-                                    hash: key.publicKeyHash,
-                                    result
-                                }))
-                        )
-                    }
+            for (const derivationResult of successfulDerivations) {
+                for (const key of derivationResult.keys) {
+                    // Create a promise that resolves with the correct structure
+                    const searchPromise = (async () => {
+                        const result = await DAPIService.searchByHash(key.publicKeyHash, options.network)
+                        return {
+                            identityIndex: derivationResult.identityIndex,
+                            keyIndex: key.keyIndex,
+                            hash: key.publicKeyHash,
+                            result
+                        }
+                    })()
+                    searchPromises.push(searchPromise)
                 }
             }
             console.log(`[SeedDiscovery] Searching ${searchPromises.length} derived public key hashes...`)
@@ -153,6 +154,7 @@ export class SeedDiscovery {
             }
         }
     }
+
     /**
      * Get DPNS username from identity data or fetch it
      */
@@ -171,6 +173,7 @@ export class SeedDiscovery {
         }
         return null
     }
+
     /**
      * Format balance from DAPI response
      */
@@ -178,6 +181,7 @@ export class SeedDiscovery {
         if (!balance && balance !== 0) return '0'
         return balance.toString()
     }
+
     /**
      * Format revision from DAPI response
      */
@@ -185,6 +189,7 @@ export class SeedDiscovery {
         if (!revision && revision !== 0) return '0'
         return revision.toString()
     }
+
     /**
      * Extract key metrics for display
      */
