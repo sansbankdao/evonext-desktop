@@ -11,6 +11,8 @@ import type {
     AssociatedKey,
 } from '../types'
 import type { KeyHashDerivationResult } from '@/types'
+import type { ProgressCallback } from './SeedDiscovery'
+import type { ScanProgress } from '../types'
 
 export class IdentityManager {
     private keyDiscovery: KeyDiscovery
@@ -19,6 +21,13 @@ export class IdentityManager {
     constructor() {
         this.keyDiscovery = new KeyDiscovery()
         this.seedDiscovery = new SeedDiscovery()
+    }
+
+    /**
+     * Set progress callback for seed discovery
+     */
+    setProgressCallback(callback: ProgressCallback) {
+        this.seedDiscovery.setProgressCallback(callback)
     }
 
     /**
