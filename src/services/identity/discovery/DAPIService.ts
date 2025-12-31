@@ -118,18 +118,27 @@ export class DAPIService {
                 network_override: network,
                 with_proof: false
             })
-
-            if (response?.success && response?.result) {
-                return {
-                    success: true,
-                    data: response.result,
-                    searchType: 'none'
+            // Handle array response and unwrap result
+            // The Tauri command returns Vec<Value>, so invoke returns an array.
+            // The 'get_identity_info' implementation wraps the result in a success object.
+            if (Array.isArray(response) && response[0]) {
+                const wrapper = response[0]
+                if (wrapper?.success === true && Array.isArray(wrapper.result)) {
+                    // The identity data is inside the result array
+                    const identityData = wrapper.result[0]
+                    if (identityData) {
+                        return {
+                            success: true,
+                            data: identityData,
+                            searchType: 'none'
+                        }
+                    }
                 }
             }
 
             return {
                 success: false,
-                error: response?.error || 'Not found',
+                error: 'Not found or invalid response format',
                 searchType: 'none'
             }
         } catch (e: any) {
@@ -137,40 +146,6 @@ export class DAPIService {
                 success: false,
                 error: e.message,
                 searchType: 'none'
-            }
-        }
-    }
-
-    // THE MAIN SEARCH FUNCTION
-    static async searchByHash(
-        publicKeyHash: string,
-        network: 'mainnet' | 'testnet'
-    ): Promise<DAPIHashSearchResult> {
-        // 1. Try Unique
-        const unique = await this.queryIdentityByHash(publicKeyHash, network, true)
-        if (unique.success) {
-            return {
-                ...unique,
-                searchType: 'unique'
-            }
-        }
-
-        // 2. Try Non-Unique (Strict fallback)
-        const nonUnique = await this.queryIdentityByHash(publicKeyHash, network, false)
-        if (nonUnique.success) {
-            return {
-                ...nonUnique,
-                searchType: 'non-unique'
-            }
-        }
-
-        return {
-            success: false,
-            error: 'No identity found via unique or non-unique lookup',
-            searchType: 'none',
-            debug: {
-                uniqueError: unique.error,
-                nonUniqueError: nonUnique.error
             }
         }
     }
