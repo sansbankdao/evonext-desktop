@@ -1,10 +1,12 @@
 // src/services/identity/keyDerivation.service.ts
+
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 // @ts-ignore
 import { hash160 } from '@evonext/crypto'
 // @ts-ignore
 import { binToHex, hexToBin } from '@evonext/utils'
+
 import type { DerivedKey, KeyDerivationResult } from './types'
 
 export type KeyType = 'WIF' | 'HEX_PRIVATE' | 'COMPRESSED_PUBKEY' | 'UNCOMPRESSED_PUBKEY' | 'UNKNOWN'
@@ -84,21 +86,44 @@ export class KeyDerivationService {
         }
     }
 
+    static derivePrivateKeyFromWIF(wif: string, network: 'mainnet' | 'testnet' = 'testnet'): PrivateKeyWASM {
+        try {
+            const pk = PrivateKeyWASM.fromWIF(wif)
+            // Verify the private key
+            const pubKey = pk.getPublicKey()
+            const pubKeyBytes = pubKey.bytes()
+            const pubKeyHash = binToHex(hash160(pubKeyBytes))
+
+            console.log(`[KeyDerivation] Generated PrivateKeyWASM from WIF`)
+            console.log(`   Public key: ${binToHex(pubKeyBytes).substring(0, 16)}...`)
+            console.log(`   Public key hash: ${pubKeyHash.substring(0, 16)}...`)
+
+            return pk
+        } catch (error: any) {
+            throw new Error(`Failed to derive private key from WIF: ${error.message}`)
+        }
+    }
+
     static async deriveAllKeysFromSeed(
         seedPhrase: string,
         network: 'mainnet' | 'testnet' = 'testnet',
-        maxIdentityIndex: number = 3, // Reduced to 3
+        maxIdentityIndex: number = 3,
         maxKeyIndex: number = 5
     ): Promise<KeyDerivationResult[]> {
         console.log(`[KeyDerivation] Deriving keys from seed for ${maxIdentityIndex} identities`)
 
         const words = seedPhrase.trim().split(/\s+/)
-        if (words.length !== 12 && words.length !== 24) throw new Error('Invalid seed phrase length')
+        if (words.length !== 12 && words.length !== 24) {
+            throw new Error('Invalid seed phrase length')
+        }
 
         try {
             const sdk = await this.getSDK(network)
+
+            // Create seed from mnemonic
             const seed = await sdk.keyPair.mnemonicToSeed(seedPhrase, undefined)
-            // Get the Master HD Key
+
+            // Create wallet HD key from seed using the ACTUAL method
             const walletHDKey = sdk.keyPair.seedToHdKey(seed)
 
             const results: KeyDerivationResult[] = []
@@ -111,9 +136,6 @@ export class KeyDerivationService {
                 { index: 4, purpose: 'ENCRYPTION', securityLevel: 'MEDIUM' },
             ]
 
-            // Coin type: 5' for Mainnet, 1' for Testnet
-            const coinType = network === 'mainnet' ? "5'" : "1'"
-
             for (let identityIdx = 0; identityIdx < maxIdentityIndex; identityIdx++) {
                 const keys: DerivedKey[] = []
 
@@ -121,33 +143,39 @@ export class KeyDerivationService {
                     if (keyInfo.index >= maxKeyIndex) break
 
                     try {
-                        // MANUAL DERIVATION PATH
-                        // Structure: m/9'/<coin_type>'/5'/0'/0'/<identity_index>'/<key_index>'
-                        // NOTE: All indices are hardened as requested.
-                        const path = `m/9'/${coinType}/5'/0'/0'/${identityIdx}'/${keyInfo.index}'`
+                        // Using deriveIdentityPrivateKey - the ACTUAL method that exists
+                        const hdKey = sdk.keyPair.deriveIdentityPrivateKey(
+                            walletHDKey,
+                            identityIdx,
+                            keyInfo.index,
+                            network
+                        )
 
-                        // Derive the specific child key
-                        const childKey = walletHDKey.derive(path)
+                        // Extract private and public keys as Uint8Arrays
+                        const privateKeyBuffer = hdKey.privateKey
+                        const publicKeyBuffer = hdKey.publicKey
 
-                        // Extract private key buffer (Bitcore HDPrivateKey.privateKey -> PrivateKey -> .toBuffer())
-                        const privateKeyBuffer = childKey.privateKey.toBuffer()
-
+                        // Create PrivateKeyWASM from the private key bytes
                         const privateKey = PrivateKeyWASM.fromHex(binToHex(privateKeyBuffer), network)
-                        const pubKeyBytes = privateKey.getPublicKey().bytes()
-                        const publicKeyHash = binToHex(hash160(pubKeyBytes))
+alert('privateKeyBuffer: ' + binToHex(privateKeyBuffer))
 
+                        // Calculate public key hash
+                        const publicKeyHash = binToHex(hash160(publicKeyBuffer))
+alert('publicKeyHash: ' + publicKeyHash)
                         keys.push({
                             keyIndex: keyInfo.index,
                             purpose: keyInfo.purpose,
                             securityLevel: keyInfo.securityLevel,
                             privateKey,
-                            publicKey: binToHex(pubKeyBytes),
+                            publicKey: binToHex(publicKeyBuffer),
                             publicKeyHash,
-                            path
+                            path: `m/9'/${network === 'mainnet' ? "5'" : "1'"}/5'/0'/0'/${identityIdx}'/${keyInfo.index}'`
                         })
 
+                        console.log(`[KeyDerivation] Derived key: identity=${identityIdx}, key=${keyInfo.index}, hash=${publicKeyHash.substring(0, 16)}...`)
+
                     } catch (error) {
-                        console.warn(`[KeyDerivation] Failed key ${keyInfo.index} idx ${identityIdx}:`, error)
+                        console.warn(`[KeyDerivation] Failed key ${keyInfo.index} identity ${identityIdx}:`, error)
                     }
                 }
 
@@ -156,12 +184,59 @@ export class KeyDerivationService {
                     keys,
                     success: keys.length > 0
                 })
+
+                console.log(`[KeyDerivation] Completed identity ${identityIdx} with ${keys.length} keys`)
             }
 
             return results
 
         } catch (error: any) {
             throw new Error(`Failed to derive keys: ${error.message}`)
+        }
+    }
+
+    static async getPrivateKeyWASM(
+        source: string,
+        network: 'mainnet' | 'testnet' = 'testnet',
+        identityIndex: number = 0,
+        keyIndex: number = 0
+    ): Promise<{ privateKey: PrivateKeyWASM; sourceType: 'WIF' | 'MNEMONIC' | 'HEX_PRIVATE' }> {
+        const format = this.detectKeyFormat(source)
+
+        if (format.format === 'WIF') {
+            // Direct WIF instantiation
+            const privateKey = this.derivePrivateKeyFromWIF(source, network)
+            return { privateKey, sourceType: 'WIF' }
+        }
+        else if (format.format === 'UNKNOWN' && (source.split(/\s+/).length === 12 || source.split(/\s+/).length === 24)) {
+            // Mnemonic phrase - derive using deriveIdentityPrivateKey
+            const sdk = await this.getSDK(network)
+
+            // Create seed from mnemonic
+            const seed = await sdk.keyPair.mnemonicToSeed(source, undefined)
+
+            // Create wallet HD key from seed
+            const walletHDKey = sdk.keyPair.seedToHdKey(seed)
+
+            // Derive identity private key
+            const hdKey = sdk.keyPair.deriveIdentityPrivateKey(
+                walletHDKey,
+                identityIndex,
+                keyIndex,
+                network
+            )
+
+            const privateKeyBuffer = hdKey.privateKey
+            const privateKey = PrivateKeyWASM.fromHex(binToHex(privateKeyBuffer), network)
+            return { privateKey, sourceType: 'MNEMONIC' }
+        }
+        else if (format.format === 'HEX_PRIVATE') {
+            // Hex private key
+            const privateKey = PrivateKeyWASM.fromHex(source.toLowerCase(), network)
+            return { privateKey, sourceType: 'HEX_PRIVATE' }
+        }
+        else {
+            throw new Error(`Unsupported key format: ${format.description}`)
         }
     }
 
@@ -173,3 +248,5 @@ export class KeyDerivationService {
 export const detectKeyFormat = KeyDerivationService.detectKeyFormat
 export const deriveAllPossibleHashes = KeyDerivationService.deriveAllPossibleHashes
 export const deriveAllKeysFromSeed = KeyDerivationService.deriveAllKeysFromSeed
+export const derivePrivateKeyFromWIF = KeyDerivationService.derivePrivateKeyFromWIF
+export const getPrivateKeyWASM = KeyDerivationService.getPrivateKeyWASM
