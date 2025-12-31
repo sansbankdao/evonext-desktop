@@ -7,19 +7,21 @@
                 Private Key
             </label>
             <div class="relative">
-                <textarea
+                <input
                     id="privateKey"
                     v-model="keyInput"
                     :disabled="props.isDiscovering"
-                    rows="3"
-                    placeholder="Enter WIF (c..., K..., L...) or HEX private key (64 chars)"
+                    type="text"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="Enter WIF (X..., 7..., c...) or HEX private key"
                     class="w-full px-4 py-3 rounded-xl border-2 transition-colors duration-200 focus:ring-2 focus:ring-cyan-500 focus:border-transparent focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 font-mono text-sm"
                     @blur="handleKeyInputBlur"
-                ></textarea>
+                />
                 <button
                     v-if="keyInput"
                     @click="clearKeyInput"
-                    class="absolute right-3 top-3 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -126,7 +128,7 @@
         </div>
         <!-- Manual Identity ID Input (Fallback) -->
         <div v-else class="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-             <!-- Only show "No Identity Found" warning if we actually have an error passed in debug/error props -->
+            <!-- Only show "No Identity Found" warning if we actually have an error passed in debug/error props -->
             <div v-if="props.debugOutput?.error || (props.debugOutput?.step?.includes('failed') && !props.isDiscovering)"
                  class="p-4 border-2 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 rounded-xl mb-4">
                 <div class="flex items-center gap-3">
@@ -177,7 +179,6 @@
 </template>
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-// FIXED: Import from correct location
 import type { DiscoveredIdentity } from '@/services/identity/types'
 const props = defineProps<{
     debugOutput?: any
@@ -199,13 +200,14 @@ const localManualIdentityId = ref(props.manualIdentityId)
 const hasValidKeyInput = computed(() => {
     const key = keyInput.value.trim()
     if (!key) return false
-    // WIF
-    if (/^[cKL][0-9A-Za-z]{50,}$/.test(key)) return true
-    // HEX
+    // Standard Dash WIFs (Testnet: c, 9 | Mainnet: X, 7) + BTC/Legacy (K, L, 5)
+    // Supports 51 or 52 characters typically.
+    if (/^[XxcLK9758y][0-9A-Za-z]{50,52}$/.test(key)) return true
+    // HEX Private Key (64 chars)
     if (/^[0-9a-fA-F]{64}$/.test(key)) return true
-    // Compressed PubKey
+    // Compressed PubKey (66 chars)
     if (/^0[23][0-9a-fA-F]{64}$/.test(key)) return true
-    // Uncompressed PubKey
+    // Uncompressed PubKey (130 chars)
     if (/^04[0-9a-fA-F]{128}$/.test(key)) return true
     return false
 })
@@ -216,9 +218,10 @@ const handleDiscoverClick = () => {
     }
 }
 const handleKeyInputBlur = () => {
-    if (hasValidKeyInput.value && !props.discoveredIdentity && !props.isDiscovering) {
-        // Optional: Auto-discover on blur
-        // emit('discover-identity', keyInput.value.trim())
+    // Only auto-trigger if we aren't already successful
+    if (hasValidKeyInput.value && !props.discoveredIdentity && !props.isDiscovering && !props.debugOutput) {
+       // Optional: Auto-discover logic removed to let user click button explicitly
+       // or uncomment: emit('discover-identity', keyInput.value.trim())
     }
 }
 const clearKeyInput = () => {
