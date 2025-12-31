@@ -481,24 +481,59 @@ struct DAPIParams {
 pub async fn get_identity_by_public_key_hash(
     public_key_hash: String,
     network: Option<String>,
-) -> Result<Value, String> {
+) -> Result<Vec<Value>, String> {  // Changed to Vec<Value>
+    // DEBUG: Log incoming parameters
+    println!("[DAPI_DEBUG] get_identity_by_public_key_hash called");
+    println!("[DAPI_DEBUG]   public_key_hash: {}", public_key_hash);
+    println!("[DAPI_DEBUG]   network: {:?}", network);
+    println!("[DAPI_DEBUG]   public_key_hash length: {}", public_key_hash.len());
+    println!("[DAPI_DEBUG]   public_key_hash is hex: {}", public_key_hash.chars().all(|c| c.is_ascii_hexdigit()));
+
     let client = get_dapi_client();
     let network_value = network.unwrap_or_else(|| "testnet".to_string());
     let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
     let params = vec![json!(public_key_hash)];
+
+    // DEBUG: Log what we're about to send to DAPI
+    println!("[DAPI_DEBUG]   Calling client.request with:");
+    println!("[DAPI_DEBUG]     method: get_identity_by_public_key_hash");
+    println!("[DAPI_DEBUG]     params: {:?}", params);
+    println!("[DAPI_DEBUG]     network: {:?}", network_enum);
+
     match client.request::<Value>("get_identity_by_public_key_hash".to_string(), params, network_enum).await {
         Ok(result) => {
-            // Wrap the result in the expected format that matches your DAPI response structure
-            let response = json!({
-                "success": true,
-                "method": "get_identity_by_public_key_hash",
-                "params": [public_key_hash],
-                "network": network_value,
-                "result": result
-            });
-            Ok(response)
+            // DEBUG: Log successful response
+            println!("[DAPI_DEBUG]   SUCCESS - Raw DAPI result:");
+            println!("[DAPI_DEBUG]     {:?}", result);
+
+            // Check if result is empty/null
+            let is_empty = match &result {
+                Value::Null => true,
+                Value::Array(arr) => arr.is_empty(),
+                Value::Object(obj) => obj.is_empty(),
+                _ => false,
+            };
+
+            if is_empty {
+                println!("[DAPI_DEBUG]   WARNING: Result is empty/null");
+                // Return empty array for not found
+                Ok(vec![])
+            } else {
+                // Return as array with the wrapped result
+                let response = json!({
+                    "success": true,
+                    "method": "get_identity_by_public_key_hash",
+                    "params": [public_key_hash],
+                    "network": network_value,
+                    "result": result
+                });
+                println!("[DAPI_DEBUG]   Returning success response with data");
+                Ok(vec![response])
+            }
         }
         Err(e) => {
+            // DEBUG: Log error
+            println!("[DAPI_DEBUG]   ERROR from DAPI: {}", e);
             tracing::error!("Failed to get identity by public key hash: {}", e);
             let error_response = json!({
                 "success": false,
@@ -507,31 +542,69 @@ pub async fn get_identity_by_public_key_hash(
                 "network": network_value,
                 "error": e.to_string()
             });
-            Ok(error_response)
+            println!("[DAPI_DEBUG]   Returning error response: {}", error_response);
+            Ok(vec![error_response])
         }
     }
 }
+
 #[tauri::command]
 pub async fn get_identity_by_non_unique_public_key_hash(
     public_key_hash: String,
     network: Option<String>,
-) -> Result<Value, String> {
+) -> Result<Vec<Value>, String> {  // Changed to Vec<Value>
+    // DEBUG: Log incoming parameters
+    println!("[DAPI_DEBUG] get_identity_by_non_unique_public_key_hash called");
+    println!("[DAPI_DEBUG]   public_key_hash: {}", public_key_hash);
+    println!("[DAPI_DEBUG]   network: {:?}", network);
+    println!("[DAPI_DEBUG]   public_key_hash length: {}", public_key_hash.len());
+    println!("[DAPI_DEBUG]   public_key_hash is hex: {}", public_key_hash.chars().all(|c| c.is_ascii_hexdigit()));
+
     let client = get_dapi_client();
     let network_value = network.unwrap_or_else(|| "testnet".to_string());
     let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
     let params = vec![json!(public_key_hash)];
+
+    // DEBUG: Log what we're about to send to DAPI
+    println!("[DAPI_DEBUG]   Calling client.request with:");
+    println!("[DAPI_DEBUG]     method: get_identity_by_non_unique_public_key_hash");
+    println!("[DAPI_DEBUG]     params: {:?}", params);
+    println!("[DAPI_DEBUG]     network: {:?}", network_enum);
+
     match client.request::<Value>("get_identity_by_non_unique_public_key_hash".to_string(), params, network_enum).await {
         Ok(result) => {
-            let response = json!({
-                "success": true,
-                "method": "get_identity_by_non_unique_public_key_hash",
-                "params": [public_key_hash],
-                "network": network_value,
-                "result": result
-            });
-            Ok(response)
+            // DEBUG: Log successful response
+            println!("[DAPI_DEBUG]   SUCCESS - Raw DAPI result:");
+            println!("[DAPI_DEBUG]     {:?}", result);
+
+            // Check if result is empty/null
+            let is_empty = match &result {
+                Value::Null => true,
+                Value::Array(arr) => arr.is_empty(),
+                Value::Object(obj) => obj.is_empty(),
+                _ => false,
+            };
+
+            if is_empty {
+                println!("[DAPI_DEBUG]   WARNING: Result is empty/null");
+                // Return empty array for not found
+                Ok(vec![])
+            } else {
+                // Return as array with the wrapped result
+                let response = json!({
+                    "success": true,
+                    "method": "get_identity_by_non_unique_public_key_hash",
+                    "params": [public_key_hash],
+                    "network": network_value,
+                    "result": result
+                });
+                println!("[DAPI_DEBUG]   Returning success response with data");
+                Ok(vec![response])
+            }
         }
         Err(e) => {
+            // DEBUG: Log error
+            println!("[DAPI_DEBUG]   ERROR from DAPI: {}", e);
             tracing::error!("Failed to get identity by non-unique public key hash: {}", e);
             let error_response = json!({
                 "success": false,
@@ -540,7 +613,8 @@ pub async fn get_identity_by_non_unique_public_key_hash(
                 "network": network_value,
                 "error": e.to_string()
             });
-            Ok(error_response)
+            println!("[DAPI_DEBUG]   Returning error response: {}", error_response);
+            Ok(vec![error_response])
         }
     }
 }
