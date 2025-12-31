@@ -26,17 +26,15 @@ export class DAPIService {
                 publicKeyHash: publicKeyHash,
                 network: network
             })
-            // response is an array containing the wrapper object
-            const wrapper = Array.isArray(response) ? response[0] : response
-            if (wrapper && typeof wrapper === 'object' && wrapper.success === true) {
-                // The actual DAPI result is in wrapper.result (which is also an array!)
-                const dapiResult = wrapper.result
-                if (Array.isArray(dapiResult) && dapiResult.length > 0) {
-                    // First element of dapiResult is the actual identity object
-                    const identityData = dapiResult[0]
+            // The Rust command returns an array with one element containing the wrapper
+            if (Array.isArray(response) && response[0]) {
+                const wrapper = response[0]
+                if (wrapper.success === true && Array.isArray(wrapper.result)) {
+                    // The actual identity data is in wrapper.result[0]
+                    const identityData = wrapper.result[0]
                     return {
                         success: true,
-                        data: identityData, // ← This is the actual identity
+                        data: identityData,
                         searchType: unique ? 'unique' : 'non-unique',
                         debug: {
                             method,
@@ -45,11 +43,10 @@ export class DAPIService {
                             hash: publicKeyHash
                         }
                     }
-                } else {
-                    // No identity found
+                } else if (wrapper.error) {
                     return {
                         success: false,
-                        error: 'Identity not found',
+                        error: wrapper.error,
                         searchType: unique ? 'unique' : 'non-unique',
                         debug: {
                             method,
@@ -60,14 +57,13 @@ export class DAPIService {
                     }
                 }
             }
-            // Error case
             return {
                 success: false,
-                error: wrapper?.error || 'Invalid response format',
+                error: 'No identity found',
                 searchType: unique ? 'unique' : 'non-unique',
                 debug: {
                     method,
-                    wrapper: wrapper || response,
+                    response,
                     network,
                     hash: publicKeyHash
                 }
