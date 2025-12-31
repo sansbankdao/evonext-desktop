@@ -143,9 +143,9 @@ export abstract class BaseDiscovery {
         }
 
         return this.createErrorResult(`${context}: ${errorMessage}`, {
-            error: errorMessage,
-            stack: error?.stack,
-            ...this.createDebugInfo('exception')
+            step: 'exception',
+            network: this.network,
+            error: errorMessage
         })
     }
 
