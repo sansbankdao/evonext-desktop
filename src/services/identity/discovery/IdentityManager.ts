@@ -12,7 +12,7 @@ import type {
 } from '../types'
 import type { KeyHashDerivationResult } from '@/types'
 import type { ProgressCallback } from './SeedDiscovery'
-import type { ScanProgress } from '../types'
+// import type { ScanProgress } from '../types'
 
 export class IdentityManager {
     private keyDiscovery: KeyDiscovery
