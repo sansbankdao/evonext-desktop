@@ -1,390 +1,285 @@
 // src/composables/useConnect.ts
-import { ref, watch, type Ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import getNetwork from '@/libs/getNetwork'
-import { useConnectStore } from '@/stores/connect'
-import { useIdentityStore } from '@/stores/identity'
 import { getIdentityManager } from '@/services/identity'
-import type { DiscoveredIdentity } from '@/services/identity/types'
-
-// Simple notification system
-const useNotifications = () => {
-    const showNotification = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
-        // Create notification element
-        const notification = document.createElement('div')
-        notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 transform translate-x-full ${
-            type === 'success' ? 'bg-emerald-500 text-white' :
-            type === 'error' ? 'bg-red-500 text-white' :
-            type === 'warning' ? 'bg-amber-500 text-white' :
-            'bg-blue-500 text-white'
-        }`
-
-        notification.innerHTML = `
-            <div class="flex items-center gap-3">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    ${
-                        type === 'success' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />' :
-                        type === 'error' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />' :
-                        type === 'warning' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />' :
-                        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m0-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />'
-                    }
-                </svg>
-                <span>${message}</span>
-            </div>
-        `
-
-        // Add to DOM
-        document.body.appendChild(notification)
-
-        // Animate in
-        requestAnimationFrame(() => {
-            notification.classList.remove('translate-x-full')
-            notification.classList.add('translate-x-0')
-        })
-
-        // Remove after delay
-        setTimeout(() => {
-            notification.classList.remove('translate-x-0')
-            notification.classList.add('translate-x-full')
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification)
-                }
-            }, 300)
-        }, 3000)
-    }
-
-    return {
-        showSuccess: (message: string) => showNotification(message, 'success'),
-        showError: (message: string) => showNotification(message, 'error'),
-        showWarning: (message: string) => showNotification(message, 'warning'),
-        showInfo: (message: string) => showNotification(message, 'info')
-    }
-}
+import { useIdentityStore } from '@/stores/identity' // Assuming this exists for final login
+import getNetwork from '@/libs/getNetwork'
+import type { DiscoveredIdentity, DiscoveryResult } from '@/services/identity/types'
 
 export function useConnect() {
     const router = useRouter()
-    const connectStore = useConnectStore()
     const identityStore = useIdentityStore()
-    const { showSuccess, showError } = useNotifications()
+    const identityManager = getIdentityManager()
 
-    // Derived refs with proper typing
-    const manualIdentityId = ref(connectStore.manualIdentityId || '')
+    // --- State: General ---
+    const connectionMethod = ref<'seed' | 'privateKey'>('seed')
+    const connectionError = ref<string | null>(null)
+    const isConnecting = ref(false)
+    const isDiscovering = ref(false) // Shared loading state for discovery
+    const discoveryStatus = ref('')
+    const debugOutput = ref<any>(null)
 
-    // Sync manualIdentityId with store
-    watch(manualIdentityId, (newValue) => {
-        connectStore.manualIdentityId = newValue
-    })
+    // --- State: Seed Form ---
+    const seedWordCount = ref<'12' | '24'>('12')
+    const seedWords = ref<string[]>(new Array(12).fill(''))
+    const seedDiscoveryResults = ref<DiscoveredIdentity[]>([])
+    const selectedSeedIdentityId = ref<string | null>(null)
+    const seedDiscoveryError = ref<string | null>(null)
 
-    watch(() => connectStore.manualIdentityId, (newValue) => {
-        if (manualIdentityId.value !== newValue) {
-            manualIdentityId.value = newValue
+    // --- State: Private Key Form ---
+    const currentInputKey = ref('')
+    const manualIdentityId = ref('')
+    const discoveredIdentity = ref<DiscoveredIdentity | null>(null)
+    const discoveryDetails = ref<any>(null) // UI specific details for KeyDiscoveryForm
+
+    // --- Computed: Validation ---
+    const isFormValid = computed(() => {
+        if (connectionMethod.value === 'seed') {
+            const requiredCount = parseInt(seedWordCount.value)
+            const filledWords = seedWords.value.filter(w => w && w.trim().length > 0)
+
+            // 1. Words must be filled
+            if (filledWords.length !== requiredCount) return false
+
+            // 2. If we have discovery results, one must be selected
+            if (seedDiscoveryResults.value.length > 0 && !selectedSeedIdentityId.value) {
+                return false
+            }
+            return true
+        } else {
+            // Private Key: Needs a key and an identity ID (either discovered or manual)
+            const hasKey = currentInputKey.value.trim().length > 0
+            const hasId = discoveredIdentity.value || manualIdentityId.value.trim().length > 0
+            return hasKey && hasId
         }
     })
 
-    // Auto-search when all seed words are filled (debounced)
-    watch(() => connectStore.seedWords, (newWords, oldWords) => {
-        if (connectStore.seedSearchTimer) {
-            clearTimeout(connectStore.seedSearchTimer)
+    const isSearchingSeed = computed(() => isDiscovering.value && connectionMethod.value === 'seed')
+
+    // --- Actions: State Helpers ---
+    const updateConnectionMethod = (method: 'seed' | 'privateKey') => {
+        connectionMethod.value = method
+        resetDiscovery()
+    }
+
+    const resetDiscovery = () => {
+        connectionError.value = null
+        seedDiscoveryResults.value = []
+        seedDiscoveryError.value = null
+        selectedSeedIdentityId.value = null
+
+        discoveredIdentity.value = null
+        discoveryDetails.value = null
+        manualIdentityId.value = ''
+        currentInputKey.value = ''
+
+        debugOutput.value = null
+        isDiscovering.value = false
+    }
+
+    const formatBalance = (balance: string | number | undefined) => {
+        if (!balance) return '0.00'
+        const num = typeof balance === 'string' ? parseFloat(balance) : balance
+        // Assuming balance is in duffs/satoshis, adjust divisor as needed for your coin
+        return (num / 100000000).toFixed(2)
+    }
+
+    // --- Actions: Seed Logic ---
+    const handlePaste = (pastedText: string | string[]) => {
+        // Handle both raw string (from some events) or array (from component emit)
+        let words: string[] = []
+        if (Array.isArray(pastedText)) {
+            words = pastedText
+        } else if (typeof pastedText === 'string') {
+            words = pastedText.trim().split(/[\s,]+/)
         }
 
-        if (connectStore.connectionMethod === 'seed' &&
-            newWords.length === parseInt(connectStore.seedWordCount) &&
-            newWords.every(word => word.trim() !== '') &&
-            (!oldWords || newWords.some((word, i) => word !== oldWords?.[i]))) {
+        if (words.length > 0) {
+            // Auto-switch length if 24 words pasted
+            if (words.length > 12) seedWordCount.value = '24'
+            else seedWordCount.value = '12'
 
-            if (!connectStore.isSearchingSeed && connectStore.seedDiscoveryResults.length === 0) {
-                connectStore.seedSearchTimer = setTimeout(async () => {
-                    await handleDiscoverSeedIdentities()
-                }, 1000) // 1 second debounce
+            const count = parseInt(seedWordCount.value)
+            seedWords.value = new Array(count).fill('')
+            words.slice(0, count).forEach((w, i) => {
+                seedWords.value[i] = w
+            })
+
+            // Trigger discovery automatically on paste if full
+            if (words.length >= count) {
+                discoverFromSeed()
             }
         }
-    }, { deep: true })
-
-    const formatBalance = (balance: string | undefined | number): string => {
-        if (balance === undefined || balance === null) return '0'
-        const num = typeof balance === 'number' ? balance : parseInt(balance.toString(), 10)
-        if (isNaN(num)) return '0'
-        return new Intl.NumberFormat().format(num)
-    }
-
-    const updateConnectionMethod = (method: 'seed' | 'privateKey') => {
-        connectStore.updateConnectionMethod(method)
-    }
-
-    const handlePaste = (words: string[]) => {
-        connectStore.handlePaste(words)
     }
 
     const selectSeedIdentity = (identity: DiscoveredIdentity) => {
-        connectStore.selectSeedIdentity(identity)
+        selectedSeedIdentityId.value = identity.identityId
     }
 
-    const handleDiscoverSeedIdentities = async (): Promise<void> => {
-        if (connectStore.seedWords.some(word => !word.trim())) {
-            identityStore.setConnectionError('Please fill in all seed words')
-            showError('Please fill in all seed words')
-            return
-        }
+    const discoverFromSeed = async () => {
+        // Basic validation
+        const phrase = seedWords.value.join(' ').trim()
+        const count = parseInt(seedWordCount.value)
+        if (phrase.split(/\s+/).length !== count) return
 
-        const seedPhrase = connectStore.seedWords.join(' ').trim()
-        if (seedPhrase.split(/\s+/).length !== parseInt(connectStore.seedWordCount)) {
-            identityStore.setConnectionError(`Please enter exactly ${connectStore.seedWordCount} words`)
-            showError(`Please enter exactly ${connectStore.seedWordCount} words`)
-            return
-        }
-
-        connectStore.isSearchingSeed = true
-        connectStore.seedDiscoveryResults = []
-        connectStore.seedDiscoveryError = ''
-        identityStore.clearConnectionError()
-
-        console.log(`[Connect] Starting seed discovery for ${connectStore.seedWordCount} word phrase`)
+        isDiscovering.value = true
+        seedDiscoveryError.value = null
+        seedDiscoveryResults.value = []
+        discoveryStatus.value = 'Deriving keys and scanning network...'
 
         try {
             const network = await getNetwork()
-            console.log(`[Connect] Network: ${network}`)
-
-            const identityManager = getIdentityManager()
-            const result = await identityManager.discoverFromSeed(seedPhrase, {
+            const result: DiscoveryResult = await identityManager.discoverFromSeed(phrase, {
                 network,
                 maxIdentityIndex: 5
             })
 
-            console.log('[Connect] Seed discovery result:', result)
+            debugOutput.value = result.debug
 
             if (result.success && result.identities && result.identities.length > 0) {
-                connectStore.seedDiscoveryResults = result.identities
+                seedDiscoveryResults.value = result.identities
+                // Auto-select if only one
                 if (result.identities.length === 1) {
-                    // Auto-select if only one identity found
-                    connectStore.selectedSeedIdentityId = result.identities[0].identityId
-                    connectStore.manualIdentityId = result.identities[0].identityId
+                    selectedSeedIdentityId.value = result.identities[0]?.identityId || null
                 }
-                connectStore.debugOutput = result.debug
-                showSuccess(`Found ${result.identities.length} identities`)
             } else {
-                const errorMsg = result.error || 'No identities found for this seed phrase'
-                connectStore.seedDiscoveryError = errorMsg
-                connectStore.debugOutput = result.debug
-                showError(errorMsg)
+                seedDiscoveryError.value = result.error || 'No identities found for this seed.'
             }
-        } catch (error: any) {
-            console.error('[Connect] Seed discovery error:', error)
-            const errorMsg = error.message || 'Failed to discover identities from seed'
-            connectStore.seedDiscoveryError = errorMsg
-            connectStore.debugOutput = { error: error.message, stack: error.stack }
-            showError('Seed discovery failed')
+        } catch (e: any) {
+            seedDiscoveryError.value = e.message
         } finally {
-            connectStore.isSearchingSeed = false
+            isDiscovering.value = false
         }
     }
 
-    const handleDiscoverIdentity = async (key: string): Promise<void> => {
-        if (!key.trim()) {
-            identityStore.setConnectionError('Please enter a private key or public key')
-            showError('Please enter a private key or public key')
-            return
-        }
-
-        connectStore.isDiscovering = true
-        identityStore.clearConnectionError()
-        connectStore.debugOutput = null
-        connectStore.discoveredIdentity = null
-        connectStore.discoveryDetails = null
-        connectStore.currentInputKey = key
-
-        console.log(`[Connect] Starting key discovery: ${key.substring(0, 20)}...`)
+    // --- Actions: Private Key Logic ---
+    const handleDiscoverIdentity = async (keyInput: string) => {
+        isDiscovering.value = true
+        connectionError.value = null
+        currentInputKey.value = keyInput // Store input for final connection
+        discoveryStatus.value = 'Analyzing key and searching...'
 
         try {
             const network = await getNetwork()
-            console.log(`[Connect] Network: ${network}`)
+            const result: DiscoveryResult = await identityManager.discoverFromKey(keyInput, {
+                network
+            })
 
-            const identityManager = getIdentityManager()
-            const result = await identityManager.discoverFromKey(key, { network })
-            console.log('[Connect] Key discovery result:', result)
-
-            connectStore.debugOutput = result.debug || { step: 'unknown' }
+            debugOutput.value = result.debug
 
             if (result.success && result.identity) {
-                connectStore.discoveredIdentity = result.identity
-                connectStore.manualIdentityId = result.identity.identityId
-                identityStore.clearConnectionError()
+                discoveredIdentity.value = result.identity
+                manualIdentityId.value = result.identity.identityId // Auto-fill manual ID
 
-                connectStore.discoveryDetails = {
-                    detectedKeyType: result.detectedKeyType || 'Unknown',
-                    keyDescription: 'Key successfully discovered identity',
-                    keyIcon: 'CheckCircleIcon',
+                // Map service result to UI expectations
+                discoveryDetails.value = {
+                    detectedKeyType: result.detectedKeyType,
                     associatedKeys: result.associatedKeys || []
                 }
-
-                console.log(`[Connect] Identity found: ${result.identity.identityId}`)
-                showSuccess('Identity discovered successfully')
             } else {
-                const errorMsg = result.error || 'No identity found. Please enter Identity ID manually.'
-                identityStore.setConnectionError(errorMsg)
-                showError(errorMsg)
-                console.log('[Connect] Discovery failed:', result.error)
+                connectionError.value = result.error || 'Identity not found. You can enter ID manually.'
+                // Even if not found, we keep the key so they can try manual ID
             }
-        } catch (error: any) {
-            console.error('[Connect] Key discovery error:', error)
-            const errorMsg = error.message || 'Failed to discover identity'
-            identityStore.setConnectionError(errorMsg)
-            connectStore.debugOutput = { error: error.message, stack: error.stack }
-            showError('Key discovery failed')
+        } catch (e: any) {
+            connectionError.value = e.message
         } finally {
-            connectStore.isDiscovering = false
+            isDiscovering.value = false
         }
     }
 
-    const handleConnectWithSeed = async (network: 'mainnet' | 'testnet'): Promise<void> => {
-        const seedPhrase = connectStore.seedWords.join(' ').trim()
-
-        // If we have discovery results and a selected identity, use that
-        let identityId = connectStore.selectedSeedIdentityId
-        if (!identityId && connectStore.seedDiscoveryResults.length > 0) {
-            identityId = connectStore.seedDiscoveryResults[0].identityId
-        }
-
-        if (!identityId) {
-            // No specific identity selected, discover first
-            await handleDiscoverSeedIdentities()
-            if (connectStore.seedDiscoveryResults.length === 0) {
-                connectStore.seedDiscoveryError = 'No identities found. Please try again or use private key method.'
-                showError('No identities found. Please try again or use private key method.')
-                return
-            }
-            identityId = connectStore.seedDiscoveryResults[0].identityId
-        }
-
-        console.log(`[Connect] Connecting with seed phrase to identity: ${identityId}`)
-
-        const result = await identityStore.connectWithSeed(seedPhrase, network)
-
-        if (result.success) {
-            console.log('[Connect] Seed connection successful')
-            showSuccess('Connected successfully!')
-            router.push('/')
-        } else {
-            identityStore.setConnectionError(result.error || 'Failed to connect with seed phrase')
-            showError('Connection failed')
-        }
+    const useManualIdentity = () => {
+        // Logic handled in computed isFormValid mostly,
+        // but this can be used to trigger specific validation if needed
     }
 
-    const handleConnectWithKey = async (network: 'mainnet' | 'testnet'): Promise<void> => {
-        const identityId = connectStore.discoveredIdentity?.identityId || connectStore.manualIdentityId.trim()
-
-        if (!identityId) {
-            identityStore.setConnectionError('Please discover your identity or enter it manually')
-            showError('Please discover your identity or enter it manually')
-            return
-        }
-
-        if (!connectStore.currentInputKey.trim()) {
-            identityStore.setConnectionError('No private key provided')
-            showError('No private key provided')
-            return
-        }
-
-        console.log(`[Connect] Connecting with key to identity: ${identityId}`)
-
-        const result = await identityStore.connectWithSingleKey(
-            connectStore.currentInputKey,
-            identityId,
-            network
-        )
-
-        if (result.success) {
-            console.log('[Connect] Key connection successful')
-            showSuccess('Connected successfully!')
-            router.push('/')
-        } else {
-            identityStore.setConnectionError(result.error || 'Failed to connect with private key')
-            showError('Connection failed')
-        }
-    }
-
-    const handleConnect = async (): Promise<void> => {
-        if (!connectStore.isFormValid) {
-            showError('Please complete the form')
-            return
-        }
-
-        identityStore.clearConnectionError()
-        connectStore.seedDiscoveryError = ''
+    // --- Actions: Final Connection ---
+    const handleConnect = async () => {
+        isConnecting.value = true
+        connectionError.value = null
 
         try {
             const network = await getNetwork()
-            console.log(`[Connect] Network: ${network}`)
 
-            if (connectStore.connectionMethod === 'seed') {
-                await handleConnectWithSeed(network)
+            if (connectionMethod.value === 'seed') {
+                // SEED CONNECTION
+                const phrase = seedWords.value.join(' ').trim()
+                if (!selectedSeedIdentityId.value && seedDiscoveryResults.value.length === 0) {
+                    // Force discovery if clicked connect without discovering
+                    await discoverFromSeed()
+                    if (seedDiscoveryResults.value.length === 0) throw new Error('No identities found')
+                    selectedSeedIdentityId.value = seedDiscoveryResults.value[0]?.identityId || null
+                }
+
+                if (!selectedSeedIdentityId.value) throw new Error('Please select an identity')
+
+                // Call Store Action
+                // Note: We use the store for the final "Login" which sets up the wallet/session
+                const result = await identityStore.connectWithSeed(phrase, network) // Ensure your store has this
+                if (!result.success) throw new Error(result.error)
+
             } else {
-                await handleConnectWithKey(network)
+                // PRIVATE KEY CONNECTION
+                const idToUse = discoveredIdentity.value?.identityId || manualIdentityId.value
+                if (!idToUse) throw new Error('Identity ID is required')
+
+                // Call Store Action
+                const result = await identityStore.connectWithSingleKey(
+                    currentInputKey.value,
+                    idToUse,
+                    network
+                )
+                if (!result.success) throw new Error(result.error)
             }
-        } catch (error: any) {
-            console.error('[Connect] Connection error:', error)
-            identityStore.setConnectionError(error.message || 'Connection failed')
-            showError('Connection failed')
+
+            // Redirect on success
+            router.push({ name: 'Home' }) // or 'Dashboard'
+
+        } catch (e: any) {
+            connectionError.value = e.message || 'Connection failed'
+        } finally {
+            isConnecting.value = false
         }
     }
 
-    const resetDiscovery = () => {
-        connectStore.resetDiscovery()
-    }
-
-    const useManualIdentityAction = () => {
-        connectStore.useManualIdentity()
-    }
-
-    const initialize = () => {
-        console.log('[Connect] Component initialized')
-        // Try to load existing identity from storage
-        identityStore.initFromStorage().catch(console.error)
-    }
-
-    const cleanup = () => {
-        connectStore.cleanup()
-        const identityManager = getIdentityManager()
-        identityManager.cleanup()
-    }
+    // Lifecycle
+    const initialize = () => { resetDiscovery() }
+    const cleanup = () => { resetDiscovery() }
 
     return {
-        // Formatting
-        formatBalance,
+        // State
+        connectionMethod,
+        connectionError,
+        isConnecting,
+        isDiscovering,
+        isSearchingSeed,
+        discoveryStatus,
+        debugOutput,
 
-        // Methods
-        handleDiscoverSeedIdentities,
+        // Seed State
+        seedWordCount,
+        seedWords,
+        seedDiscoveryResults,
+        selectedSeedIdentityId,
+        seedDiscoveryError,
+
+        // Key State
+        manualIdentityId,
+        discoveredIdentity,
+        discoveryDetails,
+
+        // Computed
+        isFormValid,
+
+        // Actions
+        updateConnectionMethod,
+        formatBalance,
+        handlePaste,
+        selectSeedIdentity,
         handleDiscoverIdentity,
         handleConnect,
         resetDiscovery,
-        useManualIdentity: useManualIdentityAction,
-        updateConnectionMethod,
-        handlePaste,
-        selectSeedIdentity,
+        useManualIdentity,
         initialize,
-        cleanup,
-
-        // Store state
-        connectionMethod: connectStore.connectionMethod,
-        seedWordCount: connectStore.seedWordCount,
-        seedWords: connectStore.seedWords,
-        selectedSeedIdentityId: connectStore.selectedSeedIdentityId,
-        seedDiscoveryResults: connectStore.seedDiscoveryResults,
-        seedDiscoveryError: connectStore.seedDiscoveryError,
-        isSearchingSeed: connectStore.isSearchingSeed,
-        currentInputKey: connectStore.currentInputKey,
-        debugOutput: connectStore.debugOutput,
-        discoveredIdentity: connectStore.discoveredIdentity,
-        discoveryDetails: connectStore.discoveryDetails,
-        manualIdentityId,
-        isDiscovering: connectStore.isDiscovering,
-
-        // Computeds
-        isFormValid: connectStore.isFormValid,
-        discoveryStatus: connectStore.discoveryStatus,
-
-        // Identity store state
-        connectionError: () => identityStore.connectionError,
-        isConnecting: () => identityStore.isConnecting
+        cleanup
     }
 }
