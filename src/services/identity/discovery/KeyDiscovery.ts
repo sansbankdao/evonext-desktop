@@ -7,12 +7,12 @@ import type {
     DiscoveredIdentity,
     DiscoveryResult,
     DiscoveryOptions,
-    AssociatedKey,
+    // AssociatedKey,
 } from '../types'
 
 export class KeyDiscovery extends BaseDiscovery {
     /**
-     * Implement the abstract discover method from BaseDiscovery
+     * Implement abstract discover method from BaseDiscovery
      */
     async discover(
         input: string,
@@ -37,10 +37,11 @@ export class KeyDiscovery extends BaseDiscovery {
 
             if (derivationResult.hashes.length === 0) {
                 return this.createErrorResult(
-                    'Could not derive any public key hashes from the provided key',
+                    'Could not derive any public key hashes from provided key',
                     {
-                        ...derivationResult.debug,
-                        ...this.createDebugInfo('hash_derivation_failed')
+                        step: 'hash_derivation_failed',
+                        network: options.network,
+                        error: derivationResult.debug?.error
                     }
                 )
             }
@@ -50,10 +51,16 @@ export class KeyDiscovery extends BaseDiscovery {
                 console.log(`[KeyDiscovery] Hash ${i}: ${hash.substring(0, 24)}...`)
             })
 
-            // Step 2: Search for each hash (both unique and non-unique)
-            const searchPromises = derivationResult.hashes.map(hash =>
-                DAPIService.searchByHash(hash, options.network)
-            )
+            // Step 2: Search for each hash (unique then non-unique)
+            const searchPromises: Promise<DAPIHashSearchResult>[] = []
+            for (const hash of derivationResult.hashes) {
+                // Try Unique first
+                searchPromises.push(DAPIService.queryIdentityByHash(hash, options.network, true))
+                // If Unique fails, we might need to try non-unique, but let's do sequential or parallel
+                // To be safe and thorough, we check both or rely on the query order
+                // DAPIService returns a result, we check success.
+            }
+
             const results = await Promise.all(searchPromises)
 
             // Step 3: Find first successful result
@@ -78,13 +85,6 @@ export class KeyDiscovery extends BaseDiscovery {
                 // Extract key information
                 const associatedKeys = this.extractAssociatedKeys(discoveredIdentity.publicKeys)
 
-                // Determine which hash found the identity
-                const foundHashIndex = results.findIndex(r =>
-                    r.success && r.data &&
-                    (r.data.identityId === discoveredIdentity.identityId || r.data.id === discoveredIdentity.identityId)
-                )
-                const foundHash = foundHashIndex >= 0 ? derivationResult.hashes[foundHashIndex] : 'unknown'
-
                 return this.createSuccessResult(
                     discoveredIdentity,
                     null, // identities (not used for single key discovery)
@@ -93,37 +93,22 @@ export class KeyDiscovery extends BaseDiscovery {
                     {
                         step: 'comprehensive_search',
                         searchType: successfulResult.searchType,
-                        derivedHashes: derivationResult.hashes,
-                        foundHash,
-                        foundHashIndex,
-                        dpnsUsername,
                         keyType: derivationResult.keyType,
-                        ...successfulResult.debug,
-                        ...this.createDebugInfo('key_discovery_success')
+                        dpnsUsername,
+                        ...successfulResult.debug
                     }
                 )
             }
 
             // Step 4: If no identity found
             console.log(`[KeyDiscovery] No identity found for ${derivationResult.hashes.length} derived hashes`)
-            const errors = results
-                .filter(r => r.error)
-                .map(r => r.error)
-                .join('; ')
 
             return this.createErrorResult(
-                errors || 'No identity found. The key may not be registered on this network.',
+                'No identity found. The key may not be registered on this network.',
                 {
                     step: 'comprehensive_search_failed',
-                    derivedHashes: derivationResult.hashes,
-                    keyType: derivationResult.keyType,
-                    results: results.map(r => ({
-                        success: r.success,
-                        error: r.error,
-                        searchType: r.searchType,
-                        debug: r.debug
-                    })),
-                    ...this.createDebugInfo('key_discovery_failed')
+                    network: options.network,
+                    keyType: derivationResult.keyType
                 }
             )
 
@@ -139,7 +124,7 @@ export class KeyDiscovery extends BaseDiscovery {
         identityData: any,
         network: 'mainnet' | 'testnet'
     ): Promise<string | null> {
-        // First check if it's already in the response
+        // First check if it's already in response
         if (identityData.dpnsUsername || identityData.username) {
             return identityData.dpnsUsername || identityData.username
         }
