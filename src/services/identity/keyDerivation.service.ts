@@ -86,7 +86,7 @@ export class KeyDerivationService {
         }
     }
 
-    static derivePrivateKeyFromWIF(wif: string, network: 'mainnet' | 'testnet' = 'testnet'): PrivateKeyWASM {
+    static derivePrivateKeyFromWIF(wif: string): PrivateKeyWASM {
         try {
             const pk = PrivateKeyWASM.fromWIF(wif)
             // Verify the private key
@@ -204,7 +204,7 @@ export class KeyDerivationService {
 
         if (format.format === 'WIF') {
             // Direct WIF instantiation
-            const privateKey = this.derivePrivateKeyFromWIF(source, network)
+            const privateKey = this.derivePrivateKeyFromWIF(source)
             return { privateKey, sourceType: 'WIF' }
         }
         else if (format.format === 'UNKNOWN' && (source.split(/\s+/).length === 12 || source.split(/\s+/).length === 24)) {
