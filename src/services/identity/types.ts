@@ -20,16 +20,7 @@ export interface DAPIResponse {
     method: string;
     params: any[];
     network: string;
-    result?: {
-        identityId?: string;
-        id?: string;
-        publicKeyHash?: string;
-        balance?: string | number;
-        revision?: string | number;
-        publicKeys?: any[];
-        dpnsUsername?: string;
-        username?: string;
-    }
+    result?: any[];
     error?: string;
 }
 
@@ -64,6 +55,29 @@ export interface AssociatedKey {
     derivedFromInput: boolean;
 }
 
+export interface QueryTrace {
+    step: number;
+    identityIndex: number;
+    keyIndex: number;
+    path: string;
+    publicKeyHash: string;
+    method: 'unique' | 'non-unique';
+    found: boolean;
+    id?: string;
+}
+
+export interface ScanProgress {
+    currentIdentityIndex: number;
+    currentKeyIndex: number;
+    totalIdentities: number;
+    totalKeysPerIdentity: number;
+    currentPublicKeyHash: string;
+    currentPath: string;
+    status: 'deriving' | 'scanning' | 'completed' | 'failed';
+    scannedCount: number;
+    foundCount: number;
+}
+
 export interface DiscoveryResult {
     success: boolean
     identities?: DiscoveredIdentity[] | null
@@ -71,5 +85,12 @@ export interface DiscoveryResult {
     detectedKeyType?: string | null
     associatedKeys?: AssociatedKey[] | null
     error?: string
-    debug?: any
+    debug?: {
+        step?: string;
+        count?: number;
+        network?: string;
+        trace?: QueryTrace[];
+        progressSnapshot?: ScanProgress;
+        error?: string;
+    }
 }
