@@ -157,11 +157,10 @@ export class KeyDerivationService {
 
                         // Create PrivateKeyWASM from the private key bytes
                         const privateKey = PrivateKeyWASM.fromHex(binToHex(privateKeyBuffer), network)
-alert('privateKeyBuffer: ' + binToHex(privateKeyBuffer))
 
                         // Calculate public key hash
                         const publicKeyHash = binToHex(hash160(publicKeyBuffer))
-alert('publicKeyHash: ' + publicKeyHash)
+
                         keys.push({
                             keyIndex: keyInfo.index,
                             purpose: keyInfo.purpose,
