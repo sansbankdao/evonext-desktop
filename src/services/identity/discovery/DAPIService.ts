@@ -21,50 +21,53 @@ export class DAPIService {
         const method = unique
             ? 'get_identity_by_public_key_hash'
             : 'get_identity_by_non_unique_public_key_hash'
-
         try {
             const response = await invoke<any>(method, {
                 publicKeyHash: publicKeyHash,
                 network: network
             })
-
-            // Handle array response
-            const result = Array.isArray(response) ? response[0] : response
-            if (result && typeof result === 'object') {
-                if (result.success === true && result.result) {
+            // response is an array containing the wrapper object
+            const wrapper = Array.isArray(response) ? response[0] : response
+            if (wrapper && typeof wrapper === 'object' && wrapper.success === true) {
+                // The actual DAPI result is in wrapper.result (which is also an array!)
+                const dapiResult = wrapper.result
+                if (Array.isArray(dapiResult) && dapiResult.length > 0) {
+                    // First element of dapiResult is the actual identity object
+                    const identityData = dapiResult[0]
                     return {
                         success: true,
-                        data: result.result,
+                        data: identityData, // ← This is the actual identity
                         searchType: unique ? 'unique' : 'non-unique',
                         debug: {
                             method,
-                            response: result,
+                            wrapper,
                             network,
                             hash: publicKeyHash
                         }
                     }
                 } else {
+                    // No identity found
                     return {
                         success: false,
-                        error: result.error || 'Not found',
+                        error: 'Identity not found',
                         searchType: unique ? 'unique' : 'non-unique',
                         debug: {
                             method,
-                            response: result,
+                            wrapper,
                             network,
                             hash: publicKeyHash
                         }
                     }
                 }
             }
-
+            // Error case
             return {
                 success: false,
-                error: 'Invalid response format',
+                error: wrapper?.error || 'Invalid response format',
                 searchType: unique ? 'unique' : 'non-unique',
                 debug: {
                     method,
-                    response,
+                    wrapper: wrapper || response,
                     network,
                     hash: publicKeyHash
                 }
@@ -85,6 +88,7 @@ export class DAPIService {
             }
         }
     }
+
     // DPNS Helper
     static async getDPNSUsername(
         identityId: string,
