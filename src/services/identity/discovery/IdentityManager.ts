@@ -1,4 +1,5 @@
 // src/services/identity/discovery/IdentityManager.ts
+
 import { KeyDiscovery } from './KeyDiscovery'
 import { SeedDiscovery } from './SeedDiscovery'
 import { DAPIService } from './DAPIService'
@@ -38,7 +39,6 @@ export class IdentityManager {
                 associatedKeys: null,
                 debug: {
                     step: 'input_validation',
-                    input: keyInput ? keyInput.substring(0, 20) + '...' : 'empty',
                     network: options.network
                 }
             }
@@ -56,10 +56,8 @@ export class IdentityManager {
                 associatedKeys: null,
                 debug: {
                     step: 'key_discovery_exception',
-                    error: error.message,
-                    stack: error.stack,
                     network: options.network,
-                    input: keyInput.substring(0, 20) + '...'
+                    error: error.message
                 }
             }
         }
@@ -86,7 +84,6 @@ export class IdentityManager {
                 associatedKeys: null,
                 debug: {
                     step: 'input_validation',
-                    input: 'empty',
                     network: options.network
                 }
             }
@@ -103,7 +100,6 @@ export class IdentityManager {
                 associatedKeys: null,
                 debug: {
                     step: 'seed_validation',
-                    wordCount: words.length,
                     network: options.network
                 }
             }
@@ -128,10 +124,8 @@ export class IdentityManager {
                 associatedKeys: null,
                 debug: {
                     step: 'seed_discovery_exception',
-                    error: error.message,
-                    stack: error.stack,
                     network: options.network,
-                    wordCount: words.length
+                    error: error.message
                 }
             }
         }
@@ -154,7 +148,6 @@ export class IdentityManager {
                 associatedKeys: null,
                 debug: {
                     step: 'input_validation',
-                    input: 'empty',
                     network: options.network
                 }
             }
@@ -215,7 +208,6 @@ export class IdentityManager {
                     associatedKeys: null,
                     debug: {
                         step: 'identity_id_validation',
-                        identityId,
                         network
                     }
                 }
@@ -268,10 +260,8 @@ export class IdentityManager {
                 associatedKeys: null,
                 debug: {
                     step: 'get_identity_by_id_exception',
-                    identityId,
                     network,
-                    error: error.message,
-                    stack: error.stack
+                    error: error.message
                 }
             }
         }
