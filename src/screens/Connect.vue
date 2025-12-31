@@ -31,13 +31,114 @@
                         />
 
                         <!-- Seed Discovery Status (Loading) -->
-                         <div v-if="isSearchingSeed" class="text-center py-4">
+                        <div v-if="isSearchingSeed" class="text-center py-4">
                             <div class="inline-flex items-center gap-2 text-cyan-600 dark:text-cyan-400">
                                 <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
                                 <span class="text-sm">{{ discoveryStatus }}</span>
+                            </div>
+                        </div>
+
+                        <!-- PROGRESS DISPLAY -->
+                        <div v-if="discoveryProgress" class="mt-6 p-4 bg-gradient-to-r from-slate-50 to-cyan-50 dark:from-slate-800 dark:to-cyan-900/10 rounded-xl border border-slate-200 dark:border-slate-700">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-3 h-3 rounded-full bg-cyan-500 animate-pulse"></div>
+                                    <div>
+                                        <h4 class="font-bold text-slate-800 dark:text-slate-200">
+                                            Scanning Progress
+                                        </h4>
+                                        <p class="text-sm text-slate-500 dark:text-slate-400">
+                                            {{ progressMessage }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <span class="text-lg font-bold text-cyan-600 dark:text-cyan-400">
+                                    {{ progressPercentage }}%
+                                </span>
+                            </div>
+
+                            <!-- Progress bar -->
+                            <div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 mb-4 overflow-hidden">
+                                <div
+                                    class="bg-gradient-to-r from-cyan-500 to-cyan-600 h-full rounded-full transition-all duration-500 ease-out"
+                                    :style="{ width: `${progressPercentage}%` }"
+                                ></div>
+                            </div>
+
+                            <!-- Status grid -->
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div class="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-1">Identity</p>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-xl font-bold text-slate-800 dark:text-slate-200">
+                                            {{ discoveryProgress.currentIdentityIndex + 1 }}
+                                        </span>
+                                        <span class="text-sm text-slate-400 dark:text-slate-500">/</span>
+                                        <span class="text-lg text-slate-600 dark:text-slate-400">
+                                            {{ discoveryProgress.totalIdentities }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-1">Key</p>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-xl font-bold text-slate-800 dark:text-slate-200">
+                                            {{ discoveryProgress.currentKeyIndex + 1 }}
+                                        </span>
+                                        <span class="text-sm text-slate-400 dark:text-slate-500">/</span>
+                                        <span class="text-lg text-slate-600 dark:text-slate-400">
+                                            {{ discoveryProgress.totalKeysPerIdentity }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-1">Scanned</p>
+                                    <div class="flex items-center space-x-2">
+                                        <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <span class="text-xl font-bold text-slate-800 dark:text-slate-200">
+                                            {{ discoveryProgress.scannedCount }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 mb-1">Found</p>
+                                    <div class="flex items-center space-x-2">
+                                        <svg class="w-5 h-5 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                                        </svg>
+                                        <span class="text-xl font-bold text-slate-800 dark:text-slate-200">
+                                            {{ discoveryProgress.foundCount }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Current hash -->
+                            <div v-if="discoveryProgress.currentPublicKeyHash" class="mt-4">
+                                <p class="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                                    Current Key Hash
+                                </p>
+                                <div class="flex items-center space-x-2">
+                                    <div class="flex-shrink-0 w-3 h-3 rounded-full bg-cyan-400 animate-pulse"></div>
+                                    <code class="text-sm text-slate-800 dark:text-slate-200 font-mono bg-slate-100 dark:bg-slate-900 px-3 py-2 rounded-lg truncate">
+                                        {{ discoveryProgress.currentPublicKeyHash }}
+                                    </code>
+                                </div>
+                            </div>
+
+                            <!-- Path info -->
+                            <div v-if="discoveryProgress.currentPath" class="mt-3">
+                                <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    Path: <code class="font-mono">{{ discoveryProgress.currentPath }}</code>
+                                </p>
                             </div>
                         </div>
 
@@ -177,6 +278,11 @@ const {
     discoveryStatus,
     connectionError,
     isFormValid,
+
+    // Progress
+    discoveryProgress,
+    progressPercentage,
+    progressMessage,
 
     // Actions
     formatBalance,
