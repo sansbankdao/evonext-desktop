@@ -12,6 +12,7 @@ interface QueryTrace {
     step: number
     identityIndex: number
     keyIndex: number
+    path: string
     publicKeyHash: string
     method: 'unique' | 'non-unique'
     found: boolean
@@ -24,7 +25,7 @@ export class SeedDiscovery extends BaseDiscovery {
     ): Promise<DiscoveryResult> {
         const seedOptions: SeedDiscoveryOptions = {
             network: options.network,
-            maxIdentityIndex: options.maxIdentityIndex || 5,
+            maxIdentityIndex: 3, // REDUCED TO 3 (0, 1, 2)
             maxKeyIndex: 5
         }
         return this.discoverFromSeed(input, seedOptions)
@@ -33,99 +34,85 @@ export class SeedDiscovery extends BaseDiscovery {
         seedPhrase: string,
         options: SeedDiscoveryOptions
     ): Promise<DiscoveryResult> {
-        // Trace log to return to the UI for debugging
         const traceLog: QueryTrace[] = []
+        let stepCounter = 1
         try {
             console.log(`[SeedDiscovery] Starting sequential discovery on ${options.network}`)
             if (!this.isSeedPhrase(seedPhrase)) {
                 return this.createErrorResult('Invalid seed phrase length')
             }
             const foundIdentities: DiscoveredIdentity[] = []
-            // 1. Derive all keys upfront using the efficient batch service
-            // This returns a structure of [ { identityIndex: 0, keys: [...] }, { identityIndex: 1... } ]
+            // 1. Derive keys
             const allDerivations = await KeyDerivationService.deriveAllKeysFromSeed(
                 seedPhrase,
                 options.network,
                 options.maxIdentityIndex,
                 options.maxKeyIndex
             )
-            // 2. Iterate Sequentially: Identity Index (0 -> max)
-            let stepCounter = 1
+            // 2. Iterate Identity Indices (0, 1, 2...)
             for (const derivation of allDerivations) {
                 const identityIdx = derivation.identityIndex
-                console.log(`[SeedDiscovery] Scanning Identity Index ${identityIdx}...`)
                 let foundForThisIndex = false
-                // 3. Iterate Sequentially: Key Index (0 -> max)
+                // 3. Iterate Keys (0..4)
                 for (const key of derivation.keys) {
-                    // Check logic: We stop checking KEYS for this identity if we already found the identity
                     if (foundForThisIndex) break
                     const hash = key.publicKeyHash
-                    // Perform the search (Both Unique AND Non-Unique are handled inside searchByHash)
-                    const searchResult = await DAPIService.searchByHash(hash, options.network)
-                    // Log the attempt
+                    // --- EXPLICIT LOOKUP 1: UNIQUE ---
+                    const uniqueResult = await DAPIService.queryIdentityByHash(hash, options.network, true)
                     traceLog.push({
                         step: stepCounter++,
                         identityIndex: identityIdx,
                         keyIndex: key.keyIndex,
+                        path: key.path,
                         publicKeyHash: hash,
-                        method: searchResult.searchType === 'none' ? 'unique' : searchResult.searchType, // simplified log
-                        found: searchResult.success,
+                        method: 'unique',
+                        found: uniqueResult.success,
                     })
-                    if (searchResult.success && searchResult.data) {
-                        const data = searchResult.data
-                        const id = data.identityId || data.id
-                        console.log(`[SeedDiscovery] FOUND Identity ${id} at Index ${identityIdx} via Key ${key.keyIndex}`)
-                        // Fetch Username
-                        const dpnsUsername = await this.getDPNSUsernameFromData(data, options.network)
-                        foundIdentities.push({
-                            identityId: id,
-                            balance: this.formatBalance(data.balance),
-                            revision: this.formatRevision(data.revision),
-                            publicKeys: data.publicKeys || [],
-                            dpnsUsername
-                        })
+                    if (uniqueResult.success && uniqueResult.data) {
+                        await this.addIdentity(foundIdentities, uniqueResult.data, options.network)
                         foundForThisIndex = true
-                        // Identity found for this index. Stop checking keys, move to next Identity Index.
+                        break
+                    }
+                    // --- EXPLICIT LOOKUP 2: NON-UNIQUE (Fallback) ---
+                    const nonUniqueResult = await DAPIService.queryIdentityByHash(hash, options.network, false)
+                    traceLog.push({
+                        step: stepCounter++,
+                        identityIndex: identityIdx,
+                        keyIndex: key.keyIndex,
+                        path: key.path,
+                        publicKeyHash: hash,
+                        method: 'non-unique', // Explicitly logged
+                        found: nonUniqueResult.success,
+                    })
+                    if (nonUniqueResult.success && nonUniqueResult.data) {
+                        await this.addIdentity(foundIdentities, nonUniqueResult.data, options.network)
+                        foundForThisIndex = true
                         break
                     }
                 }
-                if (!foundForThisIndex) {
-                    console.log(`[SeedDiscovery] No identity found at Index ${identityIdx}. Moving to next...`)
-                }
             }
             if (foundIdentities.length > 0) {
-                // Deduplicate
                 const uniqueIds = Array.from(new Set(foundIdentities.map(i => i.identityId)))
                     .map(id => foundIdentities.find(i => i.identityId === id)!)
                 return this.createSuccessResult(
-                    null,
-                    uniqueIds,
-                    undefined,
-                    undefined,
+                    null, uniqueIds, undefined, undefined,
                     {
                         step: 'scan_complete',
                         count: uniqueIds.length,
                         network: options.network,
-                        trace: traceLog // Attaching full log
+                        trace: traceLog
                     }
                 )
             }
-            // Return "Success" structure but with empty identities list if none found
-            // This is better than "Error" because it allows showing the trace log in the UI
-            // However, useConnect expects error string for empty results usually,
-            // but we want to show the debug.
-            // Let's return createErrorResult but ATTACH the trace.
             return this.createErrorResult(
                 'No identities found for this seed phrase on the current network.',
                 {
                     step: 'no_identities',
                     network: options.network,
-                    trace: traceLog // Attaching full log
+                    trace: traceLog
                 }
             )
         } catch (error: any) {
-            console.error('[SeedDiscovery] Critical failure:', error)
-            // Even on crash, try to return what we logged so far
             return {
                 success: false,
                 error: error.message || 'Unknown discovery error',
@@ -137,6 +124,17 @@ export class SeedDiscovery extends BaseDiscovery {
                 }
             }
         }
+    }
+    private async addIdentity(list: DiscoveredIdentity[], data: any, network: 'mainnet'|'testnet') {
+        const id = data.identityId || data.id
+        const dpnsUsername = await this.getDPNSUsernameFromData(data, network)
+        list.push({
+            identityId: id,
+            balance: this.formatBalance(data.balance),
+            revision: this.formatRevision(data.revision),
+            publicKeys: data.publicKeys || [],
+            dpnsUsername
+        })
     }
     private async getDPNSUsernameFromData(data: any, network: 'mainnet' | 'testnet'): Promise<string | null> {
         if (data.dpnsUsername || data.username) return data.dpnsUsername || data.username
