@@ -1,8 +1,6 @@
 // src/services/identity/discovery/DAPIService.ts
-
 import { invoke } from '@tauri-apps/api/core'
-import type { DAPIResponse, DiscoveredIdentity } from '../types'
-
+import type { DAPIResponse } from '../types'
 export interface DAPIHashSearchResult {
     success: boolean
     data?: any
@@ -10,139 +8,92 @@ export interface DAPIHashSearchResult {
     searchType: 'unique' | 'non-unique' | 'none'
     debug?: any
 }
-
 export class DAPIService {
+    // Basic query wrapper
     static async queryIdentityByHash(
         publicKeyHash: string,
         network: 'mainnet' | 'testnet',
-        unique: boolean = false
+        unique: boolean
     ): Promise<DAPIHashSearchResult> {
+        const method = unique
+            ? 'get_identity_by_public_key_hash'
+            : 'get_identity_by_non_unique_public_key_hash'
         try {
-            const method = unique
-                ? 'get_identity_by_public_key_hash'
-                : 'get_identity_by_non_unique_public_key_hash'
-            console.log(`[DAPI] Querying ${method} for hash: ${publicKeyHash.substring(0, 16)}... on ${network}`)
+            console.log(`[DAPI] Request: ${method} (${publicKeyHash.substring(0,8)}...)`)
             const response = await invoke<DAPIResponse>(method, {
                 public_key_hash: publicKeyHash,
                 network
             })
-            console.log(`[DAPI] ${method} response success:`, response?.success)
             if (response?.success && response?.result) {
                 return {
                     success: true,
                     data: response.result,
                     searchType: unique ? 'unique' : 'non-unique',
-                    debug: { method, hash: publicKeyHash, unique, response }
+                    debug: { method, response }
                 }
             }
             return {
                 success: false,
-                error: `No identity found via ${method}`,
-                searchType: unique ? 'unique' : 'non-unique',
-                debug: { method, hash: publicKeyHash, unique, response }
+                error: response?.error || 'Not found',
+                searchType: unique ? 'unique' : 'non-unique'
             }
-        } catch (error: any) {
-            console.error(`[DAPI] ${unique ? 'Unique' : 'Non-unique'} hash query failed:`, error)
+        } catch (e: any) {
             return {
                 success: false,
-                error: error.message || 'Query failed',
-                searchType: unique ? 'unique' : 'non-unique',
-                debug: { method: unique ? 'unique' : 'non-unique', hash: publicKeyHash, error: error.message }
+                error: e.message,
+                searchType: unique ? 'unique' : 'non-unique'
             }
         }
     }
-
-    static async getDPNSUsername(
-        identityId: string,
-        network: 'mainnet' | 'testnet'
-    ): Promise<string | null> {
+    // DPNS Helper
+    static async getDPNSUsername(identityId: string, network: 'mainnet' | 'testnet'): Promise<string | null> {
         try {
-            console.log(`[DAPI] Getting DPNS username for ${identityId.substring(0, 16)}...`)
             const response = await invoke<DAPIResponse>('get_dpns_username', {
                 identity_id: identityId,
                 network_override: network
             })
             if (response?.success && response?.result) {
-                // Handle both array and object responses
-                const result = response.result
-                if (Array.isArray(result) && result.length > 0) {
-                    return typeof result[0] === 'string' ? result[0] : result[0]?.username || null
-                } else if (typeof result === 'object' && result.username) {
-                    return result.username
-                } else if (typeof result === 'string') {
-                    return result
-                }
+                const res = response.result
+                if (typeof res === 'string') return res
+                if (Array.isArray(res) && res[0]) return res[0].username || res[0]
+                if (typeof res === 'object') return res.username || null
             }
             return null
-        } catch (error) {
-            console.warn(`[DAPI] Failed to get DPNS username for ${identityId}:`, error)
-            return null
-        }
+        } catch { return null }
     }
-
-    static async getIdentityById(
-        identityId: string,
-        network: 'mainnet' | 'testnet'
-    ): Promise<DAPIHashSearchResult> {
+    // ID Lookup Helper
+    static async getIdentityById(identityId: string, network: 'mainnet' | 'testnet'): Promise<DAPIHashSearchResult> {
         try {
-            console.log(`[DAPI] Getting identity by ID: ${identityId.substring(0, 16)}...`)
             const response = await invoke<DAPIResponse>('get_identity_info', {
                 identity_id: identityId,
                 network_override: network,
                 with_proof: false
             })
             if (response?.success && response?.result) {
-                const result = response.result
-                const identityData = Array.isArray(result) ? result[0] : result
-                if (identityData) {
-                    return {
-                        success: true,
-                        data: identityData,
-                        searchType: 'none',
-                        debug: { method: 'get_identity_info', identityId, response }
-                    }
-                }
+                return { success: true, data: response.result, searchType: 'none' }
             }
-            return {
-                success: false,
-                error: `No identity found with ID: ${identityId}`,
-                searchType: 'none',
-                debug: { method: 'get_identity_info', identityId, response }
-            }
-        } catch (error: any) {
-            console.error(`[DAPI] Failed to get identity by ID:`, error)
-            return {
-                success: false,
-                error: error.message || 'Query failed',
-                searchType: 'none',
-                debug: { method: 'get_identity_info', identityId, error: error.message }
-            }
+            return { success: false, error: 'Not found', searchType: 'none' }
+        } catch (e: any) {
+            return { success: false, error: e.message, searchType: 'none' }
         }
     }
-
+    // THE MAIN SEARCH FUNCTION
+    // Guarantees checking both methods if the first fails
     static async searchByHash(
         publicKeyHash: string,
         network: 'mainnet' | 'testnet'
     ): Promise<DAPIHashSearchResult> {
-        // Try unique lookup first
-        const uniqueResult = await this.queryIdentityByHash(publicKeyHash, network, true)
-        if (uniqueResult.success && uniqueResult.data) {
-            return { ...uniqueResult, searchType: 'unique' as const }
-        }
-        // Fallback to non-unique
-        const nonUniqueResult = await this.queryIdentityByHash(publicKeyHash, network, false)
-        if (nonUniqueResult.success && nonUniqueResult.data) {
-            return { ...nonUniqueResult, searchType: 'non-unique' as const }
-        }
+        // 1. Try Unique
+        const unique = await this.queryIdentityByHash(publicKeyHash, network, true)
+        if (unique.success) return { ...unique, searchType: 'unique' }
+        // 2. Try Non-Unique (Strict fallback)
+        const nonUnique = await this.queryIdentityByHash(publicKeyHash, network, false)
+        if (nonUnique.success) return { ...nonUnique, searchType: 'non-unique' }
         return {
             success: false,
-            error: 'No identity found for this public key hash',
-            searchType: 'none' as const,
-            debug: {
-                hash: publicKeyHash,
-                uniqueResult: uniqueResult.debug,
-                nonUniqueResult: nonUniqueResult.debug
-            }
+            error: 'No identity found via unique or non-unique lookup',
+            searchType: 'none',
+            debug: { uniqueError: unique.error, nonUniqueError: nonUnique.error }
         }
     }
 }

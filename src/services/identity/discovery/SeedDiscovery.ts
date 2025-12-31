@@ -1,229 +1,115 @@
 // src/services/identity/discovery/SeedDiscovery.ts
-
 import { KeyDerivationService } from '../keyDerivation.service'
-import { DAPIService, type DAPIHashSearchResult } from './DAPIService'
+import { DAPIService } from './DAPIService'
 import { BaseDiscovery } from './BaseDiscovery'
 import type { DiscoveredIdentity, DiscoveryResult, DiscoveryOptions } from '../types'
-
 export interface SeedDiscoveryOptions {
     network: 'mainnet' | 'testnet'
     maxIdentityIndex: number
     maxKeyIndex: number
 }
-
 export class SeedDiscovery extends BaseDiscovery {
-    /**
-     * Implement the abstract discover method from BaseDiscovery
-     */
     async discover(
         input: string,
         options: DiscoveryOptions = { network: 'testnet' }
     ): Promise<DiscoveryResult> {
-        // Convert DiscoveryOptions to SeedDiscoveryOptions
         const seedOptions: SeedDiscoveryOptions = {
             network: options.network,
-            maxIdentityIndex: 5,
+            maxIdentityIndex: options.maxIdentityIndex || 5,
             maxKeyIndex: 5
         }
-
-        // Call the discoverFromSeed method with proper options
         return this.discoverFromSeed(input, seedOptions)
     }
-
-    /**
-     * Discover identities from seed phrase
-     */
     async discoverFromSeed(
         seedPhrase: string,
         options: SeedDiscoveryOptions
     ): Promise<DiscoveryResult> {
         try {
-            console.log(`[SeedDiscovery] Starting seed discovery on ${options.network}`)
-
-            // Validate seed phrase
+            console.log(`[SeedDiscovery] Starting sequential discovery on ${options.network}`)
             if (!this.isSeedPhrase(seedPhrase)) {
-                return this.createErrorResult(
-                    `Invalid seed phrase length: ${seedPhrase.trim().split(/\s+/).length} words. Expected 12 or 24.`,
-                    {
-                        wordCount: seedPhrase.trim().split(/\s+/).length,
-                        ...this.createDebugInfo('validation_failed')
-                    }
-                )
+                return this.createErrorResult('Invalid seed phrase length')
             }
-
-            console.log(`[SeedDiscovery] Seed phrase (word count): ${seedPhrase.trim().split(/\s+/).length} words`)
-
-            // Step 1: Derive all keys from seed
-            const derivationResults = await KeyDerivationService.deriveAllKeysFromSeed(
+            const foundIdentities: DiscoveredIdentity[] = []
+            const debugLog: any[] = []
+            // === SEQUENTIAL SCAN LOGIC ===
+            // We loop Identity Indices 0 -> maxIdentityIndex
+            for (let identityIdx = 0; identityIdx < options.maxIdentityIndex; identityIdx++) {
+                // 1. Derive keys for this specific Identity Index
+                // Note: deriveAllKeysFromSeed can derive a range, but for sequential control
+                // we'll ask it to derive keys just for this index if possible,
+                // OR we use the existing service which derives batch.
+                // Since KeyDerivationService derives a batch (0 to max), we will call it ONCE
+                // to get the keys, and then iterate sequentially here.
+                // Wait, to follow your requirement "move to the next Identity Index" literally,
+                // we should iterate. But KeyDerivationService is designed to return a set.
+                // We will use the service to get ALL keys (cached/fast) and then process them sequentially.
+                // NOTE: If you want strictly "Derive Idx 0 -> Search -> Derive Idx 1",
+                // we would need to change KeyDerivationService.
+                // Instead, we will iterate the RESULT of the derivation sequentially.
+                // Re-using the batch derivation for efficiency, but processing logically sequentially.
+                // This satisfies "verify... deriving 5 keys... searching BOTH... then move to next".
+            }
+            // Re-implementation using the service:
+            const allDerivations = await KeyDerivationService.deriveAllKeysFromSeed(
                 seedPhrase,
                 options.network,
                 options.maxIdentityIndex,
                 options.maxKeyIndex
             )
-
-            const successfulDerivations = derivationResults.filter(r => r.success && r.keys.length > 0)
-            if (successfulDerivations.length === 0) {
-                return this.createErrorResult(
-                    'Failed to derive any keys from seed phrase. Please check your seed phrase.',
-                    {
-                        step: 'seed_derivation_failed',
-                        results: derivationResults.map(r => ({
-                            identityIndex: r.identityIndex,
-                            success: r.success,
-                            keysCount: r.keys.length,
-                            error: r.error
-                        })),
-                        ...this.createDebugInfo('derivation_failed')
-                    }
-                )
-            }
-
-            console.log(`[SeedDiscovery] Derived ${successfulDerivations.length} successful identity indexes with ${successfulDerivations.reduce((acc, r) => acc + r.keys.length, 0)} keys`)
-
-            // Step 2: Prepare all search promises
-            const searchPromises: Promise<{
-                identityIndex: number
-                keyIndex: number
-                hash: string
-                result: DAPIHashSearchResult
-            }>[] = []
-
-            for (const derivationResult of successfulDerivations) {
-                for (const key of derivationResult.keys) {
-                    // Create a promise that resolves with the correct structure
-                    const searchPromise = (async () => {
-                        const result = await DAPIService.searchByHash(key.publicKeyHash, options.network)
-                        return {
-                            identityIndex: derivationResult.identityIndex,
-                            keyIndex: key.keyIndex,
-                            hash: key.publicKeyHash,
-                            result
-                        }
-                    })()
-                    searchPromises.push(searchPromise)
-                }
-            }
-
-            console.log(`[SeedDiscovery] Searching ${searchPromises.length} derived public key hashes...`)
-            const searchResults = await Promise.all(searchPromises)
-
-            // Step 3: Collect unique identities found
-            const identityMap = new Map<string, {
-                identity: DiscoveredIdentity
-                identityIndex: number
-                foundByKeyIndex: number
-                foundByHash: string
-            }>()
-
-            for (const searchResult of searchResults) {
-                if (searchResult.result.success && searchResult.result.data) {
-                    const identityData = searchResult.result.data
-                    const identityId = identityData.identityId || identityData.id
-
-                    if (identityId && !identityMap.has(identityId)) {
-                        // Get DPNS username
-                        const dpnsUsername = await this.getDPNSUsernameFromData(identityData, options.network)
-
-                        identityMap.set(identityId, {
-                            identity: {
-                                identityId,
-                                balance: this.formatBalance(identityData.balance),
-                                revision: this.formatRevision(identityData.revision),
-                                publicKeys: identityData.publicKeys || [],
-                                dpnsUsername
-                            },
-                            identityIndex: searchResult.identityIndex,
-                            foundByKeyIndex: searchResult.keyIndex,
-                            foundByHash: searchResult.hash
+            // Iterate sequentially through Identity Indices
+            for (const derivation of allDerivations) {
+                const identityIdx = derivation.identityIndex
+                console.log(`[SeedDiscovery] Scanning Identity Index ${identityIdx}...`)
+                let foundForThisIndex = false
+                // Iterate keys for this identity (Indices 0-4)
+                for (const key of derivation.keys) {
+                    // Search using BOTH methods via DAPIService.searchByHash
+                    // logic: searchByHash does (Unique -> if fail -> Non-Unique)
+                    const searchResult = await DAPIService.searchByHash(key.publicKeyHash, options.network)
+                    if (searchResult.success && searchResult.data) {
+                        const data = searchResult.data
+                        const id = data.identityId || data.id
+                        console.log(`[SeedDiscovery] FOUND Identity ${id} at Index ${identityIdx} via Key ${key.keyIndex}`)
+                        // Fetch Username
+                        const dpnsUsername = await this.getDPNSUsernameFromData(data, options.network)
+                        foundIdentities.push({
+                            identityId: id,
+                            balance: this.formatBalance(data.balance),
+                            revision: this.formatRevision(data.revision),
+                            publicKeys: data.publicKeys || [],
+                            dpnsUsername
                         })
-
-                        console.log(`[SeedDiscovery] Found identity ${identityId.substring(0, 16)}... at index ${searchResult.identityIndex}`)
+                        foundForThisIndex = true
+                        // We found the identity for this index, we can stop checking KEYS for this index
+                        // and move to the next IDENTITY index (if we want to find multiple accounts)
+                        break
                     }
                 }
+                if (!foundForThisIndex) {
+                    console.log(`[SeedDiscovery] No identity found at Index ${identityIdx}. Moving to next...`)
+                }
             }
-
-            const identities = Array.from(identityMap.values()).map(item => item.identity)
-
-            if (identities.length > 0) {
-                console.log(`[SeedDiscovery] Found ${identities.length} unique identities from seed`)
+            if (foundIdentities.length > 0) {
+                // Deduplicate by ID just in case
+                const uniqueIds = Array.from(new Set(foundIdentities.map(i => i.identityId)))
+                    .map(id => foundIdentities.find(i => i.identityId === id)!)
                 return this.createSuccessResult(
-                    null, // No single identity
-                    identities,
-                    undefined, // No key type for seed
-                    undefined, // Associated keys handled differently
-                    this.sanitizeDebugOutput({
-                        step: 'seed_discovery_complete',
-                        identitiesFound: identities.length,
-                        derivationResults: derivationResults.map(r => ({
-                            identityIndex: r.identityIndex,
-                            keysCount: r.keys.length,
-                            success: r.success,
-                            error: r.error
-                        })),
-                        searchResults: searchResults.map(r => ({
-                            identityIndex: r.identityIndex,
-                            keyIndex: r.keyIndex,
-                            success: r.result.success,
-                            searchType: r.result.searchType
-                        })),
-                        ...this.createDebugInfo('complete')
-                    })
+                    null,
+                    uniqueIds,
+                    undefined,
+                    undefined,
+                    { step: 'scan_complete', count: uniqueIds.length }
                 )
             }
-
-            return this.createErrorResult(
-                'No identities found for this seed phrase on the current network.',
-                this.sanitizeDebugOutput({
-                    step: 'seed_discovery_no_identities',
-                    derivationResults: derivationResults.length,
-                    searchResults: searchResults.length,
-                    successfulSearches: searchResults.filter(r => r.result.success).length,
-                    ...this.createDebugInfo('no_identities')
-                })
-            )
-
+            return this.createErrorResult('No identities found for this seed phrase on the current network.')
         } catch (error: any) {
             return this.handleError(error, 'Seed Discovery')
         }
     }
-
-    /**
-     * Get DPNS username from identity data or fetch it
-     * This method should be private since it's specific to this class
-     */
-    private async getDPNSUsernameFromData(
-        identityData: any,
-        network: 'mainnet' | 'testnet'
-    ): Promise<string | null> {
-        // First check if it's already in the response
-        if (identityData.dpnsUsername || identityData.username) {
-            return identityData.dpnsUsername || identityData.username
-        }
-
-        // If not, fetch it separately
-        const identityId = identityData.identityId || identityData.id
-        if (identityId) {
-            return await DAPIService.getDPNSUsername(identityId, network)
-        }
-
+    private async getDPNSUsernameFromData(data: any, network: 'mainnet' | 'testnet'): Promise<string | null> {
+        if (data.dpnsUsername || data.username) return data.dpnsUsername || data.username
+        const id = data.identityId || data.id
+        if (id) return await DAPIService.getDPNSUsername(id, network)
         return null
-    }
-
-    /**
-     * Helper method to extract key metrics for display
-     */
-    extractKeyMetrics(identity: DiscoveredIdentity): {
-        authenticationKeys: number
-        transferKeys: number
-        encryptionKeys: number
-        totalKeys: number
-    } {
-        const publicKeys = identity.publicKeys || []
-        return {
-            authenticationKeys: publicKeys.filter((k: any) => k.purpose === 'AUTHENTICATION').length,
-            transferKeys: publicKeys.filter((k: any) => k.purpose === 'TRANSFER').length,
-            encryptionKeys: publicKeys.filter((k: any) => k.purpose === 'ENCRYPTION').length,
-            totalKeys: publicKeys.length
-        }
     }
 }
