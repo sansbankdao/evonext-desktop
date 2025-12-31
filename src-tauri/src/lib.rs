@@ -53,6 +53,15 @@ pub fn run() {
             commands::dapi_commands::resolve_dpns_name,
             commands::dapi_commands::get_dpns_username,
             commands::dapi_commands::get_platform_status,
+            commands::dapi_commands::get_identities_balances,
+            commands::dapi_commands::get_data_contract_info,
+            commands::dapi_commands::get_token_contract_info,
+            commands::dapi_commands::get_token_statuses,
+            commands::dapi_commands::get_total_supply,
+            commands::dapi_commands::get_current_epoch,
+            commands::dapi_commands::get_total_credits_in_platform,
+            commands::dapi_commands::get_identity_by_public_key_hash,
+            commands::dapi_commands::get_identity_by_non_unique_public_key_hash,
         ])
         .setup(|app| {
             // Initialize Menu
