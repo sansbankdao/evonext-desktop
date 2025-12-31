@@ -90,7 +90,7 @@ export interface DiscoveryResult {
         count?: number;
         network?: string;
         trace?: QueryTrace[];
-        progressSnapshot?: ScanProgress;
+        progressSnapshot?: ScanProgress | undefined;
         error?: string;
     }
 }

@@ -3,7 +3,15 @@
 import { KeyDerivationService } from '../keyDerivation.service'
 import { DAPIService } from './DAPIService'
 import { BaseDiscovery } from './BaseDiscovery'
-import type { DiscoveredIdentity, DiscoveryResult, DiscoveryOptions } from '../types'
+import type {
+    DiscoveredIdentity,
+    DiscoveryResult,
+    DiscoveryOptions,
+    KeyDerivationResult,
+    DerivedKey,
+    QueryTrace,
+    ScanProgress
+} from '../types'
 
 export interface SeedDiscoveryOptions {
     network: 'mainnet' | 'testnet'
@@ -11,25 +19,34 @@ export interface SeedDiscoveryOptions {
     maxKeyIndex: number
 }
 
-interface QueryTrace {
-    step: number
-    identityIndex: number
-    keyIndex: number
-    path: string
-    publicKeyHash: string
-    method: 'unique' | 'non-unique'
-    found: boolean
-    id?: string
-}
+// Progress callback type
+export type ProgressCallback = (progress: ScanProgress) => void
 
 export class SeedDiscovery extends BaseDiscovery {
+    private currentProgress: ScanProgress | null = null
+    private progressCallback: ProgressCallback | null = null
+
+    // Set a callback to receive progress updates
+    setProgressCallback(callback: ProgressCallback) {
+        this.progressCallback = callback
+    }
+
+    private updateProgress(updates: Partial<ScanProgress>) {
+        if (this.currentProgress) {
+            this.currentProgress = { ...this.currentProgress, ...updates }
+            if (this.progressCallback) {
+                this.progressCallback(this.currentProgress)
+            }
+        }
+    }
+
     async discover(
         input: string,
         options: DiscoveryOptions = { network: 'testnet' }
     ): Promise<DiscoveryResult> {
         const seedOptions: SeedDiscoveryOptions = {
             network: options.network,
-            maxIdentityIndex: 3, // EXPLICITLY 3 (0, 1, 2)
+            maxIdentityIndex: 3,
             maxKeyIndex: 5
         }
         return this.discoverFromSeed(input, seedOptions)
@@ -51,25 +68,86 @@ export class SeedDiscovery extends BaseDiscovery {
 
             const foundIdentities: DiscoveredIdentity[] = []
 
+            // Initialize progress tracking
+            this.currentProgress = {
+                currentIdentityIndex: 0,
+                currentKeyIndex: 0,
+                totalIdentities: options.maxIdentityIndex,
+                totalKeysPerIdentity: Math.min(5, options.maxKeyIndex), // Max 5 key purposes
+                currentPublicKeyHash: '',
+                currentPath: '',
+                status: 'deriving',
+                scannedCount: 0,
+                foundCount: 0
+            }
+
+            // Update: Deriving keys
+            this.updateProgress({ status: 'deriving' })
+            console.log(`[SeedDiscovery] Deriving keys and scanning network...`)
+
             // 1. Derive keys with corrected paths
-            const allDerivations = await KeyDerivationService.deriveAllKeysFromSeed(
+            const allDerivations: KeyDerivationResult[] = await KeyDerivationService.deriveAllKeysFromSeed(
                 seedPhrase,
                 options.network,
                 options.maxIdentityIndex,
                 options.maxKeyIndex
             )
 
-            // 2. Iterate Identity Indices (0, 1, 2)
-            for (const derivation of allDerivations) {
+            // Update total counts based on actual derived results
+            const totalKeysToScan = allDerivations.reduce((total, derivation) => {
+                return total + derivation.keys.length
+            }, 0)
+
+            this.updateProgress({
+                totalIdentities: allDerivations.length,
+                scannedCount: 0
+            })
+
+            console.log(`[SeedDiscovery] Derived ${allDerivations.length} identities with ${totalKeysToScan} total keys`)
+
+            // 2. Iterate Identity Indices
+            for (let dIndex = 0; dIndex < allDerivations.length; dIndex++) {
+                const derivation = allDerivations[dIndex]
+
+                // Guard clause: Ensure derivation exists
+                if (!derivation) {
+                    console.warn(`[SeedDiscovery] Skipping undefined derivation at index ${dIndex}`)
+                    continue
+                }
+
                 const identityIdx = derivation.identityIndex
                 let foundForThisIndex = false
 
-                // 3. Iterate Keys (0..4)
-                for (const key of derivation.keys) {
+                this.updateProgress({
+                    currentIdentityIndex: identityIdx,
+                    status: 'scanning'
+                })
+
+                console.log(`[SeedDiscovery] Scanning Identity ${identityIdx}...`)
+
+                // 3. Iterate Keys
+                for (let kIndex = 0; kIndex < derivation.keys.length; kIndex++) {
+                    const key = derivation.keys[kIndex]
+
+                    // Guard clause: Ensure key exists
+                    if (!key) {
+                        console.warn(`[SeedDiscovery] Skipping undefined key at identity ${identityIdx}, index ${kIndex}`)
+                        continue
+                    }
+
                     // Stop checking KEYS for this identity if we already found the identity
                     if (foundForThisIndex) break
 
                     const hash = key.publicKeyHash
+
+                    // Update progress with current key
+                    this.updateProgress({
+                        currentKeyIndex: key.keyIndex,
+                        currentPublicKeyHash: hash,
+                        currentPath: key.path
+                    })
+
+                    console.log(`[SeedDiscovery] Scanning Identity ${identityIdx}, Key ${key.keyIndex} (${hash.substring(0, 16)}...)`)
 
                     // --- EXPLICIT LOOKUP 1: UNIQUE ---
                     const uniqueResult = await DAPIService.queryIdentityByHash(hash, options.network, true)
@@ -84,9 +162,23 @@ export class SeedDiscovery extends BaseDiscovery {
                         found: uniqueResult.success,
                     })
 
+                    // Update scanned count
+                    if (this.currentProgress) {
+                        this.currentProgress.scannedCount += 1
+                        this.updateProgress({ scannedCount: this.currentProgress.scannedCount })
+                    }
+
                     if (uniqueResult.success && uniqueResult.data) {
                         await this.addIdentity(foundIdentities, uniqueResult.data, options.network)
                         foundForThisIndex = true
+
+                        // Update found count
+                        if (this.currentProgress) {
+                            this.currentProgress.foundCount += 1
+                            this.updateProgress({ foundCount: this.currentProgress.foundCount })
+                        }
+
+                        console.log(`[SeedDiscovery] ✓ Found identity with ID: ${uniqueResult.data.identityId || uniqueResult.data.id}`)
                         break // Found via Unique, stop checking this identity
                     }
 
@@ -104,18 +196,44 @@ export class SeedDiscovery extends BaseDiscovery {
                         found: nonUniqueResult.success,
                     })
 
+                    // Update scanned count for non-unique check
+                    if (this.currentProgress) {
+                        this.currentProgress.scannedCount += 1
+                        this.updateProgress({ scannedCount: this.currentProgress.scannedCount })
+                    }
+
                     if (nonUniqueResult.success && nonUniqueResult.data) {
                         await this.addIdentity(foundIdentities, nonUniqueResult.data, options.network)
                         foundForThisIndex = true
+
+                        // Update found count
+                        if (this.currentProgress) {
+                            this.currentProgress.foundCount += 1
+                            this.updateProgress({ foundCount: this.currentProgress.foundCount })
+                        }
+
+                        console.log(`[SeedDiscovery] ✓ Found identity with ID: ${nonUniqueResult.data.identityId || nonUniqueResult.data.id}`)
                         break // Found via Non-Unique, stop checking this identity
                     }
                 }
+
+                // Reset key index for next identity
+                this.updateProgress({
+                    currentKeyIndex: 0,
+                    currentPublicKeyHash: '',
+                    currentPath: ''
+                })
             }
+
+            // Update progress to completed
+            this.updateProgress({ status: 'completed' })
 
             if (foundIdentities.length > 0) {
                 // Deduplicate
                 const uniqueIds = Array.from(new Set(foundIdentities.map(i => i.identityId)))
                     .map(id => foundIdentities.find(i => i.identityId === id)!)
+
+                console.log(`[SeedDiscovery] Scan complete. Found ${uniqueIds.length} unique identities`)
 
                 return this.createSuccessResult(
                     null,
@@ -126,22 +244,32 @@ export class SeedDiscovery extends BaseDiscovery {
                         step: 'scan_complete',
                         count: uniqueIds.length,
                         network: options.network,
-                        trace: traceLog
+                        trace: traceLog,
+                        progressSnapshot: this.currentProgress || undefined
                     }
                 )
             }
+
+            console.log(`[SeedDiscovery] No identities found`)
 
             return this.createErrorResult(
                 'No identities found for this seed phrase on the current network.',
                 {
                     step: 'no_identities',
                     network: options.network,
-                    trace: traceLog
+                    trace: traceLog,
+                    progressSnapshot: this.currentProgress || undefined
                 }
             )
 
         } catch (error: any) {
             console.error('[SeedDiscovery] Critical failure:', error)
+
+            // Update progress to failed
+            if (this.currentProgress) {
+                this.updateProgress({ status: 'failed' })
+            }
+
             return {
                 success: false,
                 error: error.message || 'Unknown discovery error',
@@ -149,9 +277,13 @@ export class SeedDiscovery extends BaseDiscovery {
                     step: 'exception',
                     network: options.network,
                     error: error.message,
-                    trace: traceLog
+                    trace: traceLog,
+                    progressSnapshot: this.currentProgress || undefined
                 }
             }
+        } finally {
+            // Clear progress tracking
+            this.currentProgress = null
         }
     }
 
