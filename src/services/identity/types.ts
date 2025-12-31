@@ -47,6 +47,7 @@ export interface DerivedKey {
     privateKey: any; // PrivateKeyWASM instance
     publicKey: string; // hex
     publicKeyHash: string; // hex
+    path: string; // Derivation path (e.g., m/9'/1'/0'/0/0)
 }
 
 export interface DiscoveryOptions {
@@ -65,9 +66,9 @@ export interface AssociatedKey {
 
 export interface DiscoveryResult {
     success: boolean
-    identities?: DiscoveredIdentity[] | null // Changed from optional to potentially null
-    identity?: DiscoveredIdentity | null // Changed from optional to potentially null
-    detectedKeyType?: string | null // Using null instead of undefined
+    identities?: DiscoveredIdentity[] | null
+    identity?: DiscoveredIdentity | null
+    detectedKeyType?: string | null
     associatedKeys?: AssociatedKey[] | null
     error?: string
     debug?: any
