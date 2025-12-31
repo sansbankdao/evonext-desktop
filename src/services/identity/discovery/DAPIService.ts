@@ -1,7 +1,7 @@
 // src/services/identity/discovery/DAPIService.ts
 
 import { invoke } from '@tauri-apps/api/core'
-import type { DAPIResponse } from '../types'
+// import type { DAPIResponse } from '../types'
 
 export interface DAPIHashSearchResult {
     success: boolean
@@ -12,7 +12,7 @@ export interface DAPIHashSearchResult {
 }
 
 export class DAPIService {
-    // Basic query wrapper - NOW USING DIRECT COMMANDS
+    // Basic query wrapper - FIXED to use direct commands
     static async queryIdentityByHash(
         publicKeyHash: string,
         network: 'mainnet' | 'testnet',
@@ -21,38 +21,53 @@ export class DAPIService {
         const method = unique
             ? 'get_identity_by_public_key_hash'
             : 'get_identity_by_non_unique_public_key_hash'
+
         try {
-            console.log(`[DAPI] Request: ${method} (${publicKeyHash})`)
-            // Use direct command (simpler, type-safe)
-            const response = await invoke<DAPIResponse>(method, {
-                public_key_hash: publicKeyHash,
-                network: network  // Note: the Rust function expects Option<String>
+            const response = await invoke<any>(method, {
+                publicKeyHash: publicKeyHash,
+                network: network
             })
-            console.log(`[DAPI] Response:`, response)
-            // The Rust function returns a structured object with success/result fields
-            if (response && typeof response === 'object') {
-                if (response.success === true && response.result) {
-                    console.log(`[DAPI] SUCCESS for ${publicKeyHash}`)
+
+            // Handle array response
+            const result = Array.isArray(response) ? response[0] : response
+            if (result && typeof result === 'object') {
+                if (result.success === true && result.result) {
                     return {
                         success: true,
-                        data: response.result,
+                        data: result.result,
                         searchType: unique ? 'unique' : 'non-unique',
-                        debug: { method, response }
+                        debug: {
+                            method,
+                            response: result,
+                            network,
+                            hash: publicKeyHash
+                        }
                     }
                 } else {
                     return {
                         success: false,
-                        error: response.error || 'Not found',
+                        error: result.error || 'Not found',
                         searchType: unique ? 'unique' : 'non-unique',
-                        debug: { method, response }
+                        debug: {
+                            method,
+                            response: result,
+                            network,
+                            hash: publicKeyHash
+                        }
                     }
                 }
             }
+
             return {
                 success: false,
                 error: 'Invalid response format',
                 searchType: unique ? 'unique' : 'non-unique',
-                debug: { method, response }
+                debug: {
+                    method,
+                    response,
+                    network,
+                    hash: publicKeyHash
+                }
             }
         } catch (e: any) {
             console.error(`[DAPI] ERROR for ${publicKeyHash}:`, e)
@@ -63,21 +78,24 @@ export class DAPIService {
                 debug: {
                     method,
                     error: e.message,
-                    stack: e.stack
+                    stack: e.stack,
+                    network,
+                    hash: publicKeyHash
                 }
             }
         }
     }
-    // DPNS Helper - keep using dapi_request_array as you have it
+    // DPNS Helper
     static async getDPNSUsername(
         identityId: string,
         network: 'mainnet' | 'testnet'
     ): Promise<string | null> {
         try {
-            const response = await invoke<DAPIResponse>('get_dpns_username', {
+            const response = await invoke<any>('get_dpns_username', {
                 identity_id: identityId,
                 network_override: network
             })
+
             if (response?.success && response?.result) {
                 const res = response.result
                 if (typeof res === 'string') return res
@@ -89,17 +107,18 @@ export class DAPIService {
             return null
         }
     }
-    // ID Lookup Helper - keep using get_identity_info
+    // ID Lookup Helper
     static async getIdentityById(
         identityId: string,
         network: 'mainnet' | 'testnet'
     ): Promise<DAPIHashSearchResult> {
         try {
-            const response = await invoke<DAPIResponse>('get_identity_info', {
+            const response = await invoke<any>('get_identity_info', {
                 identity_id: identityId,
                 network_override: network,
                 with_proof: false
             })
+
             if (response?.success && response?.result) {
                 return {
                     success: true,
@@ -107,6 +126,7 @@ export class DAPIService {
                     searchType: 'none'
                 }
             }
+
             return {
                 success: false,
                 error: response?.error || 'Not found',
@@ -120,23 +140,30 @@ export class DAPIService {
             }
         }
     }
-    // THE MAIN SEARCH FUNCTION - Simplified with direct commands
+
+    // THE MAIN SEARCH FUNCTION
     static async searchByHash(
         publicKeyHash: string,
         network: 'mainnet' | 'testnet'
     ): Promise<DAPIHashSearchResult> {
         // 1. Try Unique
         const unique = await this.queryIdentityByHash(publicKeyHash, network, true)
-        if (unique.success) return {
-            ...unique,
-            searchType: 'unique'
+        if (unique.success) {
+            return {
+                ...unique,
+                searchType: 'unique'
+            }
         }
+
         // 2. Try Non-Unique (Strict fallback)
         const nonUnique = await this.queryIdentityByHash(publicKeyHash, network, false)
-        if (nonUnique.success) return {
-            ...nonUnique,
-            searchType: 'non-unique'
+        if (nonUnique.success) {
+            return {
+                ...nonUnique,
+                searchType: 'non-unique'
+            }
         }
+
         return {
             success: false,
             error: 'No identity found via unique or non-unique lookup',

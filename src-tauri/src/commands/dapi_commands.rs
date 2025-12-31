@@ -83,21 +83,21 @@ pub async fn get_posts(
     }
 }
 
-#[command]
+#[tauri::command]
 pub async fn get_identity_info(
     identity_id: String,
     with_proof: Option<bool>,
-    network_override: Option<String>,
+    network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let network = if let Some(network_str) = network_override {
+    let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet
     };
     let with_proof = with_proof.unwrap_or(false);
 
-    match client.get_identity(identity_id, network, with_proof).await {
+    match client.get_identity(identity_id, current_network, with_proof).await {
         Ok(identities) => {
             let values: Vec<Value> = identities.into_iter()
                 .map(|i| serde_json::to_value(i).unwrap_or_default())
@@ -506,13 +506,9 @@ pub async fn get_identity_by_public_key_hash(
             println!("[DAPI_DEBUG]   SUCCESS - Raw DAPI result:");
             println!("[DAPI_DEBUG]     {:?}", result);
 
-            // Check if result is empty/null
-            let is_empty = match &result {
-                Value::Null => true,
-                Value::Array(arr) => arr.is_empty(),
-                Value::Object(obj) => obj.is_empty(),
-                _ => false,
-            };
+            // FIX: client.request returns Vec<Value>, so result is a Vec.
+            // We check if the vector is empty instead of matching against Value::Null.
+            let is_empty = result.is_empty();
 
             if is_empty {
                 println!("[DAPI_DEBUG]   WARNING: Result is empty/null");
@@ -577,13 +573,9 @@ pub async fn get_identity_by_non_unique_public_key_hash(
             println!("[DAPI_DEBUG]   SUCCESS - Raw DAPI result:");
             println!("[DAPI_DEBUG]     {:?}", result);
 
-            // Check if result is empty/null
-            let is_empty = match &result {
-                Value::Null => true,
-                Value::Array(arr) => arr.is_empty(),
-                Value::Object(obj) => obj.is_empty(),
-                _ => false,
-            };
+            // FIX: client.request returns Vec<Value>, so result is a Vec.
+            // We check if the vector is empty instead of matching against Value::Null.
+            let is_empty = result.is_empty();
 
             if is_empty {
                 println!("[DAPI_DEBUG]   WARNING: Result is empty/null");
