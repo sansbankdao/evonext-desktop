@@ -1,10 +1,10 @@
 // src/composables/useConnect.ts
-import { ref, computed, watch } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getIdentityManager } from '@/services/identity'
 import { useIdentityStore } from '@/stores/identity' // Assuming this exists for final login
 import getNetwork from '@/libs/getNetwork'
-import type { DiscoveredIdentity, DiscoveryResult } from '@/services/identity/types'
+import type { DiscoveredIdentity, DiscoveryResult, ScanProgress } from '@/services/identity/types'
 
 export function useConnect() {
     const router = useRouter()
@@ -18,6 +18,9 @@ export function useConnect() {
     const isDiscovering = ref(false) // Shared loading state for discovery
     const discoveryStatus = ref('')
     const debugOutput = ref<any>(null)
+
+    // --- NEW: Progress tracking state ---
+    const discoveryProgress = ref<ScanProgress | null>(null)
 
     // --- State: Seed Form ---
     const seedWordCount = ref<'12' | '24'>('12')
@@ -56,6 +59,33 @@ export function useConnect() {
 
     const isSearchingSeed = computed(() => isDiscovering.value && connectionMethod.value === 'seed')
 
+    // --- NEW: Progress computed properties ---
+    const progressPercentage = computed(() => {
+        if (!discoveryProgress.value) return 0
+        const progress = discoveryProgress.value
+        const totalOperations = progress.totalIdentities * progress.totalKeysPerIdentity * 2 // *2 for unique + non-unique checks
+        return totalOperations > 0
+            ? Math.round((progress.scannedCount / totalOperations) * 100)
+            : 0
+    })
+
+    const progressMessage = computed(() => {
+        if (!discoveryProgress.value) return 'Deriving keys and scanning network...'
+        const progress = discoveryProgress.value
+        switch (progress.status) {
+            case 'deriving':
+                return 'Deriving cryptographic keys from seed phrase...'
+            case 'scanning':
+                return `Scanning network... (Identity ${progress.currentIdentityIndex + 1}/${progress.totalIdentities}, Key ${progress.currentKeyIndex + 1}/${progress.totalKeysPerIdentity})`
+            case 'completed':
+                return `Scan complete. Found ${progress.foundCount} identity(ies).`
+            case 'failed':
+                return 'Scan failed.'
+            default:
+                return 'Starting scan...'
+        }
+    })
+
     // --- Actions: State Helpers ---
     const updateConnectionMethod = (method: 'seed' | 'privateKey') => {
         connectionMethod.value = method
@@ -75,6 +105,8 @@ export function useConnect() {
 
         debugOutput.value = null
         isDiscovering.value = false
+        discoveryProgress.value = null
+        discoveryStatus.value = ''
     }
 
     const formatBalance = (balance: string | number | undefined) => {
@@ -83,6 +115,12 @@ export function useConnect() {
         // Assuming balance is in duffs/satoshis, adjust divisor as needed for your coin
         return (num / 100000000).toFixed(2)
     }
+
+    // --- Set up progress callback ---
+    identityManager.setProgressCallback((progress: ScanProgress) => {
+        discoveryProgress.value = progress
+        discoveryStatus.value = progressMessage.value
+    })
 
     // --- Actions: Seed Logic ---
     const handlePaste = (pastedText: string | string[]) => {
@@ -125,6 +163,11 @@ export function useConnect() {
         isDiscovering.value = true
         seedDiscoveryError.value = null
         seedDiscoveryResults.value = []
+
+        // Reset progress
+        discoveryProgress.value = null
+
+        // Initial status
         discoveryStatus.value = 'Deriving keys and scanning network...'
 
         try {
@@ -149,6 +192,10 @@ export function useConnect() {
             seedDiscoveryError.value = e.message
         } finally {
             isDiscovering.value = false
+            // Keep progress visible for a moment after completion
+            setTimeout(() => {
+                discoveryProgress.value = null
+            }, 2000)
         }
     }
 
@@ -245,6 +292,10 @@ export function useConnect() {
     const initialize = () => { resetDiscovery() }
     const cleanup = () => { resetDiscovery() }
 
+    onUnmounted(() => {
+        cleanup()
+    })
+
     return {
         // State
         connectionMethod,
@@ -254,6 +305,11 @@ export function useConnect() {
         isSearchingSeed,
         discoveryStatus,
         debugOutput,
+
+        // NEW: Progress tracking
+        discoveryProgress,
+        progressPercentage,
+        progressMessage,
 
         // Seed State
         seedWordCount,
