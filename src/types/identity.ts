@@ -86,19 +86,42 @@ export interface IIdentityPublicKey {
     disabled_at: string | null;
 }
 
+// export interface IIdentityState {
+//     username: string | null;
+//     identity: IIdentity | null;
+//     balance: string | null;
+//     balanceBigInt?: bigint;
+//     dashBigInt?: bigint;
+//     publicKeys: IIdentityPublicKey[];
+//     revision: number | null;
+//     isAuthenticated: boolean;
+//     isConnecting: boolean;
+//     connectionError: string | null;
+//     premiumAccess: boolean;
+//     lastConnected: string | null;
+// }
+// src/types/index.ts - Update your interface
 export interface IIdentityState {
     username: string | null;
-    identity: IIdentity | null;
+    identity: DiscoveredIdentity | null;
     balance: string | null;
     balanceBigInt?: bigint;
     dashBigInt?: bigint;
     publicKeys: IIdentityPublicKey[];
-    revision: number | null;
+    revision: string | null;
     isAuthenticated: boolean;
-    isConnecting: boolean;
-    connectionError: string | null;
     premiumAccess: boolean;
-    lastConnected: string | null;
+    connectionError: string | null;
+    isConnecting: boolean
+    lastConnected: number | null;
+
+    // Optional: Add methods that will be called from actions
+    getGreeting?: () => string;
+    searchUserIdentities?: (network: string) => Promise<DiscoveredIdentity[]>;
+    connectWithSeed?: (seedPhrase: string, network: string) => Promise<ConnectionResult>;
+    connectWithSingleKey?: (privateKey: string, identityId: string, network: string) => Promise<ConnectionResult>;
+    saveToStorage?: () => Promise<void>;
+    clearStorage?: () => Promise<void>;
 }
 
 // Additional types for identity operations

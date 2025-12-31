@@ -9,7 +9,7 @@
 import { onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { listen, UnlistenFn } from '@tauri-apps/api/event'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { check } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
 

@@ -7,21 +7,21 @@ mod menu;
 mod constants;
 mod utils;
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
+// Required for the `app.handle()` method
+use tauri::Manager;
+
 pub fn run() {
     tauri::Builder::default()
-        // --- 1. Initialize Existing Plugins ---
+        // --- 1. Initialize Plugins ---
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_http::init())
-
-        // --- 2. Initialize NEW Plugins (Fixes the build error) ---
+        // .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
 
-        // --- 3. Register Commands ---
+        // --- 2. Register Commands ---
         .invoke_handler(tauri::generate_handler![
             commands::asset_commands::load_assets,
             commands::asset_commands::save_assets,
@@ -55,12 +55,30 @@ pub fn run() {
             commands::dapi_commands::get_platform_status,
         ])
         .setup(|app| {
+            // Initialize Menu
             menu::setup_menus(app)?;
+
+            // Optional: Add any Webview listeners here if needed in future
+            // let webview = app.get_webview_window("main");
+
             Ok(())
         })
         .on_menu_event(|app, event| {
             menu::handle_menu_event(app, event);
         })
-        .run(tauri::generate_context!())
-        .expect("Oops! There was an error while running EvoNext.")
+        .build(tauri::generate_context!())
+        .expect("error while running tauri application")
+        .run(|app_handle, event| {
+            match event {
+                tauri::RunEvent::WindowEvent { label, event, .. } => {
+                    if label == "main" {
+                        if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                           // Handle close logic here if strictly necessary
+                           // api.prevent_close();
+                        }
+                    }
+                }
+                _ => {}
+            }
+        });
 }

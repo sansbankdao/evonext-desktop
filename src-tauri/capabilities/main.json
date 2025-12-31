@@ -30,15 +30,6 @@
     "fs:allow-mkdir",
     "fs:allow-remove",
     "fs:allow-rename",
-    "fs:allow-exists",
-
-    {
-      "identifier": "http:default",
-      "allow": [
-        { "url": "https://dashqt.org/**" },
-        { "url": "https://platform-explorer.pshenmic.dev/**" },
-        { "url": "https://api.dashswap.org/**" }
-      ]
-    }
+    "fs:allow-exists"
   ]
 }
