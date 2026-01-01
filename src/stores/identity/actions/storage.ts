@@ -18,8 +18,8 @@ interface Settings {
 function validateIdentityData(data: any): data is IIdentityData {
     return data &&
         typeof data.username === 'string' &&
-        typeof data.identity_id === 'string' &&
-        typeof data.identity_idx === 'number' &&
+        typeof data.identityId === 'string' &&
+        typeof data.identityIdx === 'number' &&
         (data.balance === null || typeof data.balance === 'string')
 }
 
@@ -58,6 +58,7 @@ export const storageActions = () => ({
             log('info', 'Identity data saved for network:', network)
         }, 'SAVE_IDENTITY_STORAGE_FAILED')
     },
+
     async loadFromStorage(this: any) {
         return ErrorBoundary.wrap(async () => {
             const state = this as IIdentityState
@@ -109,6 +110,7 @@ export const storageActions = () => ({
             }
         }, 'LOAD_IDENTITY_STORAGE_FAILED')
     },
+
     async clearStorage(this: any) {
         return ErrorBoundary.wrap(async () => {
             const state = this as IIdentityState
@@ -134,30 +136,35 @@ export const storageActions = () => ({
             state.lastConnected = null
         }, 'CLEAR_IDENTITY_STORAGE_FAILED')
     },
+
     async loadPrivateKeys(this: any) {
         return ErrorBoundary.wrap(async () => {
             const network = await this.getCurrentNetwork()
             return await invoke('load_private_keys', { network })
         }, 'LOAD_PRIVATE_KEYS_FAILED')
     },
+
     async savePrivateKeys(this: any, keys: any) {
         return ErrorBoundary.wrap(async () => {
             const network = await this.getCurrentNetwork()
             await invoke('save_private_keys', { network, payload: keys })
         }, 'SAVE_PRIVATE_KEYS_FAILED')
     },
+
     async loadMnemonic(this: any) {
         return ErrorBoundary.wrap(async () => {
             const network = await this.getCurrentNetwork()
             return await invoke('load_mnemonic', { network })
         }, 'LOAD_MNEMONIC_FAILED')
     },
+
     async saveMnemonic(this: any, mnemonic: { seed_phrase: string }) {
         return ErrorBoundary.wrap(async () => {
             const network = await this.getCurrentNetwork()
             await invoke('save_mnemonic', { network, payload: mnemonic })
         }, 'SAVE_MNEMONIC_FAILED')
     },
+
     async getIdentityFromStorage(this: any): Promise<IIdentityData | null> {
         return ErrorBoundary.wrap(async () => {
             const network = await this.getCurrentNetwork()
@@ -168,6 +175,7 @@ export const storageActions = () => ({
             return null
         }, 'GET_IDENTITY_FROM_STORAGE_FAILED')
     },
+
     async updateBalanceInStorage(this: any, newBalance: string) {
         return ErrorBoundary.wrap(async () => {
             const state = this as IIdentityState
@@ -183,6 +191,7 @@ export const storageActions = () => ({
             }
         }, 'UPDATE_BALANCE_STORAGE_FAILED')
     },
+
     async getCurrentNetwork(this: any): Promise<'mainnet' | 'testnet'> {
         try {
             const settings = await invoke<Settings>('load_settings')

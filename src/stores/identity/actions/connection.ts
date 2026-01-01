@@ -44,24 +44,30 @@ export const connectionActions = () => ({
                 const settings = await invoke<Settings>('load_settings')
                 const network: 'mainnet' | 'testnet' = (settings?.network === 'testnet' ? 'testnet' : 'mainnet')
                 log('info', 'Initializing from storage for network:', network)
+
                 // Load keys from .safu-testnet.json
                 const keysData = await loadStorageData<SafeStoragePayload>('load_private_keys_safe', network)
+
                 if (keysData && keysData.keys && keysData.keys.length > 0 && keysData.identity_id) {
                     // We have keys. Verify them by fetching identity.
                     const authKey = keysData.keys[0]
                     const derivationResult = await KeyDerivationService.deriveAllPossibleHashes(authKey || '', network)
+
                     if (derivationResult.hashes.length > 0) {
                         const result = await DAPIService.queryIdentityByHash(derivationResult.hashes[0] || '', network, true)
                         if (result.success && result.data) {
                             log('info', 'Verified stored key identity ID:', result.data.identityId)
                             this.isAuthenticated = true
+
                             // 1. Set username to the Identity ID string
                             this.username = result.data.identityId
+
                             // 2. Create minimal IIdentity object for the store
                             this.identity = {
-                                identity_idx: 0,
+                                identityIdx: 0,
                                 publicKeys: result.data.publicKeys || []
                             }
+
                             // 3. Fetch detailed info
                             if (typeof this.searchUserIdentities === 'function') {
                                 await this.searchUserIdentities(network)
@@ -91,9 +97,11 @@ export const connectionActions = () => ({
         return ErrorBoundary.wrap(async () => {
             this.isConnecting = true
             this.connectionError = null
+
             try {
                 log('info', 'Attempting to connect with seed phrase on network:', network)
                 let targetId: string
+
                 if (discoveredIdentityId) {
                     targetId = discoveredIdentityId
                 } else {
@@ -103,6 +111,7 @@ export const connectionActions = () => ({
                     }
                     targetId = identities[0]?.identityId || ''
                 }
+
                 // Derive keys (Assuming Index 0)
                 const matchIndex = 0
                 const authDeriv = await KeyDerivationService.getPrivateKeyWASM(seedPhrase, network, matchIndex, 0)
@@ -111,25 +120,31 @@ export const connectionActions = () => ({
                 const authWIF = authDeriv.privateKey.WIF()
                 const transferWIF = transferDeriv.privateKey.WIF()
                 const encWIF = encDeriv.privateKey.WIF()
+
                 // Save to .safu-testnet.json
                 const payload: SafeStoragePayload = {
                     keys: [authWIF, transferWIF, encWIF],
                     identity_id: targetId,
                     seed_phrase: seedPhrase
                 }
+
                 await invoke('save_private_keys_safe', { network, payload })
+
                 // Update Store State
                 this.isAuthenticated = true
                 this.username = targetId // <--- Identity ID goes here
                 this.identity = {
-                    identity_idx: matchIndex,
+                    identityIdx: matchIndex,
                     publicKeys: [] // Populated by searchUserIdentities
                 }
+
                 if (typeof this.searchUserIdentities === 'function') {
                     await this.searchUserIdentities(network)
                 }
                 log('info', `Seed connection successful. Identity ID: ${targetId}`)
+
                 await this.saveToStorage()
+
                 return { success: true, identity: this.identity }
             } catch (err: any) {
                 log('error', 'Seed connection failed:', err)
@@ -153,26 +168,33 @@ export const connectionActions = () => ({
             try {
                 log('info', 'Attempting to connect with single key on network:', network)
                 const trimmedId = identityId.trim()
+
                 if (!trimmedId) {
                     this.connectionError = 'Identity ID is required. Please complete discovery first.'
                     return { success: false, error: this.connectionError }
                 }
+
                 const payload: SafeStoragePayload = {
                     keys: [privateKey],
                     identity_id: trimmedId
                 }
+
                 await invoke('save_private_keys_safe', { network, payload })
+
                 this.username = trimmedId // <--- Identity ID goes here
                 this.isAuthenticated = true
                 this.identity = {
-                    identity_idx: 0,
+                    identityIdx: 0,
                     publicKeys: []
                 }
+
                 if (typeof this.searchUserIdentities === 'function') {
                     await this.searchUserIdentities(network)
                 }
                 log('info', 'Single key connection successful. isAuthenticated:', this.isAuthenticated)
+
                 await this.saveToStorage()
+
                 return { success: true, identity: this.identity }
             } catch (err: any) {
                 log('error', 'Single key connection failed:', err)
