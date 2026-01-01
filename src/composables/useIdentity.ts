@@ -13,10 +13,20 @@ import type { IIdentity, ConnectionResult, DiscoveredIdentity, IPublicKey } from
 const getIdentityIdx = async (): Promise<number> => {
     const identityStore = await invoke<IIdentity | null>('load_identity_data')
     if (typeof identityStore !== 'undefined' && identityStore !== null) {
-        return identityStore.identityIdx
+        return identityStore.identity_idx
     } else {
         return 0 // NOTE: We default to ZERO (index).
     }
+}
+
+/**
+ * Check if identity has transfer key (merged from libs/identity/hasTransferKey.ts)
+ */
+const hasTransferKey = (): boolean => {
+    const identityStore = useIdentityStore()
+    const storedIdentity = identityStore.currentIdentity
+    if (!storedIdentity?.public_keys?.length) return false
+    return storedIdentity.public_keys.some(key => key.purpose === 1)
 }
 
 export function useIdentity() {
@@ -28,6 +38,7 @@ export function useIdentity() {
     const isConnected = computed(() => store.isAuthenticated && !!store.identityId)
     const authPublicKey = computed(() => store.publicKeys.find((k: IPublicKey) => k.purpose === 0))
     const displayName = computed(() => store.displayName || store.identityId || 'Guest')
+    const hasTransferKeyComputed = computed(hasTransferKey)
 
     // Init: Load from storage + verify
     async function init() {
@@ -120,8 +131,11 @@ export function useIdentity() {
         connectionError: readonly(store.connectionError),
         displayName,
         authPublicKey,
-        // Merged identity index getter
+        hasTransferKey: hasTransferKeyComputed,
+
+        // Merged utils
         getIdentityIdx,
+        hasTransferKey,
 
         // Actions
         init,
