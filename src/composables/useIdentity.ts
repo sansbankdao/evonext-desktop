@@ -28,7 +28,7 @@ export function useIdentity() {
     const hasTransferKeyComputed = computed(hasTransferKey)
     async function getIdentityBalance(network: string, identityId: string): Promise<string> {
         try {
-            // FIX: Cast to any to bypass missing type definitions on the controller
+            // FIX: Cast to any to bypass strict type check on missing .get()
             const sdk = await getSDK() as any
             const identity = await sdk.identities.get(identityId)
             return identity ? identity.balance.toString() : '0'
@@ -50,9 +50,7 @@ export function useIdentity() {
         store.$patch({ isConnecting: true, connectionError: null })
         try {
             let id = payload.discoveredId
-            if (!id) {
-                throw new Error('Identity ID required for connection')
-            }
+            if (!id) throw new Error('Identity ID required')
             store.$patch({ identityId: id, isAuthenticated: true })
             await refreshIdentity()
             await store.saveToStorage()
@@ -68,9 +66,7 @@ export function useIdentity() {
     async function discoverIdentities(): Promise<DiscoveredIdentity[]> {
         if (!store.identityId) return []
         try {
-            // FIX: Cast to any.
-            // 1. sdk.identities exists (SDK is Platform object)
-            // 2. sdk.names exists (instead of sdk.platform.names)
+            // FIX: Cast to any
             const sdk = await getSDK() as any
             const identity = await sdk.identities.get(store.identityId)
             const transformPublicKeys = (keys: any[]): IPublicKey[] => keys.map((k) => ({
@@ -78,13 +74,10 @@ export function useIdentity() {
                 keyType: k.type === 0 ? 'ECDSA_SECP256K1' : 'ECDSA_HASH160',
                 purpose: k.purpose,
                 securityLevel: k.securityLevel,
-                contractBounds: k.contractBounds,
                 data: k.data.toString(),
-                dataBytes: null,
                 readOnly: k.readOnly,
                 disabledAt: k.disabledAt
             }))
-            // Use sdk.names directly (not sdk.platform.names)
             const dpnsName = await sdk.names.resolve(store.identityId)
                 .then((n: any) => n?.[0]?.label || null)
                 .catch(() => null)
