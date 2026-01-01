@@ -11,10 +11,10 @@ use crate::dapi::types::{Network, DAPIError};
 pub async fn dapi_request(
     method: String,
     params: HashMap<String, Value>,
-    network_override: Option<String>,
+    network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     // Determine network
-    let network = if let Some(network_str) = network_override {
+    let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet // Default to testnet
@@ -40,7 +40,7 @@ pub async fn dapi_request(
 
     let client = get_dapi_client();
 
-    match client.request::<Value>(method.clone(), params_array, network).await {
+    match client.request::<Value>(method.clone(), params_array, current_network).await {
         Ok(result) => Ok(result),
         Err(e) => {
             tracing::error!("DAPI request failed for {}: {}", method, e);
@@ -56,10 +56,10 @@ pub async fn get_posts(
     where_clause: Option<Value>,
     order_by: Option<Value>,
     limit: Option<u32>,
-    network_override: Option<String>,
+    network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let network = if let Some(network_str) = network_override {
+    let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet
@@ -68,7 +68,7 @@ pub async fn get_posts(
     match client.get_documents(
         data_contract_id,
         document_type,
-        network,
+        current_network,
         where_clause,
         order_by,
         limit,
@@ -115,10 +115,10 @@ pub async fn get_identity_info(
 pub async fn get_identity_balance(
     identity_id: String,
     with_proof: Option<bool>,
-    network_override: Option<String>,
+    network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let network = if let Some(network_str) = network_override {
+    let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet
@@ -135,7 +135,7 @@ pub async fn get_identity_balance(
         Value::String(identity_id),
     ];
 
-    match client.request::<Value>(method, params, network).await {
+    match client.request::<Value>(method, params, current_network).await {
         Ok(balances) => Ok(balances),
         Err(e) => {
             tracing::error!("Failed to get identity balance: {}", e);
@@ -149,17 +149,17 @@ pub async fn get_token_balances(
     identity_id: String,
     token_ids: Vec<String>,
     with_proof: Option<bool>,
-    network_override: Option<String>,
+    network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let network = if let Some(network_str) = network_override {
+    let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet
     };
     let with_proof = with_proof.unwrap_or(false);
 
-    match client.get_identity_token_balances(identity_id, token_ids, network, with_proof).await {
+    match client.get_identity_token_balances(identity_id, token_ids, current_network, with_proof).await {
         Ok(balances) => {
             let values: Vec<Value> = balances.into_iter()
                 .map(|b| serde_json::to_value(b).unwrap_or_default())
@@ -177,17 +177,17 @@ pub async fn get_token_balances(
 pub async fn resolve_dpns_name(
     username: String,
     with_proof: Option<bool>,
-    network_override: Option<String>,
+    network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let network = if let Some(network_str) = network_override {
+    let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet
     };
     let with_proof = with_proof.unwrap_or(false);
 
-    match client.resolve_dpns_name(username, network, with_proof).await {
+    match client.resolve_dpns_name(username, current_network, with_proof).await {
         Ok(result) => Ok(result),
         Err(e) => {
             tracing::error!("Failed to resolve DPNS name: {}", e);
@@ -200,17 +200,17 @@ pub async fn resolve_dpns_name(
 pub async fn get_dpns_username(
     identity_id: String,
     with_proof: Option<bool>,
-    network_override: Option<String>,
+    network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let network = if let Some(network_str) = network_override {
+    let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet
     };
     let with_proof = with_proof.unwrap_or(false);
 
-    match client.get_dpns_username(identity_id, network, with_proof).await {
+    match client.get_dpns_username(identity_id, current_network, with_proof).await {
         Ok(result) => Ok(result),
         Err(e) => {
             tracing::error!("Failed to get DPNS username: {}", e);
@@ -221,17 +221,17 @@ pub async fn get_dpns_username(
 
 #[command]
 pub async fn get_platform_status(
-    network_override: Option<String>,
+    network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let network = if let Some(network_str) = network_override {
+    let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet
     };
 
     let params = vec![];
-    match client.request::<Value>("get_status".to_string(), params, network).await {
+    match client.request::<Value>("get_status".to_string(), params, current_network).await {
         Ok(status) => Ok(status),
         Err(e) => {
             tracing::error!("Failed to get platform status: {}", e);
@@ -244,10 +244,10 @@ pub async fn get_platform_status(
 pub async fn get_identities_balances(
     identity_ids: Vec<String>,
     with_proof: Option<bool>,
-    network_override: Option<String>,
+    network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let network = if let Some(network_str) = network_override {
+    let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet
@@ -265,7 +265,7 @@ pub async fn get_identities_balances(
         Value::Array(ids_array),
     ];
 
-    match client.request::<Value>(method, params, network).await {
+    match client.request::<Value>(method, params, current_network).await {
         Ok(balances) => Ok(balances),
         Err(e) => {
             tracing::error!("Failed to get identities balances: {}", e);
@@ -278,10 +278,10 @@ pub async fn get_identities_balances(
 pub async fn get_data_contract_info(
     contract_id: String,
     with_proof: Option<bool>,
-    network_override: Option<String>,
+    network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let network = if let Some(network_str) = network_override {
+    let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet
@@ -298,7 +298,7 @@ pub async fn get_data_contract_info(
         Value::String(contract_id),
     ];
 
-    match client.request::<Value>(method, params, network).await {
+    match client.request::<Value>(method, params, current_network).await {
         Ok(contracts) => Ok(contracts),
         Err(e) => {
             tracing::error!("Failed to get data contract info: {}", e);
@@ -311,10 +311,10 @@ pub async fn get_data_contract_info(
 pub async fn get_token_contract_info(
     contract_id: String,
     with_proof: Option<bool>,
-    network_override: Option<String>,
+    network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let network = if let Some(network_str) = network_override {
+    let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet
@@ -331,7 +331,7 @@ pub async fn get_token_contract_info(
         Value::String(contract_id),
     ];
 
-    match client.request::<Value>(method, params, network).await {
+    match client.request::<Value>(method, params, current_network).await {
         Ok(contracts) => Ok(contracts),
         Err(e) => {
             tracing::error!("Failed to get token contract info: {}", e);
@@ -344,10 +344,10 @@ pub async fn get_token_contract_info(
 pub async fn get_token_statuses(
     token_ids: Vec<String>,
     with_proof: Option<bool>,
-    network_override: Option<String>,
+    network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let network = if let Some(network_str) = network_override {
+    let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet
@@ -365,7 +365,7 @@ pub async fn get_token_statuses(
         Value::Array(token_ids_array),
     ];
 
-    match client.request::<Value>(method, params, network).await {
+    match client.request::<Value>(method, params, current_network).await {
         Ok(statuses) => Ok(statuses),
         Err(e) => {
             tracing::error!("Failed to get token statuses: {}", e);
@@ -378,10 +378,10 @@ pub async fn get_token_statuses(
 pub async fn get_total_supply(
     token_id: String,
     with_proof: Option<bool>,
-    network_override: Option<String>,
+    network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let network = if let Some(network_str) = network_override {
+    let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet
@@ -398,7 +398,7 @@ pub async fn get_total_supply(
         Value::String(token_id),
     ];
 
-    match client.request::<Value>(method, params, network).await {
+    match client.request::<Value>(method, params, current_network).await {
         Ok(supply) => Ok(supply),
         Err(e) => {
             tracing::error!("Failed to get token total supply: {}", e);
@@ -410,10 +410,10 @@ pub async fn get_total_supply(
 #[command]
 pub async fn get_current_epoch(
     with_proof: Option<bool>,
-    network_override: Option<String>,
+    network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let network = if let Some(network_str) = network_override {
+    let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet
@@ -428,7 +428,7 @@ pub async fn get_current_epoch(
 
     let params = vec![];
 
-    match client.request::<Value>(method, params, network).await {
+    match client.request::<Value>(method, params, current_network).await {
         Ok(epoch) => Ok(epoch),
         Err(e) => {
             tracing::error!("Failed to get current epoch: {}", e);
@@ -440,10 +440,10 @@ pub async fn get_current_epoch(
 #[command]
 pub async fn get_total_credits_in_platform(
     with_proof: Option<bool>,
-    network_override: Option<String>,
+    network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let network = if let Some(network_str) = network_override {
+    let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet
@@ -458,7 +458,7 @@ pub async fn get_total_credits_in_platform(
 
     let params = vec![];
 
-    match client.request::<Value>(method, params, network).await {
+    match client.request::<Value>(method, params, current_network).await {
         Ok(credits) => Ok(credits),
         Err(e) => {
             tracing::error!("Failed to get total credits: {}", e);
@@ -673,11 +673,11 @@ pub fn params_array_to_object(method: &str, params_array: Vec<Value>) -> Result<
 pub async fn dapi_request_array(
     method: String,
     params_array: Vec<Value>,
-    network_override: Option<String>,
+    network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     // Convert array params to object params
     let params = params_array_to_object(&method, params_array)?;
 
     // Call the object-based request
-    dapi_request(method, params, network_override).await
+    dapi_request(method, params, network).await
 }
