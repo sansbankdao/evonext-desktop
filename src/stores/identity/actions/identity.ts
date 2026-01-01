@@ -55,10 +55,10 @@ export const identityActions = () => ({
     // This logic is now handled inside the composable's queryIdentityDetails flow
     async updateIdentityWithSdkData(
         this: any,
-        identityId: string,
-        identityIdx: number,
-        publicKeys: any[],
-        revision: bigint
+        _identityId: string,
+        _identityIdx: number,
+        _publicKeys: any[],
+        _revision: bigint
     ): Promise<void> {
         // No-op or trigger store update directly if needed,
         // but the composable handles the store patching via logic

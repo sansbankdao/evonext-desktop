@@ -187,7 +187,7 @@ export function useConnect() {
     }
 
     const selectSeedIdentity = (identity: DiscoveredIdentity) => {
-        selectedSeedIdentityId.value = identity.identityId
+        selectedSeedIdentityId.value = identity.identityId || null
     }
 
     const discoverFromSeed = async () => {
@@ -248,7 +248,7 @@ export function useConnect() {
 
             if (result.success && result.identity) {
                 discoveredIdentity.value = result.identity
-                manualIdentityId.value = result.identity.identityId
+                manualIdentityId.value = result.identity.identityId || ''
 
                 discoveryDetails.value = {
                     detectedKeyType: result.detectedKeyType,
