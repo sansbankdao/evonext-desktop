@@ -6,23 +6,74 @@ import { useKeyManagement } from './useKeyManagement'
 import { useBalances } from './useBalances' // For fromSatoshi reuse
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
-import { MIN_CREDIT_TRANSFER } from '@/types'
+import { MIN_CREDIT_TRANSFER } from '@/constants'
+// import type {
+//     SendCreditParams,
+//     SendTokenParams,
+//     TransactionResult,
+//     ITxSuccess,
+//     ITxError,
+//     Transaction,
+//     TokenTransition
+// } from '@/types'
 import type {
-    SendCreditParams,
-    SendTokenParams,
-    TransactionResult,
-    ITxSuccess,
-    ITxError,
-    Transaction,
+    ITransaction,
     TokenTransition
 } from '@/types'
+
+// Local type definitions for missing exports
+interface SendCreditParams {
+    identityId: string
+    identityIdx: number
+    receiver: string
+    credits: bigint
+}
+
+interface SendTokenParams {
+    identityId: string
+    identityIdx: number
+    tokenId: string
+    receiver: string
+    atomicUnits: bigint
+}
+
+interface TransactionResult {
+    success: boolean
+    data?: ITxSuccess
+    error?: ITxError
+}
+
+interface ITxSuccess {
+    txid: string
+}
+
+interface ITxError {
+    code: number
+    message: string
+    suggestions?: string[]
+}
+
+// If BalanceResult and TokenBalance are also needed from imports
+interface BalanceResult {
+    credits: bigint
+    tokens: TokenBalance[]
+}
+
+interface TokenBalance {
+    tokenId: string
+    symbol: string
+    balance: bigint
+    decimals: number
+    name?: string
+}
+
 export function useTransactions() {
     const platform = usePlatform()
     const keys = useKeyManagement()
     const balances = useBalances()
     const loading = ref(false)
     const error = ref<string | null>(null)
-    const transactions = ref<Transaction[]>([])
+    const transactions = ref<ITransaction[]>([])
     const tokenTransitions = ref<TokenTransition[]>([])
     /**
      * Transaction fetching (merged from libs/getTransactions.ts)
@@ -30,7 +81,7 @@ export function useTransactions() {
     const fetchIdentityTransfers = async (
         identityId: string,
         limit: number = 50
-    ): Promise<Transaction[]> => {
+    ): Promise<ITransaction[]> => {
         return ErrorBoundary.wrap(async () => {
             loading.value = true
             error.value = null
@@ -62,7 +113,7 @@ export function useTransactions() {
                 ownerIdentityId: identityId,
                 limit
             })
-            tokenTransitions.value = transitions.map(tt => ({
+            tokenTransitions.value = transitions.map((tt: any) => ({
                 tokenId: tt.tokenId.base58(),
                 type: 'transfer',
                 amount: BigInt(tt.amount),
