@@ -3,11 +3,18 @@
 import { KeyDerivationService } from '../keyDerivation.service'
 import { DAPIService, type DAPIHashSearchResult } from './DAPIService'
 import { BaseDiscovery } from './BaseDiscovery'
+// @ts-ignore
+import { PrivateKeyWASM } from 'pshenmic-dpp'
+// @ts-ignore
+import { binToHex, hexToBin } from '@evonext/utils'
+// @ts-ignore
+import { hash160 } from '@evonext/crypto'
+
 import type {
     DiscoveredIdentity,
     DiscoveryResult,
     DiscoveryOptions,
-    // AssociatedKey,
+    AssociatedKey,
 } from '../types'
 
 export class KeyDiscovery extends BaseDiscovery {
@@ -32,89 +39,137 @@ export class KeyDiscovery extends BaseDiscovery {
             console.log(`[KeyDiscovery] Starting discovery for key on ${options.network}`)
             console.log(`[KeyDiscovery] Key input (first 20 chars): ${keyInput.substring(0, 20)}...`)
 
-            // Step 1: Derive all possible hashes from the key
-            const derivationResult = await KeyDerivationService.deriveAllPossibleHashes(keyInput, options.network)
+            // Step 1: Get the Private Key object
+            const format = KeyDerivationService.detectKeyFormat(keyInput)
+            const privateKey: PrivateKeyWASM | null = this.getPrivateKeyInstance(keyInput, options.network)
 
-            if (derivationResult.hashes.length === 0) {
+            if (!privateKey) {
                 return this.createErrorResult(
-                    'Could not derive any public key hashes from provided key',
+                    `Unsupported key format or derivation failed. Detected: ${format.description}`,
                     {
-                        step: 'hash_derivation_failed',
+                        step: 'private_key_derivation_failed',
                         network: options.network,
-                        error: derivationResult.debug?.error
+                        keyType: format.format
                     }
                 )
             }
 
-            console.log(`[KeyDiscovery] Derived ${derivationResult.hashes.length} possible hashes:`)
-            derivationResult.hashes.forEach((hash, i) => {
-                console.log(`[KeyDiscovery] Hash ${i}: ${hash.substring(0, 24)}...`)
-            })
+            // Step 2: Derive the Public Key Hash
+            // This is the definitive hash derived from the key, matching Seed Discovery logic
+            const publicKey = privateKey.getPublicKey()
+            const publicKeyBytes = publicKey.bytes()
+            const publicKeyHash = binToHex(hash160(publicKeyBytes))
 
-            // Step 2: Search for each hash (unique then non-unique)
-            const searchPromises: Promise<DAPIHashSearchResult>[] = []
-            for (const hash of derivationResult.hashes) {
-                // Try Unique first
-                searchPromises.push(DAPIService.queryIdentityByHash(hash, options.network, true))
-                // If Unique fails, we might need to try non-unique, but let's do sequential or parallel
-                // To be safe and thorough, we check both or rely on the query order
-                // DAPIService returns a result, we check success.
+            console.log(`[KeyDiscovery] Derived Public Key Hash: ${publicKeyHash.substring(0, 24)}...`)
+
+            // Step 3: Search via Unique (Standard)
+            const uniqueResult = await DAPIService.queryIdentityByHash(publicKeyHash, options.network, true)
+
+            if (uniqueResult.success && uniqueResult.data) {
+                console.log(`[KeyDiscovery] Found via UNIQUE lookup`)
+                return this.createSuccessResultFromData(uniqueResult.data, options.network, format.format, {
+                    step: 'comprehensive_search',
+                    searchType: 'unique',
+                    keyType: format.format,
+                    ...uniqueResult.debug
+                })
             }
 
-            const results = await Promise.all(searchPromises)
+            // Step 4: Search via Non-Unique (Fallback)
+            // If unique failed, try non-unique
+            const nonUniqueResult = await DAPIService.queryIdentityByHash(publicKeyHash, options.network, false)
 
-            // Step 3: Find first successful result
-            const successfulResult = results.find(result => result.success)
-
-            if (successfulResult && successfulResult.data) {
-                const identityData = successfulResult.data
-                console.log(`[KeyDiscovery] Found identity: ${identityData.identityId || identityData.id}`)
-
-                // Get DPNS username if available
-                const dpnsUsername = await this.getDPNSUsernameFromData(identityData, options.network)
-
-                // Create identity object
-                const discoveredIdentity: DiscoveredIdentity = {
-                    identityId: identityData.identityId || identityData.id || '',
-                    balance: this.formatBalance(identityData.balance),
-                    revision: this.formatRevision(identityData.revision),
-                    publicKeys: identityData.publicKeys || [],
-                    dpnsUsername
-                }
-
-                // Extract key information
-                const associatedKeys = this.extractAssociatedKeys(discoveredIdentity.publicKeys)
-
-                return this.createSuccessResult(
-                    discoveredIdentity,
-                    null, // identities (not used for single key discovery)
-                    derivationResult.keyType,
-                    associatedKeys,
-                    {
-                        step: 'comprehensive_search',
-                        searchType: successfulResult.searchType,
-                        keyType: derivationResult.keyType,
-                        dpnsUsername,
-                        ...successfulResult.debug
-                    }
-                )
+            if (nonUniqueResult.success && nonUniqueResult.data) {
+                console.log(`[KeyDiscovery] Found via NON-UNIQUE lookup`)
+                return this.createSuccessResultFromData(nonUniqueResult.data, options.network, format.format, {
+                    step: 'comprehensive_search',
+                    searchType: 'non-unique',
+                    keyType: format.format,
+                    ...nonUniqueResult.debug
+                })
             }
 
-            // Step 4: If no identity found
-            console.log(`[KeyDiscovery] No identity found for ${derivationResult.hashes.length} derived hashes`)
+            // Step 5: Failure
+            console.log(`[KeyDiscovery] No identity found for hash ${publicKeyHash.substring(0, 16)}...`)
 
             return this.createErrorResult(
                 'No identity found. The key may not be registered on this network.',
                 {
                     step: 'comprehensive_search_failed',
                     network: options.network,
-                    keyType: derivationResult.keyType
+                    keyType: format.format,
+                    searchedHash: publicKeyHash.substring(0, 16) + '...'
                 }
             )
 
         } catch (error: any) {
             return this.handleError(error, 'Key Discovery')
         }
+    }
+
+    /**
+     * Helper to derive PrivateKeyWASM from raw input
+     */
+    private getPrivateKeyInstance(keyInput: string, network: 'mainnet' | 'testnet'): PrivateKeyWASM | null {
+        try {
+            const cleanKey = keyInput.trim()
+            const format = KeyDerivationService.detectKeyFormat(cleanKey)
+
+            if (format.format === 'WIF') {
+                return PrivateKeyWASM.fromWIF(cleanKey)
+            }
+            if (format.format === 'HEX_PRIVATE') {
+                return PrivateKeyWASM.fromHex(cleanKey.toLowerCase(), network)
+            }
+
+            // Handle Public Keys (if user pasted them instead of private keys)
+            if (format.format === 'COMPRESSED_PUBKEY' || format.format === 'UNCOMPRESSED_PUBKEY') {
+                // We cannot derive a private key from a public key, but we can still search by hash
+                // However, for the purpose of this specific function, we return null because
+                // we expect a Private Key object to derive the hash ourselves.
+                return null
+            }
+
+            return null
+        } catch (error) {
+            console.error('[KeyDiscovery] Failed to get private key instance:', error)
+            return null
+        }
+    }
+
+    /**
+     * Helper to map DAPI result to DiscoveredIdentity
+     */
+    private async createSuccessResultFromData(
+        identityData: any,
+        network: 'mainnet' | 'testnet',
+        keyType: string,
+        debug?: any
+    ): Promise<DiscoveryResult> {
+        console.log(`[KeyDiscovery] Found identity: ${identityData.identityId || identityData.id}`)
+
+        // Get DPNS username if available
+        const dpnsUsername = await this.getDPNSUsernameFromData(identityData, network)
+
+        // Create identity object
+        const discoveredIdentity: DiscoveredIdentity = {
+            identityId: identityData.identityId || identityData.id || '',
+            balance: this.formatBalance(identityData.balance),
+            revision: this.formatRevision(identityData.revision),
+            publicKeys: identityData.publicKeys || [],
+            dpnsUsername
+        }
+
+        // Extract key information
+        const associatedKeys = this.extractAssociatedKeys(discoveredIdentity.publicKeys)
+
+        return this.createSuccessResult(
+            discoveredIdentity,
+            null,
+            keyType,
+            associatedKeys,
+            debug
+        )
     }
 
     /**
