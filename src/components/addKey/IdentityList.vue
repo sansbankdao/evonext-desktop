@@ -28,7 +28,7 @@
                         </h3>
 
                         <p class="text-sm text-slate-600 dark:text-slate-400 truncate">
-                            {{ identity.username || identity.id.slice(0, 16) + '...' }}
+                            {{ identity.username || identity.id?.slice(0, 16) + '...' }}
                         </p>
 
                         <!-- Key Badges -->
@@ -74,34 +74,25 @@
 </template>
 
 <script setup lang="ts">
-import type { IPublicKey } from '@/types'
-
-interface Identity {
-    id: string
-    identity_idx: number
-    username?: string
-    display_name?: string
-    publicKeys?: IPublicKey[]
-    [key: string]: any
-}
+import type { IIdentity, IPublicKey } from '@/types'
 
 defineProps<{
-    identities: Identity[]
-    selectedIdentity?: Identity | null
+    identities: IIdentity[]
+    selectedIdentity?: IIdentity | null
     showMissingWarning?: boolean
 }>()
 
 defineEmits<{
-    'select-identity': [identity: Identity]
+    'select-identity': [identity: IIdentity]
 }>()
 
-const getIdentityInitial = (identity: Identity): string => {
-    const name = identity.display_name || identity.username || 'ID'
+const getIdentityInitial = (identity: IIdentity): string => {
+    const name = identity.displayName || identity.username || 'ID'
     return name.charAt(0).toUpperCase()
 }
 
-const getIdentityDisplayName = (identity: Identity): string => {
-    if (identity.display_name) return identity.display_name
+const getIdentityDisplayName = (identity: IIdentity): string => {
+    if (identity.displayName) return identity.displayName
     if (identity.username) return identity.username.split('.')[0] || 'Unnamed Identity'
     return 'Unnamed Identity'
 }
@@ -157,7 +148,7 @@ const getKeyTypeShort = (key: IPublicKey): string => {
     return 'KEY'
 }
 
-const hasTransferKey = (identity: Identity): boolean => {
+const hasTransferKey = (identity: IIdentity): boolean => {
     return identity?.publicKeys?.some((key: IPublicKey) => {
         const purpose = typeof key.purpose === 'string' ? parseInt(key.purpose) : key.purpose
         return purpose === 1 || purpose === 3

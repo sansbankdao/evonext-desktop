@@ -60,6 +60,7 @@ export interface IIdentity {
     identityIdx: number;
     balance?: string;
     publicKeys: IPublicKey[];
+    username?: string;
     avatarUrl?: string;
     avatarHash?: string;
     avatarFingerprint?: string;

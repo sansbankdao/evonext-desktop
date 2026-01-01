@@ -12,6 +12,7 @@
                     <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                         Identifier
                     </label>
+
                     <div class="font-mono text-sm bg-slate-200 dark:bg-slate-800 px-3 py-2 rounded-lg truncate">
                         {{ identity.id }}
                     </div>
@@ -36,6 +37,7 @@
                                         {{ getSecurityLevelLabel(key.securityLevel) }}
                                     </span>
                                 </div>
+
                                 <div class="text-xs text-slate-500 dark:text-slate-400">
                                     {{ key.type || key.keyType }}
                                 </div>
@@ -57,10 +59,12 @@
                             <svg class="h-5 w-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
+
                             <div>
                                 <h4 class="font-semibold text-green-800 dark:text-green-300">
                                     TRANSFER Key Already Present
                                 </h4>
+
                                 <p class="text-sm text-green-700 dark:text-green-400">
                                     This identity already has a TRANSFER key, so sending transactions is already enabled.
                                 </p>
@@ -117,26 +121,21 @@
         </div>
     </div>
 </template>
+
 <script setup lang="ts">
-import type { IPublicKey } from '@/types'
-interface Identity {
-    id: string
-    identity_idx: number
-    username?: string
-    display_name?: string
-    revision?: number | bigint
-    publicKeys?: IPublicKey[]
-    [key: string]: any
-}
+import type { IIdentity, IPublicKey } from '@/types'
+
 defineProps<{
-    identity?: Identity | null
+    identity?: IIdentity | null
     hasTransferKey?: boolean
 }>()
+
 const getKeyIdentifier = (key: IPublicKey, index: number): string => {
     const purpose = typeof key.purpose === 'string' ? key.purpose : key.purpose.toString()
     const securityLevel = typeof key.securityLevel === 'string' ? key.securityLevel : key.securityLevel.toString()
     return `${purpose}-${securityLevel}-${key.keyType}-${index}`
 }
+
 const getPurposeLabel = (purpose: number | string): string => {
     const purposeNum = typeof purpose === 'string' ? parseInt(purpose) : purpose
     switch(purposeNum) {
@@ -147,6 +146,7 @@ const getPurposeLabel = (purpose: number | string): string => {
         default: return `Purpose ${purpose}`
     }
 }
+
 const getSecurityLevelLabel = (level: number | string): string => {
     const levelNum = typeof level === 'string' ? parseInt(level) : level
     switch(levelNum) {
@@ -158,6 +158,7 @@ const getSecurityLevelLabel = (level: number | string): string => {
         default: return `Level ${level}`
     }
 }
+
 const getSecurityLevelClass = (level: number | string): string => {
     const levelNum = typeof level === 'string' ? parseInt(level) : level
     switch(levelNum) {

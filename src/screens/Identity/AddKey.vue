@@ -148,10 +148,10 @@ const loadIdentities = async () => {
             // Map identities with proper typing
             identities.value = result.map((identity: any): IdentityWithKeys => ({
                 id: identity.id || identity.identityId || '',
-                identity_idx: identity.identityIdx || identity.identity_idx || 0,
+                identityIdx: identity.identityIdx || identity.identity_idx || 0,
                 revision: identity.revision ? BigInt(identity.revision) : BigInt(0),
                 username: identity.username || identity.dpnsUsername || '',
-                display_name: identity.displayName || identity.dpnsUsername || '',
+                displayName: identity.displayName || identity.dpnsUsername || '',
                 publicKeys: identity.publicKeys || []
             }))
 
@@ -160,7 +160,7 @@ const loadIdentities = async () => {
             if (missingTransfer) {
                 selectedIdentity.value = missingTransfer
             } else if (identities.value.length > 0) {
-                selectedIdentity.value = identities.value[0]
+                selectedIdentity.value = identities.value[0] || null
             }
         } else {
             identities.value = [] // Ensure it's always an array
@@ -206,9 +206,9 @@ const addTransferKey = async () => {
 
         const identity = selectedIdentity.value
         const result = await addKeyToIdentity(
-            identity.id,
-            identity.identity_idx,
-            identity.revision,
+            identity.id || '',
+            identity.identityIdx,
+            identity.revision || BigInt(0),
             identity.publicKeys || [],
             keyType.value,
             parseSecurityLevel(securityLevel.value)
