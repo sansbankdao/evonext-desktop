@@ -2,7 +2,7 @@
 import { ref, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getIdentityManager } from '@/services/identity'
-import { useIdentityStore } from '@/stores/identity' // Assuming this exists for final login
+import { useIdentityStore } from '@/stores/identity'
 import getNetwork from '@/libs/getNetwork'
 import type { DiscoveredIdentity, DiscoveryResult, ScanProgress } from '@/services/identity/types'
 
@@ -15,11 +15,11 @@ export function useConnect() {
     const connectionMethod = ref<'seed' | 'privateKey'>('seed')
     const connectionError = ref<string | null>(null)
     const isConnecting = ref(false)
-    const isDiscovering = ref(false) // Shared loading state for discovery
+    const isDiscovering = ref(false)
     const discoveryStatus = ref('')
     const debugOutput = ref<any>(null)
 
-    // --- NEW: Progress tracking state ---
+    // --- Progress tracking state ---
     const discoveryProgress = ref<ScanProgress | null>(null)
 
     // --- State: Seed Form ---
@@ -33,7 +33,7 @@ export function useConnect() {
     const currentInputKey = ref('')
     const manualIdentityId = ref('')
     const discoveredIdentity = ref<DiscoveredIdentity | null>(null)
-    const discoveryDetails = ref<any>(null) // UI specific details for KeyDiscoveryForm
+    const discoveryDetails = ref<any>(null)
 
     // --- Computed: Validation ---
     const isFormValid = computed(() => {
@@ -59,11 +59,11 @@ export function useConnect() {
 
     const isSearchingSeed = computed(() => isDiscovering.value && connectionMethod.value === 'seed')
 
-    // --- NEW: Progress computed properties ---
+    // --- Progress computed properties ---
     const progressPercentage = computed(() => {
         if (!discoveryProgress.value) return 0
         const progress = discoveryProgress.value
-        const totalOperations = progress.totalIdentities * progress.totalKeysPerIdentity * 2 // *2 for unique + non-unique checks
+        const totalOperations = progress.totalIdentities * progress.totalKeysPerIdentity * 2 // *2 for unique + non-unique
         return totalOperations > 0
             ? Math.round((progress.scannedCount / totalOperations) * 100)
             : 0
@@ -89,10 +89,33 @@ export function useConnect() {
     // --- Actions: State Helpers ---
     const updateConnectionMethod = (method: 'seed' | 'privateKey') => {
         connectionMethod.value = method
-        resetDiscovery()
+        // We do NOT call resetDiscovery() here anymore to preserve results
+        connectionError.value = null
+        // We only clear input fields that don't belong to the target tab
+        if (method === 'seed') {
+            currentInputKey.value = ''
+            discoveredIdentity.value = null
+            discoveryDetails.value = null
+        } else {
+            seedWords.value = new Array(parseInt(seedWordCount.value)).fill('')
+        }
+    }
+
+    const closeResults = () => {
+        // Explicitly clear results and selection
+        seedDiscoveryResults.value = []
+        selectedSeedIdentityId.value = null
+        seedDiscoveryError.value = null
+        discoveryProgress.value = null
+    }
+
+    const closeProgress = () => {
+        // Close just the progress bar
+        discoveryProgress.value = null
     }
 
     const resetDiscovery = () => {
+        // Hard reset: clear everything including results
         connectionError.value = null
         seedDiscoveryResults.value = []
         seedDiscoveryError.value = null
@@ -112,7 +135,6 @@ export function useConnect() {
     const formatBalance = (balance: string | number | undefined) => {
         if (!balance) return '0.00'
         const num = typeof balance === 'string' ? parseFloat(balance) : balance
-        // Assuming balance is in duffs/satoshis, adjust divisor as needed for your coin
         return (num / 100000000).toFixed(2)
     }
 
@@ -124,7 +146,6 @@ export function useConnect() {
 
     // --- Actions: Seed Logic ---
     const handlePaste = (pastedText: string | string[]) => {
-        // Handle both raw string (from some events) or array (from component emit)
         let words: string[] = []
         if (Array.isArray(pastedText)) {
             words = pastedText
@@ -133,7 +154,6 @@ export function useConnect() {
         }
 
         if (words.length > 0) {
-            // Auto-switch length if 24 words pasted
             if (words.length > 12) seedWordCount.value = '24'
             else seedWordCount.value = '12'
 
@@ -162,12 +182,13 @@ export function useConnect() {
 
         isDiscovering.value = true
         seedDiscoveryError.value = null
+        // Clear previous results only on new scan
         seedDiscoveryResults.value = []
+        selectedSeedIdentityId.value = null
 
         // Reset progress
         discoveryProgress.value = null
 
-        // Initial status
         discoveryStatus.value = 'Deriving keys and scanning network...'
 
         try {
@@ -181,7 +202,6 @@ export function useConnect() {
 
             if (result.success && result.identities && result.identities.length > 0) {
                 seedDiscoveryResults.value = result.identities
-                // Auto-select if only one
                 if (result.identities.length === 1) {
                     selectedSeedIdentityId.value = result.identities[0]?.identityId || null
                 }
@@ -192,10 +212,10 @@ export function useConnect() {
             seedDiscoveryError.value = e.message
         } finally {
             isDiscovering.value = false
-            // Keep progress visible for a moment after completion
-            setTimeout(() => {
-                discoveryProgress.value = null
-            }, 2000)
+            // REMOVED: Auto-hide progress. It stays on screen now.
+            // setTimeout(() => {
+            //     discoveryProgress.value = null
+            // }, 2000)
         }
     }
 
@@ -203,7 +223,7 @@ export function useConnect() {
     const handleDiscoverIdentity = async (keyInput: string) => {
         isDiscovering.value = true
         connectionError.value = null
-        currentInputKey.value = keyInput // Store input for final connection
+        currentInputKey.value = keyInput
         discoveryStatus.value = 'Analyzing key and searching...'
 
         try {
@@ -216,16 +236,14 @@ export function useConnect() {
 
             if (result.success && result.identity) {
                 discoveredIdentity.value = result.identity
-                manualIdentityId.value = result.identity.identityId // Auto-fill manual ID
+                manualIdentityId.value = result.identity.identityId
 
-                // Map service result to UI expectations
                 discoveryDetails.value = {
                     detectedKeyType: result.detectedKeyType,
                     associatedKeys: result.associatedKeys || []
                 }
             } else {
                 connectionError.value = result.error || 'Identity not found. You can enter ID manually.'
-                // Even if not found, we keep the key so they can try manual ID
             }
         } catch (e: any) {
             connectionError.value = e.message
@@ -235,8 +253,7 @@ export function useConnect() {
     }
 
     const useManualIdentity = () => {
-        // Logic handled in computed isFormValid mostly,
-        // but this can be used to trigger specific validation if needed
+        // Logic handled in computed isFormValid mostly
     }
 
     // --- Actions: Final Connection ---
@@ -251,7 +268,6 @@ export function useConnect() {
                 // SEED CONNECTION
                 const phrase = seedWords.value.join(' ').trim()
                 if (!selectedSeedIdentityId.value && seedDiscoveryResults.value.length === 0) {
-                    // Force discovery if clicked connect without discovering
                     await discoverFromSeed()
                     if (seedDiscoveryResults.value.length === 0) throw new Error('No identities found')
                     selectedSeedIdentityId.value = seedDiscoveryResults.value[0]?.identityId || null
@@ -259,8 +275,6 @@ export function useConnect() {
 
                 if (!selectedSeedIdentityId.value) throw new Error('Please select an identity')
 
-                // Call Store Action
-                // Note: We use the store for the final "Login" which sets up the wallet/session
                 const result = await identityStore.connectWithSeed(phrase, network) // Ensure your store has this
                 if (!result.success) throw new Error(result.error)
 
@@ -269,7 +283,6 @@ export function useConnect() {
                 const idToUse = discoveredIdentity.value?.identityId || manualIdentityId.value
                 if (!idToUse) throw new Error('Identity ID is required')
 
-                // Call Store Action
                 const result = await identityStore.connectWithSingleKey(
                     currentInputKey.value,
                     idToUse,
@@ -306,7 +319,7 @@ export function useConnect() {
         discoveryStatus,
         debugOutput,
 
-        // NEW: Progress tracking
+        // Progress
         discoveryProgress,
         progressPercentage,
         progressMessage,
@@ -334,6 +347,8 @@ export function useConnect() {
         handleDiscoverIdentity,
         handleConnect,
         resetDiscovery,
+        closeResults,
+        closeProgress,
         useManualIdentity,
         initialize,
         cleanup

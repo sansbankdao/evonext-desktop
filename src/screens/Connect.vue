@@ -144,9 +144,23 @@
 
                         <!-- Seed Discovery Results -->
                         <div v-if="seedDiscoveryResults.length > 0" class="mt-4 space-y-3">
-                            <h3 class="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                Found {{ seedDiscoveryResults.length }} Identities
-                            </h3>
+                            <!-- Header with Count and Close Button -->
+                            <div class="flex items-center justify-between mb-2">
+                                <h3 class="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                    Found {{ seedDiscoveryResults.length }} Identity {{ seedDiscoveryResults.length === 1 ? 'y' : 'ies' }}
+                                </h3>
+                                <button
+                                    type="button"
+                                    @click="closeResults"
+                                    class="p-1 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors"
+                                    title="Clear results"
+                                >
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
                             <div v-for="identity in seedDiscoveryResults" :key="identity.identityId"
                                  class="p-3 border rounded-lg cursor-pointer transition-colors"
                                  :class="selectedSeedIdentityId === identity.identityId
@@ -154,16 +168,17 @@
                                     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'"
                                  @click="selectSeedIdentity(identity)">
                                 <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="font-medium text-slate-800 dark:text-slate-200">
-                                            {{ identity.identityId.substring(0, 16) }}...
+                                    <div class="min-w-0 flex-1">
+                                        <!-- Full Identity ID displayed in monospace -->
+                                        <p class="font-mono text-sm font-medium text-slate-800 dark:text-slate-200 break-all mb-1">
+                                            {{ identity.identityId }}
                                         </p>
                                         <p class="text-xs text-slate-600 dark:text-slate-400">
                                             {{ identity.dpnsUsername || 'No DPNS name' }} • {{ formatBalance(identity.balance) }} Credits
                                         </p>
                                     </div>
                                     <div v-if="selectedSeedIdentityId === identity.identityId"
-                                         class="text-cyan-500">
+                                         class="text-cyan-500 flex-shrink-0 ml-3">
                                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
                                         </svg>
@@ -291,6 +306,7 @@ const {
     selectSeedIdentity,
     handleDiscoverIdentity,
     resetDiscovery,
+    closeResults,
     useManualIdentity,
     handleConnect,
     initialize,
