@@ -53,7 +53,7 @@
         "exactOptionalPropertyTypes": true,
         "noImplicitReturns": true,
         "noImplicitOverride": true,
-        "noPropertyAccessFromIndexSignature": true,
+        "noPropertyAccessFromIndexSignature": false,
         "allowUnusedLabels": false,
         "allowUnreachableCode": false,
         "useUnknownInCatchVariables": true,

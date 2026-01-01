@@ -8,24 +8,25 @@ export interface IPublicKey {
     keyType: string;
     purpose: PurposeType;
     securityLevel: SecurityLevelType;
-    contractBounds: any;
-    data: string;
-    dataBytes: string | null;
-    readOnly: boolean;
-    disabledAt: string | null;
-    id?: number; // Added to support UI indexing
+    contractBounds?: any;
+    data?: string;
+    dataBytes?: string | null;
+    readOnly?: boolean;
+    disabledAt?: string | null;
+    id?: number;
 }
 
-export interface IIdentityData {
+export interface IUser {
+    docId?: string;
     username: string;
-    identityId: string;
-    identityIdx: number;
-    balance: string | null;
-    isAuthenticated: boolean;
-    publicKeys: IPublicKey[] | null;
-    revision: number | null;
-    createdAt: number | null;
-    publicKeyIds: number[] | null;
+    displayName: string;
+    avatar: string;
+    verified?: boolean;
+    // Fix for Wallet screens:
+    address?: string;
+    identityId?: string;
+    bio?: string;
+    publicMessage?: string;
 }
 
 export interface DiscoveredIdentity {
@@ -34,26 +35,16 @@ export interface DiscoveredIdentity {
     identityIdx: number;
     balance: string;
     revision: number;
-    publicKeys?: Array<{
-        purpose: number | string;
-        securityLevel: number | string;
-        keyType: string;
-        dataB64?: string;
-        data?: string;
-        readOnly: boolean;
-    }>;
+    publicKeys?: IPublicKey[];
     dpnsUsername?: string;
 }
 
 export interface IIdentityState {
     username: string | null;
-    // Added these two to match useIdentity.ts expectations:
     identityId: string | null;
     displayName: string | null;
     identity: DiscoveredIdentity | null;
     balance: string | null;
-    balanceBigInt?: bigint;
-    dashBigInt?: bigint;
     publicKeys: IPublicKey[];
     revision: number | null;
     isAuthenticated: boolean;
@@ -61,23 +52,16 @@ export interface IIdentityState {
     connectionError: string | null;
     isConnecting: boolean
     lastConnected: number | null;
-    // Optional methods
-    getGreeting?: () => string;
+    // Fix for Store Actions (allows 'this.method' calls in actions)
+    searchUserIdentities?: (network: string) => Promise<any>;
+    fetchBalance?: () => Promise<void>;
     saveToStorage?: () => Promise<void>;
     clearStorage?: () => Promise<void>;
+    loadFromStorage?: () => Promise<void>;
 }
 
 export interface ConnectionResult {
     success: boolean;
-    identityId?: string; // Changed from identity object to ID string for lighter passing
+    identityId?: string;
     error?: string;
-}
-
-// Keep other types as they were...
-export interface IUser {
-    docId?: string;
-    username: string;
-    displayName: string;
-    avatar: string;
-    verified?: boolean;
 }
