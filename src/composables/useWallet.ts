@@ -2,69 +2,105 @@
 
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useWalletStore } from '@/stores/wallet'
-import type { IUser } from '@/types'
-
+import { usePlatform } from './usePlatform'
+import { useBalances } from './useBalances'
+import { useTransactions } from './useTransactions'
+import { useKeyManagement } from './useKeyManagement'
+import { useNetwork } from './useNetwork'
+import type { IUser, SendCreditParams, SendTokenParams, BalanceResult, TransactionResult, TokenBalance } from '@/types'
 /**
- * A composable for wallet functionality with auto-refresh, debouncing, and convenience methods
+ * Main wallet composable that orchestrates all wallet operations
  */
 export function useWallet() {
+    // Store
     const store = useWalletStore()
+    // Sub-composables
+    const platform = usePlatform()
+    const balances = useBalances()
+    const transactions = useTransactions()
+    const keys = useKeyManagement()
+    const network = useNetwork()
+    // State
     const isPolling = ref(false)
+    const loading = ref(false)
+    const error = ref<string | null>(null)
     let pollInterval: NodeJS.Timeout | undefined
-
-    // Create a simple debounced refresh
     let refreshTimeout: NodeJS.Timeout | undefined
     let isRefreshing = false
-
+    // Initialization
+    const initialize = async (): Promise<void> => {
+        loading.value = true
+        error.value = null
+        try {
+            await platform.initialize()
+            await keys.initialize()
+            loading.value = false
+        } catch (err: any) {
+            error.value = err.message || 'Failed to initialize wallet'
+            loading.value = false
+            throw err
+        }
+    }
+    // Balance operations
+    const getBalances = async (identityId: string): Promise<BalanceResult> => {
+        return await balances.getBalances(identityId)
+    }
+    const getTokenBalance = async (identityId: string, tokenId: string): Promise<bigint> => {
+        return await balances.getTokenBalance(identityId, tokenId)
+    }
+    const hasSufficientBalance = async (identityId: string, requiredCredits: bigint): Promise<boolean> => {
+        return await balances.hasSufficientBalance(identityId, requiredCredits)
+    }
+    // Transaction operations
+    const sendCredits = async (params: SendCreditParams): Promise<TransactionResult> => {
+        return await transactions.sendCredits(params)
+    }
+    const sendToken = async (params: SendTokenParams): Promise<TransactionResult> => {
+        return await transactions.sendToken(params)
+    }
+    const sendCredit = async (
+        identityId: string,
+        identityIdx: number,
+        receiver: string,
+        credits: bigint
+    ): Promise<TransactionResult> => {
+        return await transactions.sendCredit(identityId, identityIdx, receiver, credits)
+    }
+    const sendTokenTransfer = async (
+        identityId: string,
+        identityIdx: number,
+        tokenId: string,
+        receiver: string,
+        atomicUnits: bigint
+    ): Promise<TransactionResult> => {
+        return await transactions.sendTokenTransfer(identityId, identityIdx, tokenId, receiver, atomicUnits)
+    }
+    // Store operations
     const refresh = async () => {
         if (isRefreshing) return
         isRefreshing = true
-
+        error.value = null
         try {
             await store.refreshBalances()
-        } catch (error) {
-            console.error('Failed to refresh wallet:', error)
+        } catch (err: any) {
+            error.value = err.message || 'Failed to refresh wallet'
         } finally {
             isRefreshing = false
         }
     }
-
-    // Debounced version of refresh
     const debouncedRefresh = () => {
         if (refreshTimeout) clearTimeout(refreshTimeout)
         refreshTimeout = setTimeout(() => {
             refresh()
         }, 500)
     }
-
-    // Computed properties for convenience
-    const totalUsdValue = computed(() => store.totalUsdValue)
-    const assets = computed(() => store.assets)
-    const transactions = computed(() => store.transactions)
-    const isLoading = computed(() => store.isLoading)
-    const user = computed(() => store.user)
-
-    // Find asset by ticker
-    const findAsset = (ticker: string) => {
-        return store.getAssetByTicker(ticker)
+    const loadMoreTransactions = async (limit = 20) => {
+        const currentLength = store.transactions.length
+        await store.fetchRealTransactions(limit)
     }
-
-    // Initialize wallet with user
-    const init = async (user: IUser) => {
-        await store.init(user)
-    }
-
-    // Refresh when window becomes visible again
-    const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-            debouncedRefresh()
-        }
-    }
-
-    // Start auto-refresh polling
+    // Polling
     const startPolling = (intervalMs = 30000) => {
         if (pollInterval) clearInterval(pollInterval)
-
         isPolling.value = true
         pollInterval = setInterval(() => {
             if (document.visibilityState === 'visible') {
@@ -72,8 +108,6 @@ export function useWallet() {
             }
         }, intervalMs)
     }
-
-    // Stop auto-refresh polling
     const stopPolling = () => {
         if (pollInterval) {
             clearInterval(pollInterval)
@@ -81,49 +115,59 @@ export function useWallet() {
         }
         isPolling.value = false
     }
-
-    // Load more transactions (pagination)
-    const loadMoreTransactions = async (limit = 20) => {
-        const currentLength = store.transactions.length
-        await store.fetchRealTransactions(limit)
+    // Visibility
+    const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+            debouncedRefresh()
+        }
     }
-
-    // Setup and cleanup
+    // Setup
     onMounted(() => {
         document.addEventListener('visibilitychange', handleVisibilityChange)
     })
-
     onUnmounted(() => {
         stopPolling()
         document.removeEventListener('visibilitychange', handleVisibilityChange)
         if (refreshTimeout) clearTimeout(refreshTimeout)
     })
-
     return {
-        // Store state
-        user,
-        assets,
-        transactions,
-        totalUsdValue,
-        isLoading,
+        // State
+        user: computed(() => store.user),
+        assets: computed(() => store.assets),
+        transactions: computed(() => store.transactions),
+        totalUsdValue: computed(() => store.totalUsdValue),
+        isLoading: computed(() => store.isLoading || loading.value),
         balanceChange: computed(() => store.balanceChange),
-
-        // Store actions
-        fetchLiveBalances: store.fetchLiveBalances,
-        fetchRealTransactions: store.fetchRealTransactions,
-        clear: store.clear,
-
-        // Composable methods
-        init,
+        error: computed(() => error.value),
+        isPolling,
+        // Platform
+        platform,
+        // Actions
+        initialize,
         refresh,
         debouncedRefresh,
-        findAsset,
         loadMoreTransactions,
         startPolling,
         stopPolling,
-        isPolling
+        clear: store.clear,
+        // Core operations
+        getBalances,
+        getTokenBalance,
+        hasSufficientBalance,
+        sendCredits,
+        sendToken,
+        sendCredit,
+        sendTokenTransfer,
+        // Store proxies
+        fetchLiveBalances: store.fetchLiveBalances,
+        fetchRealTransactions: store.fetchRealTransactions,
+        findAsset: (ticker: string) => store.getAssetByTicker(ticker),
+        // Network
+        network: computed(() => network.network.value),
+        // Keys
+        getTransferKey: keys.getTransferKey,
+        getAuthKey: keys.getAuthKey
     }
 }
-
 // Type export
 export type UseWalletReturn = ReturnType<typeof useWallet>
