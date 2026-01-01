@@ -1,10 +1,24 @@
 // src/composables/useDebounce.ts
 
-/* Import modules. */
-import { ref, watch, onUnmounted } from 'vue'
+import { ref, watch, onUnmounted, type WatchSource } from 'vue'
 
-export function useDebounce<T>(value: T, delay = 300) {
-    const debouncedValue = ref(value) as { value: T }
+/**
+ * Debounces a reactive value with automatic cleanup.
+ *
+ * @param source - Reactive value to debounce (can be ref, computed, or getter)
+ * @param delay - Debounce delay in milliseconds (default: 300ms)
+ * @returns A reactive object with `value` property containing the debounced value
+ */
+export function useDebounce<T>(
+    source: WatchSource<T> | (() => T),
+    delay = 300
+): { value: T } {
+    // Initialize with current source value
+    const initialValue = typeof source === 'function'
+        ? source()
+        : (source as { value: T }).value
+
+    const debouncedValue = ref(initialValue) as { value: T }
     let timeoutId: ReturnType<typeof setTimeout> | undefined
 
     const updateDebouncedValue = (newValue: T) => {
@@ -17,7 +31,14 @@ export function useDebounce<T>(value: T, delay = 300) {
         }, delay)
     }
 
-    watch(() => value, updateDebouncedValue, { immediate: true })
+    // Watch the source for changes
+    watch(
+        source,
+        (newValue) => {
+            updateDebouncedValue(newValue)
+        },
+        { immediate: true }
+    )
 
     onUnmounted(() => {
         if (timeoutId) {
@@ -28,6 +49,14 @@ export function useDebounce<T>(value: T, delay = 300) {
     return debouncedValue
 }
 
-// Usage in components:
+// Usage examples:
+// 1. With a ref:
 // const searchTerm = ref('')
 // const debouncedSearchTerm = useDebounce(searchTerm, 500)
+//
+// 2. With a getter:
+// const phrase = computed(() => words.value.join(' '))
+// const debouncedPhrase = useDebounce(() => phrase.value, 500)
+//
+// 3. Watch the debounced value:
+// watch(() => debouncedSearchTerm.value, (newVal) => { ... })
