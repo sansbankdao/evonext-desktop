@@ -3,8 +3,8 @@
 export interface IPublicKey {
     type: number;
     keyType: string;
-    purpose: number;
-    securityLevel: number;
+    purpose: number | string;
+    securityLevel: number | string;
     contractBounds: any; // FIXME Specify a proper type.
     data: string;
     dataBytes: string | null;
@@ -68,7 +68,7 @@ export interface IIdentityData {
     isAuthenticated: boolean;
     publicKeys: IPublicKey[] | null;
     revision: number | null;
-    createdAt: string | null;
+    createdAt: number | null;
     publicKeyIds: number[] | null;
 }
 
@@ -105,7 +105,7 @@ export interface IIdentityState {
     balanceBigInt?: bigint;
     dashBigInt?: bigint;
     publicKeys: IPublicKey[];
-    revision: string | null;
+    revision: number | null;
     isAuthenticated: boolean;
     premiumAccess: boolean;
     connectionError: string | null;
@@ -166,15 +166,16 @@ export interface KeyGenerationResult {
 }
 
 export interface DiscoveredIdentity {
+    id?: string;
     identityId: string;
     identityIdx: number;
     balance: string;
-    revision: string;
+    revision: number;
     publicKeys?: Array<{
-        purpose: string;
-        securityLevel: string;
+        purpose: number | string;
+        securityLevel: number | string;
         keyType: string;
-        dataB64: string;
+        dataB64?: string;
         data?: string;
         readOnly: boolean;
     }>;
