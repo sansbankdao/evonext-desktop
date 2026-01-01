@@ -1,7 +1,7 @@
 // src/stores/posts/actions/createUpdate.ts
 
 import type { IPost } from '@/types/posts'
-import { createPost, updatePost, deletePost } from '@/libs/posts'
+import { usePosts } from '@/composables/usePosts'
 
 export async function createNewPostAction(
     this: any,
@@ -16,19 +16,17 @@ export async function createNewPostAction(
 ): Promise<IPost | null> {
     this.isLoading = true
     this.error = null
+
     try {
-        const post = await createPost({
-            content,
-            isSensitive: options?.isSensitive || false,
-            language: options?.language || 'en',
-            mediaUrl: options?.mediaUrl,
-            mentionIds: options?.mentionIds,
-            replyToPostId: options?.replyToPostId
-        })
+        const composable = usePosts()
+        const post = await composable.createPost(content, options)
+
         if (post) {
-            // Add to beginning of both arrays
-            this.posts.unshift(post)
-            this.userPosts.unshift(post)
+            // The composable handles upserting into the store via postsStore.upsertPost
+            // However, the original action also updated userPosts explicitly.
+            // upsertPost in the store likely handles the main list.
+            // If userPosts is a separate list maintained in state, we ensure sync:
+            this.userPosts = this.posts.filter((p: IPost) => p.ownerId === composable.currentUserId.value)
             this.lastFetched = new Date()
         }
         return post
@@ -45,6 +43,7 @@ export async function updateExistingPostAction(
     this: any,
     postId: string,
     updates: {
+        documentId: string;
         content?: string;
         isSensitive?: boolean;
         language?: string
@@ -52,27 +51,15 @@ export async function updateExistingPostAction(
 ): Promise<boolean> {
     this.isLoading = true
     this.error = null
+
     try {
-        const success = await updatePost(postId, { documentId: postId, ...updates })
+        const composable = usePosts()
+        const success = await composable.updatePost(postId, updates)
+
+        // The composable handles the optimistic update in the main store.
+        // We just need to ensure the userPosts array is kept in sync if it's separate.
         if (success) {
-            // Update in posts array
-            const postIndex = this.posts.findIndex((p: IPost) => p.id === postId)
-            if (postIndex !== -1) {
-                this.posts[postIndex] = {
-                    ...this.posts[postIndex],
-                    ...updates,
-                    updatedAt: new Date()
-                }
-            }
-            // Update in userPosts array
-            const userPostIndex = this.userPosts.findIndex((p: IPost) => p.id === postId)
-            if (userPostIndex !== -1) {
-                this.userPosts[userPostIndex] = {
-                    ...this.userPosts[userPostIndex],
-                    ...updates,
-                    updatedAt: new Date()
-                }
-            }
+            this.userPosts = this.posts.filter((p: IPost) => p.ownerId === composable.currentUserId.value)
         }
         return success
     } catch (error: any) {
@@ -87,17 +74,15 @@ export async function updateExistingPostAction(
 export async function deletePostByIdAction(this: any, postId: string): Promise<boolean> {
     this.isLoading = true
     this.error = null
+
     try {
-        const success = await deletePost(postId)
+        const composable = usePosts()
+        const success = await composable.deletePost(postId)
+
+        // The composable handles deletion from the main store.
+        // We sync the userPosts array.
         if (success) {
-            // Remove from posts array
-            this.posts = this.posts.filter((p: IPost) => p.id !== postId)
-            // Remove from userPosts array
-            this.userPosts = this.userPosts.filter((p: IPost) => p.id !== postId)
-            // Remove from liked posts if present
-            this.likedPosts = this.likedPosts.filter((id: string) => id !== postId)
-            // Remove from bookmarked posts if present
-            this.bookmarkedPosts = this.bookmarkedPosts.filter((id: string) => id !== postId)
+            this.userPosts = this.posts.filter((p: IPost) => p.ownerId === composable.currentUserId.value)
         }
         return success
     } catch (error: any) {

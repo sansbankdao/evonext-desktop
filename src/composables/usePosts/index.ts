@@ -389,6 +389,47 @@ export function usePosts() {
         }
     }
 
+    async function updatePost(
+        postId: string,
+        updates: {
+            documentId: string;
+            content?: string;
+            isSensitive?: boolean;
+            language?: string;
+        }
+    ): Promise<boolean> {
+        if (!isAuthenticated.value) {
+            error.value = 'You must be connected to update a post'
+            return false
+        }
+
+        isLoading.value = true
+        error.value = null
+
+        try {
+            const success = await api.updatePost(postId, updates)
+            if (success) {
+                // Optimistic Update: Find the post in store and update it
+                const currentPost = postsStore.getPostById(postId)
+                if (currentPost) {
+                    const updatedPost = {
+                        ...currentPost,
+                        ...updates,
+                        updatedAt: Math.floor(Date.now() / 1000) // Update timestamp (number)
+                    }
+                    postsStore.upsertPost(updatedPost)
+                }
+            }
+            return success
+        } catch (err: any) {
+            error.value = err.message || 'Failed to update post'
+            console.error('usePosts: updatePost error', err)
+            return false
+        } finally {
+            isLoading.value = false
+        }
+    }
+
     // Initialize
     onBeforeUnmount(() => {
         stopAutoRefresh()
@@ -424,6 +465,7 @@ export function usePosts() {
         fetchPosts,
         fetchMorePosts,
         createPost,
+        updatePost,
         likePost,
         bookmarkPost,
         deletePost,
