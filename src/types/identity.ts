@@ -1,8 +1,5 @@
 // src/types/identity.ts
 
-/* Import types. */
-// import { GasFeesPaidByWASM } from 'pshenmic-dpp'
-
 export interface IPublicKey {
     type: number;
     keyType: string;
