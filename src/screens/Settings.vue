@@ -33,14 +33,14 @@
                                 <legend class="sr-only">Network</legend>
                                 <div class="flex items-center gap-4">
                                     <!-- Testnet Option -->
-                                    <button @click="Settings.setNetwork('testnet')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', Settings.network === 'testnet' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">
+                                    <button @click="Settings.setNetwork('testnet')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', currentNetwork === 'testnet' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">
                                         <span class="font-semibold">
                                             Testnet
                                         </span>
                                     </button>
 
                                     <!-- Mainnet Option -->
-                                    <button @click="Settings.setNetwork('mainnet')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', Settings.network === 'mainnet' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">
+                                    <button @click="Settings.setNetwork('mainnet')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', currentNetwork === 'mainnet' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">
                                         <span class="font-semibold">
                                             Mainnet
                                         </span>
@@ -65,17 +65,17 @@
                                 <legend class="sr-only">Theme</legend>
                                 <div class="flex items-center gap-4">
                                     <!-- System Theme Option -->
-                                    <button @click="Settings.setTheme('system')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', Settings.theme === 'system' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">
+                                    <button @click="Settings.setTheme('system')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', theme === 'system' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">
                                         <span class="font-semibold">System</span>
                                     </button>
 
                                     <!-- Light Theme Option -->
-                                    <button @click="Settings.setTheme('light')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', Settings.theme === 'light' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">
+                                    <button @click="Settings.setTheme('light')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', theme === 'light' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">
                                         <span class="font-semibold">Light</span>
                                     </button>
 
                                     <!-- Dark Theme Option -->
-                                    <button @click="Settings.setTheme('dark')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', Settings.theme === 'dark' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">
+                                    <button @click="Settings.setTheme('dark')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', theme === 'dark' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">
                                         <span class="font-semibold">Dark</span>
                                     </button>
                                 </div>
@@ -196,12 +196,12 @@
                                     Changes saved successfully!
                                 </p>
 
-                                <p v-if="Settings.error" class="text-sm text-red-600 dark:text-red-400 bg-red-500/10 dark:bg-red-500/20 px-4 py-2 rounded-lg border border-red-400 dark:border-red-500 shadow-lg">
-                                    {{ Settings.error }}
+                                <p v-if="storeError" class="text-sm text-red-600 dark:text-red-400 bg-red-500/10 dark:bg-red-500/20 px-4 py-2 rounded-lg border border-red-400 dark:border-red-500 shadow-lg">
+                                    {{ storeError }}
                                 </p>
 
-                                <button type="submit" :disabled="Settings.isLoading" class="group inline-flex justify-center items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white py-3 px-8 text-sm font-bold shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 focus:ring-4 focus:ring-cyan-400/30 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-lg">
-                                    <span v-if="!Settings.isLoading">
+                                <button type="submit" :disabled="isLoading" class="group inline-flex justify-center items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white py-3 px-8 text-sm font-bold shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 focus:ring-4 focus:ring-cyan-400/30 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-lg">
+                                    <span v-if="!isLoading">
                                         Save Changes
                                     </span>
 
@@ -224,47 +224,59 @@
 
 <script setup lang="ts">
 /* Import modules. */
-import { ref, watch, onMounted } from 'vue'
-
-import getNetwork from '@/libs/getNetwork.ts'
+import { ref, watch, onMounted, computed } from 'vue'
+import { useNetwork } from '@/composables/useNetwork'
 import { useSettingsStore } from '@/stores/settings'
 import type { IProfileSettings, INotificationSettings } from '@/types'
 import Header from '@/components/Header.vue'
 
 const Settings = useSettingsStore()
+const { ensure } = useNetwork()
 
-const localProfile = ref<IProfileSettings>({ ...Settings.profile })
-const localNotifications = ref<INotificationSettings>({ ...Settings.notifications })
+// Destructure store state for clean template usage
+const theme = computed(() => Settings.state.theme)
+const currentNetwork = computed(() => Settings.state.network)
+const isLoading = computed(() => Settings.state.isLoading)
+const storeError = computed(() => Settings.state.error)
+const lastSaved = computed(() => Settings.state.lastSaved)
+
+// Local form state
+const localProfile = ref<IProfileSettings>({ ...Settings.state.profile })
+const localNotifications = ref<INotificationSettings>({ ...Settings.state.notifications })
 const localPassword = ref({ new: '', confirm: '' })
+const showSuccessMessage = ref(false)
 
-watch(() => Settings.profile, (newProfile) => {
+// Watch for store changes to update local state
+watch(() => Settings.state.profile, (newProfile) => {
     localProfile.value = { ...newProfile }
-})
+}, { deep: true })
 
-watch(() => Settings.notifications, (newNotifications) => {
+watch(() => Settings.state.notifications, (newNotifications) => {
     localNotifications.value = { ...newNotifications }
-})
+}, { deep: true })
 
 onMounted(async () => {
     // Load the actual current network from backend
-    const currentNetwork = await getNetwork()
-    Settings.network = currentNetwork
+    const currentNetwork = await ensure()
+    Settings.setNetwork(currentNetwork)
 
     // In a real app, you might only call this once in your root App.vue
-    // Settings.loadSettings()
+    // Settings.load()
 })
 
 const handleSaveChanges = async () => {
-    await Settings.saveSettings({
-        profile: localProfile.value,
-        notifications: localNotifications.value,
-    })
+    try {
+        await Settings.save({
+            profile: localProfile.value,
+            notifications: localNotifications.value,
+        })
+    } catch (error) {
+        console.error('Failed to save settings:', error)
+    }
 }
 
-const showSuccessMessage = ref(false)
-
-watch(() => Settings.lastSaved, () => {
-    if (Settings.lastSaved) {
+watch(lastSaved, () => {
+    if (lastSaved.value) {
         showSuccessMessage.value = true
         setTimeout(() => showSuccessMessage.value = false, 3000)
     }

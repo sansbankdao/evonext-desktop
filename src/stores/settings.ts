@@ -3,7 +3,7 @@
 import { defineStore } from 'pinia'
 import { reactive, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import { useDebounce } from '@/composables/useDebounce'
+// import { useDebounce } from '@/composables/useDebounce'
 import type { ISettingsState } from '@/types'
 
 export const useSettingsStore = defineStore('settings', () => {
@@ -25,15 +25,11 @@ export const useSettingsStore = defineStore('settings', () => {
         lastSaved: null,
     })
 
-    const isLoading = ref(false)
-    const error = ref<string | null>(null)
-    const lastSaved = ref<Date | null>(null)
-
-    const debouncedSettings = useDebounce(() => state, 1000)
+    // const debouncedSettings = useDebounce(() => state, 1000)
 
     const load = async () => {
-        isLoading.value = true
-        error.value = null
+        state.isLoading = true
+        state.error = null
         try {
             const data = await invoke<Partial<ISettingsState>>('load_settings')
             Object.assign(state, {
@@ -41,15 +37,15 @@ export const useSettingsStore = defineStore('settings', () => {
                 network: data?.network ?? 'testnet'
             })
         } catch (err: unknown) {
-            error.value = err instanceof Error ? err.message : 'Failed to load settings'
+            state.error = err instanceof Error ? err.message : 'Failed to load settings'
         } finally {
-            isLoading.value = false
+            state.isLoading = false
         }
     }
 
     const save = async (partial?: Partial<Pick<ISettingsState, 'theme' | 'network' | 'notifications' | 'profile'>>) => {
-        isLoading.value = true
-        error.value = null
+        state.isLoading = true
+        state.error = null
         try {
             if (partial) {
                 Object.assign(state, partial)
@@ -64,13 +60,18 @@ export const useSettingsStore = defineStore('settings', () => {
                 }
             })
 
-            lastSaved.value = new Date()
+            state.lastSaved = new Date()
         } catch (err: unknown) {
-            error.value = err instanceof Error ? err.message : 'Failed to save settings'
+            state.error = err instanceof Error ? err.message : 'Failed to save settings'
             throw err
         } finally {
-            isLoading.value = false
+            state.isLoading = false
         }
+    }
+
+    // Alias for backward compatibility (if components use saveSettings)
+    const saveSettings = (partial?: Partial<Pick<ISettingsState, 'theme' | 'network' | 'notifications' | 'profile'>>) => {
+        return save(partial)
     }
 
     const setTheme = (theme: 'system' | 'light' | 'dark') => {
@@ -89,21 +90,18 @@ export const useSettingsStore = defineStore('settings', () => {
     }
 
     const resetError = () => {
-        error.value = null
+        state.error = null
     }
 
-    // Auto-save on debounced state changes (optional)
-    // watch(() => debouncedSettings.value, (settings) => {
-    //     if (settings) save()
-    // })
-
+    // Return with proper typing
     return {
+        // State (accessible as Settings.state)
         state,
-        isLoading,
-        error,
-        lastSaved,
+
+        // Actions
         load,
         save,
+        saveSettings, // Add this alias
         setTheme,
         setNetwork,
         updateProfile,
