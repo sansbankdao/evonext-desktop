@@ -2,8 +2,61 @@
 
 import type { IUser } from './identity'
 
+export interface IMedia {
+    type: 'image' | 'video' | 'gif';
+    url: string;
+    thumbnail?: string;
+    alt?: string;
+    width?: number;
+    height?: number;
+}
+
+export interface IComment {
+    author: IUser;
+    content: string;
+    createdAt: Date;
+    likes: number;
+    liked?: boolean;
+    postId: string;
+}
+
+export interface INotification {
+    type: 'like' | 'remix' | 'follow' | 'reply' | 'mention';
+    from: IUser;
+    post?: IPost;
+    createdAt: Date;
+    read: boolean;
+}
+
+export interface IPostDocument {
+    id: string;
+    ownerId: string;
+    dataContractId: string;
+    documentTypeName: string | null;
+    revision: string;
+    createdAt: string;
+    updatedAt: string;
+    createdAtBlockHeight: number | null;
+    updatedAtBlockHeight: number | null;
+    createdAtCoreBlockHeight: number | null;
+    updatedAtCoreBlockHeight: number | null;
+    transferredAt: string | null;
+    transferredAtBlockHeight: number | null;
+    transferredAtCoreBlockHeight: number | null;
+    entropy: string | null;
+    content: string;
+    isSensitive: boolean;
+    language: string;
+    remix?: string;
+    hashtag?: string;
+    mediaUrl?: string[];
+    mentionIds?: string[];
+    replyToPostId?: string[];
+    $ownerId?: string; // Added to support some raw document types
+}
+
 export interface IPost {
-    id?: string; // Made optional to support optimistic creation
+    id?: string; // Optional for optimistic creation
     ownerId: string;
     author: IUser;
     content: string;
@@ -12,33 +65,82 @@ export interface IPost {
     likes: number;
     remixes: number;
     replies: number;
-    views: number;
+    views: number; // Added: Required by UI
     bookmarks?: number;
     isSensitive: boolean;
     language: string;
     remix?: string;
     hashtag?: string;
-    // Fix: Rename to plural to match usage in getters
-    mediaUrls?: string[];
+    media?: IMedia[];
+    mediaUrls?: string[]; // Added: Renamed from mediaUrl to match usage
+    mediaUrl?: string[];  // Kept for backward compatibility
     mentionIds?: string[];
     replyToPostId?: string;
+    replyTo?: IPost;
+    quotedPost?: IPost;
     liked?: boolean;
     remixed?: boolean;
     bookmarked?: boolean;
 }
 
+export interface IPostStats {
+    likes: number;
+    remixes: number;
+    replies: number;
+    bookmarks?: number;
+}
+
+export interface ICreatePostParams {
+    content: string;
+    isSensitive?: boolean;
+    language?: string;
+    remix?: string;
+    hashtag?: string;
+    mediaUrl?: string[];
+    mentionIds?: string[];
+    replyToPostId?: string[];
+}
+
+export interface IUpdatePostParams {
+    documentId: string;
+    content?: string;
+    isSensitive?: boolean;
+    language?: string;
+    remix?: string;
+    hashtag?: string;
+    mediaUrl?: string[];
+    mentionIds?: string[];
+}
+
+export interface ILikeDocument {
+    ownerId: string;
+    dataContractId: string;
+    documentTypeName: string | null;
+    revision: string;
+    createdAt: string;
+    updatedAt: string;
+    postId: string;
+}
+
 export interface IPostsState {
     posts: IPost[];
     userPosts: IPost[];
-    likedPosts: string[];
-    bookmarkedPosts: string[];
+    likedPosts: string[]; // Array of post IDs
+    bookmarkedPosts: string[]; // Array of post IDs
     isLoading: boolean;
     error: string | null;
     lastFetched: Date | null;
-    nextPage?: string;
+    nextPage?: string; // Allow undefined
     hasNextPage: boolean;
+    // Added for pagination
     limit: number;
     offset: number;
+}
+
+export interface PostsFetchResult {
+    posts: IPost[];
+    nextPage?: string;
+    hasNextPage: boolean;
 }
 
 export interface PostsFetchOptions {
@@ -50,4 +152,12 @@ export interface PostsFetchOptions {
     toDate?: Date;
     language?: string;
     orderBy?: 'newest' | 'oldest';
+}
+
+export interface IPostFilters {
+    language?: string;
+    fromDate?: Date;
+    toDate?: Date;
+    hashtag?: string;
+    isSensitive?: boolean;
 }

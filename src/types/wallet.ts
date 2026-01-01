@@ -15,7 +15,7 @@ export interface TokenTransition {
 }
 
 export interface ApiResponse<T> {
-    data: T;
+    data?: T;
     error?: string;
     success: boolean;
 }
