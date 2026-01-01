@@ -82,6 +82,9 @@ export interface DiscoveredIdentity {
     identityId: string;
     identityIdx: number;
     balance: string;
+    username?: string;
+    displayName?: string;
+    avatarUrl?: string;
     revision: number;
     publicKeys?: IPublicKey[];
     dpnsUsername?: string;

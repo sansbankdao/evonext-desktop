@@ -82,7 +82,7 @@ export interface IdentityLookupResponse {
     result?: {
         identityId: string;
         balance: string;
-        revision: string;
+        revision: number;
         publicKeys?: Array<{
             purpose: string;
             securityLevel: string;

@@ -33,9 +33,9 @@ export interface IPostDocument {
     ownerId: string;
     dataContractId: string;
     documentTypeName: string | null;
-    revision: string;
-    createdAt: string;
-    updatedAt: string;
+    revision: number;
+    createdAt: number;
+    updatedAt: number | null;
     createdAtBlockHeight: number | null;
     updatedAtBlockHeight: number | null;
     createdAtCoreBlockHeight: number | null;
@@ -113,13 +113,13 @@ export interface IUpdatePostParams {
 }
 
 export interface ILikeDocument {
+    postId: string;
     ownerId: string;
     dataContractId: string;
     documentTypeName: string | null;
-    revision: string;
-    createdAt: string;
-    updatedAt: string;
-    postId: string;
+    revision: number;
+    createdAt: number;
+    updatedAt: number | null;
 }
 
 export interface IPostsState {

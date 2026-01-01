@@ -1,12 +1,6 @@
 // src/services/identity/types.ts
 
-export interface DiscoveredIdentity {
-    identityId: string;
-    balance: string;
-    revision: string;
-    publicKeys: any[];
-    dpnsUsername?: string | null;
-}
+import type { DiscoveredIdentity } from '@/types'
 
 export interface IdentityLookupResult {
     success: boolean;
