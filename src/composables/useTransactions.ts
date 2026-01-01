@@ -1,17 +1,101 @@
-// src/composables/useTransactions.ts (fixed)
-
+// src/composables/useTransactions.ts
 import { computed, ref } from 'vue'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 import { usePlatform } from './usePlatform'
 import { useKeyManagement } from './useKeyManagement'
+import { useBalances } from './useBalances' // For fromSatoshi reuse
+import { ErrorBoundary } from '@/utils/errors'
+import { log } from '@/utils/env'
 import { MIN_CREDIT_TRANSFER } from '@/types'
-import type { SendCreditParams, SendTokenParams, TransactionResult, ITxSuccess, ITxError } from '@/types'
-
+import type {
+    SendCreditParams,
+    SendTokenParams,
+    TransactionResult,
+    ITxSuccess,
+    ITxError,
+    Transaction,
+    TokenTransition
+} from '@/types'
 export function useTransactions() {
     const platform = usePlatform()
     const keys = useKeyManagement()
+    const balances = useBalances()
     const loading = ref(false)
     const error = ref<string | null>(null)
+    const transactions = ref<Transaction[]>([])
+    const tokenTransitions = ref<TokenTransition[]>([])
+    /**
+     * Transaction fetching (merged from libs/getTransactions.ts)
+     */
+    const fetchIdentityTransfers = async (
+        identityId: string,
+        limit: number = 50
+    ): Promise<Transaction[]> => {
+        return ErrorBoundary.wrap(async () => {
+            loading.value = true
+            error.value = null
+            const sdk = await platform.getSDK()
+            log('info',`Fetching transfers for ${identityId}`, { limit })
+            const transfers = await sdk.identities.getIdentityTransfers(identityId, { limit })
+            transactions.value = transfers.map(t => ({
+                type: 'credit',
+                amount: BigInt(t.amount),
+                recipient: t.recipientId,
+                timestamp: t.blockTime || Date.now(),
+                confirmations: t.confirmations || 0
+            }))
+            log('debug',`Found ${transactions.value.length} transfers`)
+            return transactions.value
+        }, 'FETCH_IDENTITY_TRANSFERS_FAILED')
+    }
+    const fetchTokenTransitions = async (
+        tokenId: string,
+        identityId?: string,
+        limit: number = 50
+    ): Promise<TokenTransition[]> => {
+        return ErrorBoundary.wrap(async () => {
+            loading.value = true
+            error.value = null
+            const sdk = await platform.getSDK()
+            log('info',`Fetching token transitions for ${tokenId}`, { identityId, limit })
+            const transitions = await sdk.tokens.getTokenTransitions(tokenId, {
+                ownerIdentityId: identityId,
+                limit
+            })
+            tokenTransitions.value = transitions.map(tt => ({
+                tokenId: tt.tokenId.base58(),
+                type: 'transfer',
+                amount: BigInt(tt.amount),
+                recipient: tt.recipientId,
+                sender: tt.senderId,
+                timestamp: tt.blockTime || Date.now()
+            }))
+            log('debug',`Found ${tokenTransitions.value.length} transitions`)
+            return tokenTransitions.value
+        }, 'FETCH_TOKEN_TRANSITIONS_FAILED')
+    }
+    /**
+     * Formatting utils (merged from libs/getTransactions.ts)
+     */
+    const atomicToDash = (atomic: bigint | number): number => {
+        return balances.fromSatoshi(atomic) // Reuse satoshi utils
+    }
+    const formatDashAmount = (atomic: bigint | number, decimals: number = 8): string => {
+        const dash = atomicToDash(atomic)
+        return dash.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: decimals
+        })
+    }
+    const formatDate = (timestamp: number): string => {
+        return new Date(timestamp).toLocaleString()
+    }
+    const shortTxid = (txid: string, length: number = 16): string => {
+        return txid.slice(0, length / 2) + '...' + txid.slice(-length / 2)
+    }
+    /**
+     * Send operations (existing)
+     */
     const sendCredits = async (params: SendCreditParams): Promise<TransactionResult> => {
         loading.value = true
         error.value = null
@@ -43,7 +127,6 @@ export function useTransactions() {
             }
             const stateTransition = sdk.identities.createStateTransition('creditTransfer', payload)
             const identityPublicKeys = identity.getPublicKeys()
-            const publicKeyId = 3 // Transfer Critical
             // Find the TRANSFER key (purpose=1 or purpose=3)
             let pubKey = identityPublicKeys.find(key => {
                 const purpose = typeof key.purpose === 'string' ? parseInt(key.purpose) : key.purpose
@@ -72,7 +155,7 @@ export function useTransactions() {
                 success: false,
                 error: {
                     code: 500,
-                    message: error.value!, // Non-null assertion since we set it above
+                    message: error.value!,
                     suggestions: ['Check your network connection', 'Verify your identity has sufficient balance']
                 } as ITxError
             }
@@ -132,7 +215,7 @@ export function useTransactions() {
                 success: false,
                 error: {
                     code: 500,
-                    message: error.value!, // Non-null assertion
+                    message: error.value!,
                     suggestions: ['Check your network connection', 'Verify you have sufficient token balance']
                 } as ITxError
             }
@@ -171,8 +254,20 @@ export function useTransactions() {
         return await sendToken(params)
     }
     return {
+        // State
         loading: computed(() => loading.value),
         error: computed(() => error.value),
+        transactions: computed(() => transactions.value),
+        tokenTransitions: computed(() => tokenTransitions.value),
+        // Fetching (merged)
+        fetchIdentityTransfers,
+        fetchTokenTransitions,
+        // Formatting (merged)
+        atomicToDash,
+        formatDashAmount,
+        formatDate,
+        shortTxid,
+        // Send operations
         sendCredits,
         sendToken,
         sendCredit,
