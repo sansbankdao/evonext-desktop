@@ -92,8 +92,8 @@ export class DAPIService {
     ): Promise<string | null> {
         try {
             const response = await invoke<any>('get_dpns_username', {
-                identity_id: identityId,
-                network_override: network
+                identityId: identityId,
+                network: network
             })
 
             if (response?.success && response?.result) {
@@ -114,9 +114,9 @@ export class DAPIService {
     ): Promise<DAPIHashSearchResult> {
         try {
             const response = await invoke<any>('get_identity_info', {
-                identity_id: identityId,
-                network_override: network,
-                with_proof: false
+                identityId: identityId,
+                network: network,
+                withProof: false
             })
             // Handle array response and unwrap result
             // The Tauri command returns Vec<Value>, so invoke returns an array.
