@@ -3,6 +3,8 @@ import { ref, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getIdentityManager } from '@/services/identity'
 import { useIdentityStore } from '@/stores/identity'
+import { useSeedStore } from '@/stores/connect/seed'
+import { usePrivateKeyStore } from '@/stores/connect/privateKey'
 import getNetwork from '@/libs/getNetwork'
 import type { DiscoveredIdentity, DiscoveryResult, ScanProgress } from '@/services/identity/types'
 
@@ -10,6 +12,10 @@ export function useConnect() {
     const router = useRouter()
     const identityStore = useIdentityStore()
     const identityManager = getIdentityManager()
+
+    // Initialize stores - only use their methods, not their state
+    const seedStore = useSeedStore()
+    const keyStore = usePrivateKeyStore()
 
     // --- State: General ---
     const connectionMethod = ref<'seed' | 'privateKey'>('seed')
@@ -126,6 +132,10 @@ export function useConnect() {
         manualIdentityId.value = ''
         currentInputKey.value = ''
 
+        // Also reset stores for persistence
+        seedStore.reset()
+        keyStore.reset()
+
         debugOutput.value = null
         isDiscovering.value = false
         discoveryProgress.value = null
@@ -168,6 +178,9 @@ export function useConnect() {
                 discoverFromSeed()
             }
         }
+
+        // Also update the store for persistence/debounce
+        seedStore.handlePaste(pastedText)
     }
 
     const selectSeedIdentity = (identity: DiscoveredIdentity) => {
