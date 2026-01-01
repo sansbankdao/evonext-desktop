@@ -56,13 +56,16 @@ export interface IExtendedPublicKey {
 
 export interface IIdentity {
     id?: string;
+    identityId?: string;
     identityIdx: number;
+    balance?: string;
     publicKeys: IPublicKey[];
     avatarUrl?: string;
     avatarHash?: string;
     avatarFingerprint?: string;
     displayName?: string;
     publicMessage?: string;
+    revision?: number;
 }
 
 export interface IIdentityData {
@@ -79,13 +82,13 @@ export interface IIdentityData {
 
 export interface DiscoveredIdentity {
     id?: string;
-    identityId: string;
+    identityId?: string;
     identityIdx: number;
-    balance: string;
+    balance?: string;
     username?: string;
     displayName?: string;
     avatarUrl?: string;
-    revision: number;
+    revision?: number;
     publicKeys?: IPublicKey[];
     dpnsUsername?: string;
 }

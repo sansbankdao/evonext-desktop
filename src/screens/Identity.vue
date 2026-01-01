@@ -216,26 +216,12 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, computed } from 'vue'
 import Header from '@/components/Header.vue'
-// import { useRouter } from 'vue-router'
 import { useIdentity } from '@/composables/useIdentity'
-// import { identityDiscovery } from '@/composables/useIdentityDiscovery'
-// import { useConnect } from '@/composables/useConnect'
-import { getIdentityManager } from '@/services/identity'
-import { invoke } from '@tauri-apps/api/core'
+import { mnemonicManager } from '@/composables/useMnemonic' // Updated import
+import { identityDiscovery } from '@/composables/useIdentityDiscovery'
 import type { DiscoveredIdentity } from '@/types/identity'
 
-// const router = useRouter()
 const { identityId } = useIdentity()
-// const { identityId, hasTransferKey } = useIdentity()
-const identityManager = getIdentityManager()
-
-// interface Identity extends DiscoveredIdentity {
-//     // Extend with UI-specific properties if needed
-//     displayName?: string
-//     username?: string
-//     avatarUrl?: string
-//     bio?: string
-// }
 
 // Refs
 const loading = ref(true)
@@ -320,35 +306,23 @@ const copyToClipboard = (text: string) => {
         })
 }
 
-// Get mnemonic from Tauri backend (replaces getMnemonic)
-const getMnemonic = async (): Promise<string | null> => {
-    try {
-        // Call your Tauri command to get mnemonic
-        const mnemonic = await invoke<string>('get_mnemonic')
-        return mnemonic || null
-    } catch (error) {
-        console.error('Failed to get mnemonic:', error)
-        return null
-    }
-}
-
-// Get identities using IdentityDiscovery service (replaces getIdentities)
+// Get identities using mnemonicManager and identityDiscovery
 const getIdentities = async (): Promise<DiscoveredIdentity[]> => {
     try {
-        const mnemonic = await getMnemonic()
+        const mnemonic = await mnemonicManager.getMnemonic() // Using mnemonicManager
         if (!mnemonic) {
             console.error('No mnemonic found')
             return []
         }
 
         // Use identity discovery service to get identities from seed
-        const result = await identityManager.discoverFromSeed(mnemonic, {
-            network: 'testnet', // You might want to get dynamic network
-            maxIdentityIndex: 5 // Or some reasonable limit
+        const result = await identityDiscovery.getIdentitiesFromSeed(mnemonic, {
+            minIndexSearch: 5,
+            queryRegistry: true
         })
 
-        if (result.success && result.identities) {
-            return result.identities.map((identity, index) => ({
+        if (result && Array.isArray(result)) {
+            return result.map((identity, index) => ({
                 ...identity,
                 identityIdx: index // Ensure each has an idx
             }))
@@ -404,16 +378,7 @@ const init = async () => {
         }
 
         /* Get mnemonic and find identities */
-        const mnemonic = await getMnemonic()
-        console.log('MNEMONIC FOUND:', mnemonic ? 'Yes' : 'No')
-
-        if (!mnemonic) {
-            // Show empty state for no mnemonic
-            identities.value = []
-            return
-        }
-
-        /* Get identities from network */
+        console.log('Fetching identities...')
         const foundIdentities = await getIdentities()
         console.log('IDENTITIES FOUND:', foundIdentities)
 
@@ -422,7 +387,7 @@ const init = async () => {
 
             // If no active identity is set, use the first one
             if (!activeIdentityId.value && foundIdentities.length > 0) {
-                activeIdentityId.value = foundIdentities[0]!.identityId || ''
+                activeIdentityId.value = foundIdentities[0]?.identityId || ''
             }
         } else {
             // No identities found, show empty state
