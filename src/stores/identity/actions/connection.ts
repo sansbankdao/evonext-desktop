@@ -1,68 +1,79 @@
 // src/stores/identity/actions/connection.ts
+
 import { invoke } from '@tauri-apps/api/core'
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
 import { KeyDerivationService } from '@/services/identity/keyDerivation.service'
 import { DAPIService } from '@/services/identity/discovery/DAPIService'
-// --- LOCAL INTERFACES (to ensure strict type safety) ---
-export interface ConnectionResult {
-    success: boolean
-    identity?: IIdentity | null
-    error?: string
-}
-export interface IIdentity {
-    identity_idx: number
-    publicKeys: IPublicKey[]
-    // We deliberately DO NOT include 'id' here, because the Store uses 'username'
-    // to store the identity ID string (e.g. "GHS..."), while 'identity' holds the complex object.
-}
-export interface IPublicKey {
-    type_: string
-    purpose: number
-    security_level: number
-    keyType: string
-    data: string
-    data_bytes: string
-    read_only: boolean
-    disabled_at: number | null
-}
-export interface DiscoveredIdentity {
-    identityId: string
-    balance: string
-    revision: string
-    publicKeys: any[]
-    dpnsUsername: string | null
-}
-export interface IIdentityState {
-    isAuthenticated: boolean
-    identity: IIdentity | null
-    username: string | null
-    balance: string | null
-    balanceBigInt?: bigint
-    dashBigInt?: bigint
-    publicKeys: IPublicKey[]
-    revision: number | null
-    premiumAccess: boolean
-    connectionError: string | null
-    lastConnected: string | null
-    isConnecting: boolean
-    // Actions
-    searchUserIdentities: (network: 'mainnet' | 'testnet') => Promise<DiscoveredIdentity[]>
-    fetchBalance: () => Promise<void>
-    saveToStorage: () => Promise<void>
-    clearStorage: () => Promise<void>
-    updateIdentityWithSdkData: (...args: any[]) => Promise<void>
-}
+
+import type {
+    ConnectionResult,
+    DiscoveredIdentity,
+    IPublicKey,
+    IIdentity,
+    IIdentityState,
+} from '@/types'
+
+
+// export interface  {
+//     identity_idx: number
+//     publicKeys: IPublicKey[]
+//     // We deliberately DO NOT include 'id' here, because the Store uses 'username'
+//     // to store the identity ID string (e.g. "GHS..."), while 'identity' holds the complex object.
+// }
+
+// export interface IPublicKey {
+//     type_: string
+//     purpose: number
+//     security_level: number
+//     keyType: string
+//     data: string
+//     dataBytes: string
+//     readOnly: boolean
+//     disabledAt: number | null
+// }
+
+// export interface DiscoveredIdentity {
+//     identityId: string
+//     balance: string
+//     revision: string
+//     publicKeys: any[]
+//     dpnsUsername: string | null
+// }
+
+// export interface IIdentityState {
+//     isAuthenticated: boolean
+//     identity: IIdentity | null
+//     username: string | null
+//     balance: string | null
+//     balanceBigInt?: bigint
+//     dashBigInt?: bigint
+//     publicKeys: IPublicKey[]
+//     revision: number | null
+//     premiumAccess: boolean
+//     connectionError: string | null
+//     lastConnected: string | null
+//     isConnecting: boolean
+//     // Actions
+//     searchUserIdentities: (network: 'mainnet' | 'testnet') => Promise<DiscoveredIdentity[]>
+//     fetchBalance: () => Promise<void>
+//     saveToStorage: () => Promise<void>
+//     clearStorage: () => Promise<void>
+//     updateIdentityWithSdkData: (...args: any[]) => Promise<void>
+// }
+
 // --- IMPLEMENTATION ---
 interface Settings {
     network: 'mainnet' | 'testnet'
     [key: string]: any
 }
+
 interface SafeStoragePayload {
     keys: string[]
     identity_id: string
     seed_phrase?: string
 }
+
 // Helper to safely load storage
 const loadStorageData = async <T>(command: string, network: string): Promise<T | null> => {
     try {
@@ -72,6 +83,7 @@ const loadStorageData = async <T>(command: string, network: string): Promise<T |
         return null
     }
 }
+
 export const connectionActions = () => ({
     async initFromStorage(this: IIdentityState) {
         return ErrorBoundary.wrap(async () => {
@@ -116,6 +128,7 @@ export const connectionActions = () => ({
             }
         }, 'INIT_FROM_STORAGE_FAILED')
     },
+
     async connectWithSeed(
         this: IIdentityState,
         seedPhrase: string,
@@ -174,6 +187,7 @@ export const connectionActions = () => ({
             }
         }, 'CONNECT_WITH_SEED_FAILED')
     },
+
     async connectWithSingleKey(
         this: IIdentityState,
         privateKey: string,
@@ -216,6 +230,7 @@ export const connectionActions = () => ({
             }
         }, 'CONNECT_WITH_SINGLE_KEY_FAILED')
     },
+
     async searchUserIdentities(
         this: IIdentityState,
         network: 'mainnet' | 'testnet'
@@ -249,6 +264,7 @@ export const connectionActions = () => ({
             return []
         }, 'SEARCH_USER_IDENTITIES_FAILED')
     },
+
     async logout(this: IIdentityState) {
         return ErrorBoundary.wrap(async () => {
             try {
@@ -268,9 +284,11 @@ export const connectionActions = () => ({
             log('info', 'User logged out successfully')
         }, 'LOGOUT_FAILED')
     },
+
     clearConnectionError(this: IIdentityState) {
         this.connectionError = null
     },
+
     async saveToStorage(this: IIdentityState) {
         try {
             const settings = await invoke<Settings>('load_settings')
@@ -294,6 +312,7 @@ export const connectionActions = () => ({
             log('error', 'Failed to save identity to storage:', err)
         }
     },
+
     async clearStorage(this: IIdentityState) {
         try {
             const settings = await invoke<Settings>('load_settings')

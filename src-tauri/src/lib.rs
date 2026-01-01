@@ -8,7 +8,7 @@ mod constants;
 mod utils;
 
 // Required for the `app.handle()` method
-use tauri::Manager;
+// use tauri::Manager;
 
 pub fn run() {
     tauri::Builder::default()
@@ -49,6 +49,7 @@ pub fn run() {
             commands::dapi_commands::get_posts,
             commands::dapi_commands::get_identity_info,
             commands::dapi_commands::get_identity_balance,
+            commands::dapi_commands::get_identity_by_id,
             commands::dapi_commands::get_token_balances,
             commands::dapi_commands::resolve_dpns_name,
             commands::dapi_commands::get_dpns_username,
@@ -77,13 +78,13 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
-        .run(|app_handle, event| {
+        .run(|_app_handle, event| {
             match event {
                 tauri::RunEvent::WindowEvent { label, event, .. } => {
                     if label == "main" {
                         if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                            // Handle close logic here if strictly necessary
-                           // api.prevent_close();
+                           api.prevent_close();
                         }
                     }
                 }
