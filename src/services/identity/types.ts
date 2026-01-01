@@ -94,3 +94,9 @@ export interface DiscoveryResult {
         error?: string;
     }
 }
+
+// Create DiscoveryDetails interface
+export interface DiscoveryDetails {
+    detectedKeyType: string | null;
+    associatedKeys: AssociatedKey[];
+}
