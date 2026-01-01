@@ -175,12 +175,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { useWalletStore } from '@/stores/wallet'
+// MIGRATED: Use composables instead of store/libs
+import { useWallet } from '@/composables/useWallet'
+import { useIdentity } from '@/composables/useIdentity'
 
-import getIdentityIdx from '@/libs/getIdentityIdx'
-// import getNetwork from '@/libs/getNetwork'
-import sendCredit from '@/libs/sendCredit'
-import sendToken from '@/libs/sendToken'
 import {
     getDUSDContractId,
     getSANSContractId,
@@ -189,7 +187,10 @@ import {
 } from '@/constants'
 
 const router = useRouter()
-const Wallet = useWalletStore()
+
+// Initialize composables
+const wallet = useWallet()
+const identity = useIdentity()
 
 const recipient = ref('')
 const amount = ref<number | null>(null)
@@ -198,6 +199,7 @@ const selectedCurrency = ref('dash-coins')
 const isSending = ref(false)
 const error = ref<string | null>(null)
 
+// REFACTORED: Use composable's findAsset helper
 const selectedAsset = computed(() => {
     const tickerMap: Record<string, string> = {
         'dash-coins': 'DASH',
@@ -206,9 +208,10 @@ const selectedAsset = computed(() => {
         'sans': 'SANS'
     }
 
-    const ticker = tickerMap[selectedCurrency.value]
+    const ticker = tickerMap[selectedCurrency.value] || ''
 
-    return Wallet.getAssetByTicker(ticker)
+    // Use wallet.findAsset from composable
+    return wallet.findAsset(ticker)
 })
 
 const isFormValid = computed(() => {
@@ -222,7 +225,10 @@ const setMaxAmount = () => {
 }
 
 onMounted(async () => {
-    // TBD
+    // Ensure wallet is initialized and data is fresh
+    await wallet.initialize()
+    // Optionally refresh balances immediately
+    await wallet.refresh()
 })
 
 const handleSend = async () => {
@@ -240,10 +246,14 @@ const handleSend = async () => {
     error.value = null
 
     try {
-        const identityId = Wallet.user?.address
+        // REFACTORED: Use identity composable for ID and Index
+        const identityId = identity.identityId.value
         if (!identityId) {
-            throw new Error('No identity found')
+            throw new Error('No identity found. Please connect your wallet.')
         }
+
+        // REFACTORED: Get index from identity composable
+        const identityIdx = await identity.getIdentityIdx()
 
         console.log(`Sending ${amount.value} ${selectedAsset.value.ticker} to ${recipient.value}`)
 
@@ -251,26 +261,24 @@ const handleSend = async () => {
             /* Calculate credits. */
             const credits = BigInt(Math.floor(amount.value * 100_000_000_000))
             console.log('CALCULATED CREDITS', credits)
-
             console.log('IDENTITY ID', identityId)
+            console.log('IDENTITY IDX', identityIdx)
 
-            /* Request identity index. */
-            const identityIdx = await getIdentityIdx()
+            // MIGRATED: use wallet composable
+            const result = await wallet.sendCredit(
+                identityId, identityIdx, recipient.value, credits
+            )
 
-            const result = await sendCredit(
-                identityId, identityIdx, recipient.value, credits)
             console.log('Send Credit Result:', result)
 
             /* Validate result. */
-            if ('txid' in result) {
-                alert('Transaction Successful -- Your TXID is:\n' + result.txid)
-                // if (confirm('Transaction successful! Would you like to view explorer.')) {
-                //     window.open(`https://platform-explorer.com/transaction/${result.txid}`)
-                // }
+            if (result.success && result.data?.txid) {
+                alert('Transaction Successful -- Your TXID is:\n' + result.data.txid)
+            } else if (result.error) {
+                throw new Error(result.error.message)
             }
         } else if (['SANS', 'DUSD'].includes(selectedAsset.value.ticker) && amount.value) {
             /* Get token contract ID based on network and ticker. */
-            // const isTestnet = (await getNetwork()) === 'testnet'
             let tokenId: string
             let decimalPlaces: number
 
@@ -289,26 +297,25 @@ const handleSend = async () => {
             console.log('DECIMAL PLACES', decimalPlaces)
             console.log('CALCULATED ATOMIC UNITS', atomicUnits)
 
-            /* Request identity index. */
-            const identityIdx = await getIdentityIdx()
-
-            const result = await sendToken(
+            // MIGRATED: use wallet composable
+            const result = await wallet.sendTokenTransfer(
                 identityId,
                 identityIdx,
                 tokenId,
                 recipient.value,
                 atomicUnits
             )
+
             console.log('Send Token Result:', result)
 
             /* Validate result. */
-            if ('txid' in result) {
-                alert('Transaction Successful -- Your TXID is:\n' + result.txid)
-                // if (confirm('Transaction successful! Would you like to view explorer.')) {
-                //     window.open(`https://platform-explorer.com/transaction/${result.txid}`)
-                // }
+            if (result.success && result.data?.txid) {
+                alert('Transaction Successful -- Your TXID is:\n' + result.data.txid)
+            } else if (result.error) {
+                throw new Error(result.error.message)
             }
         } else {
+            // Logic for other currencies (e.g. DASH native coins) goes here
             console.log(`${selectedAsset.value.ticker} sending logic pending implementation.`)
             await new Promise(resolve => setTimeout(resolve, 2000))
         }
