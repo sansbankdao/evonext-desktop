@@ -1,4 +1,4 @@
-<!-- src/components/AddKey/IdentityDetail.vue -->
+<!-- src/components/addKey/IdentityDetail.vue -->
 <template>
     <div v-if="identity" class="space-y-6">
         <div class="rounded-xl bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 border border-slate-300 dark:border-slate-700 p-6">
