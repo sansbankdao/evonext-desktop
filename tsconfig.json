@@ -30,11 +30,11 @@
         "paths": {
             "@/*": ["src/*"],
             "@/components/*": ["src/components/*"],
+            "@/composables/*": ["src/composables/*"],
             "@/services/*": ["src/services/*"],
             "@/stores/*": ["src/stores/*"],
             "@/utils/*": ["src/utils/*"],
             "@/types/*": ["src/types/*"],
-            "@/libs/*": ["src/libs/*"],
             "@/screens/*": ["src/screens/*"]
         },
 
