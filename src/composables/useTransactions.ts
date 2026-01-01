@@ -20,7 +20,6 @@ import type {
     ITransaction,
     TokenTransition
 } from '@/types'
-
 // Local type definitions for missing exports
 interface SendCreditParams {
     identityId: string
@@ -28,7 +27,6 @@ interface SendCreditParams {
     receiver: string
     credits: bigint
 }
-
 interface SendTokenParams {
     identityId: string
     identityIdx: number
@@ -36,37 +34,32 @@ interface SendTokenParams {
     receiver: string
     atomicUnits: bigint
 }
-
 interface TransactionResult {
     success: boolean
     data?: ITxSuccess
     error?: ITxError
 }
-
 interface ITxSuccess {
     txid: string
 }
-
 interface ITxError {
     code: number
     message: string
     suggestions?: string[]
 }
-
 // If BalanceResult and TokenBalance are also needed from imports
-interface BalanceResult {
-    credits: bigint
-    tokens: TokenBalance[]
-}
-
-interface TokenBalance {
-    tokenId: string
-    symbol: string
-    balance: bigint
-    decimals: number
-    name?: string
-}
-
+// interface BalanceResult {
+//     credits: bigint
+//     tokens: TokenBalance[]
+// }
+// interface TokenBalance {
+//     tokenId: string
+//     symbol: string
+//     balance: bigint
+//     decimals: number
+//     name?: string
+// }
+const EXPLORER_API_URL = 'https://platform-explorer.pshenmic.dev'
 export function useTransactions() {
     const platform = usePlatform()
     const keys = useKeyManagement()
@@ -85,16 +78,31 @@ export function useTransactions() {
         return ErrorBoundary.wrap(async () => {
             loading.value = true
             error.value = null
-            const sdk = await platform.getSDK()
+            // SDK init kept to ensure platform readiness, though not used for REST call
+            await platform.getSDK()
             log('info',`Fetching transfers for ${identityId}`, { limit })
-            const transfers = await sdk.identities.getIdentityTransfers(identityId, { limit })
-            transactions.value = transfers.map(t => ({
-                type: 'credit',
-                amount: BigInt(t.amount),
-                recipient: t.recipientId,
-                timestamp: t.blockTime || Date.now(),
-                confirmations: t.confirmations || 0
-            }))
+            try {
+                const response = await fetch(`${EXPLORER_API_URL}/identity/${identityId}/transactions?page=1&limit=${limit}&order=desc`)
+                if (!response.ok) throw new Error(`Explorer API error: ${response.statusText}`)
+                const data = await response.json()
+                const resultSet = data.resultSet || []
+                // Map explorer results to ITransaction
+                transactions.value = resultSet
+                    .filter((t: any) => t.type === 'IDENTITY_CREDIT_TRANSFER')
+                    .map((t: any) => ({
+                        type: 'credit',
+                        // Note: actual amount and recipient are encoded in t.data (Base64)
+                        // Without decoding the state transition, we use placeholders:
+                        amount: BigInt(0),
+                        recipient: 'Unknown',
+                        timestamp: new Date(t.timestamp).getTime(),
+                        confirmations: t.status === 'SUCCESS' ? 1 : 0,
+                        txid: t.hash
+                    }))
+            } catch (err: any) {
+                console.error('Failed to fetch from explorer:', err)
+                throw err
+            }
             log('debug',`Found ${transactions.value.length} transfers`)
             return transactions.value
         }, 'FETCH_IDENTITY_TRANSFERS_FAILED')
@@ -107,20 +115,35 @@ export function useTransactions() {
         return ErrorBoundary.wrap(async () => {
             loading.value = true
             error.value = null
-            const sdk = await platform.getSDK()
+            await platform.getSDK()
             log('info',`Fetching token transitions for ${tokenId}`, { identityId, limit })
-            const transitions = await sdk.tokens.getTokenTransitions(tokenId, {
-                ownerIdentityId: identityId,
-                limit
-            })
-            tokenTransitions.value = transitions.map((tt: any) => ({
-                tokenId: tt.tokenId.base58(),
-                type: 'transfer',
-                amount: BigInt(tt.amount),
-                recipient: tt.recipientId,
-                sender: tt.senderId,
-                timestamp: tt.blockTime || Date.now()
-            }))
+            if (!identityId) {
+                console.warn('fetchTokenTransitions: identityId required for Explorer API lookup')
+                tokenTransitions.value = []
+                return []
+            }
+            try {
+                const response = await fetch(`${EXPLORER_API_URL}/identity/${identityId}/transactions?page=1&limit=${limit}&order=desc`)
+                if (!response.ok) throw new Error(`Explorer API error: ${response.statusText}`)
+                const data = await response.json()
+                const resultSet = data.resultSet || []
+                // Filter for BATCH transactions of type TOKEN_TRANSFER
+                tokenTransitions.value = resultSet
+                    .filter((t: any) => t.type === 'BATCH' && t.batchType === 'TOKEN_TRANSFER')
+                    .map((tt: any) => ({
+                        tokenId: tokenId, // Assumed from context
+                        type: 'transfer',
+                        // Note: actual amount and details are encoded in tt.data (Base64)
+                        amount: BigInt(0),
+                        recipient: 'Unknown',
+                        sender: identityId,
+                        timestamp: new Date(tt.timestamp).getTime(),
+                        txid: tt.hash
+                    }))
+            } catch (err: any) {
+                console.error('Failed to fetch token transitions:', err)
+                throw err
+            }
             log('debug',`Found ${tokenTransitions.value.length} transitions`)
             return tokenTransitions.value
         }, 'FETCH_TOKEN_TRANSITIONS_FAILED')
@@ -142,6 +165,7 @@ export function useTransactions() {
         return new Date(timestamp).toLocaleString()
     }
     const shortTxid = (txid: string, length: number = 16): string => {
+        if (!txid) return ''
         return txid.slice(0, length / 2) + '...' + txid.slice(-length / 2)
     }
     /**
