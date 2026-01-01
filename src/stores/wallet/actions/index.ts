@@ -5,7 +5,10 @@ import { getIdentityBalance } from '@evonext/platform'
 import { useSystemStore } from '../../system'
 import { ErrorBoundary } from '@/utils/errors'
 import { log, isTestnet } from '@/utils/env'
-import { getNetwork, getTokenBalances } from '@/libs'
+
+// REFACTOR: Import Composables instead of @/libs
+import { usePlatformSdk } from '@/composables/usePlatformSdk'
+import { useWallet } from '@/composables/useWallet'
 
 /* Import utilities. */
 import { fetchIdentityTransfers, fetchTokenTransitions } from './api'
@@ -17,12 +20,12 @@ import {
 } from './transforms'
 
 /* Import types. */
-import type { ITransaction, IUser } from '@/types'
+import type { ITransaction, IUser, IAsset } from '@/types'
 
-// Type for the wallet store context - accept either IUser or a minimal object
+// Type for the wallet store context
 interface WalletStoreContext {
     user: IUser | null
-    assets: any[]
+    assets: IAsset[]
     transactions: ITransaction[]
     isLoading: boolean
 }
@@ -36,7 +39,11 @@ export async function fetchLiveBalances(this: WalletStoreContext) {
             return
         }
 
-        const network = await getNetwork()
+        // REFACTOR: Use composable to get network info
+        const { getSDK } = usePlatformSdk()
+        const sdk = await getSDK()
+        const network = (this.user as any)?.network || (sdk as any).options?.network || 'testnet'
+
         const system = useSystemStore()
 
         log('info', 'Fetching live balances for:', identityId, 'on', network)
@@ -58,8 +65,30 @@ export async function fetchLiveBalances(this: WalletStoreContext) {
         const { getAllActiveTokens } = await import('@/constants')
         const activeTokens = getAllActiveTokens()
 
-        // Fetch token balances
-        const tokenBalances = await getTokenBalances(identityId, activeTokens)
+        // REFACTOR: Fetch balances individually using useWallet composable
+        const wallet = useWallet()
+        const tokenBalances: any[] = []
+
+        if (Array.isArray(activeTokens)) {
+            for (const tokenConfig of activeTokens) {
+                try {
+                    // Assuming tokenConfig has a structure like { id: string, decimals: number, ... }
+                    // We extract the contract ID (id or contractId)
+                    // const contractId = tokenConfig.id || tokenConfig.contractId || tokenConfig
+                    const contractId = tokenConfig
+
+                    const balance = await wallet.getTokenBalance(identityId, contractId)
+
+                    tokenBalances.push({
+                        tokenId: contractId, // Store the ID for reference
+                        balance: balance     // The BigInt balance
+                    })
+                } catch (err) {
+                    log('warn', `Failed to fetch balance for token ${tokenConfig}:`, err)
+                }
+            }
+        }
+
         log('info', 'Token balances:', tokenBalances)
 
         // Process token balances
@@ -74,7 +103,7 @@ export async function fetchLiveBalances(this: WalletStoreContext) {
             sansBalance,
             system.currentDashPrice
         )
-        this.assets = updatedAssets.filter(asset => asset.amount > 0 || asset.ticker === 'DASH')
+        this.assets = updatedAssets.filter(asset => asset.balance > 0 || asset.symbol === 'DASH')
 
     }, 'FETCH_LIVE_BALANCES_FAILED')
 }
@@ -126,11 +155,17 @@ export async function fetchRealTransactions(this: WalletStoreContext, limit: num
             )
 
             // Combine all transactions and sort by date (most recent first)
+            // FIX: Ensure 'date' is handled correctly.
+            // If transform functions return numbers (timestamps), convert to Date for sorting.
             this.transactions = [
                 ...identityTransactions,
                 ...dusdTransactions,
                 ...sansTransactions
-            ].sort((a, b) => b.date.getTime() - a.date.getTime())
+            ].sort((a, b) => {
+                const timeA = typeof a.createdAt === 'number' ? a.createdAt : new Date(a.createdAt).getTime()
+                const timeB = typeof b.createdAt === 'number' ? b.createdAt : new Date(b.createdAt).getTime()
+                return timeB - timeA
+            })
 
             log('info', `Loaded ${this.transactions.length} real transactions`)
         } catch (error) {
