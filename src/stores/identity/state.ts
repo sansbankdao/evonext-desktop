@@ -1,5 +1,7 @@
 // src/stores/identity/state.ts
+
 import type { IIdentityState } from '@/types'
+
 export const useIdentityState = (): IIdentityState => ({
     username: null,
     identity: null,

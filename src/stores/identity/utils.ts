@@ -1,9 +1,11 @@
 // src/stores/identity/utils.ts
+
 // @ts-ignore
 import { binToHex } from '@evonext/utils'
 import { invoke } from '@tauri-apps/api/core'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import type { IIdentityData, IIdentityPublicKey } from '@/types'
+import type { IIdentityData, IPublicKey } from '@/types'
+
 /**
  * Convert hex string to base64
  */
@@ -13,12 +15,14 @@ export function hexHash160ToBase64(hex: string): string {
     const bytes = new Uint8Array(matches.map(byte => parseInt(byte, 16)))
     return btoa(String.fromCharCode(...Array.from(bytes)))
 }
+
 /**
  * Create SDK instance for network
  */
 export function createSDK(network: 'testnet' | 'mainnet'): DashPlatformSDK {
     return new DashPlatformSDK({ network })
 }
+
 /**
  * Save data to Tauri store with error handling
  */
@@ -30,6 +34,7 @@ export async function saveToStore<T>(command: string, payload: T): Promise<void>
         throw error
     }
 }
+
 /**
  * Load data from Tauri store with error handling
  */
@@ -42,10 +47,11 @@ export async function loadFromStore<T>(command: string): Promise<T | null> {
         return null
     }
 }
+
 /**
  * Transform SDK public keys to IdentityPublicKey format
  */
-export function transformPublicKeys(sdkKeys: any[]): IIdentityPublicKey[] {
+export function transformPublicKeys(sdkKeys: any[]): IPublicKey[] {
     return sdkKeys.map((key: any, index: number) => ({
         id: index,
         type_: key.type_ || key.type || '',
@@ -58,6 +64,7 @@ export function transformPublicKeys(sdkKeys: any[]): IIdentityPublicKey[] {
         created_at: key.created_at || null
     }))
 }
+
 /**
  * Validate identity data
  */
@@ -71,6 +78,7 @@ export function validateIdentityData(data: any): boolean {
         typeof data.is_authenticated === 'boolean'
     )
 }
+
 /**
  * Create default identity data
  */
