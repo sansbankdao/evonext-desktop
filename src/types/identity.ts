@@ -54,7 +54,7 @@ export interface IExtendedPublicKey {
 
 export interface IIdentity {
     id?: string;
-    identity_idx: number;
+    identityIdx: number;
     publicKeys: IPublicKey[];
     avatarUrl?: string;
     avatarHash?: string;
@@ -65,26 +65,26 @@ export interface IIdentity {
 
 export interface IIdentityData {
     username: string;
-    identity_id: string;
-    identity_idx: number;
+    identityId: string;
+    identityIdx: number;
     balance: string | null;
-    is_authenticated: boolean;
-    public_keys: IIdentityPublicKey[] | null;
+    isAuthenticated: boolean;
+    publicKeys: IPublicKey[] | null;
     revision: number | null;
-    created_at: string | null;
-    public_key_ids: number[] | null;
+    createdAt: string | null;
+    publicKeyIds: number[] | null;
 }
 
-export interface IIdentityPublicKey {
-    id: number;
-    type_: string;
-    purpose: number;
-    security_level: number;
-    data: string;
-    data_bytes: string;
-    read_only: boolean;
-    disabled_at: string | null;
-}
+// export interface IIdentityPublicKey {
+//     id: number;
+//     type_: string;
+//     purpose: number;
+//     security_level: number;
+//     data: string;
+//     data_bytes: string;
+//     read_only: boolean;
+//     disabled_at: string | null;
+// }
 
 // export interface IIdentityState {
 //     username: string | null;
@@ -107,7 +107,7 @@ export interface IIdentityState {
     balance: string | null;
     balanceBigInt?: bigint;
     dashBigInt?: bigint;
-    publicKeys: IIdentityPublicKey[];
+    publicKeys: IPublicKey[];
     revision: string | null;
     isAuthenticated: boolean;
     premiumAccess: boolean;
@@ -148,7 +148,7 @@ export interface IdentitySearchResult {
     identities?: IIdentity[];
     username?: string;
     balance?: string;
-    publicKeys?: IIdentityPublicKey[];
+    publicKeys?: IPublicKey[];
     error?: string;
 }
 
@@ -170,6 +170,7 @@ export interface KeyGenerationResult {
 
 export interface DiscoveredIdentity {
     identityId: string;
+    identityIdx: number;
     balance: string;
     revision: string;
     publicKeys?: Array<{
