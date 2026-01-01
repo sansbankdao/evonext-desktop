@@ -1,33 +1,21 @@
 // src/stores/posts/actions/utilities.ts
 
-import type { IPost, IPostAuthor } from '@/types/posts'
-import { getPostStats } from '@/libs/posts'
+import type { IPost, IUser } from '@/types'
+import { usePosts } from '@/composables/usePosts'
 
 export async function refreshPostStatsAction(this: any, postId: string): Promise<void> {
     try {
-        const stats = await getPostStats(postId)
-        // Update in posts array
-        const postIndex = this.posts.findIndex((p: IPost) => p.id === postId)
-        if (postIndex !== -1) {
-            this.posts[postIndex] = {
-                ...this.posts[postIndex],
-                likes: stats.likes || 0,
-                remixes: stats.remixes || 0,
-                replies: stats.replies || 0,
-                bookmarks: stats.bookmarks || 0
-            }
-        }
-        // Update in userPosts array
-        const userPostIndex = this.userPosts.findIndex((p: IPost) => p.id === postId)
-        if (userPostIndex !== -1) {
-            this.userPosts[userPostIndex] = {
-                ...this.userPosts[userPostIndex],
-                likes: stats.likes || 0,
-                remixes: stats.remixes || 0,
-                replies: stats.replies || 0,
-                bookmarks: stats.bookmarks || 0
-            }
-        }
+        const composable = usePosts()
+
+        // Delegate to composable to fetch stats
+        await composable.refreshPostStats(postId)
+
+        // Note: The composable's refreshPostStats fetches the data
+        // and updates the post in the store using upsertPost.
+        // Since 'this' is the store, the data is already updated.
+        // We just need to ensure userPosts is synced if necessary, though
+        // upsertPost applies to the source of truth.
+
     } catch (error) {
         console.error('Error refreshing post stats:', error)
     }
@@ -44,20 +32,20 @@ export function clearAction(this: any): void {
     this.hasNextPage = false
 }
 
-export function updatePostAuthorAction(this: any, postId: string, author: Partial<IPostAuthor>): void {
-    const postIndex = this.posts.findIndex((p: IPost) => p.id === postId)
-    if (postIndex !== -1) {
-        this.posts[postIndex].author = {
-            ...this.posts[postIndex].author,
-            ...author
+export function updatePostAuthorAction(this: any, postId: string, author: Partial<IUser>): void {
+    const composable = usePosts()
+    const currentPost = composable.getPostById(postId)
+
+    if (currentPost) {
+        const updatedPost = {
+            ...currentPost,
+            author: {
+                ...currentPost.author,
+                ...author
+            }
         }
-    }
-    const userPostIndex = this.userPosts.findIndex((p: IPost) => p.id === postId)
-    if (userPostIndex !== -1) {
-        this.userPosts[userPostIndex].author = {
-            ...this.userPosts[userPostIndex].author,
-            ...author
-        }
+        // Use the composable/store helper to update and sync arrays
+        this.upsertPost(updatedPost)
     }
 }
 
@@ -69,8 +57,9 @@ export function upsertPostAction(this: any, post: IPost): void {
     } else {
         this.posts.unshift(post)
     }
-    // Also update in userPosts if owned by user
-    if (this.userPosts.some((p: IPost) => p.ownerId === post.ownerId)) {
+
+    // Also update in userPosts if owned by user (or if it's already in there)
+    if (this.userPosts.some((p: IPost) => p.ownerId === post.ownerId) || post.ownerId === this.identity?.id) {
         const userExistingIndex = this.userPosts.findIndex((p: IPost) => p.id === post.id)
         if (userExistingIndex !== -1) {
             this.userPosts[userExistingIndex] = post
