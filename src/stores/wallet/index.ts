@@ -1,14 +1,7 @@
 // src/stores/wallet/index.ts
 
 import { defineStore } from 'pinia'
-import { useSystemStore } from '../system'
-import type { IAsset, IWalletState } from '@/types'
-import {
-    fetchLiveBalances,
-    fetchRealTransactions,
-    refreshBalances
-} from './actions'
-import { updateAssetPrices } from './actions'
+import type { IAsset, IWalletState, IUser } from '@/types'
 
 export const useWalletStore = defineStore('wallet', {
     state: (): IWalletState => ({
@@ -19,38 +12,36 @@ export const useWalletStore = defineStore('wallet', {
         isLoading: false,
     }),
     getters: {
-        /**
-         * Calculates the total USD value of all assets in the wallet.
-         */
         totalUsdValue: (state): number => {
-            const system = useSystemStore()
-            const dashPrice = system.currentDashPrice
-            return state.assets.reduce((total, asset) => {
-                if (asset.ticker === 'DASH') {
-                    return total + (asset.amount * dashPrice)
-                }
-                return total + asset.usdValue
-            }, 0)
+            return state.assets.reduce((total, asset) => total + asset.usdValue, 0)
         },
-        /**
-         * Finds an asset by its ticker symbol.
-         */
         getAssetByTicker: (state) => {
             return (ticker: string): IAsset | undefined => state.assets.find(asset => asset.ticker === ticker)
         },
     },
     actions: {
-        updateAssetPrices() {
-            updateAssetPrices.call(this)
-        },
         async fetchLiveBalances() {
+            const { fetchLiveBalances } = await import('./actions/index')
             await fetchLiveBalances.call(this)
         },
-        async fetchRealTransactions() {
-            await fetchRealTransactions.call(this)
+        async fetchRealTransactions(limit: number = 20) {
+            const { fetchRealTransactions } = await import('./actions/index')
+            await fetchRealTransactions.call(this, limit)
         },
         async refreshBalances() {
+            const { refreshBalances } = await import('./actions/index')
             await refreshBalances.call(this)
         },
+        async init(user: IUser) {
+            this.user = user
+            await this.refreshBalances()
+        },
+        clear() {
+            this.user = null
+            this.assets = []
+            this.transactions = []
+            this.balanceChange = null
+            this.isLoading = false
+        }
     },
 })
