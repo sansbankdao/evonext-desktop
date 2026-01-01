@@ -1,13 +1,60 @@
 // src/composables/useWallet.ts
 
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useWalletStore } from '@/stores/wallet'
 import { usePlatform } from './usePlatform'
 import { useBalances } from './useBalances'
 import { useTransactions } from './useTransactions'
 import { useKeyManagement } from './useKeyManagement'
 import { useNetwork } from './useNetwork'
-import type { IUser, SendCreditParams, SendTokenParams, BalanceResult, TransactionResult, TokenBalance } from '@/types'
+// import type {
+//     IUser,
+//     SendCreditParams,
+//     SendTokenParams,
+//     BalanceResult,
+//     TransactionResult,
+//     TokenBalance,
+// } from '@/types'
+// Local type definitions for missing exports
+interface SendCreditParams {
+    identityId: string
+    identityIdx: number
+    receiver: string
+    credits: bigint
+}
+interface SendTokenParams {
+    identityId: string
+    identityIdx: number
+    tokenId: string
+    receiver: string
+    atomicUnits: bigint
+}
+interface TransactionResult {
+    success: boolean
+    data?: ITxSuccess
+    error?: ITxError
+}
+interface ITxSuccess {
+    txid: string
+}
+interface ITxError {
+    code: number
+    message: string
+    suggestions?: string[]
+}
+// If BalanceResult and TokenBalance are also needed from imports
+interface BalanceResult {
+    credits: bigint
+    tokens: TokenBalance[]
+}
+interface TokenBalance {
+    tokenId: string
+    symbol: string
+    balance: bigint
+    decimals: number
+    name?: string
+}
+
 /**
  * Main wallet composable that orchestrates all wallet operations
  */
@@ -95,7 +142,7 @@ export function useWallet() {
         }, 500)
     }
     const loadMoreTransactions = async (limit = 20) => {
-        const currentLength = store.transactions.length
+        // const currentLength = store.transactions.length
         await store.fetchRealTransactions(limit)
     }
     // Polling
