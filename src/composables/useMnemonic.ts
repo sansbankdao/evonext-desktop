@@ -3,35 +3,90 @@
 import { invoke } from '@tauri-apps/api/core'
 import { ref } from 'vue'
 
-export function useMnemonic() {
-    const mnemonic = ref<string | null>(null)
-    const loading = ref(false)
-    const error = ref<string | null>(null)
+// Simple caching singleton
+class MnemonicManager {
+    private static instance: MnemonicManager
+    private mnemonic: string | null = null
+    private loading = false
+    private error: string | null = null
 
-    const getMnemonic = async (): Promise<string | null> => {
-        if (mnemonic.value !== null) {
-            return mnemonic.value
+    private constructor() {}
+
+    static getInstance(): MnemonicManager {
+        if (!MnemonicManager.instance) {
+            MnemonicManager.instance = new MnemonicManager()
+        }
+        return MnemonicManager.instance
+    }
+
+    async getMnemonic(): Promise<string | null> {
+        if (this.mnemonic !== null) {
+            return this.mnemonic
         }
 
-        loading.value = true
-        error.value = null
+        this.loading = true
+        this.error = null
 
         try {
+            console.log('Fetching mnemonic from Tauri backend...')
             const result = await invoke<string>('get_mnemonic')
-            mnemonic.value = result || null
-            return mnemonic.value
-        } catch (err) {
+            this.mnemonic = result || null
+            console.log('Mnemonic retrieved:', this.mnemonic ? 'Yes (hidden)' : 'No')
+            return this.mnemonic
+        } catch (err: any) {
             console.error('Failed to get mnemonic:', err)
-            error.value = err instanceof Error ? err.message : 'Failed to retrieve mnemonic'
+            this.error = err.message || 'Failed to retrieve mnemonic'
             return null
         } finally {
-            loading.value = false
+            this.loading = false
+        }
+    }
+
+    clearMnemonic(): void {
+        this.mnemonic = null
+        this.error = null
+    }
+
+    async hasMnemonic(): Promise<boolean> {
+        const mnem = await this.getMnemonic()
+        return !!mnem
+    }
+
+    getState() {
+        return {
+            mnemonic: this.mnemonic,
+            loading: this.loading,
+            error: this.error
+        }
+    }
+}
+
+// Export singleton instance
+export const mnemonicManager = MnemonicManager.getInstance()
+
+// Vue composable version (if you need reactivity)
+export function useMnemonic() {
+    const mnemonicRef = ref<string | null>(mnemonicManager.getState().mnemonic)
+    const loadingRef = ref(mnemonicManager.getState().loading)
+    const errorRef = ref<string | null>(mnemonicManager.getState().error)
+
+    const getMnemonic = async (): Promise<string | null> => {
+        loadingRef.value = true
+        errorRef.value = null
+
+        try {
+            const result = await mnemonicManager.getMnemonic()
+            mnemonicRef.value = result
+            return result
+        } finally {
+            loadingRef.value = false
         }
     }
 
     const clearMnemonic = () => {
-        mnemonic.value = null
-        error.value = null
+        mnemonicManager.clearMnemonic()
+        mnemonicRef.value = null
+        errorRef.value = null
     }
 
     const hasMnemonic = async (): Promise<boolean> => {
@@ -40,14 +95,11 @@ export function useMnemonic() {
     }
 
     return {
-        mnemonic: mnemonic,
+        mnemonic: mnemonicRef,
+        loading: loadingRef,
+        error: errorRef,
         getMnemonic,
         clearMnemonic,
-        hasMnemonic,
-        loading,
-        error
+        hasMnemonic
     }
 }
-
-// Singleton instance for easier use
-export const mnemonicManager = useMnemonic()
