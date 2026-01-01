@@ -55,7 +55,6 @@ export interface IPostDocument {
 }
 
 export interface IPost {
-    id: string;
     ownerId: string;
     author: IUser;
     content: string;
@@ -64,18 +63,15 @@ export interface IPost {
     likes: number;
     remixes: number;
     replies: number;
-    views: number;
+    views: number; // Ensure this exists
     bookmarks?: number;
     isSensitive: boolean;
     language: string;
     remix?: string;
     hashtag?: string;
-    media?: IMedia[];
-    mediaUrls?: string[];
+    mediaUrl?: string[];
     mentionIds?: string[];
     replyToPostId?: string;
-    replyTo?: IPost;
-    quotedPost?: IPost;
     liked?: boolean;
     remixed?: boolean;
     bookmarked?: boolean;
@@ -123,13 +119,16 @@ export interface ILikeDocument {
 export interface IPostsState {
     posts: IPost[];
     userPosts: IPost[];
-    likedPosts: string[]; // Array of post IDs
-    bookmarkedPosts: string[]; // Array of post IDs
+    likedPosts: string[];
+    bookmarkedPosts: string[];
     isLoading: boolean;
     error: string | null;
     lastFetched: Date | null;
     nextPage?: string;
     hasNextPage: boolean;
+    // Added for pagination support in usePosts
+    limit: number;
+    offset: number;
 }
 
 export interface PostsFetchResult {
@@ -142,6 +141,7 @@ export interface PostsFetchOptions {
     id?: string;
     ownerId?: string;
     limit?: number;
+    offset?: number; // Added offset here too
     fromDate?: Date;
     toDate?: Date;
     language?: string;
