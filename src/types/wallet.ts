@@ -2,9 +2,13 @@
 
 export interface IdentityTransfer {
     recipient: string;
-    amount: number;
-    timestamp: number;
+    sender?: string | null;
+    amount: number | string; // BigInt as string
     type: 'credit' | 'debit';
+    createdAt: number;
+    txHash?: string;
+    blockHash?: string;
+    gasUsed?: number;
 }
 
 export interface TokenTransition {

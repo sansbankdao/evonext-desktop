@@ -1,6 +1,7 @@
 // src/types/index.ts
 
 export * from './addKey'
+export * from './assets'
 export * from './explorer'
 export * from './identity'
 export * from './posts'

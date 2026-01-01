@@ -59,17 +59,6 @@ export interface PlatformHttpResponse<T> {
     }
 }
 
-export interface IdentityTransfer {
-    amount: string; // BigInt as string
-    sender: string | null;
-    recipient: string;
-    timestamp: string;
-    txHash: string;
-    type: string;
-    blockHash: string;
-    gasUsed: number;
-}
-
 export interface APIError {
     error: string;
     message?: string;
