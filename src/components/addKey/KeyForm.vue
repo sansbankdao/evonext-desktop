@@ -1,4 +1,4 @@
-<!-- src/components/AddKey/KeyForm.vue (Fixed) -->
+<!-- src/components/addKey/KeyForm.vue (Fixed) -->
 <template>
     <div class="space-y-6">
         <div class="border-t border-slate-200 dark:border-slate-700 pt-6">

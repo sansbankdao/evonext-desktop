@@ -3,18 +3,18 @@
 import { computed, unref } from 'vue'
 import { useIdentityStore } from '@/stores/identity'
 import { useNetwork } from '@/composables/useNetwork' // Assume you create this
-import { useDashSDK } from '@/composables/useDashSDK' // Singleton SDK
+import { usePlatformSdk } from '@/composables/usePlatformSdk' // Singleton SDK
 import type { Ref } from 'vue'
-import type { ConnectionResult, DiscoveredIdentity, IIdentityPublicKey } from '@/types'
+import type { ConnectionResult, DiscoveredIdentity, IPublicKey } from '@/types'
 
 export function useIdentity() {
   const store = useIdentityStore()
   const { network } = useNetwork()
-  const { sdk, ensureSDK } = useDashSDK()
+  const { sdk, ensureSDK } = usePlatformSdk()
 
   // Computed shortcuts
   const isConnected = computed(() => store.isAuthenticated && !!store.identityId)
-  const authPublicKey = computed(() => store.publicKeys.find((k: IIdentityPublicKey) => k.purpose === 0))
+  const authPublicKey = computed(() => store.publicKeys.find((k: IPublicKey) => k.purpose === 0))
   const displayName = computed(() => store.displayName || store.identityId || 'Guest')
 
   // Init: Load from storage + verify

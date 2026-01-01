@@ -1,13 +1,20 @@
 // src/libs/identity/IdentityManager.ts
-// Refactored to support single-key lookup
 import { ErrorBoundary } from '@/utils/errors'
 import { log, getDapiEndpoint } from '@/utils/env'
 import { DEFAULT_IDENTITY_SEARCH_LIMIT, DEFAULT_QUERY_REGISTRY } from '@/constants'
-import getNetwork from '../getNetwork'
-import type { IdentitySearchOptions, IIdentity, IPublicKey } from '@/types'
+import { useNetwork } from '@/composables/useNetwork'
+import type { IdentitySearchOptions, IIdentity, IPublicKey, PurposeType, SecurityLevelType } from '@/types'
+
 export class IdentityManager {
     private network: 'testnet' | 'mainnet' = 'testnet'
     private isInitializing = false
+
+    // Network composable instance
+    private getNetworkManager() {
+        const { ensure } = useNetwork()
+        return ensure
+    }
+
     /**
      * Initialize basic settings without connecting to sockets
      */
@@ -16,6 +23,7 @@ export class IdentityManager {
             if (this.isInitializing) return
             this.isInitializing = true
             try {
+                const getNetwork = this.getNetworkManager()
                 this.network = await getNetwork()
                 log('info', `IdentityManager initialized for network: ${this.network}`)
             } finally {
@@ -23,6 +31,7 @@ export class IdentityManager {
             }
         }, 'IDENTITY_MANAGER_INIT_FAILED')
     }
+
     /**
      * Search for identities using a seed phrase
      * This is the main entry point for seed phrase login
@@ -37,23 +46,23 @@ export class IdentityManager {
             const queryRegistry = options?.queryRegistry || DEFAULT_QUERY_REGISTRY
             log('debug', `Searching identities from seed with options:`, { minIndexSearch, queryRegistry })
             const identities: IIdentity[] = []
+
             // Try direct backend call first (most efficient)
             try {
                 const result = await this.queryWebAPI('get_identities_from_seed', [seedPhrase])
                 if (result?.success && Array.isArray(result.result)) {
                     for (const identityData of result.result) {
                         identities.push({
-                            identity_idx: identityData.index || identities.length,
+                            identityIdx: identityData.index || identities.length,
                             id: identityData.identityId,
                             publicKeys: this.mapPublicKeys(identityData.publicKeys || []),
-                            // balance: identityData.balance,
-                            // revision: identityData.revision
                         })
                     }
                 }
             } catch (err) {
                 log('warn', 'Direct seed discovery failed, falling back to index search...', err)
             }
+
             // Fallback: If no identities found, try the old index-based search
             if (identities.length === 0) {
                 log('debug', 'No identities found via direct method, trying index search...')
@@ -61,24 +70,25 @@ export class IdentityManager {
                     const result = await this.searchByIndex(i, queryRegistry, seedPhrase)
                     if (result) {
                         identities.push({
-                            identity_idx: i,
+                            identityIdx: i,
                             id: result.identityId,
                             publicKeys: this.mapPublicKeys(result.regPubKeys || []),
-                            // balance: result.balance,
-                            // revision: result.revision
                         })
                         break // Stop after first found identity for now
                     }
                 }
             }
+
             if (identities.length === 0) {
                 log('warn', 'No identities found for the provided seed phrase.')
                 return null
             }
+
             log('info', `Found ${identities.length} identities`)
             return identities
         }, 'GET_IDENTITIES_FROM_SEED_FAILED')
     }
+
     /**
      * Search for identity by a single private key
      * This replaces the inefficient multi-key search
@@ -90,20 +100,21 @@ export class IdentityManager {
         return ErrorBoundary.wrap(async () => {
             await this.initialize()
             log('debug', `Searching identity by key: ${keyInput.substring(0, 8)}...`)
+
             // Try direct backend discovery
             const result = await this.queryWebAPI('get_identity_by_private_key', [keyInput])
             if (result?.success && result?.result?.identityId) {
+                const identityData = result.result
                 return {
                     identity: {
-                        identity_idx: 0,
-                        identityId: result.result.identityId,
-                        publicKeys: this.mapPublicKeys(result.result.publicKeys || []),
-                        balance: result.result.balance,
-                        revision: result.result.revision
+                        identityIdx: 0,
+                        id: identityData.identityId,
+                        publicKeys: this.mapPublicKeys(identityData.publicKeys || []),
                     },
                     keyType: this.detectKeyType(keyInput)
                 }
             }
+
             // Fallback: Try hash-based lookup
             const hash = await this.deriveKeyHash(keyInput)
             if (hash) {
@@ -111,20 +122,20 @@ export class IdentityManager {
                 if (hashResult?.success && hashResult?.result?.identityId) {
                     return {
                         identity: {
-                            identity_idx: 0,
-                            identityId: hashResult.result.identityId,
+                            identityIdx: 0,
+                            id: hashResult.result.identityId,
                             publicKeys: this.mapPublicKeys(hashResult.result.publicKeys || []),
-                            balance: hashResult.result.balance,
-                            revision: hashResult.result.revision
                         },
                         keyType: this.detectKeyType(keyInput)
                     }
                 }
             }
+
             log('warn', 'No identity found for key')
             return null
         }, 'GET_IDENTITY_BY_KEY_FAILED')
     }
+
     /**
      * Lookup identity directly by ID
      */
@@ -135,16 +146,15 @@ export class IdentityManager {
             if (result?.success && result?.result) {
                 const data = result.result
                 return {
-                    identity_idx: 0,
-                    identityId: data.identityId,
+                    identityIdx: 0,
+                    id: data.identityId,
                     publicKeys: this.mapPublicKeys(data.publicKeys || []),
-                    balance: data.balance,
-                    revision: data.revision
                 }
             }
             return null
         }, 'GET_IDENTITY_BY_ID_FAILED')
     }
+
     /**
      * Private helper methods
      */
@@ -162,6 +172,7 @@ export class IdentityManager {
             return null
         }
     }
+
     private async deriveKeyHash(keyInput: string): Promise<string | null> {
         try {
             // This should call backend crypto functions
@@ -173,6 +184,7 @@ export class IdentityManager {
             return null
         }
     }
+
     private detectKeyType(keyInput: string): string {
         const cleanKey = keyInput.trim()
         if (/^[cKL][0-9A-Za-z]{50,}$/.test(cleanKey)) {
@@ -186,19 +198,28 @@ export class IdentityManager {
         }
         return 'UNKNOWN'
     }
+
     private mapPublicKeys(keys: any[]): IPublicKey[] {
-        return (keys || []).map((key, index) => ({
-            type: this.getKeyTypeId(key.keyType),
-            keyType: key.keyType || 'UNKNOWN',
-            purpose: this.getPurposeNumber(key.purpose),
-            securityLevel: this.getSecurityLevelNumber(key.securityLevel),
-            contractBounds: key.contractBounds || null,
-            data: key.data || '',
-            dataBytes: this.decodeBase64ToHex(key.dataB64 || ''),
-            readOnly: key.readOnly || false,
-            disabledAt: key.disabledAt || null,
-        }))
+        return (keys || []).map((key, index) => {
+            // Ensure purpose is the correct type
+            const purpose = this.getPurposeNumber(key.purpose)
+            // Ensure securityLevel is the correct type
+            const securityLevel = this.getSecurityLevelNumber(key.securityLevel)
+
+            return {
+                type: this.getKeyTypeId(key.keyType),
+                keyType: key.keyType || 'UNKNOWN',
+                purpose: purpose as PurposeType,
+                securityLevel: securityLevel as SecurityLevelType,
+                contractBounds: key.contractBounds || null,byteArray,string>,
+                data: key.data || '',ArrayBufferLikebyteArray>,
+                dataBytes: this.decodeBase64ToHex(key.dataB64 || ''),
+                readOnly: key.readOnly || false,
+                disabledAt: key.disabledAt || null,
+            }
+        })
     }
+
     private getKeyTypeId(keyType: string | undefined): number {
         switch(keyType?.toUpperCase()) {
             case 'ECDSA_SECP256K1': return 0
@@ -209,24 +230,32 @@ export class IdentityManager {
             default: return -1
         }
     }
-    private getPurposeNumber(purpose: string): number {
-        switch(purpose?.toUpperCase()) {
-            case 'AUTHENTICATION': return 0
-            case 'TRANSFER': return 1
-            case 'ENCRYPTION': return 2
-            default: return 0
+
+    private getPurposeNumber(purpose: string | number | undefined): 0 | 1 | 2 | 3 {
+        const purposeNum = typeof purpose === 'string' ? parseInt(purpose) : (purpose || 0)
+
+        switch(purposeNum) {
+            case 1: return 1 // TRANSFER
+            case 2: return 2 // ENCRYPTION
+            case 3: return 3 // Also TRANSFER (?)
+            case 0:
+            default: return 0 // AUTHENTICATION
         }
     }
-    private getSecurityLevelNumber(securityLevel: string): number {
-        switch(securityLevel?.toUpperCase()) {
-            case 'MASTER': return 0
-            case 'CRITICAL': return 1
-            case 'HIGH': return 2
-            case 'MEDIUM': return 3
-            case 'LOW': return 4
-            default: return 3
+
+    private getSecurityLevelNumber(securityLevel: string | number | undefined): 0 | 1 | 2 | 3 | 4 {
+        const levelNum = typeof securityLevel === 'string' ? parseInt(securityLevel) : (securityLevel || 3)
+
+        switch(levelNum) {
+            case 0: return 0 // MASTER
+            case 1: return 1 // CRITICAL
+            case 2: return 2 // HIGH
+            case 3: return 3 // MEDIUM
+            case 4: return 4 // LOW
+            default: return 3 // Default to MEDIUM
         }
     }
+
     private decodeBase64ToHex(base64String: string): string | null {
         try {
             const byteString = atob(base64String)
@@ -242,6 +271,7 @@ export class IdentityManager {
             return null
         }
     }
+
     /**
      * Web API Query wrapper - Pure fetch implementation
      */
@@ -273,8 +303,10 @@ export class IdentityManager {
         }, `QUERY_WEB_API_FAILED: ${method}`)
     }
 }
+
 // Singleton instance
 let identityManager: IdentityManager | null = null
+
 export function getIdentityManager(): IdentityManager {
     if (!identityManager) {
         identityManager = new IdentityManager()
