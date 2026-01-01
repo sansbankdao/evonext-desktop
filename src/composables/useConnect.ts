@@ -212,10 +212,6 @@ export function useConnect() {
             seedDiscoveryError.value = e.message
         } finally {
             isDiscovering.value = false
-            // REMOVED: Auto-hide progress. It stays on screen now.
-            // setTimeout(() => {
-            //     discoveryProgress.value = null
-            // }, 2000)
         }
     }
 
@@ -275,7 +271,12 @@ export function useConnect() {
 
                 if (!selectedSeedIdentityId.value) throw new Error('Please select an identity')
 
-                const result = await identityStore.connectWithSeed(phrase, network) // Ensure your store has this
+                // Pass the discovered identity ID explicitly to the store
+                const result = await identityStore.connectWithSeed(
+                    phrase,
+                    network,
+                    selectedSeedIdentityId.value
+                )
                 if (!result.success) throw new Error(result.error)
 
             } else {
