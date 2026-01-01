@@ -1,7 +1,8 @@
 // src/services/identity/discovery/KeyDiscovery.ts
 
 import { KeyDerivationService } from '../keyDerivation.service'
-import { DAPIService, type DAPIHashSearchResult } from './DAPIService'
+import { DAPIService } from './DAPIService'
+// import { DAPIService, type DAPIHashSearchResult } from './DAPIService'
 import { BaseDiscovery } from './BaseDiscovery'
 // @ts-ignore
 import { PrivateKeyWASM } from 'pshenmic-dpp'
@@ -14,7 +15,7 @@ import type {
     DiscoveredIdentity,
     DiscoveryResult,
     DiscoveryOptions,
-    AssociatedKey,
+    // AssociatedKey,
 } from '../types'
 
 export class KeyDiscovery extends BaseDiscovery {
