@@ -6,7 +6,6 @@ import { useIdentityStore } from '@/stores/identity'
 import { useNetwork } from '@/composables/useNetwork'
 import { usePlatformSdk } from '@/composables/usePlatformSdk'
 import type { ConnectionResult, DiscoveredIdentity, IPublicKey } from '@/types/identity'
-
 const getIdentityIdx = async (): Promise<number> => {
     try {
         const identityStore = await invoke<any>('load_identity_data')
@@ -15,16 +14,13 @@ const getIdentityIdx = async (): Promise<number> => {
         return 0
     }
 }
-
 const hasTransferKey = (): boolean => {
     const identityStore = useIdentityStore()
     return identityStore.publicKeys.some(key => key.purpose === 1 || key.purpose === 3)
 }
-
 export function useIdentity() {
     const store = useIdentityStore()
     const { network } = useNetwork()
-    // FIX 1: Destructure getSDK instead of sdk/ensureSDK
     const { getSDK } = usePlatformSdk()
     const isConnected = computed(() => store.isAuthenticated && !!store.identityId)
     const authPublicKey = computed(() => store.publicKeys.find((k: IPublicKey) => k.purpose === 0))
@@ -32,8 +28,8 @@ export function useIdentity() {
     const hasTransferKeyComputed = computed(hasTransferKey)
     async function getIdentityBalance(network: string, identityId: string): Promise<string> {
         try {
-            // FIX 2: Await the SDK
-            const sdk = await getSDK()
+            // FIX: Cast to any to bypass missing type definitions on the controller
+            const sdk = await getSDK() as any
             const identity = await sdk.identities.get(identityId)
             return identity ? identity.balance.toString() : '0'
         } catch (e) {
@@ -72,8 +68,10 @@ export function useIdentity() {
     async function discoverIdentities(): Promise<DiscoveredIdentity[]> {
         if (!store.identityId) return []
         try {
-            // FIX 3: Await the SDK here as well
-            const sdk = await getSDK()
+            // FIX: Cast to any.
+            // 1. sdk.identities exists (SDK is Platform object)
+            // 2. sdk.names exists (instead of sdk.platform.names)
+            const sdk = await getSDK() as any
             const identity = await sdk.identities.get(store.identityId)
             const transformPublicKeys = (keys: any[]): IPublicKey[] => keys.map((k) => ({
                 type: k.type,
@@ -86,7 +84,8 @@ export function useIdentity() {
                 readOnly: k.readOnly,
                 disabledAt: k.disabledAt
             }))
-            const dpnsName = await sdk.platform.names.resolve(store.identityId)
+            // Use sdk.names directly (not sdk.platform.names)
+            const dpnsName = await sdk.names.resolve(store.identityId)
                 .then((n: any) => n?.[0]?.label || null)
                 .catch(() => null)
             const details: DiscoveredIdentity = {
@@ -124,7 +123,6 @@ export function useIdentity() {
             get: () => store.identityId,
             set: (v: string | null) => store.identityId = v
         }),
-        // FIX 4: Wrap primitives in computed()
         publicKeys: computed(() => store.publicKeys),
         balance: computed(() => store.balance),
         isConnecting: computed(() => store.isConnecting),
