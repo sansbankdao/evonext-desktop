@@ -147,7 +147,7 @@
                             <!-- Header with Count and Close Button -->
                             <div class="flex items-center justify-between mb-2">
                                 <h3 class="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                    Found {{ seedDiscoveryResults.length }} Identity {{ seedDiscoveryResults.length === 1 ? 'y' : 'ies' }}
+                                    Found {{ seedDiscoveryResults.length }} Identit{{ seedDiscoveryResults.length === 1 ? 'y' : 'ies' }}
                                 </h3>
                                 <button
                                     type="button"

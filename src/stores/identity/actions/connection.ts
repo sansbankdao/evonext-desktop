@@ -4,20 +4,65 @@ import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
 import { KeyDerivationService } from '@/services/identity/keyDerivation.service'
 import { DAPIService } from '@/services/identity/discovery/DAPIService'
-import type { IIdentityState, ConnectionResult, DiscoveredIdentity } from '@/types'
-import type { IPublicKey } from '@/types'
-
+// --- LOCAL INTERFACES (to ensure strict type safety) ---
+export interface ConnectionResult {
+    success: boolean
+    identity?: IIdentity | null
+    error?: string
+}
+export interface IIdentity {
+    identity_idx: number
+    publicKeys: IPublicKey[]
+    // We deliberately DO NOT include 'id' here, because the Store uses 'username'
+    // to store the identity ID string (e.g. "GHS..."), while 'identity' holds the complex object.
+}
+export interface IPublicKey {
+    type_: string
+    purpose: number
+    security_level: number
+    keyType: string
+    data: string
+    data_bytes: string
+    read_only: boolean
+    disabled_at: number | null
+}
+export interface DiscoveredIdentity {
+    identityId: string
+    balance: string
+    revision: string
+    publicKeys: any[]
+    dpnsUsername: string | null
+}
+export interface IIdentityState {
+    isAuthenticated: boolean
+    identity: IIdentity | null
+    username: string | null
+    balance: string | null
+    balanceBigInt?: bigint
+    dashBigInt?: bigint
+    publicKeys: IPublicKey[]
+    revision: number | null
+    premiumAccess: boolean
+    connectionError: string | null
+    lastConnected: string | null
+    isConnecting: boolean
+    // Actions
+    searchUserIdentities: (network: 'mainnet' | 'testnet') => Promise<DiscoveredIdentity[]>
+    fetchBalance: () => Promise<void>
+    saveToStorage: () => Promise<void>
+    clearStorage: () => Promise<void>
+    updateIdentityWithSdkData: (...args: any[]) => Promise<void>
+}
+// --- IMPLEMENTATION ---
 interface Settings {
     network: 'mainnet' | 'testnet'
     [key: string]: any
 }
-
 interface SafeStoragePayload {
     keys: string[]
     identity_id: string
     seed_phrase?: string
 }
-
 // Helper to safely load storage
 const loadStorageData = async <T>(command: string, network: string): Promise<T | null> => {
     try {
@@ -27,61 +72,50 @@ const loadStorageData = async <T>(command: string, network: string): Promise<T |
         return null
     }
 }
-
 export const connectionActions = () => ({
     async initFromStorage(this: IIdentityState) {
         return ErrorBoundary.wrap(async () => {
             try {
                 const settings = await invoke<Settings>('load_settings')
-                const network: 'mainnet' | 'testnet' = settings?.network || 'mainnet'
+                const network: 'mainnet' | 'testnet' = (settings?.network === 'testnet' ? 'testnet' : 'mainnet')
                 log('info', 'Initializing from storage for network:', network)
-
                 // Load keys from .safu-testnet.json
                 const keysData = await loadStorageData<SafeStoragePayload>('load_private_keys_safe', network)
-
                 if (keysData && keysData.keys && keysData.keys.length > 0 && keysData.identity_id) {
-                    // We have keys. Now we need to verify they are valid by fetching the identity.
-                    // Use the first key (assuming auth) to check the network.
+                    // We have keys. Verify them by fetching identity.
                     const authKey = keysData.keys[0]
-
-                    // 1. Derive hash from key
-                    const derivationResult = await KeyDerivationService.deriveAllPossibleHashes(authKey, network)
-
+                    const derivationResult = await KeyDerivationService.deriveAllPossibleHashes(authKey || '', network)
                     if (derivationResult.hashes.length > 0) {
-                        // 2. Scan network for this hash
-                        const result = await DAPIService.queryIdentityByHash(derivationResult.hashes[0], network, true)
-
+                        const result = await DAPIService.queryIdentityByHash(derivationResult.hashes[0] || '', network, true)
                         if (result.success && result.data) {
                             log('info', 'Verified stored key identity ID:', result.data.identityId)
                             this.isAuthenticated = true
-
-                            // Reconstruct basic identity object
+                            // 1. Set username to the Identity ID string
+                            this.username = result.data.identityId
+                            // 2. Create minimal IIdentity object for the store
                             this.identity = {
-                                id: result.data.identityId,
-                                identity_idx: 0, // We assume index 0 for restored wallets
+                                identity_idx: 0,
                                 publicKeys: result.data.publicKeys || []
                             }
-
-                            // Ensure username is a string or null
-                            this.username = result.data.identityId
-
-                            // Fetch detailed info (Balance, Revision)
+                            // 3. Fetch detailed info
                             if (typeof this.searchUserIdentities === 'function') {
                                 await this.searchUserIdentities(network)
                             }
                         } else {
                             log('warn', 'Stored keys do not match any identity on network. Clearing invalid keys.')
-                            await this.clearStorage()
+                            try {
+                                await this.clearStorage()
+                            } catch (clearErr) {
+                                log('error', 'Failed to clear invalid storage:', clearErr)
+                            }
                         }
                     }
                 }
             } catch (err) {
                 log('error', 'Failed to initialize identity from storage:', err)
-                // Do not throw, allow app to load in logged-out state
             }
         }, 'INIT_FROM_STORAGE_FAILED')
     },
-
     async connectWithSeed(
         this: IIdentityState,
         seedPhrase: string,
@@ -93,66 +127,43 @@ export const connectionActions = () => ({
             this.connectionError = null
             try {
                 log('info', 'Attempting to connect with seed phrase on network:', network)
-
                 let targetId: string
-
                 if (discoveredIdentityId) {
                     targetId = discoveredIdentityId
                 } else {
-                    // Fallback: Try to search (might be slow or fail if backend is gone)
                     const identities = await this.searchUserIdentities(network)
                     if (!identities || identities.length === 0) {
                         throw new Error('Identity ID required for connection. Please ensure discovery ran.')
                     }
-                    // Assuming identities returns DiscoveredIdentity[] with 'id' property
-                    targetId = identities[0].id
+                    targetId = identities[0]?.identityId || ''
                 }
-
-                // Derive keys.
-                // Since we don't know the exact identity index, we assume 0 for standard wallets.
-                // We will derive Auth (Index 0) and Transfer (Index 2 in DPP, or Key Index 3 in our service)
-
+                // Derive keys (Assuming Index 0)
                 const matchIndex = 0
-
-                // Derive keys
-                // KeyDerivationService.getPrivateKeyWASM uses identityIndex and keyIndex
-                // We use identityIndex 0.
                 const authDeriv = await KeyDerivationService.getPrivateKeyWASM(seedPhrase, network, matchIndex, 0)
                 const transferDeriv = await KeyDerivationService.getPrivateKeyWASM(seedPhrase, network, matchIndex, 3)
                 const encDeriv = await KeyDerivationService.getPrivateKeyWASM(seedPhrase, network, matchIndex, 4)
-
-                const authWIF = authDeriv.privateKey.toWIF()
-                const transferWIF = transferDeriv.privateKey.toWIF()
-                const encWIF = encDeriv.privateKey.toWIF()
-
+                const authWIF = authDeriv.privateKey.WIF()
+                const transferWIF = transferDeriv.privateKey.WIF()
+                const encWIF = encDeriv.privateKey.WIF()
                 // Save to .safu-testnet.json
                 const payload: SafeStoragePayload = {
                     keys: [authWIF, transferWIF, encWIF],
                     identity_id: targetId,
                     seed_phrase: seedPhrase
                 }
-
                 await invoke('save_private_keys_safe', { network, payload })
-
                 // Update Store State
                 this.isAuthenticated = true
+                this.username = targetId // <--- Identity ID goes here
                 this.identity = {
                     identity_idx: matchIndex,
-                    id: targetId,
-                    publicKeys: [] // Will be populated by searchUserIdentities
+                    publicKeys: [] // Populated by searchUserIdentities
                 }
-
-                // Ensure username is strictly string or null
-                this.username = targetId
-
-                // Fetch full details (Balance, etc)
                 if (typeof this.searchUserIdentities === 'function') {
                     await this.searchUserIdentities(network)
                 }
-
                 log('info', `Seed connection successful. Identity ID: ${targetId}`)
                 await this.saveToStorage()
-
                 return { success: true, identity: this.identity }
             } catch (err: any) {
                 log('error', 'Seed connection failed:', err)
@@ -163,7 +174,6 @@ export const connectionActions = () => ({
             }
         }, 'CONNECT_WITH_SEED_FAILED')
     },
-
     async connectWithSingleKey(
         this: IIdentityState,
         privateKey: string,
@@ -175,38 +185,27 @@ export const connectionActions = () => ({
             this.connectionError = null
             try {
                 log('info', 'Attempting to connect with single key on network:', network)
-
                 const trimmedId = identityId.trim()
                 if (!trimmedId) {
                     this.connectionError = 'Identity ID is required. Please complete discovery first.'
                     return { success: false, error: this.connectionError }
                 }
-
-                // Save to .safu-testnet.json
                 const payload: SafeStoragePayload = {
                     keys: [privateKey],
                     identity_id: trimmedId
                 }
-
                 await invoke('save_private_keys_safe', { network, payload })
-
-                this.username = trimmedId
+                this.username = trimmedId // <--- Identity ID goes here
                 this.isAuthenticated = true
-
-                // Load identity to populate store state
                 this.identity = {
                     identity_idx: 0,
-                    id: trimmedId,
-                    publicKeys: [] // Will be populated
+                    publicKeys: []
                 }
-
                 if (typeof this.searchUserIdentities === 'function') {
                     await this.searchUserIdentities(network)
                 }
-
                 log('info', 'Single key connection successful. isAuthenticated:', this.isAuthenticated)
                 await this.saveToStorage()
-
                 return { success: true, identity: this.identity }
             } catch (err: any) {
                 log('error', 'Single key connection failed:', err)
@@ -217,21 +216,18 @@ export const connectionActions = () => ({
             }
         }, 'CONNECT_WITH_SINGLE_KEY_FAILED')
     },
-
     async searchUserIdentities(
         this: IIdentityState,
         network: 'mainnet' | 'testnet'
     ): Promise<DiscoveredIdentity[]> {
         return ErrorBoundary.wrap(async () => {
-            if (!this.identity?.id) {
+            // Use 'this.username' because it contains the identity ID string
+            const identityId = this.username
+            if (!identityId) {
                 return []
             }
-
-            // 1. Fetch Identity Object via DAPIService
-            const result = await DAPIService.getIdentityById(this.identity.id, network)
-
+            const result = await DAPIService.getIdentityById(identityId, network)
             if (result.success && result.data) {
-                // Map result.data to DiscoveredIdentity interface
                 const discovered: DiscoveredIdentity = {
                     identityId: result.data.identityId || result.data.id,
                     balance: result.data.balance || '0',
@@ -239,26 +235,20 @@ export const connectionActions = () => ({
                     publicKeys: result.data.publicKeys || [],
                     dpnsUsername: result.data.dpnsUsername || null
                 }
-
                 // Update Store State
                 if (this.identity) {
                     this.identity.publicKeys = discovered.publicKeys
                 }
                 this.balance = discovered.balance
-                this.revision = discovered.revision
-
-                // Fetch Balance
+                this.revision = parseInt(discovered.revision, 10)
                 if (typeof this.fetchBalance === 'function') {
                     await this.fetchBalance()
                 }
-
                 return [discovered]
             }
-
             return []
         }, 'SEARCH_USER_IDENTITIES_FAILED')
     },
-
     async logout(this: IIdentityState) {
         return ErrorBoundary.wrap(async () => {
             try {
@@ -278,25 +268,24 @@ export const connectionActions = () => ({
             log('info', 'User logged out successfully')
         }, 'LOGOUT_FAILED')
     },
-
     clearConnectionError(this: IIdentityState) {
         this.connectionError = null
     },
-
     async saveToStorage(this: IIdentityState) {
         try {
             const settings = await invoke<Settings>('load_settings')
-            const network: 'mainnet' | 'testnet' = settings?.network || 'mainnet'
-
-            if (this.identity) {
+            const network: 'mainnet' | 'testnet' = (settings?.network === 'testnet' ? 'testnet' : 'mainnet')
+            // Use 'this.username' (ID string) or fallback
+            const idToSave = this.username || (this.identity ? 'unknown' : null)
+            if (idToSave) {
                 await invoke('save_identity_data', {
                     network,
                     payload: {
-                        identity_id: this.identity.id || this.username,
+                        identity_id: idToSave,
                         is_authenticated: this.isAuthenticated,
                         public_keys: this.publicKeys,
                         balance: this.balance,
-                        revision: this.revision,
+                        revision: this.revision?.toString(),
                         last_updated: new Date().toISOString()
                     }
                 })
@@ -305,17 +294,14 @@ export const connectionActions = () => ({
             log('error', 'Failed to save identity to storage:', err)
         }
     },
-
     async clearStorage(this: IIdentityState) {
         try {
             const settings = await invoke<Settings>('load_settings')
-            const network: 'mainnet' | 'testnet' = settings?.network || 'mainnet'
-
+            const network: 'mainnet' | 'testnet' = (settings?.network === 'testnet' ? 'testnet' : 'mainnet')
             await Promise.all([
                 invoke('remove_identity_data', { network }),
                 invoke('remove_private_keys_safe', { network })
             ])
-
             log('info', 'Storage cleared for network:', network)
         } catch (err) {
             log('error', 'Failed to clear storage:', err)
