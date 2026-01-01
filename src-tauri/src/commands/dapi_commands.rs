@@ -4,8 +4,10 @@ use tauri::command;
 use serde_json::{Value, json};
 use std::collections::HashMap;
 
-use crate::dapi::client::{get_dapi_client, DAPIClient, MethodParamInfo};
-use crate::dapi::types::{Network, DAPIError};
+use crate::dapi::client::{get_dapi_client, MethodParamInfo};
+use crate::dapi::types::{Network};
+// use crate::dapi::client::{get_dapi_client, DAPIClient, MethodParamInfo};
+// use crate::dapi::types::{Network, DAPIError};
 
 #[command]
 pub async fn dapi_request(
@@ -468,14 +470,14 @@ pub async fn get_total_credits_in_platform(
 }
 
 // Add to src-tauri/src/commands/dapi_commands.rs
-use serde::Deserialize;
+// use serde::Deserialize;
 
-#[derive(Deserialize)]
-struct DAPIParams {
-    method: String,
-    params: Vec<serde_json::Value>,
-    network: String,
-}
+// #[derive(Deserialize)]
+// struct DAPIParams {
+//     method: String,
+//     params: Vec<serde_json::Value>,
+//     network: String,
+// }
 
 #[tauri::command]
 pub async fn get_identity_by_public_key_hash(
