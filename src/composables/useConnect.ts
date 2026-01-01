@@ -1,17 +1,19 @@
 // src/composables/useConnect.ts
+
 import { ref, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getIdentityManager } from '@/services/identity'
 import { useIdentityStore } from '@/stores/identity'
 import { useSeedStore } from '@/stores/connect/seed'
 import { usePrivateKeyStore } from '@/stores/connect/privateKey'
-import getNetwork from '@/libs/getNetwork'
+import { useNetwork } from '@/composables'
 import type { DiscoveredIdentity, DiscoveryResult, ScanProgress } from '@/services/identity/types'
 
 export function useConnect() {
     const router = useRouter()
     const identityStore = useIdentityStore()
     const identityManager = getIdentityManager()
+    const { ensure } = useNetwork()
 
     // Initialize stores - only use their methods, not their state
     const seedStore = useSeedStore()
@@ -205,7 +207,7 @@ export function useConnect() {
         discoveryStatus.value = 'Deriving keys and scanning network...'
 
         try {
-            const network = await getNetwork()
+            const network = await ensure()
             const result: DiscoveryResult = await identityManager.discoverFromSeed(phrase, {
                 network,
                 maxIdentityIndex: 5
@@ -236,7 +238,7 @@ export function useConnect() {
         discoveryStatus.value = 'Analyzing key and searching...'
 
         try {
-            const network = await getNetwork()
+            const network = await ensure()
             const result: DiscoveryResult = await identityManager.discoverFromKey(keyInput, {
                 network
             })
@@ -271,7 +273,7 @@ export function useConnect() {
         connectionError.value = null
 
         try {
-            const network = await getNetwork()
+            const network = await ensure()
 
             if (connectionMethod.value === 'seed') {
                 // SEED CONNECTION
