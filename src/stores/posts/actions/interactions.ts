@@ -1,34 +1,20 @@
 // src/stores/posts/actions/interactions.ts
 
-import {
-    likePost,
-    unlikePost,
-    bookmarkPost,
-    unbookmarkPost,
-    getPostStats
-} from '@/libs/posts'
+import { usePosts } from '@/composables/usePosts'
 
 export async function likePostByIdAction(this: any, postId: string): Promise<boolean> {
     try {
-        const success = await likePost(postId)
-        if (success) {
-            // Add to liked posts if not already there
-            if (!this.likedPosts.includes(postId)) {
-                this.likedPosts.push(postId)
-            }
-            // Update like count in posts
-            const postIndex = this.posts.findIndex((p: any) => p.id === postId)
-            if (postIndex !== -1) {
-                this.posts[postIndex].likes += 1
-                this.posts[postIndex].liked = true
-            }
-            // Update like count in userPosts
-            const userPostIndex = this.userPosts.findIndex((p: any) => p.id === postId)
-            if (userPostIndex !== -1) {
-                this.userPosts[userPostIndex].likes += 1
-                this.userPosts[userPostIndex].liked = true
-            }
-        }
+        const composable = usePosts()
+
+        // Delegate to composable
+        // The composable handles:
+        // 1. Optimistically updating the post's like count and liked state (via upsertPost)
+        // 2. Updating the Store's 'likedPosts' array state
+        const success = await composable.likePost(postId)
+
+        // Note: Since the composable updates the store directly (which 'this' refers to),
+        // we don't need to manually splice arrays or update counts here.
+
         return success
     } catch (error: any) {
         console.error('Error liking post:', error)
@@ -38,23 +24,12 @@ export async function likePostByIdAction(this: any, postId: string): Promise<boo
 
 export async function unlikePostByIdAction(this: any, postId: string): Promise<boolean> {
     try {
-        const success = await unlikePost(postId)
-        if (success) {
-            // Remove from liked posts
-            this.likedPosts = this.likedPosts.filter((id: string) => id !== postId)
-            // Update like count in posts
-            const postIndex = this.posts.findIndex((p: any) => p.id === postId)
-            if (postIndex !== -1) {
-                this.posts[postIndex].likes = Math.max(0, this.posts[postIndex].likes - 1)
-                this.posts[postIndex].liked = false
-            }
-            // Update like count in userPosts
-            const userPostIndex = this.userPosts.findIndex((p: any) => p.id === postId)
-            if (userPostIndex !== -1) {
-                this.userPosts[userPostIndex].likes = Math.max(0, this.userPosts[userPostIndex].likes - 1)
-                this.userPosts[userPostIndex].liked = false
-            }
-        }
+        const composable = usePosts()
+
+        // Delegate to composable
+        // The composable handles re-optimistic updates if the API fails.
+        const success = await composable.likePost(postId)
+
         return success
     } catch (error: any) {
         console.error('Error unliking post:', error)
@@ -64,15 +39,14 @@ export async function unlikePostByIdAction(this: any, postId: string): Promise<b
 
 export async function bookmarkPostByIdAction(this: any, postId: string): Promise<boolean> {
     try {
-        const success = await bookmarkPost(postId)
-        if (success && !this.bookmarkedPosts.includes(postId)) {
-            this.bookmarkedPosts.push(postId)
-            // Update bookmark status in posts
-            const postIndex = this.posts.findIndex((p: any) => p.id === postId)
-            if (postIndex !== -1) {
-                this.posts[postIndex].bookmarked = true
-            }
-        }
+        const composable = usePosts()
+
+        // Delegate to composable
+        // The composable handles:
+        // 1. Updating the Store's 'bookmarkedPosts' array state
+        // 2. Updating the post's 'bookmarked' status
+        const success = await composable.bookmarkPost(postId)
+
         return success
     } catch (error: any) {
         console.error('Error bookmarking post:', error)
@@ -82,15 +56,11 @@ export async function bookmarkPostByIdAction(this: any, postId: string): Promise
 
 export async function unbookmarkPostByIdAction(this: any, postId: string): Promise<boolean> {
     try {
-        const success = await unbookmarkPost(postId)
-        if (success) {
-            this.bookmarkedPosts = this.bookmarkedPosts.filter((id: string) => id !== postId)
-            // Update bookmark status in posts
-            const postIndex = this.posts.findIndex((p: any) => p.id === postId)
-            if (postIndex !== -1) {
-                this.posts[postIndex].bookmarked = false
-            }
-        }
+        const composable = usePosts()
+
+        // Delegate to composable
+        const success = await composable.bookmarkPost(postId)
+
         return success
     } catch (error: any) {
         console.error('Error unbookmarking post:', error)
