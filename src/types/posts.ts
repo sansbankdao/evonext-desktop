@@ -60,8 +60,8 @@ export interface IPost {
     ownerId: string;
     author: IUser;
     content: string;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt: number;
+    updatedAt: number | null;
     likes: number;
     remixes: number;
     replies: number;
@@ -69,15 +69,15 @@ export interface IPost {
     bookmarks?: number;
     isSensitive: boolean;
     language: string;
-    remix?: string;
-    hashtag?: string;
+    remix?: string | undefined;
+    hashtag?: string | undefined;
     media?: IMedia[];
-    mediaUrls?: string[]; // Added: Renamed from mediaUrl to match usage
-    mediaUrl?: string[];  // Kept for backward compatibility
-    mentionIds?: string[];
-    replyToPostId?: string;
-    replyTo?: IPost;
-    quotedPost?: IPost;
+    mediaUrls?: string[] | undefined; // Added: Renamed from mediaUrl to match usage
+    mediaUrl?: string[] | undefined;  // Kept for backward compatibility
+    mentionIds?: string[] | undefined;
+    replyToPostId?: string | undefined;
+    replyTo?: IPost | undefined;
+    quotedPost?: IPost | undefined;
     liked?: boolean;
     remixed?: boolean;
     bookmarked?: boolean;
@@ -94,11 +94,11 @@ export interface ICreatePostParams {
     content: string;
     isSensitive?: boolean;
     language?: string;
-    remix?: string;
-    hashtag?: string;
-    mediaUrl?: string[];
-    mentionIds?: string[];
-    replyToPostId?: string[];
+    remix?: string | undefined;
+    hashtag?: string | undefined;
+    mediaUrl?: string[] | undefined;
+    mentionIds?: string[] | undefined;
+    replyToPostId?: string[] | undefined;
 }
 
 export interface IUpdatePostParams {

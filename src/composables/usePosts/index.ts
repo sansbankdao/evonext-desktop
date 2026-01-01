@@ -1,6 +1,6 @@
 // src/composables/usePosts/index.ts
 
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, onBeforeUnmount } from 'vue'
 import { usePostsStore } from '@/stores/posts'
 import { useIdentityStore } from '@/stores/identity'
 import { useSettingsStore } from '@/stores/settings'
@@ -9,8 +9,22 @@ import * as api from './api'
 import * as transformers from './transformers'
 import * as stats from './stats'
 import * as filters from './filters'
-import { getContractId } from './utils'
-import type { IPost, PostsFetchOptions } from '@/types/posts'
+import type {
+    IPost,
+    PostsFetchOptions,
+    ICreatePostParams,
+    IPostDocument
+} from '@/types/posts'
+import type { FilterOptions } from './filters'
+
+// Types needed for this file
+// interface PostsFetchOptionsWithOffset extends Omit<PostsFetchOptions, 'offset'> {
+//     offset?: number
+// }
+
+// interface OptimisticPostParams extends Omit<ICreatePostParams, 'replyToPostId'> {
+//     replyToPostId?: string[] | string
+// }
 
 export function usePosts() {
     const postsStore = usePostsStore()
@@ -32,34 +46,31 @@ export function usePosts() {
 
     // Computed values
     const isAuthenticated = computed(() => identityStore.isAuthenticated)
-    const currentUserId = computed(() => identityStore.identity?.id)
-    const currentNetwork = computed(() => settingsStore.network || 'testnet')
+    const currentUserId = computed(() => identityStore.identity?.id || '')
+    const currentNetwork = computed(() => settingsStore.state.network || 'testnet')
 
     // Filtered posts
     const filteredPosts = computed(() => {
-        return filters.filterPosts(postsStore.sortedPosts, {
-            searchQuery: debouncedSearch.value.value,
+        const filterOptions: FilterOptions = {
+            searchQuery: debouncedSearch.value,
             language: languageFilter.value,
             sensitiveFilter: sensitiveFilter.value,
             sortBy: sortBy.value
-        })
+        }
+        return filters.filterPosts(postsStore.sortedPosts, filterOptions)
     })
 
     const userPosts = computed(() => {
         if (!currentUserId.value) return []
-        return filters.filterPosts(postsStore.sortedUserPosts, {
+        const filterOptions: FilterOptions = {
             ownerId: currentUserId.value,
             sortBy: sortBy.value
-        })
+        }
+        return filters.filterPosts(postsStore.sortedUserPosts, filterOptions)
     })
 
     const hasMore = computed(() => {
-        return filters.hasMorePosts(
-            filteredPosts.value,
-            postsStore.posts,
-            postsStore.limit,
-            postsStore.offset
-        )
+        return postsStore.hasNextPage
     })
 
     // Actions
@@ -68,13 +79,25 @@ export function usePosts() {
         error.value = null
 
         try {
-            const documents = await api.fetchPostsFromTauri(currentNetwork.value, options)
+            const documents = await api.fetchPostsFromTauri(currentNetwork.value, {
+                ownerId: options?.ownerId || '',
+                orderBy: options?.orderBy as ('newest' | 'oldest'),
+                limit: postsStore.limit || 10
+            })
+            // const documents = await api.fetchPostsFromTauri(currentNetwork.value, {
+            //     ...(options?.ownerId ? { ownerId: options.ownerId } : {}),
+            //     orderBy: options?.orderBy,
+            //     limit: postsStore.limit
+            // })
+
+            // Reset offset for new fetch
+            postsStore.$patch({ offset: 0 })
 
             // Transform all documents with user info
-            const profiles = new Map()
-            const dpnsNames = new Map()
+            const profiles = new Map<string, any>()
+            const dpnsNames = new Map<string, string>()
 
-            const ownerIds = [...new Set(documents.map(doc => doc.ownerId || ''))]
+            const ownerIds = [...new Set(documents.map(doc => doc.ownerId || ''))].filter(Boolean)
             await Promise.all(
                 ownerIds.map(async (ownerId) => {
                     if (!ownerId) return
@@ -87,10 +110,13 @@ export function usePosts() {
                 })
             )
 
-            const posts = await transformers.transformPostDocuments(documents, profiles, dpnsNames)
+            const posts = await transformers.transformPostDocuments(documents as IPostDocument[], profiles, dpnsNames)
 
-            postsStore.posts = posts
-            postsStore.lastFetched = new Date()
+            postsStore.$patch({
+                posts,
+                lastFetched: new Date(),
+                hasNextPage: documents.length === postsStore.limit
+            })
 
         } catch (err: any) {
             error.value = err.message || 'Failed to fetch posts from blockchain'
@@ -105,15 +131,21 @@ export function usePosts() {
 
         isLoading.value = true
         try {
-            postsStore.offset = (postsStore.offset || 0) + postsStore.limit
+            const newOffset = (postsStore.offset || 0) + postsStore.limit
 
             const documents = await api.fetchPostsFromTauri(currentNetwork.value, {
-                limit: postsStore.limit,
-                offset: postsStore.offset
+                ownerId: '',
+                orderBy: 'newest',
+                limit: postsStore.limit || 10
             })
 
-            const posts = await transformers.transformPostDocuments(documents)
-            postsStore.posts = [...postsStore.posts, ...posts]
+            const posts = await transformers.transformPostDocuments(documents as IPostDocument[])
+
+            postsStore.$patch({
+                posts: [...postsStore.posts, ...posts],
+                offset: newOffset,
+                hasNextPage: documents.length === postsStore.limit
+            })
 
         } catch (err: any) {
             error.value = err.message || 'Failed to load more posts'
@@ -136,41 +168,69 @@ export function usePosts() {
             error.value = 'You must be connected to create a post'
             throw new Error(error.value)
         }
+
         isLoading.value = true
         error.value = null
+
+        const d = new Date()
+        const now = d.getTime() / 1000
+
         const optimisticPost: IPost = {
             ownerId: currentUserId.value!,
             author: {
-                username: identityStore.username || 'User',
-                displayName: identityStore.displayName || identityStore.username || 'You',
-                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(identityStore.username || 'You')}&background=8b5cf6&color=fff`
+                username: identityStore.identity?.username || 'User',
+                displayName: identityStore.identity?.displayName || identityStore.identity?.username || 'You',
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(identityStore.identity?.username || 'You')}&background=8b5cf6&color=fff`,
+                verified: false,
+                bio: ''
             },
             content,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: now,
+            updatedAt: now,
             likes: 0,
             remixes: 0,
             replies: 0,
-            views: 0, // Added missing property
+            views: 0,
             isSensitive: options?.isSensitive || false,
             language: options?.language || 'en',
-            remix: options?.remix,
+            remix: options?.remix as string | undefined,
             hashtag: options?.hashtag,
-            mediaUrl: options?.mediaUrl,
+            mediaUrls: options?.mediaUrl,
             mentionIds: options?.mentionIds,
             replyToPostId: options?.replyToPostId?.[0]
         }
+
+        // Optimistic update
         postsStore.upsertPost(optimisticPost)
+
         try {
-            // ... API call logic remains the same ...
-            const createdPost = await api.createPost({
+            const createPostParams: ICreatePostParams = {
                 content,
-                // ... params
-            })
-            // ...
-            return createdPost
+                isSensitive: options?.isSensitive || false,
+                language: options?.language || 'en',
+                mediaUrl: options?.mediaUrl,
+                mentionIds: options?.mentionIds,
+                replyToPostId: options?.replyToPostId,
+                hashtag: options?.hashtag,
+                remix: options?.remix || undefined
+            }
+
+            const createdPost = await api.createPost(createPostParams)
+
+            if (createdPost) {
+                // Replace optimistic post with real post
+                postsStore.upsertPost(createdPost)
+                return createdPost
+            }
+
+            return null
         } catch (err: any) {
-            // ... error handling
+            // Remove optimistic post on error
+            if (optimisticPost.id) {
+                postsStore.deletePostById(optimisticPost.id)
+            }
+            error.value = err.message || 'Failed to create post'
+            console.error('usePosts: createPost error', err)
             throw err
         } finally {
             isLoading.value = false
@@ -183,24 +243,43 @@ export function usePosts() {
 
         const wasLiked = postsStore.isPostLiked(postId)
         const currentLikes = post.likes || 0
+
+        // Optimistic update
         const updatedPost = stats.applyStatsUpdate(post, {
             postId,
             likes: wasLiked ? Math.max(0, currentLikes - 1) : currentLikes + 1
         })
         postsStore.upsertPost(updatedPost)
-        postsStore.toggleLike(postId)
+
+        // Update liked state
+        if (wasLiked) {
+            postsStore.$patch((state) => {
+                state.likedPosts = state.likedPosts.filter(id => id !== postId)
+            })
+        } else {
+            postsStore.$patch((state) => {
+                state.likedPosts.push(postId)
+            })
+        }
 
         try {
             if (wasLiked) {
-                await api.unlikePost(postId)
+                await stats.unlikePost(postId)
             } else {
-                await api.likePost(postId)
+                await stats.likePost(postId)
             }
             return true
         } catch (err) {
             console.error('usePosts: like error', err)
+            // Revert optimistic update
             postsStore.upsertPost(post)
-            postsStore.toggleLike(postId)
+            postsStore.$patch((state) => {
+                if (wasLiked) {
+                    state.likedPosts.push(postId)
+                } else {
+                    state.likedPosts = state.likedPosts.filter(id => id !== postId)
+                }
+            })
             return false
         }
     }
@@ -210,22 +289,33 @@ export function usePosts() {
         if (!post) return false
 
         const wasBookmarked = stats.isPostBookmarked(postId)
-        const updatedPost = stats.applyStatsUpdate(post, {
-            postId,
-            bookmarks: wasBookmarked ? 0 : 1
+
+        // Update bookmarked posts in store
+        postsStore.$patch((state) => {
+            if (wasBookmarked) {
+                state.bookmarkedPosts = state.bookmarkedPosts.filter(id => id !== postId)
+            } else {
+                state.bookmarkedPosts.push(postId)
+            }
         })
-        postsStore.upsertPost(updatedPost)
 
         try {
             if (wasBookmarked) {
-                await api.unbookmarkPost(postId)
+                await stats.unbookmarkPost(postId)
             } else {
-                await api.bookmarkPost(postId)
+                await stats.bookmarkPost(postId)
             }
             return true
         } catch (err) {
             console.error('usePosts: bookmark error', err)
-            postsStore.upsertPost(post)
+            // Revert
+            postsStore.$patch((state) => {
+                if (wasBookmarked) {
+                    state.bookmarkedPosts.push(postId)
+                } else {
+                    state.bookmarkedPosts = state.bookmarkedPosts.filter(id => id !== postId)
+                }
+            })
             return false
         }
     }
@@ -247,6 +337,7 @@ export function usePosts() {
         } catch (err: any) {
             error.value = err.message || 'Failed to delete post'
             console.error('usePosts: delete error', err)
+            // Revert
             if (post) postsStore.upsertPost(post)
             return false
         }
@@ -257,11 +348,11 @@ export function usePosts() {
             const postStats = await stats.getPostStats(postId)
             const post = postsStore.getPostById(postId)
             if (post) {
-                postsStore.updatePost(postId, {
-                    likes: postStats.likes,
-                    remixes: postStats.remixes,
-                    replies: postStats.replies
-                })
+                const updatedPost = { ...post }
+                if (postStats.likes !== undefined) updatedPost.likes = postStats.likes
+                if (postStats.remixes !== undefined) updatedPost.remixes = postStats.remixes
+                if (postStats.replies !== undefined) updatedPost.replies = postStats.replies
+                postsStore.upsertPost(updatedPost)
             }
         } catch (err) {
             console.error('usePosts: refresh stats error', err)

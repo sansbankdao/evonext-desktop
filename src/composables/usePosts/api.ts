@@ -4,7 +4,8 @@ import { invoke } from '@tauri-apps/api/core'
 import { isTestnet } from '@/utils/env'
 import type { IPost, ICreatePostParams, IUpdatePostParams, PostsFetchResult, IPostDocument } from '@/types/posts'
 import { getContractId } from './utils'
-import { getUserInfo, getAvatarUrl } from './transformers'
+import { getUserInfo } from './transformers'
+// import { getUserInfo, getAvatarUrl } from './transformers'
 
 const DAPI_ENDPOINT = 'https://dashqt.org/v1/dapi'
 
@@ -46,7 +47,7 @@ interface DPNSDocument {
  * Make a request to the DAPI endpoint (from libs/posts/api.ts)
  */
 async function makeDAPIRequest<T>(method: string, params: any[]): Promise<T[]> {
-    const contractId = getContractId('evonext')
+    // const contractId = getContractId('evonext')
     const network = isTestnet() ? 'testnet' : 'mainnet'
     const requestBody: DAPIRequest = {
         method,
@@ -147,8 +148,9 @@ export async function fetchPostsFromDAPI(options?: {
                     ownerId: doc.ownerId,
                     author: await getUserInfo(doc.ownerId),
                     content: doc.content,
-                    createdAt: new Date(parseInt(doc.createdAt)),
-                    updatedAt: new Date(parseInt(doc.updatedAt)),
+                    createdAt: Number(doc.createdAt),
+                    updatedAt: Number(doc.updatedAt),
+                    views: 0,
                     likes: 0,
                     remixes: 0,
                     replies: 0,
@@ -174,15 +176,15 @@ export async function fetchPostsFromDAPI(options?: {
                 filteredPosts = filteredPosts.filter(post => post.language === options.language)
             }
             if (options.fromDate) {
-                filteredPosts = filteredPosts.filter(post => post.createdAt.getTime() >= options.fromDate!)
+                filteredPosts = filteredPosts.filter(post => post.createdAt >= options.fromDate!)
             }
             if (options.toDate) {
-                filteredPosts = filteredPosts.filter(post => post.createdAt.getTime() <= options.toDate!)
+                filteredPosts = filteredPosts.filter(post => post.createdAt <= options.toDate!)
             }
             if (options.orderBy === 'newest') {
-                filteredPosts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+                filteredPosts.sort((a, b) => b.createdAt - a.createdAt)
             } else if (options.orderBy === 'oldest') {
-                filteredPosts.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+                filteredPosts.sort((a, b) => a.createdAt - b.createdAt)
             }
             if (options.limit && filteredPosts.length > options.limit) {
                 filteredPosts = filteredPosts.slice(0, options.limit)
@@ -254,6 +256,9 @@ export async function fetchPostsFromTauri(network: string, options?: {
 export async function createPost(params: ICreatePostParams): Promise<IPost | null> {
     try {
         console.log('Creating post with params:', params)
+        const d = new Date()
+        const now = d.getTime() / 1000
+
         // TODO: Implement actual post creation using Dash SDK/Tauri
         // This would involve creating a document and submitting a state transition
         const mockPost: IPost = {
@@ -261,8 +266,8 @@ export async function createPost(params: ICreatePostParams): Promise<IPost | nul
             ownerId: '', // Should be identity ID
             author: await getUserInfo(''),
             content: params.content,
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: now,
+            updatedAt: now,
             views: 0,
             likes: 0,
             remixes: 0,
