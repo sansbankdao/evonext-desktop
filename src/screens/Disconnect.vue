@@ -18,21 +18,27 @@
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" />
                         </svg>
-                        Connected Identity: {{ identityData.identity_id }}
+                        Connected Identity: {{ displayName }}
                     </h3>
-                    <div v-if="identityData.public_keys" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-sm font-bold text-slate-700 dark:text-slate-300 block mb-1">Public Keys</label>
-                            <pre class="text-xs bg-slate-100 dark:bg-slate-800 p-3 rounded-xl font-mono overflow-auto max-h-32">{{ JSON.stringify(identityData.public_keys, null, 2) }}</pre>
+                    <div class="space-y-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="text-sm">
+                                <span class="font-medium text-slate-700 dark:text-slate-300">Identity ID:</span>
+                                <pre class="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded mt-1 font-mono overflow-auto">{{ identityData.identityId || 'N/A' }}</pre>
+                            </div>
+                            <div class="text-sm">
+                                <span class="font-medium text-slate-700 dark:text-slate-300">Balance:</span>
+                                <div class="text-sm font-mono mt-1">{{ formattedBalance }}</div>
+                            </div>
                         </div>
-                        <div>
-                            <label class="text-sm font-bold text-slate-700 dark:text-slate-300 block mb-1">Public Key IDs</label>
-                            <pre class="text-xs bg-slate-100 dark:bg-slate-800 p-3 rounded-xl font-mono overflow-auto">{{ identityData.public_key_ids ? identityData.public_key_ids.join(', ') : 'None' }}</pre>
+                        <div v-if="publicKeysCount > 0" class="text-sm mt-4">
+                            <span class="font-medium text-slate-700 dark:text-slate-300">Public Keys:</span>
+                            <div class="text-xs text-slate-600 dark:text-slate-400 mt-1">{{ publicKeysCount }} key(s) loaded</div>
                         </div>
-                    </div>
-                    <div v-if="identityData.revision" class="text-sm text-emerald-700 dark:text-emerald-300">
-                        Revision: {{ identityData.revision }}
-                        <span v-if="identityData.created_at" class="ml-4">Updated: {{ identityData.created_at }}</span>
+                        <div v-if="identityData.revision" class="text-sm text-emerald-700 dark:text-emerald-300">
+                            Revision: {{ identityData.revision }}
+                            <span v-if="identityData.createdAt" class="ml-4">Updated: {{ formatDate(identityData.createdAt) }}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -60,7 +66,7 @@
                     <svg class="w-6 h-6 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
-                    {{ error }}
+                    <div class="text-left">{{ error }}</div>
                 </div>
 
                 <!-- Actions -->
@@ -92,59 +98,86 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import getNetwork from '@/libs/getNetwork'
+import { useSettingsStore } from '@/stores/settings'
 import { useIdentityStore } from '@/stores/identity'
 import Header from '@/components/Header.vue'
+import type { IIdentityData } from '@/types'
 
 const router = useRouter()
+const settingsStore = useSettingsStore()
 const identityStore = useIdentityStore()
 
-const currentNetwork = ref<'mainnet' | 'testnet'>('mainnet')
-const identityData = ref<any>(null)
+const identityData = ref<IIdentityData | null>(null)
 const error = ref('')
 const isWiping = ref(false)
 
+// Computed properties
+const currentNetwork = computed(() => settingsStore.state.network as 'mainnet' | 'testnet')
+const displayName = computed(() => {
+    if (!identityData.value) return 'Guest'
+    return identityData.value.username || identityData.value.identityId || 'Unknown'
+})
+const formattedBalance = computed(() => {
+    if (!identityData.value?.balance) return '0 DASH'
+    const dash = BigInt(identityData.value.balance) / BigInt(100_000_000_000)
+    return `${dash.toLocaleString()} DASH`
+})
+const publicKeysCount = computed(() => {
+    return identityData.value?.publicKeys?.length || 0
+})
+
 onMounted(async () => {
-    currentNetwork.value = (await getNetwork()) as 'mainnet' | 'testnet'
     await loadIdentityData()
 })
 
-const loadIdentityData = async () => {
+async function loadIdentityData() {
     try {
-        const result = await identityStore.loadIdentityData(currentNetwork.value)
-        identityData.value = result
+        error.value = ''
+        identityData.value = await identityStore.getIdentityFromStorage()
     } catch (err: any) {
-        error.value = err.message || 'Failed to load identity data.'
+        error.value = err.message || 'Failed to load identity data'
+        identityData.value = null
     }
 }
 
-const wipeAllData = async () => {
-    if (!confirm(`Are you sure? This will delete ALL data for ${currentNetwork.value}: identity, keys, mnemonic, assets.`)) return
+function formatDate(dateString: string | null | undefined): string {
+    if (!dateString) return 'N/A'
+    try {
+        return new Date(dateString).toLocaleString()
+    } catch {
+        return 'Invalid date'
+    }
+}
+
+async function wipeAllData() {
+    if (!confirm(`Are you sure? This will delete ALL data for ${currentNetwork.value}: identity, keys, mnemonic, assets.`)) {
+        return
+    }
 
     isWiping.value = true
     error.value = ''
 
     try {
-        // Wipe all network-specific data via store or direct invokes
-        await Promise.all([
-            identityStore.deleteIdentityData(currentNetwork.value),
-            identityStore.deletePrivateKeys(currentNetwork.value),
-            identityStore.deleteMnemonic(currentNetwork.value),
-            identityStore.deleteAssets(currentNetwork.value),
-        ])
+        // Use store's clearStorage action (comprehensive wipe)
+        await identityStore.clearStorage()
+
+        // Reset UI state
         identityData.value = null
-        alert('All data wiped successfully!')
-        router.push('/connect')
+
+        // Navigate to connect page with success message (optional)
+        alert('All local data has been wiped successfully!')
+        await router.push('/connect')
     } catch (err: any) {
-        error.value = err.message || 'Wipe failed.'
+        error.value = err.message || 'Wipe failed. Please try again.'
+        console.error('Wipe error:', err)
     } finally {
         isWiping.value = false
     }
 }
 
-const goToConnect = () => {
+function goToConnect() {
     router.push('/connect')
 }
 </script>
