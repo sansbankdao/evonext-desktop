@@ -2,7 +2,8 @@
 
 import type { IPost } from '@/types/posts'
 
-export const postsGetters = {
+// Define getters flatly inside the object, then export default
+const getters = {
     getPostById: (state: any) => (id: string) => {
         return state.posts.find((post: IPost) => post.id === id)
     },
@@ -12,9 +13,7 @@ export const postsGetters = {
     },
 
     sortedPosts: (state: any) => {
-        // FIX: Handle both Date objects and Number timestamps correctly
         return [...state.posts].sort((a: IPost, b: IPost) => {
-            // Convert to timestamp if it's a Date object, otherwise use number
             const aTime = typeof a.createdAt === 'number' ? a.createdAt : new Date(a.createdAt).getTime()
             const bTime = typeof b.createdAt === 'number' ? b.createdAt : new Date(b.createdAt).getTime()
             return bTime - aTime
@@ -37,3 +36,6 @@ export const postsGetters = {
         })
     }
 }
+
+// EXPORT DEFAULT (Flat structure for Pinia)
+export default getters
