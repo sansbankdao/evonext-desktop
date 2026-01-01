@@ -84,20 +84,24 @@
         </section>
     </main>
 </template>
+
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import AddKeyIdentityList from '@/components/addKey/IdentityList.vue'
 import AddKeyIdentityDetail from '@/components/addKey/IdentityDetail.vue'
 import AddKeyKeyForm from '@/components/addKey/KeyForm.vue'
-import getIdentities from '@/libs/getIdentities'
 import { useKeyUtils } from '@/composables/useKeyUtils'
 import { useKeyManagement } from '@/composables/useKeyManagement'
+import { mnemonicManager } from '@/composables/useMnemonic'
+import { identityDiscovery } from '@/composables/useIdentityDiscovery'
 import type { IdentityWithKeys } from '@/types/addKey'
+
 const router = useRouter()
 const { hasTransferKey: checkTransferKey } = useKeyUtils()
 const { addTransferKey: addKeyToIdentity } = useKeyManagement()
+
 // State
 const loading = ref(true)
 const identities = ref<IdentityWithKeys[]>([])
@@ -106,6 +110,7 @@ const keyType = ref<'ECDSA_SECP256K1' | 'ECDSA_HASH160'>('ECDSA_SECP256K1')
 const securityLevel = ref<'MASTER' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'>('CRITICAL')
 const confirmed = ref(false)
 const isAdding = ref(false)
+
 // Parse security level to number
 const parseSecurityLevel = (level: string): 0 | 1 | 2 | 3 | 4 => {
     switch(level) {
@@ -117,21 +122,39 @@ const parseSecurityLevel = (level: string): 0 | 1 | 2 | 3 | 4 => {
         default: return 1 // Default to CRITICAL
     }
 }
-// Load identities
+
+// Load identities using mnemonicManager and identityDiscovery
 const loadIdentities = async () => {
     try {
         loading.value = true
-        const foundIdentities = await getIdentities()
-        if (foundIdentities && Array.isArray(foundIdentities) && foundIdentities.length > 0) {
+
+        // Get mnemonic using the new composable
+        const mnemonic = await mnemonicManager.getMnemonic()
+
+        if (!mnemonic) {
+            console.warn('No mnemonic found, cannot load identities')
+            identities.value = []
+            showNotification('warning', 'No mnemonic found. Please connect first.')
+            return
+        }
+
+        // Use identity discovery service to get identities from seed
+        const result = await identityDiscovery.getIdentitiesFromSeed(mnemonic, {
+            minIndexSearch: 5,
+            queryRegistry: true
+        })
+
+        if (result && Array.isArray(result) && result.length > 0) {
             // Map identities with proper typing
-            identities.value = foundIdentities.map((identity: any): IdentityWithKeys => ({
-                id: identity.id || '',
-                identity_idx: identity.identity_idx || 0,
-                revision: identity.revision || BigInt(0),
-                username: identity.username,
-                display_name: identity.display_name,
+            identities.value = result.map((identity: any): IdentityWithKeys => ({
+                id: identity.id || identity.identityId || '',
+                identity_idx: identity.identityIdx || identity.identity_idx || 0,
+                revision: identity.revision ? BigInt(identity.revision) : BigInt(0),
+                username: identity.username || identity.dpnsUsername || '',
+                display_name: identity.displayName || identity.dpnsUsername || '',
                 publicKeys: identity.publicKeys || []
             }))
+
             // Auto-select first identity missing transfer key
             const missingTransfer = identities.value.find(identity => !checkTransferKey(identity.publicKeys))
             if (missingTransfer) {
@@ -141,6 +164,7 @@ const loadIdentities = async () => {
             }
         } else {
             identities.value = [] // Ensure it's always an array
+            showNotification('info', 'No identities found for your mnemonic.')
         }
     } catch (error) {
         console.error('Failed to load identities:', error)
@@ -155,10 +179,12 @@ const loadIdentities = async () => {
 const setSelectedIdentity = (identity: IdentityWithKeys) => {
     selectedIdentity.value = identity
 }
+
 // Check if identity has transfer key
 const hasTransferKey = (identity: IdentityWithKeys): boolean => {
     return checkTransferKey(identity.publicKeys)
 }
+
 // Show notification
 const showNotification = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
     const event = new CustomEvent('notification', {
@@ -166,24 +192,28 @@ const showNotification = (type: 'success' | 'error' | 'info' | 'warning', messag
     })
     window.dispatchEvent(event)
 }
+
 // Main function to add TRANSFER key
 const addTransferKey = async () => {
     if (!selectedIdentity.value || !confirmed.value) {
         showNotification('error', 'Please select an identity and confirm')
         return
     }
+
     try {
         isAdding.value = true
         showNotification('info', 'Starting key addition process...')
+
         const identity = selectedIdentity.value
         const result = await addKeyToIdentity(
             identity.id,
             identity.identity_idx,
-            BigInt(identity.revision || 0),
+            identity.revision,
             identity.publicKeys || [],
             keyType.value,
             parseSecurityLevel(securityLevel.value)
         )
+
         if (result.success) {
             showNotification('success', 'TRANSFER key added successfully!')
             // Reload identities to update status
@@ -202,6 +232,7 @@ const addTransferKey = async () => {
         isAdding.value = false
     }
 }
+
 // Initialize on mount
 onMounted(async () => {
     await loadIdentities()
