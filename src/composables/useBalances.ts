@@ -7,6 +7,18 @@ import { getAllActiveTokens } from '@/constants'
 import { getTokenBalances } from '@/libs/getTokenBalances'
 import type { BalanceResult } from '@/types'
 
+/**
+ * Satoshi/Dash conversion utilities (merged from libs/satoshi.ts)
+ */
+const toSatoshi = (dash: number): bigint => {
+    return BigInt(Math.floor(dash * 100000000))
+}
+
+const fromSatoshi = (satoshis: number | bigint): number => {
+    const satoshisNum = typeof satoshis === 'bigint' ? Number(satoshis) : satoshis
+    return satoshisNum / 100000000
+}
+
 export function useBalances() {
     const platform = usePlatform()
     const loading = ref(false)
@@ -25,6 +37,7 @@ export function useBalances() {
                     return null
                 })
             const credits = creditsBalanceSatoshis ? BigInt(creditsBalanceSatoshis) : BigInt(0)
+            // Preserve original DASH conversion logic (credits → DASH)
             const dash = credits / BigInt(100_000_000_000)
             // Get active tokens based on network
             const activeTokens = getAllActiveTokens()
@@ -60,13 +73,17 @@ export function useBalances() {
     const hasSufficientBalance = async (identityId: string, requiredCredits: bigint): Promise<boolean> => {
         try {
             const balances = await getBalances(identityId)
-            return (balances.credits || 0) >= requiredCredits
+            return (balances.credits || 0n) >= requiredCredits
         } catch {
             return false
         }
     }
 
     return {
+        // Merged satoshi utils (for general formatting/use)
+        toSatoshi,
+        fromSatoshi,
+        // Existing state/actions
         loading: computed(() => loading.value),
         error: computed(() => error.value),
         getBalances,
