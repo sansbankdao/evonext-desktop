@@ -1,10 +1,13 @@
 // src/types/identity.ts
 
+export type PurposeType = 0 | 1 | 2 | 3 // 0=AUTHENTICATION, 1=ENCRYPTION, 2=DECRYPTION, 3=TRANSFER
+export type SecurityLevelType = 0 | 1 | 2 | 3 | 4 // 0=MASTER, 1=CRITICAL, 2=HIGH, 3=MEDIUM, 4=LOW
+
 export interface IPublicKey {
     type: number;
     keyType: string;
-    purpose: number | string;
-    securityLevel: number | string;
+    purpose: PurposeType;
+    securityLevel: SecurityLevelType;
     contractBounds: any; // FIXME Specify a proper type.
     data: string;
     dataBytes: string | null;
