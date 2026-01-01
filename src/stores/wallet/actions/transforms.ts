@@ -36,28 +36,76 @@ export function createUpdatedAssets(
             symbol: 'DASH',
             name: 'Dash Coins',
             balance: dashBalance,
-            usdValue: dashBalance * dashPrice
+            usdValue: dashBalance * dashPrice,
+            id: 'DASH',
+            precision: 8,
+            type: 'native',
+            balanceFormatted: '$0.00',
+            category: 'currency',
+            network: '',
+            isOwned: true,
+            ownerIdentityId: '',
+            verified: true,
+            blocked: false,
+            transferable: true,
+            divisible: true,
         },
         // CREDITS (same as DASH balance, uses DASH price)
         {
             symbol: 'CREDITS',
             name: 'Dash Credits',
             balance: creditsBalance,
-            usdValue: creditsBalance * dashPrice
+            usdValue: creditsBalance * dashPrice,
+            id: 'DASH',
+            precision: 12,
+            type: 'native',
+            balanceFormatted: '$0.00',
+            category: 'currency',
+            network: '',
+            isOwned: true,
+            ownerIdentityId: '',
+            verified: true,
+            blocked: false,
+            transferable: true,
+            divisible: true,
         },
         // DUSD ($1.00 hardcoded as stablecoin)
         {
             symbol: 'DUSD',
             name: 'Dash USD',
             balance: dusdBalance,
-            usdValue: dusdBalance * TOKEN_PRICES.DUSD
+            usdValue: dusdBalance * TOKEN_PRICES.DUSD,
+            id: 'DUSD',
+            precision: 6,
+            type: 'native',
+            balanceFormatted: '$0.00',
+            category: 'currency',
+            network: '',
+            isOwned: true,
+            ownerIdentityId: '',
+            verified: true,
+            blocked: false,
+            transferable: true,
+            divisible: true,
         },
         // SANS ($0.16 hardcoded - updated per requirement)
         {
             symbol: 'SANS',
             name: 'Sansnote',
             balance: sansBalance,
-            usdValue: sansBalance * TOKEN_PRICES.SANS
+            usdValue: sansBalance * TOKEN_PRICES.SANS,
+            id: 'SANS',
+            precision: 8,
+            type: 'native',
+            balanceFormatted: '$0.00',
+            category: 'currency',
+            network: '',
+            isOwned: true,
+            ownerIdentityId: '',
+            verified: true,
+            blocked: false,
+            transferable: true,
+            divisible: true,
         },
     ]
 }
@@ -149,7 +197,18 @@ export function transformIdentityTransfer(
         // subtitle,
         amount: amountStr,
         status: 'CONFIRMED' as const,
-        createdAt: transfer.createdAt
+        createdAt: transfer.createdAt,
+
+        hash: '',
+        confirmations: 0,
+        senderId: '',
+        receiverId: '',
+        assetType: 'COIN',
+        assetSymbol: '',
+        direction: 'SELF',
+        network: 'testnet',
+
+
     }
 }
 

@@ -9,7 +9,13 @@ import { hash160 } from '@evonext/crypto'
 import { binToHex } from '@evonext/utils'
 import { useNetwork } from './useNetwork'
 import { useIdentityStore } from '@/stores/identity'
-import type { KeyDerivationResult, DerivedKey, IPublicKey, PurposeType, SecurityLevelType } from '@/types'
+import type {
+    KeyDerivationResult,
+    DerivedKey,
+    IPublicKey,
+    PurposeType,
+    SecurityLevelType,
+} from '@/types'
 import { log } from '@/utils/env'
 
 interface KeychainEntry {
@@ -229,7 +235,7 @@ export function useKeyManagement() {
             const purposeStr = purposeMap[purpose]
             const securityLevelStr = securityLevelMap[securityLevel]
 
-            const foundKey = result.keys.find(key =>
+            const foundKey = result.keys.find((key: any) =>
                 key.purpose === purposeStr &&
                 key.securityLevel === securityLevelStr
             )
