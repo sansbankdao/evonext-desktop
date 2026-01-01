@@ -9,8 +9,8 @@ import { DAPIService } from '@/services/identity/discovery/DAPIService'
 import type {
     ConnectionResult,
     DiscoveredIdentity,
-    IPublicKey,
-    IIdentity,
+    // IPublicKey,
+    // IIdentity,
     IIdentityState,
 } from '@/types'
 
@@ -75,7 +75,9 @@ export const connectionActions = () => ({
                         } else {
                             log('warn', 'Stored keys do not match any identity on network. Clearing invalid keys.')
                             try {
-                                await this.clearStorage()
+                                if (typeof this.clearStorage === 'function') {
+                                    await this.clearStorage()
+                                }
                             } catch (clearErr) {
                                 log('error', 'Failed to clear invalid storage:', clearErr)
                             }
@@ -105,10 +107,16 @@ export const connectionActions = () => ({
                 if (discoveredIdentityId) {
                     targetId = discoveredIdentityId
                 } else {
-                    const identities = await this.searchUserIdentities(network)
+                    let identities
+
+                    if (typeof this.searchUserIdentities === 'function') {
+                        identities = await this.searchUserIdentities(network)
+                    }
+
                     if (!identities || identities.length === 0) {
                         throw new Error('Identity ID required for connection. Please ensure discovery ran.')
                     }
+
                     targetId = identities[0]?.identityId || ''
                 }
 
@@ -143,7 +151,9 @@ export const connectionActions = () => ({
                 }
                 log('info', `Seed connection successful. Identity ID: ${targetId}`)
 
-                await this.saveToStorage()
+                if (typeof this.saveToStorage === 'function') {
+                    await this.saveToStorage()
+                }
 
                 return { success: true, identity: this.identity }
             } catch (err: any) {
@@ -193,7 +203,9 @@ export const connectionActions = () => ({
                 }
                 log('info', 'Single key connection successful. isAuthenticated:', this.isAuthenticated)
 
-                await this.saveToStorage()
+                if (typeof this.saveToStorage === 'function') {
+                    await this.saveToStorage()
+                }
 
                 return { success: true, identity: this.identity }
             } catch (err: any) {
@@ -220,6 +232,7 @@ export const connectionActions = () => ({
             if (result.success && result.data) {
                 const discovered: DiscoveredIdentity = {
                     identityId: result.data.identityId || result.data.id,
+                    identityIdx: 0, // FIXME
                     balance: result.data.balance || '0',
                     revision: result.data.revision || '0',
                     publicKeys: result.data.publicKeys || [],
@@ -227,10 +240,10 @@ export const connectionActions = () => ({
                 }
                 // Update Store State
                 if (this.identity) {
-                    this.identity.publicKeys = discovered.publicKeys
+                    this.identity.publicKeys = discovered.publicKeys || []
                 }
-                this.balance = discovered.balance
-                this.revision = parseInt(discovered.revision, 10)
+                this.balance = discovered.balance || null
+                this.revision = Number(discovered.revision) || null
                 if (typeof this.fetchBalance === 'function') {
                     await this.fetchBalance()
                 }
@@ -243,7 +256,9 @@ export const connectionActions = () => ({
     async logout(this: IIdentityState) {
         return ErrorBoundary.wrap(async () => {
             try {
-                await this.clearStorage()
+                if (typeof this.clearStorage === 'function') {
+                    await this.clearStorage()
+                }
             } catch (err) {
                 log('error', 'Error clearing storage during logout:', err)
             }

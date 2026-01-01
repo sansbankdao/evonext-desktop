@@ -33,30 +33,30 @@ export function createUpdatedAssets(
     return [
         // DASH (same as credits)
         {
-            ticker: 'DASH',
+            symbol: 'DASH',
             name: 'Dash Coins',
-            amount: dashBalance,
+            balance: dashBalance,
             usdValue: dashBalance * dashPrice
         },
         // CREDITS (same as DASH balance, uses DASH price)
         {
-            ticker: 'CREDITS',
+            symbol: 'CREDITS',
             name: 'Dash Credits',
-            amount: creditsBalance,
+            balance: creditsBalance,
             usdValue: creditsBalance * dashPrice
         },
         // DUSD ($1.00 hardcoded as stablecoin)
         {
-            ticker: 'DUSD',
+            symbol: 'DUSD',
             name: 'Dash USD',
-            amount: dusdBalance,
+            balance: dusdBalance,
             usdValue: dusdBalance * TOKEN_PRICES.DUSD
         },
         // SANS ($0.16 hardcoded - updated per requirement)
         {
-            ticker: 'SANS',
+            symbol: 'SANS',
             name: 'Sansnote',
-            amount: sansBalance,
+            balance: sansBalance,
             usdValue: sansBalance * TOKEN_PRICES.SANS
         },
     ]
@@ -98,7 +98,7 @@ export function transformIdentityTransfer(
     const isSent = transfer.sender === identityId
     const isReceived = transfer.recipient === identityId
 
-    let type: 'sent' | 'received'
+    let type: 'IDENTITY_CREATE' | 'IDENTITY_CREDIT_TRANSFER' | 'UNKNOWN'
     let title: string
     let subtitle: string
     let amountStr: string
@@ -109,33 +109,33 @@ export function transformIdentityTransfer(
         : Number(transfer.amount)
 
     if (transfer.type === 'IDENTITY_CREATE') {
-        type = 'received'
+        type = 'IDENTITY_CREATE'
         title = 'New Identity Registered'
         subtitle = 'Identity Creation'
         const dashAmount = atomicToDash(transferAmount)
         amountStr = formatDashAmount(dashAmount, true)
     } else if (transfer.type === 'IDENTITY_CREDIT_TRANSFER') {
         if (isSent) {
-            type = 'sent'
+            type = 'IDENTITY_CREDIT_TRANSFER'
             title = 'Sent DASH'
             subtitle = `To: ${truncateAddress(transfer.recipient)}`
             const dashAmount = atomicToDash(transferAmount)
             amountStr = formatDashAmount(dashAmount, false)
         } else if (isReceived) {
-            type = 'received'
+            type = 'IDENTITY_CREDIT_TRANSFER'
             title = 'Received DASH'
             subtitle = `From: ${truncateAddress(transfer.sender || 'Unknown')}`
             const dashAmount = atomicToDash(transferAmount)
             amountStr = formatDashAmount(dashAmount, true)
         } else {
-            type = 'received'
+            type = 'IDENTITY_CREDIT_TRANSFER'
             title = 'Credit Transfer'
             subtitle = 'Unknown'
             const dashAmount = atomicToDash(transferAmount)
             amountStr = formatDashAmount(dashAmount, true)
         }
     } else {
-        type = 'received'
+        type = 'UNKNOWN'
         title = transfer.type
         subtitle = 'Unknown'
         const dashAmount = atomicToDash(transferAmount)
@@ -143,13 +143,13 @@ export function transformIdentityTransfer(
     }
 
     return {
-        id: transfer.txHash,
+        id: transfer.txHash!,
         type,
-        title,
-        subtitle,
+        // title,
+        // subtitle,
         amount: amountStr,
-        status: 'Completed' as const,
-        date: new Date(transfer.timestamp)
+        status: 'CONFIRMED' as const,
+        createdAt: transfer.createdAt
     }
 }
 
@@ -210,13 +210,13 @@ export function transformTokenTransitions(
 
         if (title && amountStr) {
             result.push({
-                id: transition.stateTransitionHash,
+                id: transition.txHash || '',
                 type,
                 title,
                 subtitle,
                 amount: amountStr,
-                status: 'Completed' as const,
-                date: new Date(transition.timestamp)
+                status: 'PENDING' as const,
+                date: new Date(transition.createdAt)
             })
         }
     }

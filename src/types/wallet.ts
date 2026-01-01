@@ -1,21 +1,25 @@
 // src/types/wallet.ts
 
+export type ITransferType = 'IDENTITY_CREATE' | 'IDENTITY_CREDIT_TRANSFER' | 'UNKNOWN';
+export type ITransferStatus = 'PENDING' | 'CONFIRMED' | 'FAILED' | 'REJECTED';
+
 export interface IdentityTransfer {
     recipient: string;
     sender?: string | null;
     amount: number | string; // BigInt as string
-    type: 'credit' | 'debit';
-    createdAt: number;
+    type: ITransferType;
     txHash?: string;
     blockHash?: string;
     gasUsed?: number;
+    createdAt: number;
 }
 
 export interface TokenTransition {
     token: string;
     amount: number;
-    type: 'mint' | 'burn' | 'transfer';
-    timestamp: number;
+    type: 'token_mint' | 'token_burn' | 'IDENTITY_TOKEN_TRANSFER';
+    txHash?: string;
+    createdAt: number;
 }
 
 export interface ApiResponse<T> {
@@ -34,7 +38,6 @@ export interface ITransaction {
     id: string;
     hash: string;
     blockHeight?: number;
-    timestamp: number;
     confirmations: number;
 
     // Sender/Receiver info
@@ -42,9 +45,9 @@ export interface ITransaction {
     receiverId: string;
 
     // Amount and asset
-    amount: number;
+    amount: number | string; // NOTE: Use string for BigInts.
     amountFormatted?: string;
-    assetType: 'credit' | 'token';
+    assetType: 'COIN' | 'TOKEN';
     assetId?: string; // For tokens
     assetSymbol: string; // e.g., 'DASH', 'USD', 'USDC'
 
@@ -53,20 +56,21 @@ export interface ITransaction {
     feeFormatted?: string;
 
     // Transaction status
-    status: 'pending' | 'confirmed' | 'failed' | 'rejected';
+    status: ITransferStatus;
 
     // Type of transaction
-    type: 'transfer' | 'deposit' | 'withdrawal' | 'swap' | 'claim' | 'mint' | 'burn';
+    type: ITransferType;
+    // type: 'transfer' | 'deposit' | 'withdrawal' | 'swap' | 'claim' | 'mint' | 'burn';
 
     // Direction (relative to the user)
-    direction: 'incoming' | 'outgoing' | 'self';
+    direction: 'INCOMING' | 'OUTGOING' | 'SELF';
 
     // Metadata
     memo?: string;
     attachments?: Record<string, any>[];
 
     // Network info
-    network: 'mainnet' | 'testnet' | 'devnet';
+    network: 'mainnet' | 'testnet';
 
     // Platform-specific fields (for Dash/L1)
     proof?: {
@@ -86,6 +90,8 @@ export interface ITransaction {
     // Additional metadata for filtering/sorting
     tags?: string[];
     category?: 'payment' | 'exchange' | 'staking' | 'governance' | 'nft';
+    timestamp?: number;
+    createdAt: number;
 }
 
 // You might also want these related types:
@@ -95,7 +101,7 @@ export interface TransactionGroup {
 }
 
 export interface TransactionFilters {
-    assetType?: 'credit' | 'token' | 'all';
+    assetType?: 'COIN' | 'TOKEN' | 'ALL';
     direction?: 'incoming' | 'outgoing' | 'all';
     status?: 'pending' | 'confirmed' | 'all';
     type?: string;

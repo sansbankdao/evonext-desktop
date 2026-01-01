@@ -54,6 +54,7 @@ export const storageActions = () => ({
                 createdAt: state.lastConnected,
                 publicKeyIds: state.publicKeys.map((key: IPublicKey) => key.type || 0),
             }
+
             await invoke('save_identity_data', { network, payload: identityData })
             log('info', 'Identity data saved for network:', network)
         }, 'SAVE_IDENTITY_STORAGE_FAILED')
@@ -64,6 +65,7 @@ export const storageActions = () => ({
             const state = this as IIdentityState
             const network = await this.getCurrentNetwork()
             const identityData = await invoke<IIdentityData | null>('load_identity_data', { network })
+
             if (identityData && validateIdentityData(identityData)) {
                 log('info', 'Loaded identity data for network:', network, identityData)
                 state.username = identityData.username || null
@@ -72,6 +74,7 @@ export const storageActions = () => ({
                 state.publicKeys = identityData.publicKeys || []
                 state.revision = identityData.revision
                 state.lastConnected = identityData.createdAt
+
                 if (!state.identity && identityData.identityId) {
                     state.identity = {
                         identityId: identityData.identityId,
@@ -94,7 +97,9 @@ export const storageActions = () => ({
             } else {
                 log('info', 'No valid identity data found for network:', network)
                 const defaultData = createDefaultIdentityData()
+
                 await invoke('save_identity_data', { network, payload: defaultData })
+
                 state.username = null
                 state.identity = null
                 state.balance = null
@@ -115,6 +120,7 @@ export const storageActions = () => ({
         return ErrorBoundary.wrap(async () => {
             const state = this as IIdentityState
             const network = await this.getCurrentNetwork()
+
             await Promise.all([
                 invoke('delete_identity_data', { network }),
                 invoke('delete_private_keys', { network }),
@@ -122,6 +128,7 @@ export const storageActions = () => ({
                 invoke('delete_assets', { network })
             ])
             log('info', 'All storage cleared for network:', network)
+
             state.username = null
             state.identity = null
             state.balance = null
@@ -169,9 +176,11 @@ export const storageActions = () => ({
         return ErrorBoundary.wrap(async () => {
             const network = await this.getCurrentNetwork()
             const identityData = await invoke<IIdentityData>('load_identity_data', { network })
+
             if (identityData && validateIdentityData(identityData)) {
                 return identityData
             }
+
             return null
         }, 'GET_IDENTITY_FROM_STORAGE_FAILED')
     },
@@ -181,9 +190,12 @@ export const storageActions = () => ({
             const state = this as IIdentityState
             const network = await this.getCurrentNetwork()
             const identityData = await invoke<IIdentityData>('load_identity_data', { network })
+
             if (identityData && validateIdentityData(identityData)) {
                 identityData.balance = newBalance
+
                 await invoke('save_identity_data', { network, payload: identityData })
+
                 state.balance = newBalance
                 state.balanceBigInt = BigInt(newBalance)
                 state.dashBigInt = state.balanceBigInt / BigInt(100_000_000_000)

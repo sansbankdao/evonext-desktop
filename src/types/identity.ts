@@ -85,12 +85,12 @@ export interface DiscoveredIdentity {
     id?: string;
     identityId?: string;
     identityIdx: number;
+    publicKeys: IPublicKey[];
     balance?: string;
     username?: string;
     displayName?: string;
     avatarUrl?: string;
     revision?: number;
-    publicKeys?: IPublicKey[];
     dpnsUsername?: string;
 }
 
