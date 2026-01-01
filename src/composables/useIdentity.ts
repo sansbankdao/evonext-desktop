@@ -6,18 +6,21 @@ import { useIdentityStore } from '@/stores/identity'
 import { useNetwork } from '@/composables/useNetwork'
 import { usePlatformSdk } from '@/composables/usePlatformSdk'
 import type { ConnectionResult, DiscoveredIdentity, IPublicKey } from '@/types/identity'
+
 const getIdentityIdx = async (): Promise<number> => {
     try {
         const identityStore = await invoke<any>('load_identity_data')
-        return identityStore?.identity_idx ?? 0
+        return identityStore?.identityIdx ?? 0
     } catch (e) {
         return 0
     }
 }
+
 const hasTransferKey = (): boolean => {
     const identityStore = useIdentityStore()
     return identityStore.publicKeys.some(key => key.purpose === 1 || key.purpose === 3)
 }
+
 export function useIdentity() {
     const store = useIdentityStore()
     const { network } = useNetwork()
@@ -26,6 +29,7 @@ export function useIdentity() {
     const authPublicKey = computed(() => store.publicKeys.find((k: IPublicKey) => k.purpose === 0))
     const displayName = computed(() => store.displayName || store.identityId || 'Guest')
     const hasTransferKeyComputed = computed(hasTransferKey)
+
     async function getIdentityBalance(network: string, identityId: string): Promise<string> {
         try {
             // FIX: Cast to any to bypass strict type check on missing .get()
@@ -37,12 +41,14 @@ export function useIdentity() {
             return '0'
         }
     }
+
     async function init() {
         await store.loadFromStorage()
         if (store.isAuthenticated && store.identityId) {
             await refreshIdentity()
         }
     }
+
     async function connect(
         method: 'seed' | 'key',
         payload: { seedPhrase?: string; privateKey?: string; discoveredId?: string }
@@ -63,6 +69,7 @@ export function useIdentity() {
             store.$patch({ isConnecting: false })
         }
     }
+
     async function discoverIdentities(): Promise<DiscoveredIdentity[]> {
         if (!store.identityId) return []
         try {
@@ -100,17 +107,21 @@ export function useIdentity() {
             return []
         }
     }
+
     const refreshIdentity = discoverIdentities
+
     async function refreshBalance() {
         if (store.identityId) {
             const balance = await getIdentityBalance(unref(network), store.identityId)
             store.balance = balance
         }
     }
+
     async function logout() {
         await store.clearStorage()
         store.$reset()
     }
+
     return {
         identityId: computed({
             get: () => store.identityId,

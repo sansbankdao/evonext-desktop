@@ -54,14 +54,15 @@ export async function loadFromStore<T>(command: string): Promise<T | null> {
 export function transformPublicKeys(sdkKeys: any[]): IPublicKey[] {
     return sdkKeys.map((key: any, index: number) => ({
         id: index,
-        type_: key.type_ || key.type || '',
+        type: key.type_ || key.type || '',
+        keyType: key.type_ || key.type || '',
         purpose: key.purpose || key.purposeNumber || 0,
-        security_level: key.security_level || key.securityLevel || key.securityLevelNumber || 0,
+        securityLevel: key.security_level || key.securityLevel || key.securityLevelNumber || 0,
         data: key.data || '',
-        data_bytes: key.dataBytes || (key.data ? binToHex(key.data) : ''),
-        read_only: key.read_only || key.readOnly || false,
-        disabled_at: key.disabled_at || key.disabledAt || null,
-        created_at: key.created_at || null
+        dataBytes: key.dataBytes || (key.data ? binToHex(key.data) : ''),
+        readOnly: key.read_only || key.readOnly || false,
+        disabledAt: key.disabled_at || key.disabledAt || null,
+        createdAt: key.created_at || null
     }))
 }
 
@@ -72,8 +73,8 @@ export function validateIdentityData(data: any): boolean {
     return !!(
         data &&
         typeof data.username === 'string' &&
-        typeof data.identity_id === 'string' &&
-        typeof data.identity_idx === 'number' &&
+        typeof data.identityId === 'string' &&
+        typeof data.identityIdx === 'number' &&
         (data.balance === null || typeof data.balance === 'string') &&
         typeof data.is_authenticated === 'boolean'
     )
@@ -85,13 +86,13 @@ export function validateIdentityData(data: any): boolean {
 export function createDefaultIdentityData(username: string = ''): IIdentityData {
     return {
         username,
-        identity_id: '',
-        identity_idx: 0,
+        identityId: '',
+        identityIdx: 0,
         balance: null,
-        is_authenticated: false,
-        public_keys: null,
+        isAuthenticated: false,
+        publicKeys: null,
         revision: null,
-        created_at: null,
-        public_key_ids: null
+        createdAt: null,
+        publicKeyIds: null
     }
 }

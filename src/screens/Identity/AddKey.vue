@@ -148,7 +148,7 @@ const loadIdentities = async () => {
             // Map identities with proper typing
             identities.value = result.map((identity: any): IdentityWithKeys => ({
                 id: identity.id || identity.identityId || '',
-                identityIdx: identity.identityIdx || identity.identity_idx || 0,
+                identityIdx: identity.identityIdx || identity.identityIdx || 0,
                 revision: identity.revision ? BigInt(identity.revision) : BigInt(0),
                 username: identity.username || identity.dpnsUsername || '',
                 displayName: identity.displayName || identity.dpnsUsername || '',
