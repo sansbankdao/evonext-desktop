@@ -1,8 +1,8 @@
 // src/services/identity/discovery/BaseDiscovery.ts
 
 import type {
-    DiscoveredIdentity,
     AssociatedKey,
+    DiscoveredIdentity,
     DiscoveryOptions,
     DiscoveryResult,
 } from '../types'
