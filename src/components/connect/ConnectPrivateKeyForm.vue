@@ -183,13 +183,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-interface DiscoveredIdentity {
-    identityId: string
-    balance: string
-    revision: string
-    publicKeys?: any[]
-    dpnsUsername?: string
-}
+import type { DiscoveredIdentity } from '@/types'
 const props = defineProps<{
     authKey: string
     transferKey: string

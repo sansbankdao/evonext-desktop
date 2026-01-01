@@ -15,53 +15,6 @@ import type {
 } from '@/types'
 
 
-// export interface  {
-//     identity_idx: number
-//     publicKeys: IPublicKey[]
-//     // We deliberately DO NOT include 'id' here, because the Store uses 'username'
-//     // to store the identity ID string (e.g. "GHS..."), while 'identity' holds the complex object.
-// }
-
-// export interface IPublicKey {
-//     type_: string
-//     purpose: number
-//     security_level: number
-//     keyType: string
-//     data: string
-//     dataBytes: string
-//     readOnly: boolean
-//     disabledAt: number | null
-// }
-
-// export interface DiscoveredIdentity {
-//     identityId: string
-//     balance: string
-//     revision: string
-//     publicKeys: any[]
-//     dpnsUsername: string | null
-// }
-
-// export interface IIdentityState {
-//     isAuthenticated: boolean
-//     identity: IIdentity | null
-//     username: string | null
-//     balance: string | null
-//     balanceBigInt?: bigint
-//     dashBigInt?: bigint
-//     publicKeys: IPublicKey[]
-//     revision: number | null
-//     premiumAccess: boolean
-//     connectionError: string | null
-//     lastConnected: string | null
-//     isConnecting: boolean
-//     // Actions
-//     searchUserIdentities: (network: 'mainnet' | 'testnet') => Promise<DiscoveredIdentity[]>
-//     fetchBalance: () => Promise<void>
-//     saveToStorage: () => Promise<void>
-//     clearStorage: () => Promise<void>
-//     updateIdentityWithSdkData: (...args: any[]) => Promise<void>
-// }
-
 // --- IMPLEMENTATION ---
 interface Settings {
     network: 'mainnet' | 'testnet'
