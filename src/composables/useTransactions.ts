@@ -47,18 +47,7 @@ interface ITxError {
     message: string
     suggestions?: string[]
 }
-// If BalanceResult and TokenBalance are also needed from imports
-// interface BalanceResult {
-//     credits: bigint
-//     tokens: TokenBalance[]
-// }
-// interface TokenBalance {
-//     tokenId: string
-//     symbol: string
-//     balance: bigint
-//     decimals: number
-//     name?: string
-// }
+
 const EXPLORER_API_URL = 'https://platform-explorer.pshenmic.dev'
 export function useTransactions() {
     const platform = usePlatform()

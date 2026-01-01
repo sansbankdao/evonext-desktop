@@ -1,7 +1,16 @@
 // src/stores/wallet/index.ts
 
 import { defineStore } from 'pinia'
-import type { IAsset, IWalletState, IUser } from '@/types'
+import type { IAsset, IUser, ITransaction } from '@/types'
+
+// Define the state locally to resolve the missing import error
+export interface IWalletState {
+  user: IUser | null
+  assets: IAsset[]
+  transactions: ITransaction[]
+  balanceChange: number | null
+  isLoading: boolean
+}
 
 export const useWalletStore = defineStore('wallet', {
     state: (): IWalletState => ({
@@ -13,10 +22,10 @@ export const useWalletStore = defineStore('wallet', {
     }),
     getters: {
         totalUsdValue: (state): number => {
-            return state.assets.reduce((total, asset) => total + asset.usdValue, 0)
+            return state.assets.reduce((total, asset) => total + (asset.usdValue || 0), 0)
         },
         getAssetByTicker: (state) => {
-            return (ticker: string): IAsset | undefined => state.assets.find(asset => asset.ticker === ticker)
+            return (symbol: string): IAsset | undefined => state.assets.find(asset => asset.symbol === symbol)
         },
     },
     actions: {

@@ -7,14 +7,8 @@ import { useBalances } from './useBalances'
 import { useTransactions } from './useTransactions'
 import { useKeyManagement } from './useKeyManagement'
 import { useNetwork } from './useNetwork'
-// import type {
-//     IUser,
-//     SendCreditParams,
-//     SendTokenParams,
-//     BalanceResult,
-//     TransactionResult,
-//     TokenBalance,
-// } from '@/types'
+import type { BalanceResult } from '@/types'
+
 // Local type definitions for missing exports
 interface SendCreditParams {
     identityId: string
@@ -42,18 +36,6 @@ interface ITxError {
     message: string
     suggestions?: string[]
 }
-// If BalanceResult and TokenBalance are also needed from imports
-interface BalanceResult {
-    credits: bigint
-    tokens: TokenBalance[]
-}
-interface TokenBalance {
-    tokenId: string
-    symbol: string
-    balance: bigint
-    decimals: number
-    name?: string
-}
 
 /**
  * Main wallet composable that orchestrates all wallet operations
@@ -74,6 +56,7 @@ export function useWallet() {
     let pollInterval: NodeJS.Timeout | undefined
     let refreshTimeout: NodeJS.Timeout | undefined
     let isRefreshing = false
+
     // Initialization
     const initialize = async (): Promise<void> => {
         loading.value = true
@@ -88,6 +71,7 @@ export function useWallet() {
             throw err
         }
     }
+
     // Balance operations
     const getBalances = async (identityId: string): Promise<BalanceResult> => {
         return await balances.getBalances(identityId)
@@ -98,6 +82,7 @@ export function useWallet() {
     const hasSufficientBalance = async (identityId: string, requiredCredits: bigint): Promise<boolean> => {
         return await balances.hasSufficientBalance(identityId, requiredCredits)
     }
+
     // Transaction operations
     const sendCredits = async (params: SendCreditParams): Promise<TransactionResult> => {
         return await transactions.sendCredits(params)
@@ -122,6 +107,7 @@ export function useWallet() {
     ): Promise<TransactionResult> => {
         return await transactions.sendTokenTransfer(identityId, identityIdx, tokenId, receiver, atomicUnits)
     }
+
     // Store operations
     const refresh = async () => {
         if (isRefreshing) return
@@ -145,6 +131,7 @@ export function useWallet() {
         // const currentLength = store.transactions.length
         await store.fetchRealTransactions(limit)
     }
+
     // Polling
     const startPolling = (intervalMs = 30000) => {
         if (pollInterval) clearInterval(pollInterval)
@@ -162,12 +149,14 @@ export function useWallet() {
         }
         isPolling.value = false
     }
+
     // Visibility
     const handleVisibilityChange = () => {
         if (document.visibilityState === 'visible') {
             debouncedRefresh()
         }
     }
+
     // Setup
     onMounted(() => {
         document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -216,5 +205,6 @@ export function useWallet() {
         getAuthKey: keys.getAuthKey
     }
 }
+
 // Type export
 export type UseWalletReturn = ReturnType<typeof useWallet>

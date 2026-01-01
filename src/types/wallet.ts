@@ -149,3 +149,16 @@ interface TransactionOutput {
     amount: number;
     satoshis: number;
 }
+
+// If BalanceResult and TokenBalance are also needed from imports
+export interface BalanceResult {
+    credits: bigint
+    tokens: TokenBalance[]
+}
+export interface TokenBalance {
+    tokenId: string
+    symbol: string
+    balance: bigint
+    decimals: number
+    name?: string
+}
