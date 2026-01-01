@@ -7,7 +7,8 @@ import { useIdentityStore } from '@/stores/identity'
 import { useSeedStore } from '@/stores/connect/seed'
 import { usePrivateKeyStore } from '@/stores/connect/privateKey'
 import { useNetwork } from '@/composables'
-import type { DiscoveredIdentity, DiscoveryResult, ScanProgress } from '@/services/identity/types'
+import type { DiscoveryResult, ScanProgress } from '@/services/identity/types'
+import type { DiscoveredIdentity } from '@/types'
 
 export function useConnect() {
     const router = useRouter()

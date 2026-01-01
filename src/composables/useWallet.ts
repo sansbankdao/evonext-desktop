@@ -7,7 +7,7 @@ import { useBalances } from './useBalances'
 import { useTransactions } from './useTransactions'
 import { useKeyManagement } from './useKeyManagement'
 import { useNetwork } from './useNetwork'
-import type { BalanceResult } from '@/types'
+import type { BalanceResult, ITransactionResult } from '@/types'
 
 // Local type definitions for missing exports
 interface SendCreditParams {
@@ -22,19 +22,6 @@ interface SendTokenParams {
     tokenId: string
     receiver: string
     atomicUnits: bigint
-}
-interface TransactionResult {
-    success: boolean
-    data?: ITxSuccess
-    error?: ITxError
-}
-interface ITxSuccess {
-    txid: string
-}
-interface ITxError {
-    code: number
-    message: string
-    suggestions?: string[]
 }
 
 /**
@@ -84,10 +71,10 @@ export function useWallet() {
     }
 
     // Transaction operations
-    const sendCredits = async (params: SendCreditParams): Promise<TransactionResult> => {
+    const sendCredits = async (params: SendCreditParams): Promise<ITransactionResult> => {
         return await transactions.sendCredits(params)
     }
-    const sendToken = async (params: SendTokenParams): Promise<TransactionResult> => {
+    const sendToken = async (params: SendTokenParams): Promise<ITransactionResult> => {
         return await transactions.sendToken(params)
     }
     const sendCredit = async (
@@ -95,7 +82,7 @@ export function useWallet() {
         identityIdx: number,
         receiver: string,
         credits: bigint
-    ): Promise<TransactionResult> => {
+    ): Promise<ITransactionResult> => {
         return await transactions.sendCredit(identityId, identityIdx, receiver, credits)
     }
     const sendTokenTransfer = async (
@@ -104,7 +91,7 @@ export function useWallet() {
         tokenId: string,
         receiver: string,
         atomicUnits: bigint
-    ): Promise<TransactionResult> => {
+    ): Promise<ITransactionResult> => {
         return await transactions.sendTokenTransfer(identityId, identityIdx, tokenId, receiver, atomicUnits)
     }
 
