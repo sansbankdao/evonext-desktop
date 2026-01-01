@@ -198,7 +198,11 @@ const isSensitive = computed(() => props.post.isSensitive)
 
 const timeAgo = computed(() => {
     const now = new Date()
-    const postDate = props.post.createdAt
+
+    // FIX: Handle both number (timestamp) and Date object
+    const postDateRaw = props.post.createdAt
+    const postDate = typeof postDateRaw === 'number' ? new Date(postDateRaw) : postDateRaw
+
     const diffMs = now.getTime() - postDate.getTime()
     const diffMins = Math.floor(diffMs / 60000)
     const diffHours = Math.floor(diffMs / 3600000)
@@ -213,8 +217,8 @@ const timeAgo = computed(() => {
 })
 
 const getMediaUrl = (mediaUrl: string): string => {
-    // In a real app, you would convert the identifier to a URL
-    // For now, return placeholder or the identifier as-is
+    // In a real app, you would convert of identifier to a URL
+    // For now, return placeholder or identifier as-is
     return mediaUrl.startsWith('http') ? mediaUrl : `https://placeholder.com/400x300?text=Media+${mediaUrl.slice(0, 8)}`
 }
 
@@ -224,22 +228,43 @@ const handleImageError = (event: Event) => {
 }
 
 const toggleLike = () => {
-    emit('like', props.post.id || `${props.post.ownerId}-${props.post.createdAt.getTime()}`, !!props.post.liked)
+    // FIX: Handle both number and Date for ID generation
+    const createdAtTime = typeof props.post.createdAt === 'number'
+        ? props.post.createdAt
+        : new Date(props.post.createdAt).getTime()
+
+    emit('like', props.post.id || `${props.post.ownerId}-${createdAtTime}`, !!props.post.liked)
 }
 
 const handleRepost = () => {
-    emit('repost', props.post.id || `${props.post.ownerId}-${props.post.createdAt.getTime()}`)
+    const createdAtTime = typeof props.post.createdAt === 'number'
+        ? props.post.createdAt
+        : new Date(props.post.createdAt).getTime()
+
+    emit('repost', props.post.id || `${props.post.ownerId}-${createdAtTime}`)
 }
 
 const toggleBookmark = () => {
-    emit('bookmark', props.post.id || `${props.post.ownerId}-${props.post.createdAt.getTime()}`, !!props.post.bookmarked)
+    const createdAtTime = typeof props.post.createdAt === 'number'
+        ? props.post.createdAt
+        : new Date(props.post.createdAt).getTime()
+
+    emit('bookmark', props.post.id || `${props.post.ownerId}-${createdAtTime}`, !!props.post.bookmarked)
 }
 
 const handleShare = () => {
-    emit('share', props.post.id || `${props.post.ownerId}-${props.post.createdAt.getTime()}`)
+    const createdAtTime = typeof props.post.createdAt === 'number'
+        ? props.post.createdAt
+        : new Date(props.post.createdAt).getTime()
+
+    emit('share', props.post.id || `${props.post.ownerId}-${createdAtTime}`)
 }
 
 const handleComment = () => {
-    emit('comment', props.post.id || `${props.post.ownerId}-${props.post.createdAt.getTime()}`)
+    const createdAtTime = typeof props.post.createdAt === 'number'
+        ? props.post.createdAt
+        : new Date(props.post.createdAt).getTime()
+
+    emit('comment', props.post.id || `${props.post.ownerId}-${createdAtTime}`)
 }
 </script>

@@ -63,12 +63,21 @@ export function applySensitiveFilter(posts: IPost[], filter: SensitiveFilter): I
 export function applyDateFilter(posts: IPost[], fromDate?: Date, toDate?: Date): IPost[] {
     let filtered = [...posts]
 
+    // FIX: Convert timestamps to numbers for comparison
     if (fromDate) {
-        filtered = filtered.filter(post => post.createdAt >= fromDate)
+        const fromTime = fromDate.getTime()
+        filtered = filtered.filter(post => {
+            const time = typeof post.createdAt === 'number' ? post.createdAt : new Date(post.createdAt).getTime()
+            return time >= fromTime
+        })
     }
 
     if (toDate) {
-        filtered = filtered.filter(post => post.createdAt <= toDate)
+        const toTime = toDate.getTime()
+        filtered = filtered.filter(post => {
+            const time = typeof post.createdAt === 'number' ? post.createdAt : new Date(post.createdAt).getTime()
+            return time <= toTime
+        })
     }
 
     return filtered
@@ -82,10 +91,19 @@ export function applySorting(posts: IPost[], sortBy: SortOrder): IPost[] {
 
     switch (sortBy) {
         case 'newest':
-            sorted.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+            sorted.sort((a, b) => {
+                // FIX: Safe access to getTime()
+                const timeA = typeof a.createdAt === 'number' ? a.createdAt : new Date(a.createdAt).getTime()
+                const timeB = typeof b.createdAt === 'number' ? b.createdAt : new Date(b.createdAt).getTime()
+                return timeB - timeA
+            })
             break
         case 'oldest':
-            sorted.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+            sorted.sort((a, b) => {
+                const timeA = typeof a.createdAt === 'number' ? a.createdAt : new Date(a.createdAt).getTime()
+                const timeB = typeof b.createdAt === 'number' ? b.createdAt : new Date(b.createdAt).getTime()
+                return timeA - timeB
+            })
             break
         case 'most-liked':
             sorted.sort((a, b) => (b.likes || 0) - (a.likes || 0))
@@ -206,15 +224,17 @@ export function countPostsByPeriod(posts: IPost[], period: 'day' | 'week' | 'mon
     posts.forEach(post => {
         let periodKey: string
 
+        // FIX: Handle Date objects vs Numbers
+        const postDate = typeof post.createdAt === 'number' ? new Date(post.createdAt) : post.createdAt
+
         if (period === 'day') {
-            periodKey = post.createdAt.toISOString().split('T')[0] || now // YYYY-MM-DD
+            periodKey = postDate.toISOString().split('T')[0] || now // YYYY-MM-DD
         } else if (period === 'week') {
-            const weekStart = new Date(post.createdAt)
+            const weekStart = new Date(postDate)
             weekStart.setDate(weekStart.getDate() - weekStart.getDay())
             periodKey = weekStart.toISOString().split('T')[0] || now
         } else { // month
-            const month = post.createdAt.toISOString().substring(0, 7) // YYYY-MM
-            periodKey = month
+            periodKey = postDate.toISOString().substring(0, 7) // YYYY-MM
         }
 
         counts[periodKey] = (counts[periodKey] || 0) + 1
