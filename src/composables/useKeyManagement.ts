@@ -1,4 +1,5 @@
 // src/composables/useKeyManagement.ts
+
 import { ref, computed } from 'vue'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
@@ -436,6 +437,97 @@ export function useKeyManagement() {
         return -1
     }
 
+    // Transfer key addition specific methods
+    const addTransferKey = async (
+        identityId: string,
+        identityIdx: number,
+        currentRevision: bigint,
+        publicKeys: IPublicKey[],
+        keyType: 'ECDSA_SECP256K1' | 'ECDSA_HASH160' = 'ECDSA_SECP256K1',
+        securityLevel: ParsedSecurityLevel = 1 // CRITICAL
+    ): Promise<{
+        success: boolean
+        error?: string
+        result?: any
+    }> => {
+        const network = await ensure()
+        const sdk = new DashPlatformSDK({ network })
+        try {
+            // 1. Get next revision and nonce
+            const newRevision = currentRevision + BigInt(1)
+            const currentIdentityNonce = await sdk.identities.getIdentityNonce(identityId)
+            const identityNonce = currentIdentityNonce + BigInt(1)
+            // 2. Get master key
+            const keyDerivation = await getPrivateKeys(identityIdx)
+            const masterKeyEntry = keyDerivation.keys?.find(key =>
+                key.purpose === 'AUTHENTICATION' && key.securityLevel === 'MASTER'
+            )
+            const masterPrivateKey = masterKeyEntry?.privateKey
+            if (!masterPrivateKey) {
+                throw new Error('Master authentication key not found')
+            }
+            // 3. Determine next key ID
+            const existingKeyIds = publicKeys.map(key => key.id).sort((a: number, b: number) => a - b)
+            const nextKeyId = existingKeyIds.length > 0 ? Math.max(...existingKeyIds) + 1 : 0
+            // 4. Derive transfer key
+            const transferPrivateKey = await deriveKey(identityIdx, 3)
+            const transferPublicKey = transferPrivateKey.getPublicKey()
+            // 5. Create public key object
+            const identityPublicKeyInCreation = {
+                id: nextKeyId,
+                purpose: 3 as PurposeType, // TRANSFER
+                securityLevel,
+                keyType,
+                readOnly: false,
+                data: transferPublicKey.bytes(),
+                signature: new Uint8Array()
+            }
+            // 6. Two-phase signing
+            let identityUpdateTransition = sdk.identities.createStateTransition('update', {
+                identityId,
+                revision: newRevision,
+                identityNonce,
+                addPublicKeys: [identityPublicKeyInCreation]
+            })
+            identityUpdateTransition.signByPrivateKey(transferPrivateKey, nextKeyId, keyType)
+            identityPublicKeyInCreation.signature = new Uint8Array(identityUpdateTransition.signature)
+            identityUpdateTransition = sdk.identities.createStateTransition('update', {
+                identityId,
+                revision: newRevision,
+                identityNonce,
+                addPublicKeys: [identityPublicKeyInCreation]
+            })
+            const masterKey = publicKeys.find((key: any) => {
+                const purpose = parsePurpose(key.purpose)
+                const securityLevel = parseSecurityLevel(key.securityLevel)
+                return purpose === 0 && (securityLevel === 0 || securityLevel === 3)
+            })
+            const masterKeyId = masterKey ? masterKey.id : 0
+            identityUpdateTransition.signByPrivateKey(masterPrivateKey, masterKeyId, keyType)
+            // 7. Broadcast
+            const result = await sdk.stateTransitions.broadcast(identityUpdateTransition)
+            return {
+                success: true,
+                result
+            }
+        } catch (error: any) {
+            let errorMessage = error.message || 'Failed to add transfer key'
+            if (errorMessage.includes('insufficient')) {
+                errorMessage = 'Insufficient credits for identity update fee'
+            } else if (errorMessage.includes('nonce')) {
+                errorMessage = 'Nonce mismatch - please try again'
+            } else if (errorMessage.includes('revision')) {
+                errorMessage = 'Identity revision mismatch - please refresh'
+            } else if (errorMessage.includes('signature')) {
+                errorMessage = 'Signature verification failed'
+            }
+            return {
+                success: false,
+                error: errorMessage
+            }
+        }
+    }
+
     return {
         // State
         loading: computed(() => loading.value),
@@ -450,6 +542,7 @@ export function useKeyManagement() {
         deriveKey,
 
         // Keychain management
+        addTransferKey,
         loadKeychain,
         saveKeychain,
         getMissingKeys,
