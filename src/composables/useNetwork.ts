@@ -3,7 +3,7 @@
 import { computed, readonly, ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 
-type Network = 'mainnet' | 'testnet'
+export type Network = 'mainnet' | 'testnet'
 
 interface PartialSettings {
     network?: string
