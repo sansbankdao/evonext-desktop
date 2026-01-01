@@ -39,11 +39,11 @@ export interface IUser {
     avatarId?: string;      // Reference to avatar document (32-byte array as string)
     avatarData?: string;    // The encoded avatar string (16-128 chars)
     bio?: string;
-    followers: number;
-    following: number;
+    followers?: number;
+    following?: number;
     verified?: boolean;
-    joinedAt: Date;
-    revision: number;
+    joinedAt?: Date;
+    revision?: number;
 }
 
 /* Base interface definitions. */
