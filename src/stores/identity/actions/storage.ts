@@ -1,17 +1,19 @@
 // src/stores/identity/actions/storage.ts
+
 import { invoke } from '@tauri-apps/api/core'
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
 import type {
     IIdentityState,
     IIdentityData,
-    IIdentityPublicKey,
     IPublicKey
 } from '@/types'
+
 interface Settings {
     network: 'mainnet' | 'testnet'
     [key: string]: any
 }
+
 // Helper functions
 function validateIdentityData(data: any): data is IIdentityData {
     return data &&
@@ -20,19 +22,21 @@ function validateIdentityData(data: any): data is IIdentityData {
         typeof data.identity_idx === 'number' &&
         (data.balance === null || typeof data.balance === 'string')
 }
+
 function createDefaultIdentityData(): IIdentityData {
     return {
         username: '',
-        identity_id: '',
-        identity_idx: 0,
+        identityId: '',
+        identityIdx: 0,
         balance: null,
-        is_authenticated: false,
-        public_keys: null,
+        isAuthenticated: false,
+        publicKeys: null,
         revision: null,
-        created_at: null,
-        public_key_ids: null
+        createdAt: null,
+        publicKeyIds: null
     }
 }
+
 export const storageActions = () => ({
     async saveToStorage(this: any) {
         return ErrorBoundary.wrap(async () => {
@@ -41,14 +45,14 @@ export const storageActions = () => ({
             const identityId = state.identity?.id || ''
             const identityData: IIdentityData = {
                 username: state.username || '',
-                identity_id: identityId,
-                identity_idx: state.identity?.identity_idx || 0,
+                identityId: identityId,
+                identityIdx: state.identity?.identityIdx || 0,
                 balance: state.balance,
-                is_authenticated: state.isAuthenticated,
-                public_keys: state.publicKeys.length > 0 ? state.publicKeys : null,
+                isAuthenticated: state.isAuthenticated,
+                publicKeys: state.publicKeys.length > 0 ? state.publicKeys : null,
                 revision: state.revision,
-                created_at: state.lastConnected,
-                public_key_ids: state.publicKeys.map((key: IIdentityPublicKey) => key.id || key.purpose || 0),
+                createdAt: state.lastConnected,
+                publicKeyIds: state.publicKeys.map((key: IPublicKey) => key.type || 0),
             }
             await invoke('save_identity_data', { network, payload: identityData })
             log('info', 'Identity data saved for network:', network)
@@ -63,23 +67,26 @@ export const storageActions = () => ({
                 log('info', 'Loaded identity data for network:', network, identityData)
                 state.username = identityData.username || null
                 state.balance = identityData.balance
-                state.isAuthenticated = identityData.is_authenticated || false
-                state.publicKeys = identityData.public_keys || []
+                state.isAuthenticated = identityData.isAuthenticated || false
+                state.publicKeys = identityData.publicKeys || []
                 state.revision = identityData.revision
-                state.lastConnected = identityData.created_at
-                if (!state.identity && identityData.identity_id) {
+                state.lastConnected = identityData.createdAt
+                if (!state.identity && identityData.identityId) {
                     state.identity = {
-                        identity_idx: identityData.identity_idx || 0,
-                        publicKeys: identityData.public_keys?.map(key => ({
-                            type: key.type_ === 'ECDSA_HASH160' ? 2 : 0,
-                            keyType: key.type_ || 'ECDSA_SECP256K1',
+                        identityId: identityData.identityId,
+                        identityIdx: identityData.identityIdx || 0,
+                        balance: identityData.balance || '',
+                        revision: identityData.revision || 0,
+                        publicKeys: identityData.publicKeys?.map(key => ({
+                            type: key.type,
+                            keyType: key.keyType || 'ECDSA_SECP256K1',
                             purpose: key.purpose,
-                            securityLevel: key.security_level,
+                            securityLevel: key.securityLevel,
                             contractBounds: null,
                             data: key.data || '',
-                            dataBytes: key.data_bytes || '',
-                            readOnly: key.read_only,
-                            disabledAt: key.disabled_at
+                            dataBytes: key.dataBytes || '',
+                            readOnly: key.readOnly,
+                            disabledAt: key.disabledAt
                         } as IPublicKey)) || []
                     }
                 }
@@ -90,8 +97,8 @@ export const storageActions = () => ({
                 state.username = null
                 state.identity = null
                 state.balance = null
-                state.balanceBigInt = undefined
-                state.dashBigInt = undefined
+                // state.balanceBigInt = undefined
+                // state.dashBigInt = undefined
                 state.publicKeys = []
                 state.revision = null
                 state.isAuthenticated = false
@@ -116,8 +123,8 @@ export const storageActions = () => ({
             state.username = null
             state.identity = null
             state.balance = null
-            state.balanceBigInt = undefined
-            state.dashBigInt = undefined
+            // state.balanceBigInt = undefined
+            // state.dashBigInt = undefined
             state.publicKeys = []
             state.revision = null
             state.isAuthenticated = false
