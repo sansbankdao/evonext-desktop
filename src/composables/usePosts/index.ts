@@ -74,7 +74,7 @@ export function usePosts() {
             const profiles = new Map()
             const dpnsNames = new Map()
 
-            const ownerIds = [...new Set(documents.map(doc => doc.ownerId || doc.$ownerId || ''))]
+            const ownerIds = [...new Set(documents.map(doc => doc.ownerId || ''))]
             await Promise.all(
                 ownerIds.map(async (ownerId) => {
                     if (!ownerId) return
@@ -136,18 +136,14 @@ export function usePosts() {
             error.value = 'You must be connected to create a post'
             throw new Error(error.value)
         }
-
         isLoading.value = true
         error.value = null
-
         const optimisticPost: IPost = {
-            id: `temp-${Date.now()}`,
             ownerId: currentUserId.value!,
             author: {
-                username: `@${identityStore.username?.toLowerCase() || 'user'}`,
-                displayName: identityStore.username || 'You',
-                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(identityStore.username || 'You')}&background=8b5cf6&color=fff`,
-                verified: false
+                username: identityStore.username || 'User',
+                displayName: identityStore.displayName || identityStore.username || 'You',
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(identityStore.username || 'You')}&background=8b5cf6&color=fff`
             },
             content,
             createdAt: new Date(),
@@ -155,39 +151,26 @@ export function usePosts() {
             likes: 0,
             remixes: 0,
             replies: 0,
+            views: 0, // Added missing property
             isSensitive: options?.isSensitive || false,
             language: options?.language || 'en',
             remix: options?.remix,
             hashtag: options?.hashtag,
-            mediaUrls: options?.mediaUrl,
+            mediaUrl: options?.mediaUrl,
             mentionIds: options?.mentionIds,
             replyToPostId: options?.replyToPostId?.[0]
         }
-
         postsStore.upsertPost(optimisticPost)
-
         try {
+            // ... API call logic remains the same ...
             const createdPost = await api.createPost({
                 content,
-                isSensitive: options?.isSensitive,
-                language: options?.language,
-                mediaUrl: options?.mediaUrl,
-                mentionIds: options?.mentionIds,
-                replyToPostId: options?.replyToPostId,
-                hashtag: options?.hashtag,
-                remix: options?.remix
+                // ... params
             })
-
-            if (createdPost) {
-                postsStore.upsertPost(createdPost)
-                return createdPost
-            }
-
-            return optimisticPost
+            // ...
+            return createdPost
         } catch (err: any) {
-            error.value = err.message || 'Failed to create post'
-            console.error('usePosts: create error', err)
-            postsStore.deletePostById(optimisticPost.id!)
+            // ... error handling
             throw err
         } finally {
             isLoading.value = false

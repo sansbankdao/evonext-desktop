@@ -1,54 +1,52 @@
 // src/composables/useIdentity.ts
 
-import { computed, readonly, unref } from 'vue'
+import { computed, unref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { useIdentityStore } from '@/stores/identity'
 import { useNetwork } from '@/composables/useNetwork'
 import { usePlatformSdk } from '@/composables/usePlatformSdk'
-import type { IIdentity, ConnectionResult, DiscoveredIdentity, IPublicKey } from '@/types'
+import type { ConnectionResult, DiscoveredIdentity, IPublicKey } from '@/types/identity'
 
-/**
- * Get persisted identity index via Tauri (merged from libs/getIdentityIdx.ts)
- */
 const getIdentityIdx = async (): Promise<number> => {
-    const identityStore = await invoke<IIdentity | null>('load_identity_data')
-    if (typeof identityStore !== 'undefined' && identityStore !== null) {
-        return identityStore.identity_idx
-    } else {
-        return 0 // NOTE: We default to ZERO (index).
+    try {
+        const identityStore = await invoke<any>('load_identity_data')
+        return identityStore?.identity_idx ?? 0
+    } catch (e) {
+        return 0
     }
 }
 
-/**
- * Check if identity has transfer key (merged from libs/identity/hasTransferKey.ts)
- */
 const hasTransferKey = (): boolean => {
     const identityStore = useIdentityStore()
-    const storedIdentity = identityStore.currentIdentity
-    if (!storedIdentity?.public_keys?.length) return false
-    return storedIdentity.public_keys.some(key => key.purpose === 1)
+    return identityStore.publicKeys.some(key => key.purpose === 1 || key.purpose === 3)
 }
 
 export function useIdentity() {
     const store = useIdentityStore()
     const { network } = useNetwork()
-    const { sdk, ensureSDK } = usePlatformSdk()
-
-    // Computed shortcuts
+    // FIX 1: Destructure getSDK instead of sdk/ensureSDK
+    const { getSDK } = usePlatformSdk()
     const isConnected = computed(() => store.isAuthenticated && !!store.identityId)
     const authPublicKey = computed(() => store.publicKeys.find((k: IPublicKey) => k.purpose === 0))
     const displayName = computed(() => store.displayName || store.identityId || 'Guest')
     const hasTransferKeyComputed = computed(hasTransferKey)
-
-    // Init: Load from storage + verify
+    async function getIdentityBalance(network: string, identityId: string): Promise<string> {
+        try {
+            // FIX 2: Await the SDK
+            const sdk = await getSDK()
+            const identity = await sdk.identities.get(identityId)
+            return identity ? identity.balance.toString() : '0'
+        } catch (e) {
+            console.error('Failed to fetch balance', e)
+            return '0'
+        }
+    }
     async function init() {
         await store.loadFromStorage()
         if (store.isAuthenticated && store.identityId) {
             await refreshIdentity()
         }
     }
-
-    // Connect flows (consolidate seed/single-key)
     async function connect(
         method: 'seed' | 'key',
         payload: { seedPhrase?: string; privateKey?: string; discoveredId?: string }
@@ -57,12 +55,8 @@ export function useIdentity() {
         try {
             let id = payload.discoveredId
             if (!id) {
-                const identities = await discoverIdentities()
-                id = identities[0]?.identityId
-                if (!id) throw new Error('No identity found')
+                throw new Error('Identity ID required for connection')
             }
-            // Derive/save keys (use KeyDerivationService)
-            // ... (store-specific save)
             store.$patch({ identityId: id, isAuthenticated: true })
             await refreshIdentity()
             await store.saveToStorage()
@@ -75,69 +69,71 @@ export function useIdentity() {
             store.$patch({ isConnecting: false })
         }
     }
-
-    // Discover/refresh identity details
     async function discoverIdentities(): Promise<DiscoveredIdentity[]> {
         if (!store.identityId) return []
-        await ensureSDK(unref(network))
-        const identity = await sdk.value!.identities.getIdentityByIdentifier(store.identityId)
-        // Stub: Implement transformPublicKeys (e.g., from utils)
-        const transformPublicKeys = (keys: any[]): IPublicKey[] => keys.map(k => ({ ...k }))
-        // Stub: Implement fetchBalance (e.g., via useBalances)
-        const fetchBalance = async (id: string): Promise<bigint> => BigInt(0)
-        const details = {
-            identityId: identity.id,
-            publicKeys: transformPublicKeys(identity.getPublicKeys()),
-            revision: identity.revision.toString(),
-            balance: await fetchBalance(store.identityId),
-            dpnsUsername: await sdk.value!.platform.names.getNameByIdentityId(store.identityId)
+        try {
+            // FIX 3: Await the SDK here as well
+            const sdk = await getSDK()
+            const identity = await sdk.identities.get(store.identityId)
+            const transformPublicKeys = (keys: any[]): IPublicKey[] => keys.map((k) => ({
+                type: k.type,
+                keyType: k.type === 0 ? 'ECDSA_SECP256K1' : 'ECDSA_HASH160',
+                purpose: k.purpose,
+                securityLevel: k.securityLevel,
+                contractBounds: k.contractBounds,
+                data: k.data.toString(),
+                dataBytes: null,
+                readOnly: k.readOnly,
+                disabledAt: k.disabledAt
+            }))
+            const dpnsName = await sdk.platform.names.resolve(store.identityId)
+                .then((n: any) => n?.[0]?.label || null)
+                .catch(() => null)
+            const details: DiscoveredIdentity = {
+                identityId: identity.id.toString(),
+                identityIdx: 0,
+                revision: identity.revision,
+                balance: identity.balance.toString(),
+                dpnsUsername: dpnsName || undefined
+            }
+            store.$patch({
+                publicKeys: transformPublicKeys(identity.publicKeys),
+                revision: Number(details.revision),
+                displayName: details.dpnsUsername || store.identityId,
+                balance: details.balance
+            })
+            return [details]
+        } catch (e) {
+            console.error('Discovery failed', e)
+            return []
         }
-        store.$patch({
-            publicKeys: details.publicKeys,
-            revision: Number(details.revision),
-            displayName: details.dpnsUsername || store.identityId,
-            balance: details.balance
-        })
-        return [details]
     }
-
-    const refreshIdentity = discoverIdentities // Alias
-
-    // Balance
+    const refreshIdentity = discoverIdentities
     async function refreshBalance() {
         if (store.identityId) {
-            // Use merged utility or integrate getIdentityBalance
-            const balance = await getIdentityBalance?.(unref(network), store.identityId)
-            store.balance = balance || null
+            const balance = await getIdentityBalance(unref(network), store.identityId)
+            store.balance = balance
         }
     }
-
-    // Logout
     async function logout() {
         await store.clearStorage()
         store.$reset()
     }
-
     return {
-        // State refs
         identityId: computed({
             get: () => store.identityId,
             set: (v: string | null) => store.identityId = v
         }),
-        publicKeys: readonly(store.publicKeys),
-        balance: readonly(store.balance),
+        // FIX 4: Wrap primitives in computed()
+        publicKeys: computed(() => store.publicKeys),
+        balance: computed(() => store.balance),
+        isConnecting: computed(() => store.isConnecting),
+        connectionError: computed(() => store.connectionError),
         isConnected,
-        isConnecting: readonly(store.isConnecting),
-        connectionError: readonly(store.connectionError),
         displayName,
         authPublicKey,
         hasTransferKey: hasTransferKeyComputed,
-
-        // Merged utils
         getIdentityIdx,
-        hasTransferKey,
-
-        // Actions
         init,
         connect,
         refreshIdentity,
