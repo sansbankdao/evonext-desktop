@@ -56,24 +56,22 @@
                         <template v-else>
                             <!-- Identity Selection -->
                             <AddKeyIdentityList
-                                :identities="identities"
-                                :selectedIdentity="selectedIdentity"
+                                :identities="identities as IIdentity[]"
+                                :selectedIdentity="selectedIdentity as IIdentity | null"
                                 @select-identity="setSelectedIdentity"
                             />
 
                             <!-- Selected Identity Details -->
                             <AddKeyIdentityDetail
                                 v-if="selectedIdentity"
-                                :identity="selectedIdentity"
+                                :identity="selectedIdentity as IIdentity"
                                 :has-transfer-key="hasTransferKey(selectedIdentity)"
                             />
 
                             <!-- Add Key Form -->
                             <AddKeyKeyForm
                                 v-if="selectedIdentity && !hasTransferKey(selectedIdentity)"
-                                v-model:key-type="keyType"
-                                v-model:security-level="securityLevel"
-                                v-model:confirmed="confirmed"
+                                v-model="formState"
                                 :is-adding="isAdding"
                                 @add-transfer-key="addTransferKey"
                             />
@@ -86,19 +84,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-// Restored imports to match component usage in template
 import Header from '@/components/Header.vue'
 import AddKeyIdentityList from '@/components/addKey/IdentityList.vue'
 import AddKeyIdentityDetail from '@/components/addKey/IdentityDetail.vue'
 import AddKeyKeyForm from '@/components/addKey/KeyForm.vue'
-
 import { useKeyUtils } from '@/composables/useKeyUtils'
 import { useKeyManagement } from '@/composables/useKeyManagement'
 import { mnemonicManager } from '@/composables/useMnemonic'
 import { identityDiscovery } from '@/composables/useIdentityDiscovery'
-import type { IdentityWithKeys } from '@/types'
+import type { IIdentity, IPublicKey } from '@/types'
+
+/**
+ * LOCAL INTERFACES
+ * We define a strict local type to handle the 'revision' as BigInt internally
+ * while remaining compatible with IIdentity.
+ */
+interface LocalIdentity extends Omit<IIdentity, 'publicKeys' | 'revision'> {
+    revision: bigint // STRICT: Always BigInt internally
+    publicKeys: IPublicKey[] // STRICT: Always Array internally
+    // Helper to ensure we have the ID
+    id: string
+}
 
 const router = useRouter()
 const { hasTransferKey: checkTransferKey } = useKeyUtils()
@@ -106,14 +114,27 @@ const { addTransferKey: addKeyToIdentity } = useKeyManagement()
 
 // State
 const loading = ref(true)
-const identities = ref<IdentityWithKeys[]>([])
-const selectedIdentity = ref<IdentityWithKeys | null>(null)
+const identities = ref<LocalIdentity[]>([])
+const selectedIdentity = ref<LocalIdentity | null>(null)
 
 const keyType = ref<'ECDSA_SECP256K1' | 'ECDSA_HASH160'>('ECDSA_SECP256K1')
-// Restored securityLevel
 const securityLevel = ref<'MASTER' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'>('CRITICAL')
 const confirmed = ref(false)
 const isAdding = ref(false)
+
+// Computed form state
+const formState = computed({
+    get: () => ({
+        keyType: keyType.value,
+        securityLevel: securityLevel.value,
+        confirmed: confirmed.value
+    }),
+    set: (value: any) => {
+        keyType.value = value.keyType
+        securityLevel.value = value.securityLevel
+        confirmed.value = value.confirmed
+    }
+})
 
 // Parse security level to number
 const parseSecurityLevel = (level: string): 0 | 1 | 2 | 3 | 4 => {
@@ -145,21 +166,38 @@ const loadIdentities = async () => {
         })
 
         if (result && Array.isArray(result) && result.length > 0) {
-            // FIX: Ensure publicKeys is always present, handling type mismatches
-            identities.value = result.map((identity: any): IdentityWithKeys => {
-                const pk = identity.publicKeys || []
-                // Handle potential number revision if returned, map to bigint
-                const rev = typeof identity.revision === 'number'
-                    ? BigInt(identity.revision)
-                    : (identity.revision || BigInt(0))
+            identities.value = result.map((identity: any): LocalIdentity => {
+                const rawKeys = identity.publicKeys
+
+                // STRICT: Ensure publicKeys is an array
+                const safePublicKeys: IPublicKey[] = Array.isArray(rawKeys) ? rawKeys : []
+
+                // STRICT: Ensure revision is BigInt
+                let rev: bigint
+                if (typeof identity.revision === 'bigint') {
+                    rev = identity.revision
+                } else if (typeof identity.revision === 'number') {
+                    rev = BigInt(identity.revision)
+                } else {
+                    rev = BigInt(0)
+                }
+
+                // STRICT: Ensure we have a string ID
+                const id = identity.identityId || identity.id || ''
 
                 return {
-                    id: identity.id || identity.identityId || '',
+                    id: id,
+                    identityId: id,
                     identityIdx: identity.identityIdx || 0,
                     revision: rev,
                     username: identity.username || identity.dpnsUsername || '',
                     displayName: identity.displayName || identity.dpnsUsername || '',
-                    publicKeys: pk
+                    publicKeys: safePublicKeys,
+                    balance: identity.balance || '0',
+                    avatarUrl: identity.avatarUrl,
+                    avatarHash: identity.avatarHash,
+                    avatarFingerprint: identity.avatarFingerprint,
+                    publicMessage: identity.publicMessage
                 }
             })
 
@@ -177,13 +215,13 @@ const loadIdentities = async () => {
     }
 }
 
-// Restored helper function
-const setSelectedIdentity = (identity: IdentityWithKeys) => {
-    selectedIdentity.value = identity
+const setSelectedIdentity = (identity: IIdentity) => {
+    // The component emits IIdentity, we cast it to LocalIdentity for internal use
+    // This is safe because LocalIdentity is a strict subset of what we constructed
+    selectedIdentity.value = identity as unknown as LocalIdentity
 }
 
-// Restored wrapper function
-const hasTransferKey = (identity: IdentityWithKeys): boolean => {
+const hasTransferKey = (identity: LocalIdentity): boolean => {
     return checkTransferKey(identity.publicKeys)
 }
 
@@ -202,13 +240,16 @@ const addTransferKey = async () => {
         isAdding.value = true
         const identity = selectedIdentity.value
 
+        // FIXED: Use identityId, not 'id'
+        const identityId = identity.identityId || identity.id || ''
+
         const result = await addKeyToIdentity(
-            identity.id || '',
+            identityId,
             identity.identityIdx,
-            identity.revision || BigInt(0),
+            identity.revision,
             (identity.publicKeys || []),
             keyType.value,
-            parseSecurityLevel(securityLevel.value) // Added securityLevel argument
+            parseSecurityLevel(securityLevel.value)
         )
 
         if (result.success) {
