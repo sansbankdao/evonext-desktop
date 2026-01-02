@@ -75,7 +75,7 @@ export interface IIdentity {
 
 export interface DiscoveredIdentity {
     id?: string;
-    identityId?: string;
+    identityId: string; // CHANGED: Made required - we always have this when discovering
     identityIdx: number;
     publicKeys: IPublicKey[];
     balance?: number | string | null | undefined;
@@ -83,7 +83,7 @@ export interface DiscoveredIdentity {
     displayName?: string;
     avatarUrl?: string;
     revision?: number;
-    dpnsUsername?: string | null; // Fixed: Allow null
+    dpnsUsername?: string | null;
 }
 
 export interface IIdentityState {
@@ -180,7 +180,6 @@ export interface IdentityDiscoveryDetails {
         derivedFromInput: boolean;
     }>;
 }
-
 
 // FIXME -- MIGRATE DUPLICATES HERE
 // export interface KeyDerivationResult {
