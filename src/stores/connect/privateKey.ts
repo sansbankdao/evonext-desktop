@@ -3,7 +3,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { useDebounce } from '@/composables/useDebounce'
-import type { DiscoveredIdentity } from '@/services/identity/types'
+import type { DiscoveredIdentity } from '@/types'
 import type { DiscoveryDetails } from '@/services/identity/types'
 
 export const usePrivateKeyStore = defineStore('connect.privateKey', () => {

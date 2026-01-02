@@ -184,3 +184,21 @@ export interface IdentityDiscoveryDetails {
         derivedFromInput: boolean;
     }>;
 }
+
+
+// FIXME -- MIGRATE DUPLICATES HERE
+// export interface KeyDerivationResult {
+//     identityIndex: number;
+//     keys: DerivedKey[];
+//     success: boolean;
+//     error?: string;
+// }
+// export interface DerivedKey {
+//     keyIndex: number;
+//     purpose: string;
+//     securityLevel: string;
+//     privateKey: any; // PrivateKeyWASM instance
+//     publicKey: string; // hex
+//     publicKeyHash: string; // hex
+//     path: string; // Derivation path (e.g., m/9'/1'/0'/0/0)
+// }

@@ -1,7 +1,7 @@
 // src/stores/settings.ts
 
 import { defineStore } from 'pinia'
-import { reactive, ref } from 'vue'
+import { reactive } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 // import { useDebounce } from '@/composables/useDebounce'
 import type { ISettingsState } from '@/types'

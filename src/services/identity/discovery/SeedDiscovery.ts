@@ -3,12 +3,12 @@
 import { KeyDerivationService } from '../keyDerivation.service'
 import { DAPIService } from './DAPIService'
 import { BaseDiscovery } from './BaseDiscovery'
+import type { DiscoveredIdentity } from '@/types'
 import type {
-    DiscoveredIdentity,
     DiscoveryResult,
     DiscoveryOptions,
     KeyDerivationResult,
-    DerivedKey,
+    // DerivedKey,
     QueryTrace,
     ScanProgress
 } from '../types'
@@ -294,7 +294,7 @@ export class SeedDiscovery extends BaseDiscovery {
         list.push({
             identityId: id,
             balance: this.formatBalance(data.balance),
-            revision: this.formatRevision(data.revision),
+            revision: data.revision,
             publicKeys: data.publicKeys || [],
             dpnsUsername
         })

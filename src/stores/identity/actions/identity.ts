@@ -62,7 +62,7 @@ export const identityActions = () => ({
     ): Promise<void> {
         // No-op or trigger store update directly if needed,
         // but the composable handles the store patching via logic
-        const identityComposable = useIdentity()
+        // const identityComposable = useIdentity()
         // Accessing private method via 'any' if strictly necessary,
         // but it's better to call the public wrapper that performs the update.
         // For now, we rely on queryIdentityDetails to have updated the state.
