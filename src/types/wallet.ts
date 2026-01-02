@@ -31,19 +31,16 @@ export interface ApiResponse<T> {
 }
 
 export interface TokenBalance {
-    tokenId: string;
-    amount: number;
+    tokenId: string
+    symbol: string
+    amount?: number | string;
+    balance?: number | string
+    decimals: number
+    name?: string
 }
 
 // If BalanceResult and TokenBalance are also needed from imports
 export interface BalanceResult {
-    credits: bigint
+    credits: number | string
     tokens: TokenBalance[]
-}
-export interface TokenBalance {
-    tokenId: string
-    symbol: string
-    balance: bigint
-    decimals: number
-    name?: string
 }
