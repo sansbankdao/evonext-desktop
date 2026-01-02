@@ -65,6 +65,41 @@ export const useSeedStore = defineStore('connect.seed', () => {
         isSearching.value = false
     }
 
+    // ADD THESE 2 FUNCTIONS:
+    const initialize = () => {
+        // Initialize store from localStorage or other persistent storage
+        try {
+            const savedWords = localStorage.getItem('connect_seed_words')
+            if (savedWords) {
+                const saved = JSON.parse(savedWords)
+                if (saved.wordCount && (saved.wordCount === '12' || saved.wordCount === '24')) {
+                    wordCount.value = saved.wordCount
+                }
+                if (Array.isArray(saved.words)) {
+                    const newLength = parseInt(wordCount.value)
+                    words.value = [
+                        ...saved.words.slice(0, newLength),
+                        ...Array(Math.max(0, newLength - saved.words.length)).fill('')
+                    ]
+                }
+            }
+        } catch (e) {
+            // If parsing fails, use defaults
+        }
+    }
+
+    const cleanup = () => {
+        // Clean up resources - save to localStorage
+        try {
+            localStorage.setItem('connect_seed_words', JSON.stringify({
+                wordCount: wordCount.value,
+                words: words.value
+            }))
+        } catch (e) {
+            // Ignore storage errors
+        }
+    }
+
     // Watch the debounced value correctly
     watch(() => debouncedPhrase.value, (newPhrase) => {
         if (newPhrase && newPhrase.trim() && isFilled.value) {
@@ -92,6 +127,8 @@ export const useSeedStore = defineStore('connect.seed', () => {
         handlePaste,
         discover,
         selectIdentity,
-        reset
+        reset,
+        initialize,  // ADDED
+        cleanup      // ADDED
     }
 })
