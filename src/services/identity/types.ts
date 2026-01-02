@@ -18,6 +18,39 @@ export interface DAPIResponse {
     error?: string;
 }
 
+export interface DerivedKeyInfo {
+    keyId: number;
+    purpose: number;
+    securityLevel: number;
+    keyType: string;
+    privateKeyWIF: string;  // Private key in WIF format
+    publicKeyHex: string;   // Public key in hex
+    derivationPath: string;
+    createdAt?: string;
+    lastUsed?: string;
+}
+// Extend DiscoveredIdentity with derived keys
+export interface DiscoveredIdentityWithKeys extends DiscoveredIdentity {
+    derivedKeys?: DerivedKeyInfo[];
+}
+// Update DiscoveryResult to use the extended type
+export interface DiscoveryResult {
+    success: boolean
+    identities?: DiscoveredIdentityWithKeys[] | null  // Changed from DiscoveredIdentity[]
+    identity?: DiscoveredIdentityWithKeys | null      // Changed from DiscoveredIdentity
+    detectedKeyType?: string | null
+    associatedKeys?: AssociatedKey[] | null
+    error?: string
+    debug?: {
+        step?: string;
+        count?: number;
+        network?: string;
+        trace?: QueryTrace[];
+        progressSnapshot?: ScanProgress | undefined;
+        error?: string;
+    }
+}
+
 export interface KeyDerivationResult {
     identityIndex: number;
     keys: DerivedKey[];
@@ -70,23 +103,6 @@ export interface ScanProgress {
     status: 'deriving' | 'scanning' | 'completed' | 'failed';
     scannedCount: number;
     foundCount: number;
-}
-
-export interface DiscoveryResult {
-    success: boolean
-    identities?: DiscoveredIdentity[] | null
-    identity?: DiscoveredIdentity | null
-    detectedKeyType?: string | null
-    associatedKeys?: AssociatedKey[] | null
-    error?: string
-    debug?: {
-        step?: string;
-        count?: number;
-        network?: string;
-        trace?: QueryTrace[];
-        progressSnapshot?: ScanProgress | undefined;
-        error?: string;
-    }
 }
 
 // Create DiscoveryDetails interface
