@@ -5,11 +5,16 @@
         <div class="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700">
             <div class="flex items-center gap-2">
                 <div class="w-6 h-6 rounded-full bg-cyan-500 text-white flex items-center justify-center text-xs font-bold">1</div>
-                <h3 class="font-bold text-slate-700 dark:text-slate-300">Enter Private Keys</h3>
+
+                <h3 class="font-bold text-slate-700 dark:text-slate-300">
+                    Enter Private Keys
+                </h3>
             </div>
+
             <p class="text-sm text-slate-600 dark:text-slate-400">
                 Enter at least one of your private keys. We'll automatically discover your identity on-chain.
             </p>
+
             <div class="space-y-4">
                 <div>
                     <label for="authKey" class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
@@ -18,6 +23,7 @@
                         </svg>
                         Authentication Key (WIF or HEX)
                     </label>
+
                     <input
                         id="authKey"
                         type="password"
@@ -27,6 +33,7 @@
                         @input="emitUpdate"
                     />
                 </div>
+
                 <div>
                     <label for="transferKey" class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                         <svg class="w-5 h-5 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -34,6 +41,7 @@
                         </svg>
                         Transfer Key (WIF or HEX)
                     </label>
+
                     <input
                         id="transferKey"
                         type="password"
@@ -43,6 +51,7 @@
                         @input="emitUpdate"
                     />
                 </div>
+
                 <div>
                     <label for="encryptionKey" class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                         <svg class="w-5 h-5 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,6 +59,7 @@
                         </svg>
                         Encryption Key (WIF or HEX)
                     </label>
+
                     <input
                         id="encryptionKey"
                         type="password"
@@ -59,6 +69,7 @@
                         @input="emitUpdate"
                     />
                 </div>
+
                 <button
                     @click.prevent="$emit('discover-identity')"
                     :disabled="!hasAtLeastOneKey || isDiscovering"
@@ -72,12 +83,14 @@
                 </button>
             </div>
         </div>
+
         <!-- Step 2: Show Discovered Identity -->
         <div v-if="discoveredIdentity" class="space-y-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
             <div class="flex items-center gap-2">
                 <div class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold">2</div>
                 <h3 class="font-bold text-emerald-800 dark:text-emerald-300">Discovered Identity</h3>
             </div>
+
             <div>
                 <label class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
                     <svg class="w-5 h-5 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,6 +98,7 @@
                     </svg>
                     Identity Details
                 </label>
+
                 <div class="space-y-3">
                     <div class="flex items-center gap-2">
                         <span class="text-slate-500 dark:text-slate-400 font-medium min-w-[120px]">Identity ID:</span>
@@ -97,26 +111,31 @@
                             </svg>
                         </button>
                     </div>
+
                     <div class="flex items-center gap-2">
                         <span class="text-slate-500 dark:text-slate-400 font-medium min-w-[120px]">Balance:</span>
                         <span class="text-emerald-600 dark:text-emerald-400 font-bold">
                             {{ formatBalance(discoveredIdentity.balance?.toString() || '0') }} Dash
                         </span>
                     </div>
+
                     <div class="flex items-center gap-2">
                         <span class="text-slate-500 dark:text-slate-400 font-medium min-w-[120px]">Revision:</span>
                         <span class="text-slate-700 dark:text-slate-300">{{ discoveredIdentity.revision }}</span>
                     </div>
+
                     <div class="flex items-center gap-2">
                         <span class="text-slate-500 dark:text-slate-400 font-medium min-w-[120px]">Public Keys:</span>
                         <span class="text-slate-700 dark:text-slate-300">{{ discoveredIdentity.publicKeys?.length || 0 }} found</span>
                     </div>
+
                     <div v-if="discoveredIdentity.dpnsUsername" class="flex items-center gap-2">
                         <span class="text-slate-500 dark:text-slate-400 font-medium min-w-[120px]">DPNS Name:</span>
                         <span class="text-blue-600 dark:text-blue-400 font-medium">{{ discoveredIdentity.dpnsUsername }}</span>
                     </div>
                 </div>
             </div>
+
             <div class="pt-2">
                 <button
                     @click.prevent="$emit('use-discovered-identity')"
@@ -129,17 +148,23 @@
                 </button>
             </div>
         </div>
+
         <!-- Or manually enter Identity ID -->
         <div v-if="showManualIdentity" class="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <div class="w-6 h-6 rounded-full bg-slate-500 text-white flex items-center justify-center text-xs font-bold">2</div>
-                    <h3 class="font-bold text-slate-700 dark:text-slate-300">Enter Identity Manually</h3>
+
+                    <h3 class="font-bold text-slate-700 dark:text-slate-300">
+                        Enter Identity Manually
+                    </h3>
                 </div>
+
                 <button @click="toggleManualIdentity" class="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
                     Cancel
                 </button>
             </div>
+
             <div>
                 <label for="manualIdentityId" class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                     <svg class="w-5 h-5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,6 +172,7 @@
                     </svg>
                     Identity ID or DPNS Name
                 </label>
+
                 <input
                     id="manualIdentityId"
                     type="text"
@@ -156,6 +182,7 @@
                     @input="emitUpdate"
                 />
             </div>
+
             <div class="pt-2">
                 <button
                     @click.prevent="$emit('use-manual-identity')"
@@ -169,6 +196,7 @@
                 </button>
             </div>
         </div>
+
         <!-- Or manually specify identity -->
         <div v-if="!discoveredIdentity && !showManualIdentity" class="text-center">
             <button
@@ -184,6 +212,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import type { DiscoveredIdentity } from '@/types'
+
 const props = defineProps<{
     authKey: string
     transferKey: string
@@ -191,6 +220,7 @@ const props = defineProps<{
     discoveredIdentity?: DiscoveredIdentity | null
     manualIdentityId: string
 }>()
+
 const emit = defineEmits<{
     (e: 'update:authKey', value: string): void
     (e: 'update:transferKey', value: string): void
@@ -201,6 +231,7 @@ const emit = defineEmits<{
     (e: 'use-discovered-identity'): void
     (e: 'use-manual-identity'): void
 }>()
+
 const authKey = ref(props.authKey)
 const transferKey = ref(props.transferKey)
 const encryptionKey = ref(props.encryptionKey)
@@ -212,21 +243,27 @@ const hasAtLeastOneKey = computed(() => {
            transferKey.value.trim() !== '' ||
            encryptionKey.value.trim() !== ''
 })
+
 watch(authKey, (value) => {
     emit('update:authKey', value)
 })
+
 watch(transferKey, (value) => {
     emit('update:transferKey', value)
 })
+
 watch(encryptionKey, (value) => {
     emit('update:encryptionKey', value)
 })
+
 watch(manualIdentityId, (value) => {
     emit('update:manualIdentityId', value)
 })
+
 const toggleManualIdentity = () => {
     showManualIdentity.value = !showManualIdentity.value
 }
+
 const emitUpdate = () => {
     // Trigger parent updates when any field changes
     emit('update:authKey', authKey.value)
@@ -234,12 +271,14 @@ const emitUpdate = () => {
     emit('update:encryptionKey', encryptionKey.value)
     emit('update:manualIdentityId', manualIdentityId.value)
 }
+
 const formatBalance = (balance: string): string => {
     if (!balance) return '0.00000000'
     const bigIntBalance = BigInt(balance)
     const dashBalance = Number(bigIntBalance) / 100000000
     return dashBalance.toFixed(8)
 }
+
 const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
         .then(() => {
