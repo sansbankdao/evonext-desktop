@@ -44,6 +44,37 @@ export const usePrivateKeyStore = defineStore('connect.privateKey', () => {
         error.value = null
     }
 
+    // ADD THESE 2 FUNCTIONS:
+    const initialize = () => {
+        // Initialize store from localStorage or other persistent storage
+        try {
+            const savedKey = localStorage.getItem('connect_private_key')
+            const savedId = localStorage.getItem('connect_manual_identity_id')
+            if (savedKey) {
+                inputKey.value = savedKey
+            }
+            if (savedId) {
+                manualIdentityId.value = savedId
+            }
+        } catch (e) {
+            // If parsing fails, use defaults
+        }
+    }
+
+    const cleanup = () => {
+        // Clean up resources - save to localStorage
+        try {
+            if (inputKey.value) {
+                localStorage.setItem('connect_private_key', inputKey.value)
+            }
+            if (manualIdentityId.value) {
+                localStorage.setItem('connect_manual_identity_id', manualIdentityId.value)
+            }
+        } catch (e) {
+            // Ignore storage errors
+        }
+    }
+
     // Watch the debounced key for auto-discovery
     watch(() => debouncedKey.value, (newKey) => {
         if (newKey && newKey.trim()) {
@@ -66,6 +97,8 @@ export const usePrivateKeyStore = defineStore('connect.privateKey', () => {
         // Actions
         discover,
         setManualId,
-        reset
+        reset,
+        initialize,  // ADDED
+        cleanup      // ADDED
     }
 })
