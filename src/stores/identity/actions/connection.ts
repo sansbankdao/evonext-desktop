@@ -102,8 +102,8 @@ export const connectionActions = () => ({
 
                                                 await invoke('save_private_keys', {
                                                     network,
-                                                    identity_id: identityId,
-                                                    private_keys: updatedKeys
+                                                    identityId: identityId, // CAMEL CASE
+                                                    privateKeys: updatedKeys // CAMEL CASE
                                                 })
                                             } catch (updateErr) {
                                                 log('warn', 'Failed to update public keys in storage:', updateErr)
@@ -117,7 +117,10 @@ export const connectionActions = () => ({
                                         const foundId = result.success && result.data ? result.data.identityId : 'none'
                                         log('warn', `Stored keys for ${identityId} do not match found identity ${foundId}. Clearing.`)
                                         try {
-                                            await invoke('delete_identity_keys', { network, identity_id: identityId })
+                                            await invoke('delete_identity_keys', {
+                                                network,
+                                                identityId: identityId // CAMEL CASE
+                                            })
                                         } catch (clearErr) {
                                             log('error', 'Failed to clear invalid identity keys:', clearErr)
                                         }
@@ -174,18 +177,17 @@ export const connectionActions = () => ({
                 const mnemonicPayload: IMnemonicPayload = { seed_phrase: seedPhrase }
                 await invoke('save_mnemonic', {
                     network,
-                    mnemonic: mnemonicPayload
+                    payload: mnemonicPayload // CAMEL CASE
                 })
 
                 // Save keys using the SINGLE KEY format for backward compatibility
-                // const now = new Date().toISOString()
                 await invoke('save_single_identity_keys', {
                     network,
-                    identity_id: targetId,
-                    auth_key: authWIF,
-                    transfer_key: transferWIF,
-                    encryption_key: encWIF,
-                    seed_phrase: seedPhrase
+                    identityId: targetId, // CAMEL CASE
+                    authKey: authWIF, // CAMEL CASE
+                    transferKey: transferWIF, // CAMEL CASE
+                    encryptionKey: encWIF, // CAMEL CASE
+                    seedPhrase: seedPhrase // CAMEL CASE
                 })
 
                 // Update Store State
@@ -243,14 +245,13 @@ export const connectionActions = () => ({
 
                 // For single key, we need to detect its purpose
                 // For now, assume it's an auth key (purpose 0) and use single key format
-                // const now = new Date().toISOString()
                 await invoke('save_single_identity_keys', {
                     network,
-                    identity_id: trimmedId,
-                    auth_key: privateKey,
-                    transfer_key: "", // Empty for single key mode
-                    encryption_key: "", // Empty for single key mode
-                    seed_phrase: null // No seed phrase for single key
+                    identityId: trimmedId, // CAMEL CASE
+                    authKey: privateKey, // CAMEL CASE
+                    transferKey: "", // CAMEL CASE - Empty for single key mode
+                    encryptionKey: "", // CAMEL CASE - Empty for single key mode
+                    seedPhrase: null // CAMEL CASE - No seed phrase for single key
                 })
 
                 this.username = trimmedId
