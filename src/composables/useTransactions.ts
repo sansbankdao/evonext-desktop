@@ -3,19 +3,9 @@ import { computed, ref } from 'vue'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 import { usePlatform } from './usePlatform'
 import { useKeyManagement } from './useKeyManagement'
-import { useBalances } from './useBalances' // For fromSatoshi reuse
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
 import { MIN_CREDIT_TRANSFER } from '@/constants'
-// import type {
-//     SendCreditParams,
-//     SendTokenParams,
-//     TransactionResult,
-//     ITxSuccess,
-//     ITxError,
-//     Transaction,
-//     TokenTransition
-// } from '@/types'
 import type {
     ITransaction,
     TokenTransition
@@ -47,18 +37,37 @@ interface ITxError {
     message: string
     suggestions?: string[]
 }
-
 const EXPLORER_API_URL = 'https://platform-explorer.pshenmic.dev'
 export function useTransactions() {
     const platform = usePlatform()
     const keys = useKeyManagement()
-    const balances = useBalances()
     const loading = ref(false)
     const error = ref<string | null>(null)
     const transactions = ref<ITransaction[]>([])
     const tokenTransitions = ref<TokenTransition[]>([])
     /**
-     * Transaction fetching (merged from libs/getTransactions.ts)
+     * Formatting utils
+     */
+    const atomicToDash = (atomic: bigint | number): number => {
+        const val = typeof atomic === 'bigint' ? Number(atomic) : atomic
+        return val / 100000000
+    }
+    const formatDashAmount = (atomic: bigint | number, decimals: number = 8): string => {
+        const dash = atomicToDash(atomic)
+        return dash.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: decimals
+        })
+    }
+    const formatDate = (timestamp: number): string => {
+        return new Date(timestamp).toLocaleString()
+    }
+    const shortTxid = (txid: string, length: number = 16): string => {
+        if (!txid) return ''
+        return txid.slice(0, length / 2) + '...' + txid.slice(-length / 2)
+    }
+    /**
+     * Transaction fetching
      */
     const fetchIdentityTransfers = async (
         identityId: string,
@@ -67,7 +76,6 @@ export function useTransactions() {
         return ErrorBoundary.wrap(async () => {
             loading.value = true
             error.value = null
-            // SDK init kept to ensure platform readiness, though not used for REST call
             await platform.getSDK()
             log('info',`Fetching transfers for ${identityId}`, { limit })
             try {
@@ -75,14 +83,11 @@ export function useTransactions() {
                 if (!response.ok) throw new Error(`Explorer API error: ${response.statusText}`)
                 const data = await response.json()
                 const resultSet = data.resultSet || []
-                // Map explorer results to ITransaction
                 transactions.value = resultSet
                     .filter((t: any) => t.type === 'IDENTITY_CREDIT_TRANSFER')
                     .map((t: any) => ({
                         type: 'credit',
-                        // Note: actual amount and recipient are encoded in t.data (Base64)
-                        // Without decoding the state transition, we use placeholders:
-                        amount: BigInt(0),
+                        amount: BigInt(0), // Placeholder
                         recipient: 'Unknown',
                         timestamp: new Date(t.timestamp).getTime(),
                         confirmations: t.status === 'SUCCESS' ? 1 : 0,
@@ -116,13 +121,11 @@ export function useTransactions() {
                 if (!response.ok) throw new Error(`Explorer API error: ${response.statusText}`)
                 const data = await response.json()
                 const resultSet = data.resultSet || []
-                // Filter for BATCH transactions of type TOKEN_TRANSFER
                 tokenTransitions.value = resultSet
                     .filter((t: any) => t.type === 'BATCH' && t.batchType === 'TOKEN_TRANSFER')
                     .map((tt: any) => ({
-                        tokenId: tokenId, // Assumed from context
+                        tokenId: tokenId,
                         type: 'transfer',
-                        // Note: actual amount and details are encoded in tt.data (Base64)
                         amount: BigInt(0),
                         recipient: 'Unknown',
                         sender: identityId,
@@ -138,39 +141,18 @@ export function useTransactions() {
         }, 'FETCH_TOKEN_TRANSITIONS_FAILED')
     }
     /**
-     * Formatting utils (merged from libs/getTransactions.ts)
-     */
-    const atomicToDash = (atomic: bigint | number): number => {
-        return balances.fromSatoshi(atomic) // Reuse satoshi utils
-    }
-    const formatDashAmount = (atomic: bigint | number, decimals: number = 8): string => {
-        const dash = atomicToDash(atomic)
-        return dash.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: decimals
-        })
-    }
-    const formatDate = (timestamp: number): string => {
-        return new Date(timestamp).toLocaleString()
-    }
-    const shortTxid = (txid: string, length: number = 16): string => {
-        if (!txid) return ''
-        return txid.slice(0, length / 2) + '...' + txid.slice(-length / 2)
-    }
-    /**
-     * Send operations (existing)
+     * Send operations
      */
     const sendCredits = async (params: SendCreditParams): Promise<TransactionResult> => {
         loading.value = true
         error.value = null
         try {
-            // Validate minimum credit transfer amount
             if (params.credits < MIN_CREDIT_TRANSFER) {
                 return {
                     success: false,
                     error: {
                         code: 400,
-                        message: `Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`,
+                        message:`Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`,
                         suggestions: ['Increase transfer amount to meet minimum requirements']
                     } as ITxError
                 }
@@ -191,12 +173,10 @@ export function useTransactions() {
             }
             const stateTransition = sdk.identities.createStateTransition('creditTransfer', payload)
             const identityPublicKeys = identity.getPublicKeys()
-            // Find the TRANSFER key (purpose=1 or purpose=3)
             let pubKey = identityPublicKeys.find(key => {
                 const purpose = typeof key.purpose === 'string' ? parseInt(key.purpose) : key.purpose
                 return purpose === 1 || purpose === 3
             })
-            // Fallback to key at index 3 if no TRANSFER key found
             if (!pubKey && identityPublicKeys.length > 3) {
                 pubKey = identityPublicKeys[3]
             }
@@ -207,7 +187,7 @@ export function useTransactions() {
             await sdk.stateTransitions.broadcast(stateTransition)
             await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
             const hash = stateTransition.hash(false)
-            console.log('info', `Credit transfer successful. Hash: ${hash}`)
+            console.log('info',`Credit transfer successful. Hash: ${hash}`)
             return {
                 success: true,
                 data: { txid: hash } as ITxSuccess
@@ -251,12 +231,10 @@ export function useTransactions() {
             const privKey = PrivateKeyWASM.fromWIF(transferWif)
             const identity = await sdk.identities.getIdentityByIdentifier(params.identityId)
             const identityPublicKeys = identity.getPublicKeys()
-            // Find the TRANSFER key (purpose=1 or purpose=3)
             let pubKey = identityPublicKeys.find(key => {
                 const purpose = typeof key.purpose === 'string' ? parseInt(key.purpose) : key.purpose
                 return purpose === 1 || purpose === 3
             })
-            // Fallback to key at index 3 if no TRANSFER key found
             if (!pubKey && identityPublicKeys.length > 3) {
                 pubKey = identityPublicKeys[3]
             }
@@ -267,7 +245,7 @@ export function useTransactions() {
             await sdk.stateTransitions.broadcast(stateTransition)
             await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
             const hash = stateTransition.hash(false)
-            console.log('info', `Token transfer successful. Hash: ${hash}, Token: ${params.tokenId}`)
+            console.log('info',`Token transfer successful. Hash: ${hash}, Token: ${params.tokenId}`)
             return {
                 success: true,
                 data: { txid: hash } as ITxSuccess
@@ -318,20 +296,16 @@ export function useTransactions() {
         return await sendToken(params)
     }
     return {
-        // State
         loading: computed(() => loading.value),
         error: computed(() => error.value),
         transactions: computed(() => transactions.value),
         tokenTransitions: computed(() => tokenTransitions.value),
-        // Fetching (merged)
         fetchIdentityTransfers,
         fetchTokenTransitions,
-        // Formatting (merged)
         atomicToDash,
         formatDashAmount,
         formatDate,
         shortTxid,
-        // Send operations
         sendCredits,
         sendToken,
         sendCredit,
