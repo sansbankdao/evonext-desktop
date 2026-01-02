@@ -10,6 +10,7 @@ export interface IWalletState {
   balanceChange: number | null
   isLoading: boolean
 }
+
 export const useWalletStore = defineStore('wallet', {
     state: (): IWalletState => ({
         user: null,
@@ -39,10 +40,10 @@ export const useWalletStore = defineStore('wallet', {
             const { refreshBalances } = await import('./actions/index')
             await refreshBalances.call(this)
         },
-        // Added missing action
-        async getTokenBalance(identityId: string, contractId: string) {
-            const { getTokenBalance } = await import('./actions/index')
-            return await getTokenBalance.call(this, identityId, contractId)
+        // FIXED: Delegates to actions/api to break circular dependency
+        async getTokenBalance(identityId: string, contractId: string): Promise<bigint> {
+            const { fetchTokenBalance } = await import('./actions/api')
+            return await fetchTokenBalance(identityId, contractId)
         },
         async init(user: IUser) {
             this.user = user

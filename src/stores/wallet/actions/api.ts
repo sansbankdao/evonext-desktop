@@ -26,8 +26,6 @@ export const fetchIdentityTransfers = async (
         // FIX: Use 'data' or 'result' instead of 'resultSet'
         // If 'data' is the array directly, return it.
         // If 'data' is an object with a 'result' property, access that.
-        // Assuming standard API structure based on ApiResponse definition:
-        // type ApiResponse = { result: T[] } | T[]
         if (Array.isArray(data)) {
             return data
         }
@@ -57,4 +55,34 @@ export const fetchTokenTransitions = async (
         }
         return (data as any).result || []
     }, 'FETCH_TOKEN_TRANSITIONS_FAILED')
+}
+
+/**
+ * Fetches the balance for a specific token contract owned by an identity
+ *
+ * This function queries the API for the raw balance. Ensure the decimals
+ * are handled correctly by the caller based on the Token's specific configuration.
+ */
+export const fetchTokenBalance = async (
+    identityId: string,
+    contractId: string,
+): Promise<bigint> => {
+    return ErrorBoundary.wrap(async () => {
+        const apiEndpoint = getPlatformEndpoint()
+        // Note: The specific endpoint structure for token balance might vary.
+        // This assumes a generic pattern or known structure from the platform.
+        // If the API returns a JSON with 'balance' field (string or number), we convert to BigInt.
+        const response = await fetch(
+            `${apiEndpoint}/identity/${identityId}/tokens/${contractId}/balance`
+        )
+
+        if (!response.ok) {
+            throw new NetworkError(`Failed to fetch balance for ${contractId}: ${response.status}`)
+        }
+
+        const data = await response.json()
+        const balanceStr = data.balance || data
+
+        return BigInt(balanceStr)
+    }, 'FETCH_TOKEN_BALANCE_FAILED')
 }
