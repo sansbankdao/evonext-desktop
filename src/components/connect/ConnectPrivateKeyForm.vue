@@ -91,7 +91,7 @@
                         <code class="text-sm font-mono bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded truncate flex-1">
                             {{ discoveredIdentity.identityId }}
                         </code>
-                        <button @click="copyToClipboard(discoveredIdentity.identityId)" class="ml-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
+                        <button @click="copyToClipboard(discoveredIdentity.identityId!)" class="ml-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                             </svg>
@@ -100,7 +100,7 @@
                     <div class="flex items-center gap-2">
                         <span class="text-slate-500 dark:text-slate-400 font-medium min-w-[120px]">Balance:</span>
                         <span class="text-emerald-600 dark:text-emerald-400 font-bold">
-                            {{ formatBalance(discoveredIdentity.balance) }} Dash
+                            {{ formatBalance(discoveredIdentity.balance?.toString() || '0') }} Dash
                         </span>
                     </div>
                     <div class="flex items-center gap-2">

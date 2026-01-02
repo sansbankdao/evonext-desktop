@@ -86,7 +86,7 @@ export interface DiscoveredIdentity {
     identityId?: string;
     identityIdx: number;
     publicKeys: IPublicKey[];
-    balance?: string;
+    balance?: number | string;
     username?: string;
     displayName?: string;
     avatarUrl?: string;
