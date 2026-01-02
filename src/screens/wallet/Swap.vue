@@ -16,7 +16,7 @@
                 <div class="flex justify-between items-center mb-1">
                     <span class="text-sm text-slate-600 dark:text-slate-400">You Pay</span>
                     <span class="text-sm text-slate-600 dark:text-slate-400">
-                        Balance: {{ fromAsset?.amount.toLocaleString() ?? 0 }}
+                        Balance: {{ fromAsset?.balance.toLocaleString() ?? 0 }}
                     </span>
                 </div>
                 <div class="flex items-center gap-4">
@@ -28,8 +28,8 @@
                         class="w-full bg-transparent text-2xl text-slate-900 dark:text-slate-100 focus:outline-none"
                     />
                     <select v-model="fromAssetTicker" class="bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-2 text-slate-900 dark:text-slate-100 font-semibold">
-                        <option v-for="asset in Wallet.assets" :key="asset.ticker" :value="asset.ticker">
-                            {{ asset.ticker }}
+                        <option v-for="asset in Wallet.assets" :key="asset.symbol" :value="asset.symbol">
+                            {{ asset.symbol }}
                         </option>
                     </select>
                 </div>
@@ -49,7 +49,7 @@
                 <div class="flex justify-between items-center mb-1">
                     <span class="text-sm text-slate-600 dark:text-slate-400">You Receive</span>
                      <span class="text-sm text-slate-600 dark:text-slate-400">
-                        Balance: {{ toAsset?.amount.toLocaleString() ?? 0 }}
+                        Balance: {{ toAsset?.balance.toLocaleString() ?? 0 }}
                     </span>
                 </div>
                 <div class="flex items-center gap-4">
@@ -61,8 +61,8 @@
                         class="w-full bg-transparent text-2xl text-slate-900 dark:text-slate-100 focus:outline-none"
                     />
                     <select v-model="toAssetTicker" class="bg-slate-100 dark:bg-slate-700 border-none rounded-lg p-2 text-slate-900 dark:text-slate-100 font-semibold">
-                        <option v-for="asset in availableToAssets" :key="asset.ticker" :value="asset.ticker">
-                            {{ asset.ticker }}
+                        <option v-for="asset in availableToAssets" :key="asset.symbol" :value="asset.symbol">
+                            {{ asset.symbol }}
                         </option>
                     </select>
                 </div>
@@ -107,8 +107,8 @@ const rates: Record<string, number> = {
 }
 
 // --- Component State ---
-const fromAssetTicker = ref(Wallet.assets[0]?.ticker ?? '')
-const toAssetTicker = ref(Wallet.assets[1]?.ticker ?? '')
+const fromAssetTicker = ref(Wallet.assets[0]?.symbol ?? '')
+const toAssetTicker = ref(Wallet.assets[1]?.symbol ?? '')
 const fromAmount = ref<number | null>(null)
 const toAmount = ref<number | null>(null)
 const isSubmitting = ref(false)
@@ -118,7 +118,7 @@ const error = ref<string | null>(null)
 const fromAsset = computed(() => Wallet.getAssetByTicker(fromAssetTicker.value))
 const toAsset = computed(() => Wallet.getAssetByTicker(toAssetTicker.value))
 
-const availableToAssets = computed(() => Wallet.assets.filter(a => a.ticker !== fromAssetTicker.value))
+const availableToAssets = computed(() => Wallet.assets.filter(a => a.symbol !== fromAssetTicker.value))
 
 const exchangeRate = computed(() => {
     if (!fromAssetTicker.value || !toAssetTicker.value) return 0
@@ -132,7 +132,7 @@ const isFormValid = computed(() => {
 // --- Watchers for asset selection ---
 watch(fromAssetTicker, (newTicker) => {
     if (newTicker === toAssetTicker.value) {
-        toAssetTicker.value = availableToAssets.value[0]?.ticker ?? ''
+        toAssetTicker.value = availableToAssets.value[0]?.symbol ?? ''
     }
     calculateToAmount()
 })
@@ -161,8 +161,8 @@ const calculateFromAmount = () => {
 }
 
 const validateBalance = () => {
-    if (fromAsset.value && fromAmount.value && fromAmount.value > fromAsset.value.amount) {
-        error.value = `Insufficient ${fromAsset.value.ticker} balance.`
+    if (fromAsset.value && fromAmount.value && fromAmount.value > fromAsset.value.balance) {
+        error.value = `Insufficient ${fromAsset.value.symbol} balance.`
     } else {
         error.value = null
     }
