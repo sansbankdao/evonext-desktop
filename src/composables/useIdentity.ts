@@ -28,7 +28,7 @@ export function useIdentity() {
     const authPublicKey = computed(() => store.publicKeys.find((k: IPublicKey) => k.purpose === 0))
     const displayName = computed(() => store.displayName || store.identityId || 'Guest')
     const hasTransferKeyComputed = computed(hasTransferKey)
-    async function getIdentityBalance(network: string, identityId: string): Promise<string> {
+    async function getIdentityBalance(_network: string, identityId: string): Promise<string> {
         try {
             const sdk = await getSDK() as any
             const identity = await sdk.identities.get(identityId)
@@ -45,7 +45,7 @@ export function useIdentity() {
         }
     }
     async function connect(
-        method: 'seed' | 'key',
+        _method: 'seed' | 'key',
         payload: { seedPhrase?: string; privateKey?: string; discoveredId?: string }
     ): Promise<ConnectionResult> {
         store.$patch({ isConnecting: true, connectionError: null })
@@ -181,7 +181,7 @@ export function useIdentity() {
                 const publicKeys = identity.getPublicKeys()
                 log('debug', `Got ${publicKeys.length} public keys`)
                 const revision = identity.revision || BigInt(0)
-                const formattedKeys = publicKeys.map((key: any, index: number) => ({
+                const formattedKeys = publicKeys.map((key: any, _index: number) => ({
                     type: key.keyType || 'ECDSA_SECP256K1',
                     purpose: key.purposeNumber || 0,
                     securityLevel: key.securityLevelNumber || 3,
