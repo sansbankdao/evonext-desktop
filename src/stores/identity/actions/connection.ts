@@ -242,7 +242,7 @@ export const connectionActions = () => ({
                 if (this.identity) {
                     this.identity.publicKeys = discovered.publicKeys || []
                 }
-                this.balance = discovered.balance || null
+                this.balance = discovered.balance?.toString() || null
                 this.revision = Number(discovered.revision) || null
                 if (typeof this.fetchBalance === 'function') {
                     await this.fetchBalance()

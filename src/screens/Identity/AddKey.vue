@@ -87,12 +87,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-// import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-// import Header from '@/components/Header.vue'
-// import AddKeyIdentityList from '@/components/addKey/IdentityList.vue'
-// import AddKeyIdentityDetail from '@/components/addKey/IdentityDetail.vue'
-// import AddKeyKeyForm from '@/components/addKey/KeyForm.vue'
+// Restored imports to match component usage in template
+import Header from '@/components/Header.vue'
+import AddKeyIdentityList from '@/components/addKey/IdentityList.vue'
+import AddKeyIdentityDetail from '@/components/addKey/IdentityDetail.vue'
+import AddKeyKeyForm from '@/components/addKey/KeyForm.vue'
+
 import { useKeyUtils } from '@/composables/useKeyUtils'
 import { useKeyManagement } from '@/composables/useKeyManagement'
 import { mnemonicManager } from '@/composables/useMnemonic'
@@ -109,28 +110,22 @@ const identities = ref<IdentityWithKeys[]>([])
 const selectedIdentity = ref<IdentityWithKeys | null>(null)
 
 const keyType = ref<'ECDSA_SECP256K1' | 'ECDSA_HASH160'>('ECDSA_SECP256K1')
-// const securityLevel = ref<'MASTER' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'>('CRITICAL')
+// Restored securityLevel
+const securityLevel = ref<'MASTER' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'>('CRITICAL')
 const confirmed = ref(false)
 const isAdding = ref(false)
 
-// Computed form state for v-model
-// const formState = computed(() => ({
-//     keyType: keyType.value,
-//     securityLevel: securityLevel.value,
-//     confirmed: confirmed.value
-// }))
-
 // Parse security level to number
-// const parseSecurityLevel = (level: string): 0 | 1 | 2 | 3 | 4 => {
-//     switch(level) {
-//         case 'MASTER': return 0
-//         case 'CRITICAL': return 1
-//         case 'HIGH': return 2
-//         case 'MEDIUM': return 3
-//         case 'LOW': return 4
-//         default: return 1
-//     }
-// }
+const parseSecurityLevel = (level: string): 0 | 1 | 2 | 3 | 4 => {
+    switch(level) {
+        case 'MASTER': return 0
+        case 'CRITICAL': return 1
+        case 'HIGH': return 2
+        case 'MEDIUM': return 3
+        case 'LOW': return 4
+        default: return 1
+    }
+}
 
 // Load identities
 const loadIdentities = async () => {
@@ -182,13 +177,15 @@ const loadIdentities = async () => {
     }
 }
 
-// const setSelectedIdentity = (identity: IdentityWithKeys) => {
-//     selectedIdentity.value = identity
-// }
+// Restored helper function
+const setSelectedIdentity = (identity: IdentityWithKeys) => {
+    selectedIdentity.value = identity
+}
 
-// const hasTransferKey = (identity: IdentityWithKeys): boolean => {
-//     return checkTransferKey(identity.publicKeys)
-// }
+// Restored wrapper function
+const hasTransferKey = (identity: IdentityWithKeys): boolean => {
+    return checkTransferKey(identity.publicKeys)
+}
 
 const showNotification = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
     const event = new CustomEvent('notification', { detail: { type, message, duration: 3000 } })
@@ -210,7 +207,8 @@ const addTransferKey = async () => {
             identity.identityIdx,
             identity.revision || BigInt(0),
             (identity.publicKeys || []),
-            keyType.value
+            keyType.value,
+            parseSecurityLevel(securityLevel.value) // Added securityLevel argument
         )
 
         if (result.success) {

@@ -3,11 +3,12 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useWalletStore } from '@/stores/wallet'
 import { usePlatform } from './usePlatform'
-import { useBalances } from './useBalances'
+// import { useBalances } from './useBalances'
 import { useTransactions } from './useTransactions'
 import { useKeyManagement } from './useKeyManagement'
 import { useNetwork } from './useNetwork'
-import type { BalanceResult, ITransactionResult } from '@/types'
+import type { ITransactionResult } from '@/types'
+// import type { BalanceResult, ITransactionResult } from '@/types'
 
 // Local type definitions for missing exports
 interface SendCreditParams {
@@ -32,7 +33,7 @@ export function useWallet() {
     const store = useWalletStore()
     // Sub-composables
     const platform = usePlatform()
-    const balances = useBalances()
+    // const balances = useBalances()
     const transactions = useTransactions()
     const keys = useKeyManagement()
     const network = useNetwork()
@@ -60,15 +61,15 @@ export function useWallet() {
     }
 
     // Balance operations
-    const getBalances = async (identityId: string): Promise<BalanceResult> => {
-        return await balances.getBalances(identityId)
-    }
-    const getTokenBalance = async (identityId: string, tokenId: string): Promise<bigint> => {
-        return await balances.getTokenBalance(identityId, tokenId)
-    }
-    const hasSufficientBalance = async (identityId: string, requiredCredits: bigint): Promise<boolean> => {
-        return await balances.hasSufficientBalance(identityId, requiredCredits)
-    }
+    // const getBalances = async (identityId: string): Promise<BalanceResult> => {
+    //     return await balances.getBalances(identityId)
+    // }
+    // const getTokenBalance = async (identityId: string, tokenId: string): Promise<bigint> => {
+    //     return await balances.getTokenBalance(identityId, tokenId)
+    // }
+    // const hasSufficientBalance = async (identityId: string, requiredCredits: bigint): Promise<boolean> => {
+    //     return await balances.hasSufficientBalance(identityId, requiredCredits)
+    // }
 
     // Transaction operations
     const sendCredits = async (params: SendCreditParams): Promise<ITransactionResult> => {
@@ -174,9 +175,9 @@ export function useWallet() {
         stopPolling,
         clear: store.clear,
         // Core operations
-        getBalances,
-        getTokenBalance,
-        hasSufficientBalance,
+        // getBalances,
+        // getTokenBalance,
+        // hasSufficientBalance,
         sendCredits,
         sendToken,
         sendCredit,

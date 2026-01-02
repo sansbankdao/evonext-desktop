@@ -16,15 +16,15 @@ interface ProfileDocument {
     avatarFingerprint?: string
 }
 
-interface DPNSDocument {
-    label?: string
-    normalizedLabel?: string
-    normalizedParentDomainName?: string
-    records?: {
-        dashUniqueIdentityId?: string
-        dashAliasIdentityId?: string
-    }
-}
+// interface DPNSDocument {
+//     label?: string
+//     normalizedLabel?: string
+//     normalizedParentDomainName?: string
+//     records?: {
+//         dashUniqueIdentityId?: string
+//         dashAliasIdentityId?: string
+//     }
+// }
 
 /**
  * Get user information from ownerId with DPNS/profile data
@@ -92,8 +92,8 @@ export async function transformPostDocument(
         ownerId,
         author,
         content: doc.content || '',
-        createdAt: new Date(createdAtTimestamp),
-        updatedAt: new Date(updatedAtTimestamp),
+        createdAt: createdAtTimestamp,
+        updatedAt: updatedAtTimestamp,
         views: 0,
         likes: 0, // Will be fetched separately via stats
         remixes: 0,
