@@ -3,13 +3,16 @@
 import { KeyDerivationService } from '../keyDerivation.service'
 import { DAPIService } from './DAPIService'
 import { BaseDiscovery } from './BaseDiscovery'
+import { invoke } from '@tauri-apps/api/core' // ADD THIS import
+import { log } from '@/utils/env' // ADD THIS import
 import type { DiscoveredIdentity } from '@/types'
 import type {
     DiscoveryResult,
     DiscoveryOptions,
     KeyDerivationResult,
     QueryTrace,
-    ScanProgress
+    ScanProgress,
+    DerivedKeyInfo // ADD THIS import
 } from '../types'
 export interface SeedDiscoveryOptions {
     network: 'mainnet' | 'testnet'
@@ -31,6 +34,79 @@ export class SeedDiscovery extends BaseDiscovery {
             if (this.progressCallback) {
                 this.progressCallback(this.currentProgress)
             }
+        }
+    }
+    // NEW: Helper to save derived keys to Rust
+    private async saveDerivedKeysToStorage(
+        seedPhrase: string,
+        network: 'mainnet' | 'testnet',
+        identityIdx: number,
+        identityId: string,
+        publicKeys: any[]
+    ): Promise<boolean> {
+        try {
+            if (!identityId || !publicKeys || publicKeys.length === 0) {
+                log('warn', `Cannot save keys: missing identity ID or public keys for identity ${identityId}`)
+                return false
+            }
+            const now = new Date().toISOString()
+            const privateKeyEntries: any[] = []
+            for (let i = 0; i < publicKeys.length; i++) {
+                const publicKey = publicKeys[i]
+                const keyIndex = i
+
+                try {
+                    // Skip if we don't have required info
+                    if (publicKey.purpose === undefined || publicKey.securityLevel === undefined) {
+                        log('warn', `Skipping public key ${publicKey.id}: missing purpose or securityLevel`)
+                        continue
+                    }
+                    // Derive private key based on the public key's purpose and security level
+                    const derivationResult = await KeyDerivationService.getPrivateKeyWASM(
+                        seedPhrase,
+                        network,
+                        identityIdx,
+                        keyIndex
+                    )
+                    const privateKeyWIF = derivationResult.privateKey.WIF()
+                    const keyEntry = {
+                        identity_id: identityId,
+                        key_id: publicKey.id || 0,
+                        purpose: publicKey.purpose,
+                        security_level: publicKey.securityLevel || 0,
+                        key_type: publicKey.keyType || 'ecdsa',
+                        private_key: privateKeyWIF,
+                        public_key: publicKey.data || publicKey.dataB64 || '',
+                        derived_from_mnemonic: true,
+                        created_at: now,
+                        last_used: now
+                    }
+                    privateKeyEntries.push(keyEntry)
+                    log('info', `Derived key for identity ${identityId}:`, {
+                        purpose: publicKey.purpose,
+                        securityLevel: publicKey.securityLevel,
+                        keyId: publicKey.id
+                    })
+                } catch (deriveErr) {
+                    log('error', `Error deriving key ${publicKey.id} for identity ${identityId}:`, deriveErr)
+                }
+            }
+            if (privateKeyEntries.length > 0) {
+                // Save keys to Rust
+                await invoke('save_private_keys', {
+                    network,
+                    identity_id: identityId,
+                    private_keys: privateKeyEntries
+                })
+                log('info', `Saved ${privateKeyEntries.length} keys for identity ${identityId}`)
+                return true
+            } else {
+                log('warn', `No keys derived for identity ${identityId}`)
+                return false
+            }
+        } catch (err) {
+            log('error', `Failed to save derived keys for ${identityId}:`, err)
+            return false
         }
     }
     async discover(
@@ -138,7 +214,7 @@ export class SeedDiscovery extends BaseDiscovery {
                     }
                     if (uniqueResult.success && uniqueResult.data) {
                         // FIX: Pass identityIdx here
-                        await this.addIdentity(foundIdentities, uniqueResult.data, options.network, identityIdx)
+                        await this.addIdentity(foundIdentities, uniqueResult.data, options.network, identityIdx, seedPhrase) // MODIFIED
                         foundForThisIndex = true
                         // Update found count
                         if (this.currentProgress) {
@@ -167,7 +243,7 @@ export class SeedDiscovery extends BaseDiscovery {
                     }
                     if (nonUniqueResult.success && nonUniqueResult.data) {
                         // FIX: Pass identityIdx here
-                        await this.addIdentity(foundIdentities, nonUniqueResult.data, options.network, identityIdx)
+                        await this.addIdentity(foundIdentities, nonUniqueResult.data, options.network, identityIdx, seedPhrase) // MODIFIED
                         foundForThisIndex = true
                         // Update found count
                         if (this.currentProgress) {
@@ -238,23 +314,34 @@ export class SeedDiscovery extends BaseDiscovery {
             this.currentProgress = null
         }
     }
-    // FIX: Added identityIdx parameter
+    // MODIFIED: Added seedPhrase parameter
     private async addIdentity(
         list: DiscoveredIdentity[],
         data: any,
         network: 'mainnet'|'testnet',
-        identityIdx: number
+        identityIdx: number,
+        seedPhrase?: string // ADDED optional parameter
     ) {
         const id = data.identityId || data.id
         const dpnsUsername = await this.getDPNSUsernameFromData(data, network)
-        list.push({
+        const identity: DiscoveredIdentity = {
             identityId: id,
-            identityIdx: identityIdx, // FIX: Included required property
+            identityIdx: identityIdx,
             balance: this.formatBalance(data.balance),
             revision: data.revision || 0,
             publicKeys: data.publicKeys || [],
             dpnsUsername
-        })
+        }
+        list.push(identity)
+        // NEW: Save derived keys for this identity if seedPhrase is provided
+        if (seedPhrase && id && data.publicKeys && data.publicKeys.length > 0) {
+            try {
+                await this.saveDerivedKeysToStorage(seedPhrase, network, identityIdx, id, data.publicKeys)
+            } catch (saveErr) {
+                console.error(`[SeedDiscovery] Failed to save derived keys for identity ${id}:`, saveErr)
+                // Continue anyway - don't fail the whole discovery if key save fails
+            }
+        }
     }
     private async getDPNSUsernameFromData(data: any, network: 'mainnet' | 'testnet'): Promise<string | null> {
         if (data.dpnsUsername || data.username) return data.dpnsUsername || data.username
