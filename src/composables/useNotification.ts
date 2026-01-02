@@ -1,6 +1,6 @@
 // src/composables/useNotification.ts
 
-import { ref, reactive } from 'vue'
+import { reactive } from 'vue'
 
 export interface Notification {
     id: number

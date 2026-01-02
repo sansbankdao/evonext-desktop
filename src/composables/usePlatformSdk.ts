@@ -74,7 +74,7 @@ export function usePlatformSdk() {
         _isInitialized.value = false
     }
 
-    function switchNetwork(newNetwork: Network): void {
+    function switchNetwork(_newNetwork: Network): void {
         // Clear SDK for old network and update network
         manager.clearSDK(network.value as Network)
         _isInitialized.value = false

@@ -107,7 +107,7 @@ const router = useRouter()
 const Wallet = useWalletStore()
 const Settings = useSettingsStore()
 
-const darkMode = computed(() => Settings.theme === 'dark')
+const darkMode = computed(() => Settings.state.theme === 'dark')
 
 const copyButtonText = ref('Copy Address')
 

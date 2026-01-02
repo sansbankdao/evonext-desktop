@@ -3,7 +3,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { useDebounce } from '@/composables/useDebounce'
-import type { DiscoveredIdentity, ScanProgress } from '@/services/identity/types'
+import type { ScanProgress } from '@/services/identity/types'
+import type { DiscoveredIdentity } from '@/types'
 
 export const useSeedStore = defineStore('connect.seed', () => {
     const wordCount = ref<'12' | '24'>('12')
@@ -42,7 +43,7 @@ export const useSeedStore = defineStore('connect.seed', () => {
         ]
     }
 
-    const discover = async (inputPhrase: string) => {
+    const discover = async (_inputPhrase: string) => {
         if (!isFilled.value || isSearching.value) return
         isSearching.value = true
         discoveryError.value = null

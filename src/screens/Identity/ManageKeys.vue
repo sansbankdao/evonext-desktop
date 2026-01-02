@@ -303,12 +303,13 @@
 
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
+// import { useRoute, useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import { useIdentityStore } from '@/stores/identity'
 
 const route = useRoute()
-const router = useRouter()
+// const router = useRouter()
 const identityStore = useIdentityStore()
 
 // State

@@ -37,7 +37,7 @@
                         </div>
                         <div v-if="identityData.revision" class="text-sm text-emerald-700 dark:text-emerald-300">
                             Revision: {{ identityData.revision }}
-                            <span v-if="identityData.createdAt" class="ml-4">Updated: {{ formatDate(identityData.createdAt) }}</span>
+                            <span v-if="identityData.createdAt" class="ml-4">Updated: {{ formatDate(identityData.createdAt.toString()) }}</span>
                         </div>
                     </div>
                 </div>
