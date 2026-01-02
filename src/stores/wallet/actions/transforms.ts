@@ -34,7 +34,6 @@ export function createUpdatedAssets(
         // DASH (same as credits)
         {
             symbol: 'DASH',
-            // ticker: 'DASH', // Ensure ticker is in IAsset type if uncommenting
             name: 'Dash Coins',
             balance: dashBalance,
             usdValue: dashBalance * dashPrice,
@@ -54,7 +53,6 @@ export function createUpdatedAssets(
         // CREDITS (same as DASH balance, uses DASH price)
         {
             symbol: 'CREDITS',
-            // ticker: 'CREDITS', // Ensure ticker is in IAsset type if uncommenting
             name: 'Dash Credits',
             balance: creditsBalance,
             usdValue: creditsBalance * dashPrice,
@@ -74,7 +72,6 @@ export function createUpdatedAssets(
         // DUSD ($1.00 hardcoded as stablecoin)
         {
             symbol: 'DUSD',
-            // ticker: 'DUSD', // Ensure ticker is in IAsset type if uncommenting
             name: 'Dash USD',
             balance: dusdBalance,
             usdValue: dusdBalance * TOKEN_PRICES.DUSD,
@@ -94,7 +91,6 @@ export function createUpdatedAssets(
         // SANS ($0.16 hardcoded - updated per requirement)
         {
             symbol: 'SANS',
-            // ticker: 'SANS', // Ensure ticker is in IAsset type if uncommenting
             name: 'Sansnote',
             balance: sansBalance,
             usdValue: sansBalance * TOKEN_PRICES.SANS,

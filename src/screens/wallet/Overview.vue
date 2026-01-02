@@ -107,19 +107,19 @@
                 <div class="space-y-4">
                     <div
                         v-for="asset in Wallet.assets"
-                        :key="asset.ticker"
+                        :key="asset.symbol"
                         role="button"
                         tabindex="0"
-                        @click="router.push(`/wallet/asset/${asset.ticker}`)"
-                        @keydown.enter="router.push(`/wallet/asset/${asset.ticker}`)"
+                        @click="router.push(`/wallet/asset/${asset.symbol}`)"
+                        @keydown.enter="router.push(`/wallet/asset/${asset.symbol}`)"
                         class="flex items-center justify-between p-5 bg-slate-50/50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-2xl transition-all duration-300 ease-in-out border-2 border-slate-200/50 dark:border-slate-600 hover:shadow-xl hover:-translate-y-1 hover:border-slate-300 dark:hover:border-slate-500 cursor-pointer focus:outline-none focus:ring-4 focus:ring-indigo-400/30 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900 shadow-sm group"
                     >
                         <div class="flex items-center gap-4">
                             <div class="relative size-14 bg-white/80 dark:bg-slate-800/80 rounded-2xl p-3 flex items-center justify-center border-2 border-slate-200/50 dark:border-slate-600/50 group-hover:scale-105 group-hover:shadow-lg transition-all duration-300 shadow-md">
                                 <img
-                                    v-if="assetIconExists(asset.ticker.toLowerCase())"
-                                    :src="getIconSrc(asset.ticker)"
-                                    :alt="asset.ticker"
+                                    v-if="assetIconExists(asset.symbol.toLowerCase())"
+                                    :src="getIconSrc(asset.symbol)"
+                                    :alt="asset.symbol"
                                     class="size-9"
                                 />
                                 <svg v-else class="size-8 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,17 +129,17 @@
 
                             <div class="group">
                                 <p class="font-black text-xl text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200">{{ asset.name }}</p>
-                                <p class="text-base text-slate-600 dark:text-slate-400 font-mono font-bold tracking-wide">{{ asset.ticker }}</p>
+                                <p class="text-base text-slate-600 dark:text-slate-400 font-mono font-bold tracking-wide">{{ asset.symbol }}</p>
                             </div>
                         </div>
 
                         <div class="text-right space-y-1">
                             <p class="font-black text-2xl text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200">
-                                {{ asset.amount.toLocaleString() }} {{ asset.ticker }}
+                                {{ asset.balance.toLocaleString() }} {{ asset.symbol }}
                             </p>
 
                             <p class="text-lg text-slate-600 dark:text-slate-400 font-bold">
-                                {{ formatCurrency(asset.usdValue) }}
+                                {{ formatCurrency(asset.usdValue || 0) }}
                             </p>
                         </div>
                     </div>
@@ -262,9 +262,9 @@ const totalBalance = computed(() => {
     }
     // Fallback to mock data from wallet store
     return {
-        dash: Wallet.assets.find(a => a.ticker === 'DASH')?.amount || 0,
+        dash: Wallet.assets.find(a => a.symbol === 'DASH')?.balance || 0,
         usd: Wallet.totalUsdValue || 0,
-        credits: Wallet.assets.find(a => a.ticker === 'CREDITS')?.amount || 0,
+        credits: Wallet.assets.find(a => a.symbol === 'CREDITS')?.balance || 0,
         duffs: 0
     }
 })
@@ -286,8 +286,8 @@ const getStatusClasses = (status: string) => {
     }
 }
 
-const getIconSrc = (ticker: string) => {
-    const lower = ticker.toLowerCase()
+const getIconSrc = (symbol: string) => {
+    const lower = symbol.toLowerCase()
 
     if (lower === 'credits') {
         return '/icons/dash.svg'
@@ -296,8 +296,8 @@ const getIconSrc = (ticker: string) => {
     return `/icons/${lower}.svg`
 }
 
-const assetIconExists = (ticker: string) => {
-    const lower = ticker.toLowerCase()
+const assetIconExists = (symbol: string) => {
+    const lower = symbol.toLowerCase()
     const commonIcons = ['dash', 'sans', 'dusd']
 
     return commonIcons.includes(lower) || lower === 'credits'
@@ -322,9 +322,14 @@ onMounted(async () => {
 
         /* Validate (real?) identity ID. */
         if (realIdentityId) {
+            // FIX: Provide all required properties for IUser
             Wallet.user = {
-                name: Identity.username || 'Unknown',
-                address: realIdentityId  // ✅ This is "9EMDaGV3QwxrPfaMeuuCTLxtpYv9VFjwrBNSHVpGa3gG"
+                username: Identity.username || 'Unknown',
+                displayName: Identity.username || 'Unknown',
+                name: Identity.username || '',
+                address: realIdentityId,
+                avatar: '', // Required property, providing empty string
+                identityId: realIdentityId
             }
             console.log('✅ Setting wallet user with real identity ID:', realIdentityId)
 
