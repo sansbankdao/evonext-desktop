@@ -104,15 +104,19 @@ export interface IIdentityState {
     isConnecting: boolean
     lastConnected: number | null;
 
+    // Connection methods
+    connectWithSeed: (seedPhrase: string, network: string, targetId?: string, identityIndex?: number) => Promise<ConnectionResult>;
+    connectWithSingleKey: (privateKey: string, identityId: string, network: string) => Promise<ConnectionResult>;
+
+    // Storage methods
+    saveToStorage: (networkOverride?: 'mainnet' | 'testnet') => Promise<void>;
+    searchUserIdentities: (network: 'mainnet' | 'testnet') => Promise<DiscoveredIdentity[]>;
+
     // Optional methods called from actions
     clearStorage?: () => Promise<void>;
-    connectWithSeed?: (seedPhrase: string, network: string) => Promise<ConnectionResult>;
-    connectWithSingleKey?: (privateKey: string, identityId: string, network: string) => Promise<ConnectionResult>;
     fetchBalance?: () => Promise<void>;
     getGreeting?: () => string;
     loadFromStorage?: () => Promise<void>;
-    saveToStorage: (networkOverride?: 'mainnet' | 'testnet') => Promise<void>;
-    searchUserIdentities: (network: 'mainnet' | 'testnet') => Promise<DiscoveredIdentity[]>;
 }
 
 export interface ConnectionResult {

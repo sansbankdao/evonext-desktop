@@ -12,7 +12,7 @@ import type {
     KeyDerivationResult,
     QueryTrace,
     ScanProgress,
-    DerivedKeyInfo // ADD THIS import
+    // DerivedKeyInfo // ADD THIS import
 } from '../types'
 export interface SeedDiscoveryOptions {
     network: 'mainnet' | 'testnet'
