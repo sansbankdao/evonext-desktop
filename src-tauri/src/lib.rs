@@ -32,6 +32,7 @@ pub fn run() {
             commands::identity_commands::load_private_keys,
             commands::identity_commands::save_private_keys,
             commands::identity_commands::delete_private_keys,
+            commands::identity_commands::save_single_identity_keys,
 
             commands::identity_commands::load_identity_data,
             commands::identity_commands::save_identity_data,

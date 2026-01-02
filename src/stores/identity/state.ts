@@ -1,6 +1,5 @@
 // src/stores/identity/state.ts
-
-import type { IIdentityState } from '@/types/identity'
+import type { IIdentityState } from '@/types'
 
 export const useIdentityState = (): IIdentityState => ({
     username: null,
@@ -15,4 +14,15 @@ export const useIdentityState = (): IIdentityState => ({
     connectionError: null,
     premiumAccess: false,
     lastConnected: null,
+
+    // ADD THESE METHODS - they will be overridden by actions
+    async saveToStorage(_networkOverride?: 'mainnet' | 'testnet') {
+        // Default implementation - will be replaced by connectionActions
+        return Promise.resolve()
+    },
+
+    async searchUserIdentities(_network: 'mainnet' | 'testnet') {
+        // Default implementation - will be replaced by connectionActions
+        return Promise.resolve([])
+    }
 })

@@ -78,7 +78,7 @@ export interface DiscoveredIdentity {
     identityId?: string;
     identityIdx: number;
     publicKeys: IPublicKey[];
-    balance?: number | string;
+    balance?: number | string | null | undefined;
     username?: string;
     displayName?: string;
     avatarUrl?: string;
@@ -93,7 +93,7 @@ export interface IIdentityState {
     displayName: string | null;
 
     identity: DiscoveredIdentity | null;
-    balance: string | null;
+    balance: number | string | null | undefined;
     balanceBigInt?: bigint;
     dashBigInt?: bigint;
     publicKeys: IPublicKey[];
@@ -138,7 +138,7 @@ export interface IdentitySearchOptions {
 export interface IdentitySearchResult {
     identities?: IIdentity[];
     username?: string;
-    balance?: string;
+    balance?: number | string | null | undefined;
     publicKeys?: IPublicKey[];
     error?: string;
 }
