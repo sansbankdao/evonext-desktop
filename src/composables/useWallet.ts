@@ -3,12 +3,10 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useWalletStore } from '@/stores/wallet'
 import { usePlatform } from './usePlatform'
-// import { useBalances } from './useBalances'
 import { useTransactions } from './useTransactions'
 import { useKeyManagement } from './useKeyManagement'
 import { useNetwork } from './useNetwork'
 import type { ITransactionResult } from '@/types'
-// import type { BalanceResult, ITransactionResult } from '@/types'
 
 // Local type definitions for missing exports
 interface SendCreditParams {
@@ -31,16 +29,18 @@ interface SendTokenParams {
 export function useWallet() {
     // Store
     const store = useWalletStore()
+
     // Sub-composables
     const platform = usePlatform()
-    // const balances = useBalances()
     const transactions = useTransactions()
     const keys = useKeyManagement()
     const network = useNetwork()
+
     // State
     const isPolling = ref(false)
     const loading = ref(false)
     const error = ref<string | null>(null)
+
     let pollInterval: NodeJS.Timeout | undefined
     let refreshTimeout: NodeJS.Timeout | undefined
     let isRefreshing = false
@@ -61,23 +61,21 @@ export function useWallet() {
     }
 
     // Balance operations
-    // const getBalances = async (identityId: string): Promise<BalanceResult> => {
-    //     return await balances.getBalances(identityId)
-    // }
-    // const getTokenBalance = async (identityId: string, tokenId: string): Promise<bigint> => {
-    //     return await balances.getTokenBalance(identityId, tokenId)
-    // }
-    // const hasSufficientBalance = async (identityId: string, requiredCredits: bigint): Promise<boolean> => {
-    //     return await balances.hasSufficientBalance(identityId, requiredCredits)
-    // }
+    // Delegating to the store action which handles the API call
+    const getTokenBalance = async (identityId: string, contractId: string): Promise<bigint> => {
+        const balance = await store.getTokenBalance(identityId, contractId)
+        return BigInt(balance)
+    }
 
     // Transaction operations
     const sendCredits = async (params: SendCreditParams): Promise<ITransactionResult> => {
         return await transactions.sendCredits(params)
     }
+
     const sendToken = async (params: SendTokenParams): Promise<ITransactionResult> => {
         return await transactions.sendToken(params)
     }
+
     const sendCredit = async (
         identityId: string,
         identityIdx: number,
@@ -86,6 +84,7 @@ export function useWallet() {
     ): Promise<ITransactionResult> => {
         return await transactions.sendCredit(identityId, identityIdx, receiver, credits)
     }
+
     const sendTokenTransfer = async (
         identityId: string,
         identityIdx: number,
@@ -109,14 +108,15 @@ export function useWallet() {
             isRefreshing = false
         }
     }
+
     const debouncedRefresh = () => {
         if (refreshTimeout) clearTimeout(refreshTimeout)
         refreshTimeout = setTimeout(() => {
             refresh()
         }, 500)
     }
+
     const loadMoreTransactions = async (limit = 20) => {
-        // const currentLength = store.transactions.length
         await store.fetchRealTransactions(limit)
     }
 
@@ -130,6 +130,7 @@ export function useWallet() {
             }
         }, intervalMs)
     }
+
     const stopPolling = () => {
         if (pollInterval) {
             clearInterval(pollInterval)
@@ -149,11 +150,13 @@ export function useWallet() {
     onMounted(() => {
         document.addEventListener('visibilitychange', handleVisibilityChange)
     })
+
     onUnmounted(() => {
         stopPolling()
         document.removeEventListener('visibilitychange', handleVisibilityChange)
         if (refreshTimeout) clearTimeout(refreshTimeout)
     })
+
     return {
         // State
         user: computed(() => store.user),
@@ -164,8 +167,10 @@ export function useWallet() {
         balanceChange: computed(() => store.balanceChange),
         error: computed(() => error.value),
         isPolling,
+
         // Platform
         platform,
+
         // Actions
         initialize,
         refresh,
@@ -174,20 +179,22 @@ export function useWallet() {
         startPolling,
         stopPolling,
         clear: store.clear,
+
         // Core operations
-        // getBalances,
-        // getTokenBalance,
-        // hasSufficientBalance,
+        getTokenBalance,
         sendCredits,
         sendToken,
         sendCredit,
         sendTokenTransfer,
+
         // Store proxies
         fetchLiveBalances: store.fetchLiveBalances,
         fetchRealTransactions: store.fetchRealTransactions,
         findAsset: (ticker: string) => store.getAssetByTicker(ticker),
+
         // Network
         network: computed(() => network.network.value),
+
         // Keys
         getTransferKey: keys.getTransferKey,
         getAuthKey: keys.getAuthKey
