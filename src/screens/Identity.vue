@@ -217,7 +217,7 @@
 import { onMounted, onUnmounted, ref, computed } from 'vue'
 import Header from '@/components/Header.vue'
 import { useIdentity } from '@/composables/useIdentity'
-import { mnemonicManager } from '@/composables/useMnemonic' // Updated import
+import { mnemonicManager } from '@/composables/useMnemonic'
 import { identityDiscovery } from '@/composables/useIdentityDiscovery'
 import type { DiscoveredIdentity } from '@/types/identity'
 
@@ -309,7 +309,7 @@ const copyToClipboard = (text: string) => {
 // Get identities using mnemonicManager and identityDiscovery
 const getIdentities = async (): Promise<DiscoveredIdentity[]> => {
     try {
-        const mnemonic = await mnemonicManager.getMnemonic() // Using mnemonicManager
+        const mnemonic = await mnemonicManager.getMnemonic()
         if (!mnemonic) {
             console.error('No mnemonic found')
             return []
@@ -324,7 +324,9 @@ const getIdentities = async (): Promise<DiscoveredIdentity[]> => {
         if (result && Array.isArray(result)) {
             return result.map((identity, index) => ({
                 ...identity,
-                identityIdx: index // Ensure each has an idx
+                // FIX: Ensure identityIdx is a number and revision is converted to number
+                identityIdx: typeof identity.identityIdx === 'number' ? identity.identityIdx : index,
+                revision: Number(identity.revision || 0)
             }))
         }
         return []
