@@ -24,10 +24,10 @@ const Wallet = useWalletStore()
 const Settings = useSettingsStore()
 
 const rootClass = computed(() => {
-    if (Settings.theme === 'light') {
+    if (Settings.state.theme === 'light') {
         return 'light'
     }
-    if (Settings.theme === 'dark') {
+    if (Settings.state.theme === 'dark') {
         return 'dark'
     }
     return ''

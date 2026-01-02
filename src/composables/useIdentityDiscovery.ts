@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/utils/errors'
 import { log, getDapiEndpoint } from '@/utils/env'
 import { DEFAULT_IDENTITY_SEARCH_LIMIT, DEFAULT_QUERY_REGISTRY } from '@/constants'
 import { useNetwork } from './useNetwork'
-import type { IIdentity, IPublicKey, PurposeType, SecurityLevelType, IdentitySearchOptions, DiscoveredIdentity } from '@/types'
+import type { IIdentity, IPublicKey, PurposeType, SecurityLevelType, IdentitySearchOptions } from '@/types'
 export function useIdentityDiscovery() {
     const { ensure } = useNetwork()
     const network = ref<'testnet' | 'mainnet'>('testnet')
@@ -72,7 +72,7 @@ export function useIdentityDiscovery() {
     // Search for identity by a single private key
     const getIdentityByKey = async (
         keyInput: string,
-        keyType?: 'WIF' | 'HEX' | 'PUBLIC_KEY'
+        _keyType?: 'WIF' | 'HEX' | 'PUBLIC_KEY'
     ): Promise<{ identity: IIdentity; keyType: string } | null> => {
         return ErrorBoundary.wrap(async () => {
             await initialize()
@@ -125,8 +125,8 @@ export function useIdentityDiscovery() {
     // Private helper methods (exposed for testing if needed)
     const searchByIndex = async (
         identityIdx: number,
-        queryRegistry: boolean,
-        seedPhrase?: string
+        _queryRegistry: boolean,
+        _seedPhrase?: string
     ): Promise<{ identityId: string; regPubKeys: any[]; balance?: string; revision?: string } | null> => {
         try {
             // Implementation would be restored from original
@@ -159,7 +159,7 @@ export function useIdentityDiscovery() {
         return 'UNKNOWN'
     }
     const mapPublicKeys = (keys: any[]): IPublicKey[] => {
-        return (keys || []).map((key, index) => {
+        return (keys || []).map((key, _index) => {
             const purpose = getPurposeNumber(key.purpose)
             const securityLevel = getSecurityLevelNumber(key.securityLevel)
             return {
