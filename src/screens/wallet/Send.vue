@@ -47,7 +47,7 @@
                         <svg class="w-4 h-4 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
                         </svg>
-                        Available Balance: {{ selectedAsset.amount.toLocaleString() }} {{ selectedAsset.ticker }}
+                        Available Balance: {{ selectedAsset.balance.toLocaleString() }} {{ selectedAsset.symbol }}
                     </p>
                 </div>
 
@@ -108,7 +108,7 @@
                     <button
                         type="button"
                         @click="setMaxAmount"
-                        :disabled="!selectedAsset || selectedAsset.amount <= 0"
+                        :disabled="!selectedAsset || selectedAsset.balance <= 0"
                         class="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 bg-indigo-500/20 dark:bg-indigo-500/30 text-indigo-700 dark:text-indigo-300 text-xs font-medium rounded hover:bg-indigo-500/30 dark:hover:bg-indigo-400/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         MAX
@@ -116,7 +116,7 @@
                 </div>
 
                 <p v-if="selectedAsset && amount" class="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                    (Max: {{ selectedAsset.amount.toLocaleString() }} {{ selectedAsset.ticker }})
+                    (Max: {{ selectedAsset.balance.toLocaleString() }} {{ selectedAsset.symbol }})
                 </p>
             </div>
 
@@ -136,7 +136,7 @@
 
                 <div class="text-xs space-y-1 text-slate-600 dark:text-slate-400">
                     <p>
-                        Send {{ amount.toLocaleString() }} {{ selectedAsset.ticker }} to {{ recipient.slice(0, 20) }}...
+                        Send {{ amount.toLocaleString() }} {{ selectedAsset.symbol }} to {{ recipient.slice(0, 20) }}...
                     </p>
 
                     <p>
@@ -219,8 +219,8 @@ const isFormValid = computed(() => {
 })
 
 const setMaxAmount = () => {
-    if (selectedAsset.value && selectedAsset.value.amount) {
-        amount.value = selectedAsset.value.amount
+    if (selectedAsset.value && selectedAsset.value.balance) {
+        amount.value = selectedAsset.value.balance
     }
 }
 
@@ -237,7 +237,7 @@ const handleSend = async () => {
         return
     }
 
-    if (amount.value! > selectedAsset.value.amount) {
+    if (amount.value! > selectedAsset.value.balance) {
         error.value = 'Insufficient balance for this transaction.'
         return
     }
@@ -255,9 +255,9 @@ const handleSend = async () => {
         // REFACTORED: Get index from identity composable
         const identityIdx = await identity.getIdentityIdx()
 
-        console.log(`Sending ${amount.value} ${selectedAsset.value.ticker} to ${recipient.value}`)
+        console.log(`Sending ${amount.value} ${selectedAsset.value.symbol} to ${recipient.value}`)
 
-        if (selectedAsset.value.ticker === 'CREDITS' && amount.value) {
+        if (selectedAsset.value.symbol === 'CREDITS' && amount.value) {
             /* Calculate credits. */
             const credits = BigInt(Math.floor(amount.value * 100_000_000_000))
             console.log('CALCULATED CREDITS', credits)
@@ -277,12 +277,12 @@ const handleSend = async () => {
             } else if (result.error) {
                 throw new Error(result.error.message)
             }
-        } else if (['SANS', 'DUSD'].includes(selectedAsset.value.ticker) && amount.value) {
+        } else if (['SANS', 'DUSD'].includes(selectedAsset.value.symbol) && amount.value) {
             /* Get token contract ID based on network and ticker. */
             let tokenId: string
             let decimalPlaces: number
 
-            if (selectedAsset.value.ticker === 'DUSD') {
+            if (selectedAsset.value.symbol === 'DUSD') {
                 tokenId = getDUSDContractId()
                 decimalPlaces = DUSD_DECIMAL_PLACES
             } else {
@@ -316,7 +316,7 @@ const handleSend = async () => {
             }
         } else {
             // Logic for other currencies (e.g. DASH native coins) goes here
-            console.log(`${selectedAsset.value.ticker} sending logic pending implementation.`)
+            console.log(`${selectedAsset.value.symbol} sending logic pending implementation.`)
             await new Promise(resolve => setTimeout(resolve, 2000))
         }
 
