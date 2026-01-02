@@ -1,5 +1,4 @@
 // src/services/identity/discovery/IdentityManager.ts
-
 import { KeyDiscovery } from './KeyDiscovery'
 import { SeedDiscovery } from './SeedDiscovery'
 import { DAPIService } from './DAPIService'
@@ -12,32 +11,20 @@ import type {
 } from '../types'
 import type { KeyHashDerivationResult } from '@/types'
 import type { ProgressCallback } from './SeedDiscovery'
-// import type { ScanProgress } from '../types'
-
 export class IdentityManager {
     private keyDiscovery: KeyDiscovery
     private seedDiscovery: SeedDiscovery
-
     constructor() {
         this.keyDiscovery = new KeyDiscovery()
         this.seedDiscovery = new SeedDiscovery()
     }
-
-    /**
-     * Set progress callback for seed discovery
-     */
     setProgressCallback(callback: ProgressCallback) {
         this.seedDiscovery.setProgressCallback(callback)
     }
-
-    /**
-     * Discover identity from any key format
-     */
     async discoverFromKey(
         keyInput: string,
         options: DiscoveryOptions = { network: 'testnet' }
     ): Promise<DiscoveryResult> {
-        // Validate input
         if (!keyInput || typeof keyInput !== 'string' || keyInput.trim().length === 0) {
             return {
                 success: false,
@@ -46,35 +33,23 @@ export class IdentityManager {
                 identity: null,
                 detectedKeyType: null,
                 associatedKeys: null,
-                debug: {
-                    step: 'input_validation',
-                    network: options.network
-                }
+                debug: { step: 'input_validation', network: options.network }
             }
         }
-
         try {
             return await this.keyDiscovery.discover(keyInput, options)
         } catch (error: any) {
             return {
                 success: false,
-                error: `Key discovery failed: ${error.message || 'Unknown error'}`,
+                error:`Key discovery failed: ${error.message || 'Unknown error'}`,
                 identities: null,
                 identity: null,
                 detectedKeyType: null,
                 associatedKeys: null,
-                debug: {
-                    step: 'key_discovery_exception',
-                    network: options.network,
-                    error: error.message
-                }
+                debug: { step: 'key_discovery_exception', network: options.network, error: error.message }
             }
         }
     }
-
-    /**
-     * Discover identities from seed phrase
-     */
     async discoverFromSeed(
         seedPhrase: string,
         options: DiscoveryOptions & { maxIdentityIndex?: number } = {
@@ -82,7 +57,6 @@ export class IdentityManager {
             maxIdentityIndex: 5
         }
     ): Promise<DiscoveryResult> {
-        // Validate input
         if (!seedPhrase || typeof seedPhrase !== 'string' || seedPhrase.trim().length === 0) {
             return {
                 success: false,
@@ -91,58 +65,40 @@ export class IdentityManager {
                 identity: null,
                 detectedKeyType: null,
                 associatedKeys: null,
-                debug: {
-                    step: 'input_validation',
-                    network: options.network
-                }
+                debug: { step: 'input_validation', network: options.network }
             }
         }
-
         const words = seedPhrase.trim().split(/\s+/)
         if (words.length !== 12 && words.length !== 24) {
             return {
                 success: false,
-                error: `Invalid seed phrase length: ${words.length} words. Expected 12 or 24.`,
+                error:`Invalid seed phrase length: ${words.length} words. Expected 12 or 24.`,
                 identities: null,
                 identity: null,
                 detectedKeyType: null,
                 associatedKeys: null,
-                debug: {
-                    step: 'seed_validation',
-                    network: options.network
-                }
+                debug: { step: 'seed_validation', network: options.network }
             }
         }
-
         try {
-            // Create seed discovery options
             const seedOptions = {
                 network: options.network,
                 maxIdentityIndex: options.maxIdentityIndex || 5,
                 maxKeyIndex: 5
             }
-
             return await this.seedDiscovery.discoverFromSeed(seedPhrase, seedOptions)
         } catch (error: any) {
             return {
                 success: false,
-                error: `Seed discovery failed: ${error.message || 'Unknown error'}`,
+                error:`Seed discovery failed: ${error.message || 'Unknown error'}`,
                 identities: null,
                 identity: null,
                 detectedKeyType: null,
                 associatedKeys: null,
-                debug: {
-                    step: 'seed_discovery_exception',
-                    network: options.network,
-                    error: error.message
-                }
+                debug: { step: 'seed_discovery_exception', network: options.network, error: error.message }
             }
         }
     }
-
-    /**
-     * Auto-detect input type and discover accordingly
-     */
     async discover(
         input: string,
         options: DiscoveryOptions = { network: 'testnet' }
@@ -155,33 +111,18 @@ export class IdentityManager {
                 identity: null,
                 detectedKeyType: null,
                 associatedKeys: null,
-                debug: {
-                    step: 'input_validation',
-                    network: options.network
-                }
+                debug: { step: 'input_validation', network: options.network }
             }
         }
-
         const trimmedInput = input.trim()
         const words = trimmedInput.split(/\s+/)
-
-        // Check if input looks like a seed phrase
         if (words.length === 12 || words.length === 24) {
             console.log(`[IdentityManager] Auto-detected seed phrase (${words.length} words)`)
-            return this.discoverFromSeed(trimmedInput, {
-                ...options,
-                maxIdentityIndex: 5
-            })
+            return this.discoverFromSeed(trimmedInput, { ...options, maxIdentityIndex: 5 })
         }
-
-        // Otherwise treat as key
         console.log(`[IdentityManager] Auto-detected key input (${trimmedInput.length} chars)`)
         return this.discoverFromKey(trimmedInput, options)
     }
-
-    /**
-     * Get DPNS username for an identity
-     */
     async getDPNSUsername(
         identityId: string,
         network: 'mainnet' | 'testnet' = 'testnet'
@@ -191,17 +132,12 @@ export class IdentityManager {
                 console.warn('[IdentityManager] Invalid identity ID for DPNS lookup:', identityId)
                 return null
             }
-
             return await DAPIService.getDPNSUsername(identityId.trim(), network)
         } catch (error) {
             console.error('[IdentityManager] Failed to get DPNS username:', error)
             return null
         }
     }
-
-    /**
-     * Get identity by ID
-     */
     async getIdentityById(
         identityId: string,
         network: 'mainnet' | 'testnet' = 'testnet'
@@ -215,31 +151,22 @@ export class IdentityManager {
                     identity: null,
                     detectedKeyType: null,
                     associatedKeys: null,
-                    debug: {
-                        step: 'identity_id_validation',
-                        network
-                    }
+                    debug: { step: 'identity_id_validation', network }
                 }
             }
-
             const result = await DAPIService.getIdentityById(identityId.trim(), network)
-
             if (result.success && result.data) {
                 const identityData = result.data
-
-                // Get DPNS username if available
                 const dpnsUsername = await this.getDPNSUsername(identityId.trim(), network)
-
                 const discoveredIdentity: DiscoveredIdentity = {
                     identityId: identityData.identityId || identityData.id || identityId.trim(),
+                    identityIdx: 0, // Assigned default
                     balance: this.formatBalance(identityData.balance),
                     revision: identityData.revision,
                     publicKeys: identityData.publicKeys || [],
                     dpnsUsername
                 }
-
                 const associatedKeys = this.extractAssociatedKeys(discoveredIdentity.publicKeys)
-
                 return {
                     success: true,
                     identity: discoveredIdentity,
@@ -249,10 +176,9 @@ export class IdentityManager {
                     debug: result.debug
                 }
             }
-
             return {
                 success: false,
-                error: result.error || `No identity found with ID: ${identityId}`,
+                error: result.error ||`No identity found with ID: ${identityId}`,
                 identities: null,
                 identity: null,
                 detectedKeyType: null,
@@ -262,67 +188,35 @@ export class IdentityManager {
         } catch (error: any) {
             return {
                 success: false,
-                error: `Failed to get identity by ID: ${error.message || 'Unknown error'}`,
+                error:`Failed to get identity by ID: ${error.message || 'Unknown error'}`,
                 identities: null,
                 identity: null,
                 detectedKeyType: null,
                 associatedKeys: null,
-                debug: {
-                    step: 'get_identity_by_id_exception',
-                    network,
-                    error: error.message
-                }
+                debug: { step: 'get_identity_by_id_exception', network, error: error.message }
             }
         }
     }
-
-    /**
-     * Detect key format
-     */
     detectKeyFormat(keyInput: string): { format: KeyType; description: string } {
         return KeyDerivationService.detectKeyFormat(keyInput)
     }
-
-    /**
-     * Derive key hashes (for advanced use cases)
-     */
     async deriveKeyHashes(
         keyInput: string,
         network: 'mainnet' | 'testnet' = 'testnet'
     ): Promise<KeyHashDerivationResult> {
         return KeyDerivationService.deriveAllPossibleHashes(keyInput, network)
     }
-
-    /**
-     * Helper methods for formatting and extraction (copied from BaseDiscovery)
-     */
+    // Helper methods
     private formatBalance(balance: any): string {
         if (balance === undefined || balance === null) return '0'
         if (typeof balance === 'number') return balance.toString()
         if (typeof balance === 'string') return balance
-        try {
-            return balance.toString()
-        } catch {
-            return '0'
-        }
+        try { return balance.toString() } catch { return '0' }
     }
-
-    private formatRevision(revision: any): string {
-        if (revision === undefined || revision === null) return '0'
-        if (typeof revision === 'number') return revision.toString()
-        if (typeof revision === 'string') return revision
-        try {
-            return revision.toString()
-        } catch {
-            return '0'
-        }
-    }
-
     private extractAssociatedKeys(publicKeys: any[]): AssociatedKey[] {
         if (!Array.isArray(publicKeys) || publicKeys.length === 0) {
             return []
         }
-
         return publicKeys.map(key => ({
             purpose: this.getKeyPurposeDisplay(key.purpose),
             securityLevel: this.getSecurityLevelDisplay(key.securityLevel),
@@ -331,10 +225,8 @@ export class IdentityManager {
             derivedFromInput: false
         }))
     }
-
     private getKeyPurposeDisplay(purpose: string): string {
         if (!purpose) return 'Unknown'
-
         const purposeMap: Record<string, string> = {
             'AUTHENTICATION': 'Authentication',
             'TRANSFER': 'Transfer',
@@ -345,10 +237,8 @@ export class IdentityManager {
         }
         return purposeMap[purpose.toUpperCase()] || purpose
     }
-
     private getSecurityLevelDisplay(securityLevel: string): string {
         if (!securityLevel) return 'Unknown'
-
         const levelMap: Record<string, string> = {
             'CRITICAL': 'Critical',
             'HIGH': 'High',
@@ -358,18 +248,11 @@ export class IdentityManager {
         }
         return levelMap[securityLevel.toUpperCase()] || securityLevel
     }
-
-    /**
-     * Cleanup resources
-     */
     cleanup() {
         KeyDerivationService.cleanup()
     }
 }
-
-// Singleton instance
 let identityManager: IdentityManager | null = null
-
 export function getIdentityManager(): IdentityManager {
     if (!identityManager) {
         identityManager = new IdentityManager()
