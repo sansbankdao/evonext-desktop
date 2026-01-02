@@ -58,7 +58,7 @@ export interface IIdentity {
     id?: string;
     identityId?: string;
     identityIdx: number;
-    balance?: string;
+    balance?: number | string; // Fixed: Allow number to match SDK/Discovery
     publicKeys: IPublicKey[];
     username?: string;
     avatarUrl?: string;
@@ -66,8 +66,9 @@ export interface IIdentity {
     avatarFingerprint?: string;
     displayName?: string;
     publicMessage?: string;
-    revision?: number;
+    revision?: number | bigint; // Fixed: Allow bigint to match SDK
 }
+export type IdentityWithKeys = IIdentity;
 
 export interface IIdentityData {
     username: string;
@@ -91,7 +92,7 @@ export interface DiscoveredIdentity {
     displayName?: string;
     avatarUrl?: string;
     revision?: number;
-    dpnsUsername?: string;
+    dpnsUsername?: string | null; // Fixed: Allow null
 }
 
 export interface IIdentityState {
