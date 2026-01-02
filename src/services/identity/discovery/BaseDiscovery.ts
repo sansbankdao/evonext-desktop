@@ -1,8 +1,8 @@
 // src/services/identity/discovery/BaseDiscovery.ts
 
+import type { DiscoveredIdentity } from '@/types'
 import type {
     AssociatedKey,
-    DiscoveredIdentity,
     DiscoveryOptions,
     DiscoveryResult,
 } from '../types'
@@ -88,7 +88,7 @@ export abstract class BaseDiscovery {
         return {
             identityId: identityData.identityId || identityData.id || '',
             balance: this.formatBalance(identityData.balance),
-            revision: this.formatRevision(identityData.revision),
+            revision: identityData.revision,
             publicKeys: identityData.publicKeys || [],
             dpnsUsername: identityData.dpnsUsername || identityData.username || null
         }

@@ -11,8 +11,8 @@ import { binToHex, hexToBin } from '@evonext/utils'
 // @ts-ignore
 import { hash160 } from '@evonext/crypto'
 
+import type { DiscoveredIdentity } from '@/types'
 import type {
-    DiscoveredIdentity,
     DiscoveryResult,
     DiscoveryOptions,
     // AssociatedKey,
@@ -156,7 +156,7 @@ export class KeyDiscovery extends BaseDiscovery {
         const discoveredIdentity: DiscoveredIdentity = {
             identityId: identityData.identityId || identityData.id || '',
             balance: this.formatBalance(identityData.balance),
-            revision: this.formatRevision(identityData.revision),
+            revision: identityData.revision,
             publicKeys: identityData.publicKeys || [],
             dpnsUsername
         }

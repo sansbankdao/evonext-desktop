@@ -49,7 +49,7 @@
                 </div>
                 <div>
                     <p class="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Date</p>
-                    <p class="text-slate-900 dark:text-slate-100">{{ formatDate(selectedTx.date || new Date()) }}</p>
+                    <p class="text-slate-900 dark:text-slate-100">{{ formatDate(new Date(selectedTx.date ) || new Date()) }}</p>
                 </div>
                 <div>
                     <p class="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Fee</p>

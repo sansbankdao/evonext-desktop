@@ -4,10 +4,10 @@ import { KeyDiscovery } from './KeyDiscovery'
 import { SeedDiscovery } from './SeedDiscovery'
 import { DAPIService } from './DAPIService'
 import { KeyDerivationService, type KeyType } from '../keyDerivation.service'
+import type { DiscoveredIdentity } from '@/types'
 import type {
     DiscoveryResult,
     DiscoveryOptions,
-    DiscoveredIdentity,
     AssociatedKey,
 } from '../types'
 import type { KeyHashDerivationResult } from '@/types'
@@ -233,7 +233,7 @@ export class IdentityManager {
                 const discoveredIdentity: DiscoveredIdentity = {
                     identityId: identityData.identityId || identityData.id || identityId.trim(),
                     balance: this.formatBalance(identityData.balance),
-                    revision: this.formatRevision(identityData.revision),
+                    revision: identityData.revision,
                     publicKeys: identityData.publicKeys || [],
                     dpnsUsername
                 }
