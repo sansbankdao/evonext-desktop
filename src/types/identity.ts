@@ -58,27 +58,19 @@ export interface IIdentity {
     id?: string;
     identityId?: string;
     identityIdx: number;
-    balance?: number | string; // Fixed: Allow number to match SDK/Discovery
+    balance?: number | string | null | undefined; // Fixed: Allow number to match SDK/Discovery
     publicKeys: IPublicKey[];
+    revision?: number | bigint; // Fixed: Allow bigint to match SDK
+
     username?: string;
     avatarUrl?: string;
     avatarHash?: string;
     avatarFingerprint?: string;
     displayName?: string;
     publicMessage?: string;
-    revision?: number | bigint; // Fixed: Allow bigint to match SDK
-}
-
-export interface IIdentityData {
-    username: string;
-    identityId: string;
-    identityIdx: number;
-    balance: string | null;
-    isAuthenticated: boolean;
-    publicKeys: IPublicKey[] | null;
-    revision: number | null;
-    createdAt: number | null;
-    publicKeyIds: number[] | null;
+    publicKeyIds?: number[] | undefined;
+    isAuthenticated?: boolean | undefined;
+    createdAt?: number | undefined;
 }
 
 export interface DiscoveredIdentity {

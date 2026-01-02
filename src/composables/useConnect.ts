@@ -71,8 +71,11 @@ export function useConnect() {
     // --- Progress computed properties ---
     const progressPercentage = computed(() => {
         if (!discoveryProgress.value) return 0
+
         const progress = discoveryProgress.value
+
         const totalOperations = progress.totalIdentities * progress.totalKeysPerIdentity * 2 // *2 for unique + non-unique
+
         return totalOperations > 0
             ? Math.round((progress.scannedCount / totalOperations) * 100)
             : 0
@@ -80,7 +83,9 @@ export function useConnect() {
 
     const progressMessage = computed(() => {
         if (!discoveryProgress.value) return 'Deriving keys and scanning network...'
+
         const progress = discoveryProgress.value
+
         switch (progress.status) {
             case 'deriving':
                 return 'Deriving cryptographic keys from seed phrase...'
@@ -98,8 +103,10 @@ export function useConnect() {
     // --- Actions: State Helpers ---
     const updateConnectionMethod = (method: 'seed' | 'privateKey') => {
         connectionMethod.value = method
+
         // We do NOT call resetDiscovery() here anymore to preserve results
         connectionError.value = null
+
         // We only clear input fields that don't belong to the target tab
         if (method === 'seed') {
             currentInputKey.value = ''
@@ -147,7 +154,9 @@ export function useConnect() {
 
     const formatBalance = (balance: string | number | undefined) => {
         if (!balance) return '0.00'
+
         const num = typeof balance === 'string' ? parseFloat(balance) : balance
+
         return (num / 100000000).toFixed(2)
     }
 
@@ -160,6 +169,7 @@ export function useConnect() {
     // --- Actions: Seed Logic ---
     const handlePaste = (pastedText: string | string[]) => {
         let words: string[] = []
+
         if (Array.isArray(pastedText)) {
             words = pastedText
         } else if (typeof pastedText === 'string') {
@@ -194,10 +204,12 @@ export function useConnect() {
         // Basic validation
         const phrase = seedWords.value.join(' ').trim()
         const count = parseInt(seedWordCount.value)
+
         if (phrase.split(/\s+/).length !== count) return
 
         isDiscovering.value = true
         seedDiscoveryError.value = null
+
         // Clear previous results only on new scan
         seedDiscoveryResults.value = []
         selectedSeedIdentityId.value = null
@@ -211,13 +223,14 @@ export function useConnect() {
             const network = await ensure()
             const result: DiscoveryResult = await identityManager.discoverFromSeed(phrase, {
                 network,
-                maxIdentityIndex: 5
+                maxIdentityIndex: 3
             })
 
             debugOutput.value = result.debug
 
             if (result.success && result.identities && result.identities.length > 0) {
                 seedDiscoveryResults.value = result.identities
+
                 if (result.identities.length === 1) {
                     selectedSeedIdentityId.value = result.identities[0]?.identityId || null
                 }
@@ -281,7 +294,9 @@ export function useConnect() {
                 const phrase = seedWords.value.join(' ').trim()
                 if (!selectedSeedIdentityId.value && seedDiscoveryResults.value.length === 0) {
                     await discoverFromSeed()
+
                     if (seedDiscoveryResults.value.length === 0) throw new Error('No identities found')
+
                     selectedSeedIdentityId.value = seedDiscoveryResults.value[0]?.identityId || null
                 }
 
@@ -293,11 +308,12 @@ export function useConnect() {
                     network,
                     selectedSeedIdentityId.value
                 )
-                if (!result.success) throw new Error(result.error)
 
+                if (!result.success) throw new Error(result.error)
             } else {
                 // PRIVATE KEY CONNECTION
                 const idToUse = discoveredIdentity.value?.identityId || manualIdentityId.value
+
                 if (!idToUse) throw new Error('Identity ID is required')
 
                 const result = await identityStore.connectWithSingleKey(
@@ -305,6 +321,7 @@ export function useConnect() {
                     idToUse,
                     network
                 )
+
                 if (!result.success) throw new Error(result.error)
             }
 

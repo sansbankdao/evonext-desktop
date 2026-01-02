@@ -4,7 +4,7 @@
 import { binToHex } from '@evonext/utils'
 import { invoke } from '@tauri-apps/api/core'
 import { DashPlatformSDK } from 'dash-platform-sdk'
-import type { IIdentityData, IPublicKey } from '@/types'
+import type { IIdentity, IPublicKey } from '@/types'
 
 /**
  * Convert hex string to base64
@@ -83,16 +83,20 @@ export function validateIdentityData(data: any): boolean {
 /**
  * Create default identity data
  */
-export function createDefaultIdentityData(username: string = ''): IIdentityData {
+export function createDefaultIdentityData(username: string = ''): IIdentity {
     return {
-        username,
+        id: '',
         identityId: '',
         identityIdx: 0,
-        balance: null,
+
+        balance: 0,
+        revision: 0,
+        publicKeys: [],
+
+        username,
+        // TODO Add all available fields.
+        publicKeyIds: [],
         isAuthenticated: false,
-        publicKeys: null,
-        revision: null,
-        createdAt: null,
-        publicKeyIds: null
+        createdAt: 1234567890,
     }
 }

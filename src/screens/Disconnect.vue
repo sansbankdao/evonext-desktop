@@ -103,13 +103,13 @@ import { useRouter } from 'vue-router'
 import { useSettingsStore } from '@/stores/settings'
 import { useIdentityStore } from '@/stores/identity'
 import Header from '@/components/Header.vue'
-import type { IIdentityData } from '@/types'
+import type { IIdentity } from '@/types'
 
 const router = useRouter()
 const settingsStore = useSettingsStore()
 const identityStore = useIdentityStore()
 
-const identityData = ref<IIdentityData | null>(null)
+const identityData = ref<IIdentity | null>(null)
 const error = ref('')
 const isWiping = ref(false)
 
