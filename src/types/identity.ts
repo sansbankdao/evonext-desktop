@@ -68,7 +68,6 @@ export interface IIdentity {
     publicMessage?: string;
     revision?: number | bigint; // Fixed: Allow bigint to match SDK
 }
-export type IdentityWithKeys = IIdentity;
 
 export interface IIdentityData {
     username: string;

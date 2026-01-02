@@ -3,7 +3,6 @@
 import { defineStore } from 'pinia'
 import type { IAsset, IUser, ITransaction } from '@/types'
 
-// Define the state locally to resolve the missing import error
 export interface IWalletState {
   user: IUser | null
   assets: IAsset[]
@@ -11,7 +10,6 @@ export interface IWalletState {
   balanceChange: number | null
   isLoading: boolean
 }
-
 export const useWalletStore = defineStore('wallet', {
     state: (): IWalletState => ({
         user: null,
@@ -41,6 +39,11 @@ export const useWalletStore = defineStore('wallet', {
             const { refreshBalances } = await import('./actions/index')
             await refreshBalances.call(this)
         },
+        // Added missing action
+        async getTokenBalance(identityId: string, contractId: string) {
+            const { getTokenBalance } = await import('./actions/index')
+            return await getTokenBalance.call(this, identityId, contractId)
+        },
         async init(user: IUser) {
             this.user = user
             await this.refreshBalances()
@@ -51,6 +54,11 @@ export const useWalletStore = defineStore('wallet', {
             this.transactions = []
             this.balanceChange = null
             this.isLoading = false
+        },
+        // Helper util often required by composables using the wallet store
+        fromSatoshi(amount: number | bigint): number {
+            const val = typeof amount === 'bigint' ? Number(amount) : amount
+            return val / 100000000
         }
     },
 })
