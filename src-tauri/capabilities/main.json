@@ -31,5 +31,16 @@
     "fs:allow-remove",
     "fs:allow-rename",
     "fs:allow-exists"
+  ],
+  "platforms": ["linux", "macOS", "windows"],
+  "contexts": [
+    {
+      "identifier": "main-window-context",
+      "description": "Context for the main window",
+      "windows": ["main"],
+      "permissions": [
+        "core:default"
+      ]
+    }
   ]
 }

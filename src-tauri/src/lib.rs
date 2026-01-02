@@ -7,7 +7,7 @@ mod menu;
 mod constants;
 mod utils;
 
-// Required for the `app.handle()` method
+// Required for `app.handle()` method
 // use tauri::Manager;
 
 pub fn run() {
@@ -23,27 +23,41 @@ pub fn run() {
 
         // --- 2. Register Commands ---
         .invoke_handler(tauri::generate_handler![
+            // Assets
             commands::asset_commands::load_assets,
             commands::asset_commands::save_assets,
             commands::asset_commands::delete_assets,
+
+            // Identity Keys
             commands::identity_commands::load_private_keys,
             commands::identity_commands::save_private_keys,
             commands::identity_commands::delete_private_keys,
+
             commands::identity_commands::load_identity_data,
             commands::identity_commands::save_identity_data,
             commands::identity_commands::delete_identity_data,
+
+            // License
             commands::license_commands::load_license,
             commands::license_commands::save_license,
             commands::license_commands::delete_license,
+
+            // Mnemonic
             commands::mnemonic_commands::load_mnemonic,
             commands::mnemonic_commands::save_mnemonic,
             commands::mnemonic_commands::delete_mnemonic,
+
+            // Settings
             commands::settings_commands::load_settings,
             commands::settings_commands::save_settings,
             commands::settings_commands::delete_settings,
+
+            // Identity Details
             commands::identity_details_commands::update_identity_with_sdk_data,
             commands::identity_details_commands::get_identity_public_keys,
             commands::identity_details_commands::delete_identity_public_keys,
+
+            // DAPI Commands
             commands::dapi_commands::dapi_request,
             commands::dapi_commands::dapi_request_array,
             commands::dapi_commands::get_posts,
