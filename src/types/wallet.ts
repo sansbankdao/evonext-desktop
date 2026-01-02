@@ -1,6 +1,6 @@
 // src/types/wallet.ts
 
-export type ITransferType = 'IDENTITY_CREATE' | 'IDENTITY_CREDIT_TRANSFER' | 'UNKNOWN' | string; // <--- Loosen type to allow string comparison
+import type { ITransferType } from './transactions'
 
 export interface IdentityTransfer {
     recipient: string;
