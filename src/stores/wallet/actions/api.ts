@@ -23,9 +23,18 @@ export const fetchIdentityTransfers = async (
             throw new NetworkError(`HTTP error! status: ${response.status}`)
         }
         const data = await response.json() as ApiResponse<IdentityTransfer>
-        return data.resultSet
+        // FIX: Use 'data' or 'result' instead of 'resultSet'
+        // If 'data' is the array directly, return it.
+        // If 'data' is an object with a 'result' property, access that.
+        // Assuming standard API structure based on ApiResponse definition:
+        // type ApiResponse = { result: T[] } | T[]
+        if (Array.isArray(data)) {
+            return data
+        }
+        return (data as any).result || []
     }, 'FETCH_IDENTITY_TRANSFERS_FAILED')
 }
+
 /**
  * Fetches token transitions for a given token contract
  */
@@ -42,6 +51,10 @@ export const fetchTokenTransitions = async (
             throw new NetworkError(`HTTP error! status: ${response.status}`)
         }
         const data = await response.json() as ApiResponse<TokenTransition>
-        return data.resultSet
+        // FIX: Same as above
+        if (Array.isArray(data)) {
+            return data
+        }
+        return (data as any).result || []
     }, 'FETCH_TOKEN_TRANSITIONS_FAILED')
 }

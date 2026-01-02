@@ -132,6 +132,7 @@ export interface IPostsState {
     lastFetched: Date | null;
     nextPage?: string; // Allow undefined
     hasNextPage: boolean;
+    hasMorePosts?: boolean;
     // Added for pagination
     limit: number;
     offset: number;
