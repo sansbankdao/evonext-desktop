@@ -496,7 +496,6 @@ pub async fn get_identity_by_public_key_hash(
             let is_empty = result.is_empty();
 
             if is_empty {
-                println!("[DAPI_DEBUG]   WARNING: Result is empty/null");
                 // Return empty array for not found
                 Ok(vec![])
             } else {
@@ -508,7 +507,7 @@ pub async fn get_identity_by_public_key_hash(
                     "network": network_value,
                     "result": result
                 });
-                println!("[DAPI_DEBUG]   Returning success response with data");
+
                 Ok(vec![response])
             }
         }
@@ -521,7 +520,6 @@ pub async fn get_identity_by_public_key_hash(
                 "network": network_value,
                 "error": e.to_string()
             });
-            println!("[DAPI_DEBUG]   Returning error response: {}", error_response);
             Ok(vec![error_response])
         }
     }
@@ -544,7 +542,6 @@ pub async fn get_identity_by_non_unique_public_key_hash(
             let is_empty = result.is_empty();
 
             if is_empty {
-                println!("[DAPI_DEBUG]   WARNING: Result is empty/null");
                 // Return empty array for not found
                 Ok(vec![])
             } else {
@@ -556,7 +553,7 @@ pub async fn get_identity_by_non_unique_public_key_hash(
                     "network": network_value,
                     "result": result
                 });
-                println!("[DAPI_DEBUG]   Returning success response with data");
+
                 Ok(vec![response])
             }
         }
@@ -569,7 +566,7 @@ pub async fn get_identity_by_non_unique_public_key_hash(
                 "network": network_value,
                 "error": e.to_string()
             });
-            println!("[DAPI_DEBUG]   Returning error response: {}", error_response);
+
             Ok(vec![error_response])
         }
     }
