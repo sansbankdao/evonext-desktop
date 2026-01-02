@@ -163,7 +163,7 @@
 
                             <div v-for="identity in seedDiscoveryResults" :key="identity.identityId"
                                  class="p-3 border rounded-lg cursor-pointer transition-colors"
-                                 :class="selectedSeedIdentityId === identity.identityId
+                                 :class="selectedSeedIdentity?.identityId === identity.identityId
                                     ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20'
                                     : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'"
                                  @click="selectSeedIdentity(identity)">
@@ -177,7 +177,7 @@
                                             {{ identity.dpnsUsername || 'No DPNS name' }} • {{ formatBalance(identity.balance) }} Credits
                                         </p>
                                     </div>
-                                    <div v-if="selectedSeedIdentityId === identity.identityId"
+                                    <div v-if="selectedSeedIdentity?.identityId === identity.identityId"
                                          class="text-cyan-500 flex-shrink-0 ml-3">
                                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
@@ -278,7 +278,7 @@ const {
     seedWordCount,
     seedWords,
     seedDiscoveryResults,
-    selectedSeedIdentityId,
+    selectedSeedIdentity,
     seedDiscoveryError,
 
     manualIdentityId,

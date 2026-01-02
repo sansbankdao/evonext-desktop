@@ -35,7 +35,7 @@ export function useConnect() {
     const seedWordCount = ref<'12' | '24'>('12')
     const seedWords = ref<string[]>(new Array(12).fill(''))
     const seedDiscoveryResults = ref<DiscoveredIdentity[]>([])
-    const selectedSeedIdentityId = ref<string | null>(null)
+    const selectedSeedIdentity = ref<DiscoveredIdentity | null>(null)  // CHANGED: full object
     const seedDiscoveryError = ref<string | null>(null)
 
     // --- State: Private Key Form ---
@@ -53,8 +53,8 @@ export function useConnect() {
             // 1. Words must be filled
             if (filledWords.length !== requiredCount) return false
 
-            // 2. If we have discovery results, one must be selected
-            if (seedDiscoveryResults.value.length > 0 && !selectedSeedIdentityId.value) {
+            // 2. If we have discovery results, one must be selected (FIXED: check full object)
+            if (seedDiscoveryResults.value.length > 0 && !selectedSeedIdentity.value) {
                 return false
             }
             return true
@@ -71,11 +71,8 @@ export function useConnect() {
     // --- Progress computed properties ---
     const progressPercentage = computed(() => {
         if (!discoveryProgress.value) return 0
-
         const progress = discoveryProgress.value
-
         const totalOperations = progress.totalIdentities * progress.totalKeysPerIdentity * 2 // *2 for unique + non-unique
-
         return totalOperations > 0
             ? Math.round((progress.scannedCount / totalOperations) * 100)
             : 0
@@ -83,9 +80,7 @@ export function useConnect() {
 
     const progressMessage = computed(() => {
         if (!discoveryProgress.value) return 'Deriving keys and scanning network...'
-
         const progress = discoveryProgress.value
-
         switch (progress.status) {
             case 'deriving':
                 return 'Deriving cryptographic keys from seed phrase...'
@@ -103,24 +98,25 @@ export function useConnect() {
     // --- Actions: State Helpers ---
     const updateConnectionMethod = (method: 'seed' | 'privateKey') => {
         connectionMethod.value = method
-
-        // We do NOT call resetDiscovery() here anymore to preserve results
         connectionError.value = null
-
-        // We only clear input fields that don't belong to the target tab
+        // Clear input fields that don't belong to the target tab
         if (method === 'seed') {
             currentInputKey.value = ''
             discoveredIdentity.value = null
             discoveryDetails.value = null
+            // Keep seed words if switching back
         } else {
+            // Clear seed words when switching to private key
             seedWords.value = new Array(parseInt(seedWordCount.value)).fill('')
+            selectedSeedIdentity.value = null
+            seedDiscoveryResults.value = []
         }
     }
 
     const closeResults = () => {
         // Explicitly clear results and selection
         seedDiscoveryResults.value = []
-        selectedSeedIdentityId.value = null
+        selectedSeedIdentity.value = null  // FIXED
         seedDiscoveryError.value = null
         discoveryProgress.value = null
     }
@@ -135,28 +131,26 @@ export function useConnect() {
         connectionError.value = null
         seedDiscoveryResults.value = []
         seedDiscoveryError.value = null
-        selectedSeedIdentityId.value = null
+        selectedSeedIdentity.value = null  // FIXED
 
         discoveredIdentity.value = null
         discoveryDetails.value = null
         manualIdentityId.value = ''
         currentInputKey.value = ''
 
-        // Also reset stores for persistence
-        seedStore.reset()
-        keyStore.reset()
-
         debugOutput.value = null
         isDiscovering.value = false
         discoveryProgress.value = null
         discoveryStatus.value = ''
+
+        // Also reset stores for persistence
+        seedStore.reset()
+        keyStore.reset()
     }
 
     const formatBalance = (balance: string | number | undefined) => {
         if (!balance) return '0.00'
-
         const num = typeof balance === 'string' ? parseFloat(balance) : balance
-
         return (num / 100000000).toFixed(2)
     }
 
@@ -169,7 +163,6 @@ export function useConnect() {
     // --- Actions: Seed Logic ---
     const handlePaste = (pastedText: string | string[]) => {
         let words: string[] = []
-
         if (Array.isArray(pastedText)) {
             words = pastedText
         } else if (typeof pastedText === 'string') {
@@ -197,22 +190,20 @@ export function useConnect() {
     }
 
     const selectSeedIdentity = (identity: DiscoveredIdentity) => {
-        selectedSeedIdentityId.value = identity.identityId || null
+        selectedSeedIdentity.value = identity  // FIXED: store full object
     }
 
     const discoverFromSeed = async () => {
         // Basic validation
         const phrase = seedWords.value.join(' ').trim()
         const count = parseInt(seedWordCount.value)
-
         if (phrase.split(/\s+/).length !== count) return
 
         isDiscovering.value = true
         seedDiscoveryError.value = null
-
         // Clear previous results only on new scan
         seedDiscoveryResults.value = []
-        selectedSeedIdentityId.value = null
+        selectedSeedIdentity.value = null  // FIXED
 
         // Reset progress
         discoveryProgress.value = null
@@ -223,16 +214,16 @@ export function useConnect() {
             const network = await ensure()
             const result: DiscoveryResult = await identityManager.discoverFromSeed(phrase, {
                 network,
-                maxIdentityIndex: 3
+                maxIdentityIndex: 5
             })
 
             debugOutput.value = result.debug
 
             if (result.success && result.identities && result.identities.length > 0) {
                 seedDiscoveryResults.value = result.identities
-
+                // Ensure identities have identityIdx
                 if (result.identities.length === 1) {
-                    selectedSeedIdentityId.value = result.identities[0]?.identityId || null
+                    selectedSeedIdentity.value = result.identities[0]  // FIXED: full object
                 }
             } else {
                 seedDiscoveryError.value = result.error || 'No identities found for this seed.'
@@ -292,28 +283,36 @@ export function useConnect() {
             if (connectionMethod.value === 'seed') {
                 // SEED CONNECTION
                 const phrase = seedWords.value.join(' ').trim()
-                if (!selectedSeedIdentityId.value && seedDiscoveryResults.value.length === 0) {
+
+                // Run discovery if we haven't yet or have no results
+                if (seedDiscoveryResults.value.length === 0) {
                     await discoverFromSeed()
-
-                    if (seedDiscoveryResults.value.length === 0) throw new Error('No identities found')
-
-                    selectedSeedIdentityId.value = seedDiscoveryResults.value[0]?.identityId || null
+                    if (seedDiscoveryResults.value.length === 0) {
+                        throw new Error('No identities found for this seed phrase')
+                    }
+                    // Auto-select first if only one
+                    if (seedDiscoveryResults.value.length === 1) {
+                        selectedSeedIdentity.value = seedDiscoveryResults.value[0]
+                    }
                 }
 
-                if (!selectedSeedIdentityId.value) throw new Error('Please select an identity')
+                // Verify we have a selected identity
+                if (!selectedSeedIdentity.value?.identityId) {
+                    throw new Error('Please select an identity from the discovered list')
+                }
 
-                // Pass the discovered identity ID explicitly to the store
+                // CRITICAL: Pass the identity index with the seed phrase
                 const result = await identityStore.connectWithSeed(
                     phrase,
                     network,
-                    selectedSeedIdentityId.value
+                    selectedSeedIdentity.value.identityId,
+                    selectedSeedIdentity.value.identityIdx || 0  // PASS INDEX!
                 )
-
                 if (!result.success) throw new Error(result.error)
+
             } else {
                 // PRIVATE KEY CONNECTION
                 const idToUse = discoveredIdentity.value?.identityId || manualIdentityId.value
-
                 if (!idToUse) throw new Error('Identity ID is required')
 
                 const result = await identityStore.connectWithSingleKey(
@@ -321,7 +320,6 @@ export function useConnect() {
                     idToUse,
                     network
                 )
-
                 if (!result.success) throw new Error(result.error)
             }
 
@@ -336,8 +334,16 @@ export function useConnect() {
     }
 
     // Lifecycle
-    const initialize = () => { resetDiscovery() }
-    const cleanup = () => { resetDiscovery() }
+    const initialize = () => {
+        // Optional: preload any saved seed/keys
+        seedStore.initialize()
+        keyStore.initialize()
+    }
+    const cleanup = () => {
+        resetDiscovery()
+        seedStore.cleanup()
+        keyStore.cleanup()
+    }
 
     onUnmounted(() => {
         cleanup()
@@ -362,7 +368,7 @@ export function useConnect() {
         seedWordCount,
         seedWords,
         seedDiscoveryResults,
-        selectedSeedIdentityId,
+        selectedSeedIdentity,  // FIXED
         seedDiscoveryError,
 
         // Key State

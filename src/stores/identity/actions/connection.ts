@@ -9,11 +9,8 @@ import { DAPIService } from '@/services/identity/discovery/DAPIService'
 import type {
     ConnectionResult,
     DiscoveredIdentity,
-    // IPublicKey,
-    // IIdentity,
     IIdentityState,
 } from '@/types'
-
 
 // --- IMPLEMENTATION ---
 interface Settings {
@@ -25,6 +22,7 @@ interface SafeStoragePayload {
     keys: string[]
     identity_id: string
     seed_phrase?: string
+    identity_index?: number  // Added
 }
 
 // Helper to safely load storage
@@ -45,8 +43,8 @@ export const connectionActions = () => ({
                 const network: 'mainnet' | 'testnet' = (settings?.network === 'testnet' ? 'testnet' : 'mainnet')
                 log('info', 'Initializing from storage for network:', network)
 
-                // Load keys from .safu-testnet.json
-                const keysData = await loadStorageData<SafeStoragePayload>('load_private_keys_safe', network)
+                // Load keys from .safu-testnet.json - FIXED COMMAND NAME
+                const keysData = await loadStorageData<SafeStoragePayload>('load_private_keys', network)
 
                 if (keysData && keysData.keys && keysData.keys.length > 0 && keysData.identity_id) {
                     // We have keys. Verify them by fetching identity.
@@ -55,25 +53,21 @@ export const connectionActions = () => ({
 
                     if (derivationResult.hashes.length > 0) {
                         const result = await DAPIService.queryIdentityByHash(derivationResult.hashes[0] || '', network, true)
-                        if (result.success && result.data) {
+                        // FIXED: Verify identity matches stored ID
+                        if (result.success && result.data && result.data.identityId === keysData.identity_id) {
                             log('info', 'Verified stored key identity ID:', result.data.identityId)
                             this.isAuthenticated = true
-
-                            // 1. Set username to the Identity ID string
                             this.username = result.data.identityId
-
-                            // 2. Create minimal IIdentity object for the store
                             this.identity = {
-                                identityIdx: 0,
+                                identityIdx: keysData.identity_index || 0, // Use stored index
                                 publicKeys: result.data.publicKeys || []
                             }
-
-                            // 3. Fetch detailed info
                             if (typeof this.searchUserIdentities === 'function') {
                                 await this.searchUserIdentities(network)
                             }
                         } else {
-                            log('warn', 'Stored keys do not match any identity on network. Clearing invalid keys.')
+                            const foundId = result.success && result.data ? result.data.identityId : 'none'
+                            log('warn', `Stored keys for ${keysData.identity_id} do not match found identity ${foundId}. Clearing invalid keys.`)
                             try {
                                 if (typeof this.clearStorage === 'function') {
                                     await this.clearStorage()
@@ -81,6 +75,20 @@ export const connectionActions = () => ({
                             } catch (clearErr) {
                                 log('error', 'Failed to clear invalid storage:', clearErr)
                             }
+                        }
+                    }
+                } else {
+                    // Also check if we have identity data stored separately
+                    const identityData = await loadStorageData<any>('load_identity_data', network)
+                    if (identityData?.identity_id && identityData.is_authenticated) {
+                        this.username = identityData.identity_id
+                        this.isAuthenticated = identityData.is_authenticated
+                        this.identity = {
+                            identityIdx: 0,
+                            publicKeys: []
+                        }
+                        if (typeof this.searchUserIdentities === 'function') {
+                            await this.searchUserIdentities(network)
                         }
                     }
                 }
@@ -94,34 +102,18 @@ export const connectionActions = () => ({
         this: IIdentityState,
         seedPhrase: string,
         network: 'mainnet' | 'testnet' = 'mainnet',
-        discoveredIdentityId?: string
+        targetId: string,
+        identityIndex: number = 0
     ): Promise<ConnectionResult> {
         return ErrorBoundary.wrap(async () => {
             this.isConnecting = true
             this.connectionError = null
 
             try {
-                log('info', 'Attempting to connect with seed phrase on network:', network)
-                let targetId: string
+                log('info', 'Attempting to connect with seed phrase on network:', network, 'index:', identityIndex)
 
-                if (discoveredIdentityId) {
-                    targetId = discoveredIdentityId
-                } else {
-                    let identities
-
-                    if (typeof this.searchUserIdentities === 'function') {
-                        identities = await this.searchUserIdentities(network)
-                    }
-
-                    if (!identities || identities.length === 0) {
-                        throw new Error('Identity ID required for connection. Please ensure discovery ran.')
-                    }
-
-                    targetId = identities[0]?.identityId || ''
-                }
-
-                // Derive keys (Assuming Index 0)
-                const matchIndex = 0
+                // Derive keys using the specific identity index
+                const matchIndex = identityIndex
                 const authDeriv = await KeyDerivationService.getPrivateKeyWASM(seedPhrase, network, matchIndex, 0)
                 const transferDeriv = await KeyDerivationService.getPrivateKeyWASM(seedPhrase, network, matchIndex, 3)
                 const encDeriv = await KeyDerivationService.getPrivateKeyWASM(seedPhrase, network, matchIndex, 4)
@@ -129,30 +121,38 @@ export const connectionActions = () => ({
                 const transferWIF = transferDeriv.privateKey.WIF()
                 const encWIF = encDeriv.privateKey.WIF()
 
-                // Save to .safu-testnet.json
+                // Save to backend storage
                 const payload: SafeStoragePayload = {
                     keys: [authWIF, transferWIF, encWIF],
                     identity_id: targetId,
-                    seed_phrase: seedPhrase
+                    seed_phrase: seedPhrase,
+                    identity_index: identityIndex
                 }
 
-                await invoke('save_private_keys_safe', { network, payload })
+                await invoke('save_private_keys', { network, payload })
+                await invoke('save_mnemonic', {
+                    network,
+                    payload: { mnemonic: seedPhrase }
+                })
 
                 // Update Store State
                 this.isAuthenticated = true
-                this.username = targetId // <--- Identity ID goes here
+                this.username = targetId
                 this.identity = {
                     identityIdx: matchIndex,
-                    publicKeys: [] // Populated by searchUserIdentities
+                    publicKeys: []
                 }
 
+                // FIX: Call methods safely
                 if (typeof this.searchUserIdentities === 'function') {
                     await this.searchUserIdentities(network)
                 }
-                log('info', `Seed connection successful. Identity ID: ${targetId}`)
 
+                log('info', `Seed connection successful. Identity ID: ${targetId}, Index: ${matchIndex}`)
+
+                // FIX: Call saveToStorage method safely
                 if (typeof this.saveToStorage === 'function') {
-                    await this.saveToStorage()
+                    await this.saveToStorage(network)
                 }
 
                 return { success: true, identity: this.identity }
@@ -189,22 +189,25 @@ export const connectionActions = () => ({
                     identity_id: trimmedId
                 }
 
-                await invoke('save_private_keys_safe', { network, payload })
+                await invoke('save_private_keys', { network, payload })
 
-                this.username = trimmedId // <--- Identity ID goes here
+                this.username = trimmedId
                 this.isAuthenticated = true
                 this.identity = {
                     identityIdx: 0,
                     publicKeys: []
                 }
 
+                // FIX: Call methods safely
                 if (typeof this.searchUserIdentities === 'function') {
                     await this.searchUserIdentities(network)
                 }
+
                 log('info', 'Single key connection successful. isAuthenticated:', this.isAuthenticated)
 
+                // FIX: Call saveToStorage method safely
                 if (typeof this.saveToStorage === 'function') {
-                    await this.saveToStorage()
+                    await this.saveToStorage(network)
                 }
 
                 return { success: true, identity: this.identity }
@@ -223,7 +226,6 @@ export const connectionActions = () => ({
         network: 'mainnet' | 'testnet'
     ): Promise<DiscoveredIdentity[]> {
         return ErrorBoundary.wrap(async () => {
-            // Use 'this.username' because it contains the identity ID string
             const identityId = this.username
             if (!identityId) {
                 return []
@@ -232,7 +234,7 @@ export const connectionActions = () => ({
             if (result.success && result.data) {
                 const discovered: DiscoveredIdentity = {
                     identityId: result.data.identityId || result.data.id,
-                    identityIdx: 0, // FIXME
+                    identityIdx: this.identity?.identityIdx || 0,
                     balance: result.data.balance || '0',
                     revision: result.data.revision || '0',
                     publicKeys: result.data.publicKeys || [],
@@ -279,19 +281,18 @@ export const connectionActions = () => ({
         this.connectionError = null
     },
 
-    async saveToStorage(this: IIdentityState) {
+    async saveToStorage(this: IIdentityState, networkOverride?: 'mainnet' | 'testnet') {
         try {
-            const settings = await invoke<Settings>('load_settings')
+            const settings = networkOverride ? { network: networkOverride } : await invoke<Settings>('load_settings')
             const network: 'mainnet' | 'testnet' = (settings?.network === 'testnet' ? 'testnet' : 'mainnet')
-            // Use 'this.username' (ID string) or fallback
             const idToSave = this.username || (this.identity ? 'unknown' : null)
-            if (idToSave) {
+            if (idToSave && this.isAuthenticated) {
                 await invoke('save_identity_data', {
                     network,
                     payload: {
                         identity_id: idToSave,
                         is_authenticated: this.isAuthenticated,
-                        public_keys: this.publicKeys,
+                        public_keys: this.publicKeys || [],
                         balance: this.balance,
                         revision: this.revision?.toString(),
                         last_updated: new Date().toISOString()
@@ -308,8 +309,9 @@ export const connectionActions = () => ({
             const settings = await invoke<Settings>('load_settings')
             const network: 'mainnet' | 'testnet' = (settings?.network === 'testnet' ? 'testnet' : 'mainnet')
             await Promise.all([
-                invoke('remove_identity_data', { network }),
-                invoke('remove_private_keys_safe', { network })
+                invoke('delete_identity_data', { network }),
+                invoke('delete_private_keys', { network }),
+                invoke('delete_mnemonic', { network })
             ])
             log('info', 'Storage cleared for network:', network)
         } catch (err) {
