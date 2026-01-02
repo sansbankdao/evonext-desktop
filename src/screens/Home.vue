@@ -180,7 +180,7 @@ const System = useSystemStore()
 
 const totalBalance = computed(() => {
     if (Identity.isAuthenticated && Identity.balance) {
-        const credits = parseInt(Identity.balance, 10)
+        const credits = parseInt(Identity.balance as string, 10)
         const duffs = credits / 1000 // Convert credits to duffs (1 duff = 1,000 credits)
         const dash = duffs / 100000000 // Convert duffs to DASH (1 DASH = 100,000,000 duffs)
         const usd = dash * System.currentDashPrice

@@ -47,7 +47,7 @@
                         <svg class="w-4 h-4 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
                         </svg>
-                        Available Balance: {{ selectedAsset.balance.toLocaleString() }} {{ selectedAsset.symbol }}
+                        Available Balance: {{ selectedAsset.balance?.toLocaleString() }} {{ selectedAsset.symbol }}
                     </p>
                 </div>
 
@@ -108,7 +108,7 @@
                     <button
                         type="button"
                         @click="setMaxAmount"
-                        :disabled="!selectedAsset || selectedAsset.balance <= 0"
+                        :disabled="!selectedAsset || selectedAsset.balance as number <= 0"
                         class="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 bg-indigo-500/20 dark:bg-indigo-500/30 text-indigo-700 dark:text-indigo-300 text-xs font-medium rounded hover:bg-indigo-500/30 dark:hover:bg-indigo-400/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                         MAX
@@ -116,7 +116,7 @@
                 </div>
 
                 <p v-if="selectedAsset && amount" class="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                    (Max: {{ selectedAsset.balance.toLocaleString() }} {{ selectedAsset.symbol }})
+                    (Max: {{ selectedAsset.balance?.toLocaleString() }} {{ selectedAsset.symbol }})
                 </p>
             </div>
 
@@ -220,7 +220,7 @@ const isFormValid = computed(() => {
 
 const setMaxAmount = () => {
     if (selectedAsset.value && selectedAsset.value.balance) {
-        amount.value = selectedAsset.value.balance
+        amount.value = selectedAsset.value.balance as number
     }
 }
 
@@ -237,7 +237,7 @@ const handleSend = async () => {
         return
     }
 
-    if (amount.value! > selectedAsset.value.balance) {
+    if (amount.value! > (selectedAsset.value.balance as number)) {
         error.value = 'Insufficient balance for this transaction.'
         return
     }

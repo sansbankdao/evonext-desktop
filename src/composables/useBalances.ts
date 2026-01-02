@@ -24,7 +24,7 @@ export function useBalances() {
             const tokenBalances: TokenBalance[] = assets.map(asset => {
                 // Convert decimal balance to atomic (bigint) for internal processing
                 const factor = BigInt(10 ** (asset.precision || 8))
-                const atomicBalance = BigInt(Math.floor(asset.balance || 0)) * factor
+                const atomicBalance = BigInt(Math.floor(asset.balance as number)) * factor
 
                 return {
                     tokenId: '', // Placeholder, typically comes from contract

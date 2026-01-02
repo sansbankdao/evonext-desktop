@@ -103,7 +103,7 @@ export async function fetchLiveBalances(this: WalletStoreContext) {
             sansBalance,
             system.currentDashPrice
         )
-        this.assets = updatedAssets.filter(asset => asset.balance > 0 || asset.symbol === 'DASH')
+        this.assets = updatedAssets.filter(asset => (asset.balance as number) > 0 || asset.symbol === 'DASH')
 
     }, 'FETCH_LIVE_BALANCES_FAILED')
 }

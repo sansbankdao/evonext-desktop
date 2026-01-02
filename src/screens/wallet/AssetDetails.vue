@@ -45,7 +45,7 @@
 
                 <div class="text-right">
                     <p class="text-5xl font-black text-slate-900 dark:text-slate-100 mb-2">
-                        {{ selectedAsset.balance.toLocaleString() }}
+                        {{ selectedAsset.balance?.toLocaleString() }}
                     </p>
 
                     <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mb-1 font-mono">

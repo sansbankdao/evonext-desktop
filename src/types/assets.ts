@@ -14,7 +14,7 @@ export interface IAsset {
     protocol?: string;             // e.g., 'DPP', 'ERC-20', 'BEP-20'
 
     // Balance Information
-    balance: number;               // Raw amount (in smallest unit, e.g., satoshis, wei)
+    balance: number | string | null | undefined; // Raw amount (in smallest unit, e.g., satoshis, wei)
     balanceFormatted: string;     // User-friendly formatted string (e.g., "1.23456789 DASH")
     availableBalance?: number;     // Amount available for transfers (excluding locked/staked)
     lockedBalance?: number;        // Amount locked/staked
@@ -182,7 +182,7 @@ export interface IAssetBalance {
     assetId: string;
     symbol: string;
     name: string;
-    balance: number;
+    balance: number | string | null | undefined;
     balanceFormatted: string;
     usdValue: number;
     percentage?: number;           // Percentage of total portfolio

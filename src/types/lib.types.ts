@@ -70,7 +70,7 @@ export interface IdentityLookupResponse {
     identityId?: string;
     result?: {
         identityId: string;
-        balance: string;
+        balance: number | string | null | undefined;
         revision: number;
         publicKeys?: Array<{
             purpose: string;

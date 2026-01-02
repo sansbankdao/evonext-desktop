@@ -16,7 +16,7 @@
                 <div class="flex justify-between items-center mb-1">
                     <span class="text-sm text-slate-600 dark:text-slate-400">You Pay</span>
                     <span class="text-sm text-slate-600 dark:text-slate-400">
-                        Balance: {{ fromAsset?.balance.toLocaleString() ?? 0 }}
+                        Balance: {{ fromAsset?.balance?.toLocaleString() ?? 0 }}
                     </span>
                 </div>
                 <div class="flex items-center gap-4">
@@ -49,7 +49,7 @@
                 <div class="flex justify-between items-center mb-1">
                     <span class="text-sm text-slate-600 dark:text-slate-400">You Receive</span>
                      <span class="text-sm text-slate-600 dark:text-slate-400">
-                        Balance: {{ toAsset?.balance.toLocaleString() ?? 0 }}
+                        Balance: {{ toAsset?.balance?.toLocaleString() ?? 0 }}
                     </span>
                 </div>
                 <div class="flex items-center gap-4">
@@ -161,7 +161,7 @@ const calculateFromAmount = () => {
 }
 
 const validateBalance = () => {
-    if (fromAsset.value && fromAmount.value && fromAmount.value > fromAsset.value.balance) {
+    if (fromAsset.value && fromAmount.value && fromAmount.value > (fromAsset.value.balance as number)) {
         error.value = `Insufficient ${fromAsset.value.symbol} balance.`
     } else {
         error.value = null

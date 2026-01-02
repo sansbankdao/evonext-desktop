@@ -135,11 +135,11 @@
 
                         <div class="text-right space-y-1">
                             <p class="font-black text-2xl text-slate-900 dark:text-slate-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200">
-                                {{ asset.balance.toLocaleString() }} {{ asset.symbol }}
+                                {{ asset.balance?.toLocaleString() }} {{ asset.symbol }}
                             </p>
 
                             <p class="text-lg text-slate-600 dark:text-slate-400 font-bold">
-                                {{ formatCurrency(asset.usdValue || 0) }}
+                                {{ formatCurrency(asset.usdValue as number) }}
                             </p>
                         </div>
                     </div>
@@ -253,7 +253,7 @@ const System = useSystemStore()
 
 const totalBalance = computed(() => {
     if (Identity.isConnected && Identity.balance) {
-        const credits = parseInt(Identity.balance, 10)
+        const credits = parseInt(Identity.balance as string, 10)
         const duffs = credits / 1000
         const dash = duffs / 100000000
         const usd = dash * System.currentDashPrice
