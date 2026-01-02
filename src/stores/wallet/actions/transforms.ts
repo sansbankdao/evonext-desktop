@@ -34,11 +34,10 @@ export function createUpdatedAssets(
         // DASH (same as credits)
         {
             symbol: 'DASH',
-            ticker: 'DASH', // Added to match screen usage
+            // ticker: 'DASH', // Ensure ticker is in IAsset type if uncommenting
             name: 'Dash Coins',
             balance: dashBalance,
             usdValue: dashBalance * dashPrice,
-            amount: dashBalance, // Added to match screen usage
             id: 'DASH',
             precision: 8,
             type: 'native',
@@ -55,11 +54,10 @@ export function createUpdatedAssets(
         // CREDITS (same as DASH balance, uses DASH price)
         {
             symbol: 'CREDITS',
-            ticker: 'CREDITS', // Added
+            // ticker: 'CREDITS', // Ensure ticker is in IAsset type if uncommenting
             name: 'Dash Credits',
             balance: creditsBalance,
             usdValue: creditsBalance * dashPrice,
-            amount: creditsBalance, // Added
             id: 'DASH',
             precision: 12,
             type: 'native',
@@ -76,11 +74,10 @@ export function createUpdatedAssets(
         // DUSD ($1.00 hardcoded as stablecoin)
         {
             symbol: 'DUSD',
-            ticker: 'DUSD', // Added
+            // ticker: 'DUSD', // Ensure ticker is in IAsset type if uncommenting
             name: 'Dash USD',
             balance: dusdBalance,
             usdValue: dusdBalance * TOKEN_PRICES.DUSD,
-            amount: dusdBalance, // Added
             id: 'DUSD',
             precision: 6,
             type: 'native',
@@ -97,11 +94,10 @@ export function createUpdatedAssets(
         // SANS ($0.16 hardcoded - updated per requirement)
         {
             symbol: 'SANS',
-            ticker: 'SANS', // Added
+            // ticker: 'SANS', // Ensure ticker is in IAsset type if uncommenting
             name: 'Sansnote',
             balance: sansBalance,
             usdValue: sansBalance * TOKEN_PRICES.SANS,
-            amount: sansBalance, // Added
             id: 'SANS',
             precision: 8,
             type: 'native',
@@ -205,7 +201,7 @@ export function transformIdentityTransfer(
 
     return {
         id: transfer.txHash!,
-        type, // 'IDENTITY_CREATE' | 'IDENTITY_CREDIT_TRANSFER'
+        type,
         title, // Mapped
         subtitle, // Mapped
         amount: amountStr,
@@ -213,13 +209,14 @@ export function transformIdentityTransfer(
         createdAt: transfer.createdAt,
         date: transfer.createdAt, // Added alias
 
+        // Required properties from ITransaction
         hash: transfer.txHash || '',
-        confirmations: 0,
-        senderId: transfer.sender,
+        confirmations: 0, // Spelling fixed to confirmations
+        senderId: transfer.sender || '',
         receiverId: transfer.recipient,
         assetType: 'COIN',
         assetSymbol: '',
-        direction: isSent ? 'OUT' : 'IN',
+        direction: isSent ? 'OUTGOING' : 'INCOMING',
         network: 'testnet',
     }
 }
@@ -236,16 +233,10 @@ export function transformTokenTransitions(
     const result: ITransaction[] = []
 
     for (const transition of transitions) {
-        // FIX: Safe property access
-        // Assuming 'owner' structure might be different or 'ownerId' is present
-        // We use 'ownerId' and 'recipient' which are strings in types
-        const isOwner = transition.ownerId === identityId // Assuming 'ownerId' exists on TokenTransition or you use owner.identifier
-        const isRecipient = transition.recipient === identityId
-
-        // Fallback if structure is different:
-        // If 'ownerId' is missing, this check might fail.
-        // Adjusting based on typical Dash Platform structures:
-        // Usually sender/recipient are string identifiers.
+        // FIX: Safe property access based on typical Dash Platform types
+        // We use 'identityId' and 'recipientId' which are strings in types
+        const isOwner = transition.identityId === identityId
+        const isRecipient = transition.recipientId === identityId
 
         if (!isOwner && !isRecipient) {
             continue
@@ -261,7 +252,7 @@ export function transformTokenTransitions(
             ? parseFloat(transition.amount)
             : Number(transition.amount)
 
-        switch (transition.actionType) { // Changed from 'action' to 'actionType' based on common patterns
+        switch (transition.type) { // Changed from action to type
             case 'TOKEN_MINT':
                 type = 'received'
                 title = `Minted ${tokenTicker}`
@@ -269,16 +260,16 @@ export function transformTokenTransitions(
                 amountStr = formatTokenAmount(transitionAmount, tokenTicker, decimalPlaces, true)
                 break
 
-            case 'TOKEN_TRANSFER':
+            case 'IDENTITY_TOKEN_TRANSFER': // Adjusted case to likely enum value
                 if (isOwner) {
                     type = 'sent'
                     title = `Sent ${tokenTicker}`
-                    subtitle = `To: ${truncateAddress(transition.recipient)}`
+                    subtitle = `To: ${truncateAddress(transition.recipientId || 'Unknown')}`
                     amountStr = formatTokenAmount(transitionAmount, tokenTicker, decimalPlaces, false)
                 } else if (isRecipient) {
                     type = 'received'
                     title = `Received ${tokenTicker}`
-                    subtitle = `From: ${truncateAddress(transition.ownerId || 'Unknown')}`
+                    subtitle = `From: ${truncateAddress(transition.identityId || 'Unknown')}`
                     amountStr = formatTokenAmount(transitionAmount, tokenTicker, decimalPlaces, true)
                 }
                 break
@@ -290,14 +281,24 @@ export function transformTokenTransitions(
         if (title && amountStr) {
             result.push({
                 id: transition.txHash || '',
-                type, // 'sent' | 'received'
+                type,
                 title,
                 subtitle,
                 amount: amountStr,
                 status: 'PENDING' as const,
                 // FIX: Convert Date to number for 'date' property
                 date: typeof transition.createdAt === 'number' ? transition.createdAt : new Date(transition.createdAt).getTime(),
-                createdAt: typeof transition.createdAt === 'number' ? transition.createdAt : new Date(transition.createdAt).getTime()
+                createdAt: typeof transition.createdAt === 'number' ? transition.createdAt : new Date(transition.createdAt).getTime(),
+
+                // Required properties from ITransaction
+                hash: transition.txHash || '',
+                confirmations: 0,
+                senderId: isOwner ? identityId : (transition.identityId || ''),
+                receiverId: isRecipient ? identityId : (transition.recipientId || ''),
+                assetType: 'TOKEN',
+                assetSymbol: tokenTicker,
+                direction: isOwner ? 'OUTGOING' : 'INCOMING',
+                network: 'testnet',
             })
         }
     }

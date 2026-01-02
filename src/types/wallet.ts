@@ -14,9 +14,12 @@ export interface IdentityTransfer {
 }
 
 export interface TokenTransition {
+    identityId?: string;
+    addressId?: string;
+    recipientId?: string;
     token: string;
     amount: number;
-    type: 'token_mint' | 'token_burn' | 'IDENTITY_TOKEN_TRANSFER';
+    type: 'TOKEN_MINT' | 'token_burn' | 'IDENTITY_TOKEN_TRANSFER';
     txHash?: string;
     createdAt: number;
 }
