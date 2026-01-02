@@ -35,7 +35,7 @@ export function useConnect() {
     const seedWordCount = ref<'12' | '24'>('12')
     const seedWords = ref<string[]>(new Array(12).fill(''))
     const seedDiscoveryResults = ref<DiscoveredIdentity[]>([])
-    const selectedSeedIdentity = ref<DiscoveredIdentity | null>(null)  // CHANGED: full object
+    const selectedSeedIdentity = ref<DiscoveredIdentity | null>(null)
     const seedDiscoveryError = ref<string | null>(null)
 
     // --- State: Private Key Form ---
@@ -53,7 +53,7 @@ export function useConnect() {
             // 1. Words must be filled
             if (filledWords.length !== requiredCount) return false
 
-            // 2. If we have discovery results, one must be selected (FIXED: check full object)
+            // 2. If we have discovery results, one must be selected
             if (seedDiscoveryResults.value.length > 0 && !selectedSeedIdentity.value) {
                 return false
             }
@@ -116,7 +116,7 @@ export function useConnect() {
     const closeResults = () => {
         // Explicitly clear results and selection
         seedDiscoveryResults.value = []
-        selectedSeedIdentity.value = null  // FIXED
+        selectedSeedIdentity.value = null
         seedDiscoveryError.value = null
         discoveryProgress.value = null
     }
@@ -131,7 +131,7 @@ export function useConnect() {
         connectionError.value = null
         seedDiscoveryResults.value = []
         seedDiscoveryError.value = null
-        selectedSeedIdentity.value = null  // FIXED
+        selectedSeedIdentity.value = null
 
         discoveredIdentity.value = null
         discoveryDetails.value = null
@@ -190,7 +190,7 @@ export function useConnect() {
     }
 
     const selectSeedIdentity = (identity: DiscoveredIdentity) => {
-        selectedSeedIdentity.value = identity  // FIXED: store full object
+        selectedSeedIdentity.value = identity
     }
 
     const discoverFromSeed = async () => {
@@ -203,7 +203,7 @@ export function useConnect() {
         seedDiscoveryError.value = null
         // Clear previous results only on new scan
         seedDiscoveryResults.value = []
-        selectedSeedIdentity.value = null  // FIXED
+        selectedSeedIdentity.value = null
 
         // Reset progress
         discoveryProgress.value = null
@@ -220,10 +220,16 @@ export function useConnect() {
             debugOutput.value = result.debug
 
             if (result.success && result.identities && result.identities.length > 0) {
-                seedDiscoveryResults.value = result.identities
-                // Ensure identities have identityIdx
-                if (result.identities.length === 1) {
-                    selectedSeedIdentity.value = result.identities[0]  // FIXED: full object
+                // Filter out any undefined/null identities
+                const validIdentities = (result.identities as (DiscoveredIdentity | undefined)[]).filter(
+                    (identity): identity is DiscoveredIdentity => identity !== undefined && identity !== null
+                )
+
+                seedDiscoveryResults.value = validIdentities
+
+                // Check if we have at least one valid identity
+                if (validIdentities.length > 0 && validIdentities[0]) {
+                    selectedSeedIdentity.value = validIdentities[0]
                 }
             } else {
                 seedDiscoveryError.value = result.error || 'No identities found for this seed.'
@@ -251,7 +257,8 @@ export function useConnect() {
             debugOutput.value = result.debug
 
             if (result.success && result.identity) {
-                discoveredIdentity.value = result.identity
+                // Handle undefined case by converting to null if needed
+                discoveredIdentity.value = result.identity || null
                 manualIdentityId.value = result.identity.identityId || ''
 
                 discoveryDetails.value = {
@@ -291,7 +298,7 @@ export function useConnect() {
                         throw new Error('No identities found for this seed phrase')
                     }
                     // Auto-select first if only one
-                    if (seedDiscoveryResults.value.length === 1) {
+                    if (seedDiscoveryResults.value.length === 1 && seedDiscoveryResults.value[0]) {
                         selectedSeedIdentity.value = seedDiscoveryResults.value[0]
                     }
                 }
@@ -306,7 +313,7 @@ export function useConnect() {
                     phrase,
                     network,
                     selectedSeedIdentity.value.identityId,
-                    selectedSeedIdentity.value.identityIdx || 0  // PASS INDEX!
+                    selectedSeedIdentity.value.identityIdx || 0
                 )
                 if (!result.success) throw new Error(result.error)
 
@@ -324,7 +331,7 @@ export function useConnect() {
             }
 
             // Redirect on success
-            router.push({ name: 'Home' }) // or 'Dashboard'
+            router.push({ name: 'Home' })
 
         } catch (e: any) {
             connectionError.value = e.message || 'Connection failed'
@@ -368,7 +375,7 @@ export function useConnect() {
         seedWordCount,
         seedWords,
         seedDiscoveryResults,
-        selectedSeedIdentity,  // FIXED
+        selectedSeedIdentity,
         seedDiscoveryError,
 
         // Key State
