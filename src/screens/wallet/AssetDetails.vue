@@ -22,9 +22,9 @@
                 <div class="flex items-center gap-6">
                     <div class="relative size-20 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-2xl p-4 flex items-center justify-center border-2 border-indigo-200/50 dark:border-indigo-800/50 shadow-xl group-hover:scale-105 transition-all duration-300">
                         <img
-                            v-if="assetIconExists(selectedAsset.ticker.toLowerCase())"
-                            :src="`/icons/${selectedAsset.ticker.toLowerCase()}.svg`"
-                            :alt="selectedAsset.ticker"
+                            v-if="assetIconExists(selectedAsset.symbol.toLowerCase())"
+                            :src="`/icons/${selectedAsset.symbol.toLowerCase()}.svg`"
+                            :alt="selectedAsset.symbol"
                             class="size-12"
                         />
                         <svg v-else class="size-10 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,22 +38,22 @@
                         </h2>
 
                         <p class="text-2xl font-bold text-slate-600 dark:text-slate-400 font-mono tracking-widest uppercase">
-                            {{ selectedAsset.ticker }}
+                            {{ selectedAsset.symbol }}
                         </p>
                     </div>
                 </div>
 
                 <div class="text-right">
                     <p class="text-5xl font-black text-slate-900 dark:text-slate-100 mb-2">
-                        {{ selectedAsset.amount.toLocaleString() }}
+                        {{ selectedAsset.balance.toLocaleString() }}
                     </p>
 
                     <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mb-1 font-mono">
-                        {{ selectedAsset.ticker }}
+                        {{ selectedAsset.symbol }}
                     </p>
 
                     <p class="text-xl text-slate-600 dark:text-slate-400 font-bold">
-                        {{ formatCurrency(selectedAsset.usdValue) }}
+                        {{ formatCurrency(selectedAsset.usdValue || 0) }}
                     </p>
                 </div>
             </div>
@@ -169,13 +169,13 @@ const route = useRoute()
 const router = useRouter()
 const Wallet = useWalletStore()
 
-const ticker = route.params.ticker as string
+const symbol = route.params.symbol as string
 
-const selectedAsset = computed(() => Wallet.assets.find(asset => asset.ticker === ticker))
+const selectedAsset = computed(() => Wallet.assets.find(asset => asset.symbol === symbol))
 
 const filteredTransactions = computed(() => {
-    // Mock filter: In real app, filter by asset ticker from store or API
-    return Wallet.transactions.filter(tx => tx.title.includes(ticker) || tx.amount.includes(ticker))
+    // Mock filter: In real app, filter by asset symbol from store or API
+    return Wallet.transactions.filter(tx => (tx.title || '').includes(symbol))
 })
 
 const formatCurrency = (value: number) => {
