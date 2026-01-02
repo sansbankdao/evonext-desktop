@@ -484,30 +484,13 @@ pub async fn get_identity_by_public_key_hash(
     public_key_hash: String,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {  // Changed to Vec<Value>
-    // DEBUG: Log incoming parameters
-    println!("[DAPI_DEBUG] get_identity_by_public_key_hash called");
-    println!("[DAPI_DEBUG]   public_key_hash: {}", public_key_hash);
-    println!("[DAPI_DEBUG]   network: {:?}", network);
-    println!("[DAPI_DEBUG]   public_key_hash length: {}", public_key_hash.len());
-    println!("[DAPI_DEBUG]   public_key_hash is hex: {}", public_key_hash.chars().all(|c| c.is_ascii_hexdigit()));
-
     let client = get_dapi_client();
     let network_value = network.unwrap_or_else(|| "testnet".to_string());
     let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
     let params = vec![json!(public_key_hash)];
 
-    // DEBUG: Log what we're about to send to DAPI
-    println!("[DAPI_DEBUG]   Calling client.request with:");
-    println!("[DAPI_DEBUG]     method: get_identity_by_public_key_hash");
-    println!("[DAPI_DEBUG]     params: {:?}", params);
-    println!("[DAPI_DEBUG]     network: {:?}", network_enum);
-
     match client.request::<Value>("get_identity_by_public_key_hash".to_string(), params, network_enum).await {
         Ok(result) => {
-            // DEBUG: Log successful response
-            println!("[DAPI_DEBUG]   SUCCESS - Raw DAPI result:");
-            println!("[DAPI_DEBUG]     {:?}", result);
-
             // FIX: client.request returns Vec<Value>, so result is a Vec.
             // We check if the vector is empty instead of matching against Value::Null.
             let is_empty = result.is_empty();
@@ -530,8 +513,6 @@ pub async fn get_identity_by_public_key_hash(
             }
         }
         Err(e) => {
-            // DEBUG: Log error
-            println!("[DAPI_DEBUG]   ERROR from DAPI: {}", e);
             tracing::error!("Failed to get identity by public key hash: {}", e);
             let error_response = json!({
                 "success": false,
@@ -551,30 +532,13 @@ pub async fn get_identity_by_non_unique_public_key_hash(
     public_key_hash: String,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {  // Changed to Vec<Value>
-    // DEBUG: Log incoming parameters
-    println!("[DAPI_DEBUG] get_identity_by_non_unique_public_key_hash called");
-    println!("[DAPI_DEBUG]   public_key_hash: {}", public_key_hash);
-    println!("[DAPI_DEBUG]   network: {:?}", network);
-    println!("[DAPI_DEBUG]   public_key_hash length: {}", public_key_hash.len());
-    println!("[DAPI_DEBUG]   public_key_hash is hex: {}", public_key_hash.chars().all(|c| c.is_ascii_hexdigit()));
-
     let client = get_dapi_client();
     let network_value = network.unwrap_or_else(|| "testnet".to_string());
     let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
     let params = vec![json!(public_key_hash)];
 
-    // DEBUG: Log what we're about to send to DAPI
-    println!("[DAPI_DEBUG]   Calling client.request with:");
-    println!("[DAPI_DEBUG]     method: get_identity_by_non_unique_public_key_hash");
-    println!("[DAPI_DEBUG]     params: {:?}", params);
-    println!("[DAPI_DEBUG]     network: {:?}", network_enum);
-
     match client.request::<Value>("get_identity_by_non_unique_public_key_hash".to_string(), params, network_enum).await {
         Ok(result) => {
-            // DEBUG: Log successful response
-            println!("[DAPI_DEBUG]   SUCCESS - Raw DAPI result:");
-            println!("[DAPI_DEBUG]     {:?}", result);
-
             // FIX: client.request returns Vec<Value>, so result is a Vec.
             // We check if the vector is empty instead of matching against Value::Null.
             let is_empty = result.is_empty();
@@ -597,8 +561,6 @@ pub async fn get_identity_by_non_unique_public_key_hash(
             }
         }
         Err(e) => {
-            // DEBUG: Log error
-            println!("[DAPI_DEBUG]   ERROR from DAPI: {}", e);
             tracing::error!("Failed to get identity by non-unique public key hash: {}", e);
             let error_response = json!({
                 "success": false,
