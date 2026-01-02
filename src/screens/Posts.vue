@@ -198,7 +198,7 @@
                                 <div v-else class="space-y-4">
                                     <PostItem
                                         v-for="post in filteredPostsData"
-                                        :key="post.id || post.ownerId + '-' + post.createdAt.getTime()"
+                                        :key="post.id || post.ownerId + '-' + post.createdAt"
                                         :post="post"
                                         @like="handleLike"
                                         @repost="handleRepost"
@@ -226,7 +226,7 @@
                     </div>
 
                     <!-- Load More Button -->
-                    <div v-if="hasMorePosts && activeTab === 'posts'" class="text-center">
+                    <div v-if="hasMore && activeTab === 'posts'" class="text-center">
                         <button
                             @click="loadMore"
                             :disabled="isLoading"
@@ -357,14 +357,15 @@ import Header from '@/components/Header.vue'
 import PostItem from '@/components/PostItem.vue'
 import { usePosts } from '@/composables/usePosts'
 import { useIdentityStore } from '@/stores/identity'
-import { useSettingsStore } from '@/stores/settings'
-import type { IPost } from '@/types/posts'
+import { useNetwork } from '@/composables/useNetwork'
 
 const router = useRouter()
 const identityStore = useIdentityStore()
-const settingsStore = useSettingsStore()
 
-// Use the new composable
+// REFACTOR: Use useNetwork composable
+const { network: currentNetwork } = useNetwork()
+
+// Use new composable
 const postsComposable = usePosts()
 
 // Destructure with renamed methods to avoid conflicts
@@ -376,11 +377,9 @@ const {
     isLoading,
     error,
     posts,
-    userPosts,
     totalPosts,
-    hasMorePosts,
+    hasMore,
     isAuthenticated,
-    currentNetwork,
 
     fetchPosts,
     fetchMorePosts,
@@ -388,7 +387,6 @@ const {
     likePost,
     bookmarkPost,
     setTab,
-    clearFilters,
     startAutoRefresh,
     stopAutoRefresh,
     getPostById
@@ -463,7 +461,7 @@ const createPostAction = async () => {
         }
     } catch (err: any) {
         console.error('Failed to create post:', err)
-        // Error is already handled in the composable
+        // Error is already handled in composable
     }
 }
 
@@ -500,9 +498,9 @@ const handleShare = (postId: string) => {
     }
 }
 
-// Watch for network changes to refresh posts
+// REFACTOR: Watch for network changes using the composable value
 watch(
-    () => settingsStore.network,
+    currentNetwork,
     () => {
         fetchPosts()
     }
@@ -532,7 +530,3 @@ onUnmounted(() => {
     stopAutoRefresh()
 })
 </script>
-
-<style scoped>
-/* Add any component-specific styles here */
-</style>
