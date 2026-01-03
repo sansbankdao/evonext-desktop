@@ -37,4 +37,20 @@ export const useIdentityState = (): IIdentityState => ({
         // This will be overridden by connectionActions
         return { success: false, error: 'Not implemented' } as ConnectionResult
     },
+
+    async saveDiscoveredIdentities(_identities: any[], _network: 'mainnet' | 'testnet', _keyType: 'seed' | 'private') {
+        return { success: false, savedCount: 0, error: 'Not implemented' }
+    },
+
+    async loadDiscoveredIdentities(_network: 'mainnet' | 'testnet') {
+        return null
+    },
+
+    async clearDiscoveredIdentities(_network: 'mainnet' | 'testnet') {
+        return { success: false, error: 'Not implemented' }
+    },
+
+    async getCurrentNetwork() {
+        return 'mainnet' as 'mainnet' | 'testnet'
+    },
 })
