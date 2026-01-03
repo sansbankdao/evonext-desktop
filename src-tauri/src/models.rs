@@ -73,6 +73,7 @@ pub struct IdentityPublicKey {
     pub read_only: bool,
     pub disabled_at: Option<String>,
 }
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NotificationSettings {
     pub messages: bool,
@@ -85,4 +86,22 @@ pub struct ProfileSettings {
     pub display_name: String,
     pub username: String,
     pub bio: String,
+}
+
+// ===== NEW: Discovered Identities Storage =====
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct DiscoveredIdentity {
+    pub identity_id: String,
+    pub identity_idx: u32,
+    pub dpns_username: Option<String>,
+    pub balance: Option<String>,
+    pub key_type: String, // "seed" or "private"
+    pub discovered_key: Option<String>, // Encrypted if private key, else None
+    pub discovered_at: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+pub struct DiscoveredIdentitiesStore {
+    pub identities: HashMap<String, DiscoveredIdentity>, // Key: identity_id
+    pub last_scan: Option<String>,
 }
