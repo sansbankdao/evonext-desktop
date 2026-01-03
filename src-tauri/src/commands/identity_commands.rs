@@ -1,9 +1,10 @@
 // src-tauri/src/commands/identity_commands.rs
 
 use tauri::{AppHandle, Wry};
-use crate::models::{PrivateKeyStore, PrivateKeyEntry, IMnemonic, IdentityData};
+use crate::models::{PrivateKeyStore, PrivateKeyEntry, IMnemonic, IdentityData, DiscoveredIdentity, DiscoveredIdentitiesStore};
 use crate::utils::{StoreManager, network_file::get_network_file};
 use std::collections::HashMap;
+use chrono::Utc;
 
 #[tauri::command]
 pub fn load_private_keys(app_handle: AppHandle<Wry>, network: String) -> Result<Option<PrivateKeyStore>, String> {
@@ -184,7 +185,7 @@ pub fn save_single_identity_keys(
     }
 
     // Create key entries for the 3 standard keys
-    let now = chrono::Utc::now().to_rfc3339();
+    let now = Utc::now().to_rfc3339();
     let keys = vec![
         PrivateKeyEntry {
             identity_id: identity_id.clone(),
@@ -289,6 +290,96 @@ pub fn delete_identity_data(app_handle: AppHandle<Wry>, network: String) -> Resu
         }
         Err(e) => {
             println!("Failed to delete identity data for {}: {}", network, e);
+            Err(e.to_string())
+        }
+    }
+}
+
+// =============================================
+// NEW FUNCTIONS: DISCOVERED IDENTITIES STORAGE
+// =============================================
+
+#[tauri::command]
+pub fn save_discovered_identities(
+    app_handle: AppHandle<Wry>,
+    network: String,
+    discovered_identities: Vec<DiscoveredIdentity>,
+) -> Result<usize, String> {
+    let manager = StoreManager::new(&app_handle);
+    let filename = get_network_file(&network, "discovered")?;
+
+    // Load existing
+    let mut store = match manager.load::<DiscoveredIdentitiesStore>(filename, "discovered") {
+        Ok(Some(mut existing)) => {
+            // Merge/update
+            for di in discovered_identities {
+                existing.identities.insert(di.identity_id.clone(), di);
+            }
+            existing
+        }
+        _ => {
+            let mut new_store = DiscoveredIdentitiesStore::default();
+            for di in discovered_identities {
+                new_store.identities.insert(di.identity_id.clone(), di);
+            }
+            new_store
+        }
+    };
+
+    store.last_scan = Some(Utc::now().to_rfc3339());
+
+    // Save
+    match manager.save(filename, "discovered", &store) {
+        Ok(_) => {
+            println!("Saved {} discovered identities for {}", store.identities.len(), network);
+            Ok(store.identities.len())
+        }
+        Err(e) => {
+            println!("Failed to save discovered identities for {}: {}", network, e);
+            Err(e.to_string())
+        }
+    }
+}
+
+#[tauri::command]
+pub fn load_discovered_identities(
+    app_handle: AppHandle<Wry>,
+    network: String,
+) -> Result<Option<DiscoveredIdentitiesStore>, String> {
+    let manager = StoreManager::new(&app_handle);
+    let filename = get_network_file(&network, "discovered")?;
+
+    match manager.load::<DiscoveredIdentitiesStore>(filename, "discovered") {
+        Ok(Some(store)) => {
+            println!("Loaded {} discovered identities for {}", store.identities.len(), network);
+            Ok(Some(store))
+        }
+        Ok(None) => {
+            println!("No discovered identities found for {}", network);
+            Ok(None)
+        }
+        Err(e) => {
+            println!("Failed to load discovered identities for {}: {}", network, e);
+            Err(e.to_string())
+        }
+    }
+}
+
+#[tauri::command]
+pub fn clear_discovered_identities(
+    app_handle: AppHandle<Wry>,
+    network: String,
+) -> Result<(), String> {
+    let manager = StoreManager::new(&app_handle);
+    let filename = get_network_file(&network, "discovered")?;
+
+    match manager.delete(filename, "discovered") {
+        Ok(_) => {
+            println!("Discovered identities cleared successfully for {}", network);
+            Ok(())
+        }
+        Err(e) => {
+            println!("Failed to clear discovered identities for {}: {}", network, e);
             Err(e.to_string())
         }
     }
