@@ -4,7 +4,7 @@ import { KeyDerivationService } from '../keyDerivation.service'
 import { DAPIService } from './DAPIService'
 import { BaseDiscovery } from './BaseDiscovery'
 import { invoke } from '@tauri-apps/api/core'
-import { log } from '@/utils/env'
+// import { log } from '@/utils/env'
 import type { DiscoveredIdentity } from '@/types'
 import type {
     DiscoveryResult,
