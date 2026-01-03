@@ -9,31 +9,31 @@ export type ITransferType = 'IDENTITY_CREATE' | 'IDENTITY_CREDIT_TRANSFER' | 'UN
 export type ITransferStatus = 'PENDING' | 'CONFIRMED' | 'FAILED' | 'REJECTED' | string; // <--- Loosen type to allow string comparison
 
 export interface ITokenPaymentInfo {
-    tokenContractId: string
-    tokenContractPosition: number
-    minimumTokenCost: bigint
-    maximumTokenCost: bigint
-    gasFeesPaidBy: GasFeesPaidByWASM
+    tokenContractId: string;
+    tokenContractPosition: number;
+    minimumTokenCost: bigint;
+    maximumTokenCost: bigint;
+    gasFeesPaidBy: GasFeesPaidByWASM;
 }
 
 export interface ITransactionResult {
-    success: boolean
-    data?: ITxSuccess
-    error?: ITxError
+    success: boolean;
+    data?: ITxSuccess;
+    error?: ITxError;
 }
 
 export interface ITxSuccess {
-    txid: string
-    message?: string
+    txid: string;
+    message?: string;
 }
 
 export interface ITxError {
-    message: string
-    code?: number
-    details?: any
+    message: string;
+    code?: number;
+    details?: any;
 }
 
-export type TransactionResult = ITxSuccess | ITxError
+export type TransactionResult = ITxSuccess | ITxError;
 
 export interface ITransaction {
     // Core transaction data

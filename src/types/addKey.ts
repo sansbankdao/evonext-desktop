@@ -4,8 +4,9 @@ import type { IPublicKey } from '.'
 
 export interface IdentityWithKeys {
     id?: string;
+    identityId: string;
     identityIdx: number;
-    revision?: bigint;
+    revision?: number | undefined;
     username?: string;
     displayName?: string;
     publicKeys?: IPublicKey[];
