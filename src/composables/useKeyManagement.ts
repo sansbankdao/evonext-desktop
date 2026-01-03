@@ -399,7 +399,7 @@ export function useKeyManagement() {
     const addTransferKey = async (
         identityId: string,
         identityIdx: number,
-        currentRevision: bigint,
+        currentRevision: number,
         publicKeys: IPublicKey[],
         keyType: 'ECDSA_HASH160' | 'ECDSA_SECP256K1' = 'ECDSA_HASH160',
         securityLevel: ParsedSecurityLevel = 1 // CRITICAL
@@ -412,7 +412,7 @@ export function useKeyManagement() {
         const sdkInstance = new DashPlatformSDK({ network: targetNetwork })
         try {
             // 1. Get next revision and nonce
-            const newRevision = currentRevision + BigInt(1)
+            const newRevision = BigInt(currentRevision) + BigInt(1)
             const currentIdentityNonce = await sdkInstance.identities.getIdentityNonce(identityId)
             const identityNonce = currentIdentityNonce + BigInt(1)
             // 2. Get master key
