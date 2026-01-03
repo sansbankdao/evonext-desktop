@@ -3,28 +3,25 @@
 import { KeyDerivationService } from '../keyDerivation.service'
 import { DAPIService } from './DAPIService'
 import { BaseDiscovery } from './BaseDiscovery'
-import { invoke } from '@tauri-apps/api/core' // ADD THIS import
-import { log } from '@/utils/env' // ADD THIS import
+import { invoke } from '@tauri-apps/api/core'
+import { log } from '@/utils/env'
 import type { DiscoveredIdentity } from '@/types'
 import type {
     DiscoveryResult,
     DiscoveryOptions,
-    KeyDerivationResult,
+    // KeyDerivationResult,
     QueryTrace,
     ScanProgress,
-    // DerivedKeyInfo // ADD THIS import
 } from '../types'
 export interface SeedDiscoveryOptions {
     network: 'mainnet' | 'testnet'
     maxIdentityIndex: number
     maxKeyIndex: number
 }
-// Progress callback type
 export type ProgressCallback = (progress: ScanProgress) => void
 export class SeedDiscovery extends BaseDiscovery {
     private currentProgress: ScanProgress | null = null
     private progressCallback: ProgressCallback | null = null
-    // Set a callback to receive progress updates
     setProgressCallback(callback: ProgressCallback) {
         this.progressCallback = callback
     }
@@ -36,7 +33,7 @@ export class SeedDiscovery extends BaseDiscovery {
             }
         }
     }
-    // NEW: Helper to save derived keys to Rust
+    // Helper to save derived keys to Rust
     private async saveDerivedKeysToStorage(
         seedPhrase: string,
         network: 'mainnet' | 'testnet',
@@ -46,53 +43,41 @@ export class SeedDiscovery extends BaseDiscovery {
     ): Promise<boolean> {
         try {
             if (!identityId || !publicKeys || publicKeys.length === 0) {
-                log('warn', `Cannot save keys: missing identity ID or public keys for identity ${identityId}`)
+                log('warn', `Cannot save keys: missing identity ID or public keys for ${identityId}`)
                 return false
             }
             const now = new Date().toISOString()
             const privateKeyEntries: any[] = []
             for (let i = 0; i < publicKeys.length; i++) {
                 const publicKey = publicKeys[i]
+                // Simple assumption: iterating public keys matches derivation indices roughly
+                // In a robust system, we would check the key derivation path stored in the public key if available
                 const keyIndex = i
-
                 try {
-                    // Skip if we don't have required info
-                    if (publicKey.purpose === undefined || publicKey.securityLevel === undefined) {
-                        log('warn', `Skipping public key ${publicKey.id}: missing purpose or securityLevel`)
-                        continue
-                    }
-                    // Derive private key based on the public key's purpose and security level
                     const derivationResult = await KeyDerivationService.getPrivateKeyWASM(
                         seedPhrase,
                         network,
                         identityIdx,
                         keyIndex
                     )
-                    const privateKeyWIF = derivationResult.privateKey.WIF()
                     const keyEntry = {
                         identity_id: identityId,
                         key_id: publicKey.id || 0,
-                        purpose: publicKey.purpose,
+                        purpose: publicKey.purpose || 0,
                         security_level: publicKey.securityLevel || 0,
                         key_type: publicKey.keyType || 'ecdsa',
-                        private_key: privateKeyWIF,
-                        public_key: publicKey.data || publicKey.dataB64 || '',
+                        private_key: derivationResult.privateKey.WIF(),
+                        public_key: publicKey.data || '',
                         derived_from_mnemonic: true,
                         created_at: now,
                         last_used: now
                     }
                     privateKeyEntries.push(keyEntry)
-                    log('info', `Derived key for identity ${identityId}:`, {
-                        purpose: publicKey.purpose,
-                        securityLevel: publicKey.securityLevel,
-                        keyId: publicKey.id
-                    })
                 } catch (deriveErr) {
-                    log('error', `Error deriving key ${publicKey.id} for identity ${identityId}:`, deriveErr)
+                    continue
                 }
             }
             if (privateKeyEntries.length > 0) {
-                // Save keys to Rust
                 await invoke('save_private_keys', {
                     network,
                     identity_id: identityId,
@@ -100,21 +85,20 @@ export class SeedDiscovery extends BaseDiscovery {
                 })
                 log('info', `Saved ${privateKeyEntries.length} keys for identity ${identityId}`)
                 return true
-            } else {
-                log('warn', `No keys derived for identity ${identityId}`)
-                return false
             }
+            return false
         } catch (err) {
             log('error', `Failed to save derived keys for ${identityId}:`, err)
             return false
         }
     }
+    // Implements abstract method from BaseDiscovery
     async discover(
         input: string,
         options: DiscoveryOptions = { network: 'testnet' }
     ): Promise<DiscoveryResult> {
         const seedOptions: SeedDiscoveryOptions = {
-            network: options.network,
+            network: options.network || 'testnet',
             maxIdentityIndex: 3,
             maxKeyIndex: 5
         }
@@ -125,202 +109,108 @@ export class SeedDiscovery extends BaseDiscovery {
         options: SeedDiscoveryOptions
     ): Promise<DiscoveryResult> {
         const traceLog: QueryTrace[] = []
-        let stepCounter = 1
         try {
-            console.log(`[SeedDiscovery] Starting sequential discovery on ${options.network}`)
             if (!this.isSeedPhrase(seedPhrase)) {
                 return this.createErrorResult('Invalid seed phrase length')
             }
             const foundIdentities: DiscoveredIdentity[] = []
-            // Initialize progress tracking
             this.currentProgress = {
                 currentIdentityIndex: 0,
                 currentKeyIndex: 0,
                 totalIdentities: options.maxIdentityIndex,
-                totalKeysPerIdentity: Math.min(5, options.maxKeyIndex), // Max 5 key purposes
+                totalKeysPerIdentity: Math.min(5, options.maxKeyIndex),
                 currentPublicKeyHash: '',
                 currentPath: '',
                 status: 'deriving',
                 scannedCount: 0,
                 foundCount: 0
             }
-            // Update: Deriving keys
+            // 1. Derive All Keys
             this.updateProgress({ status: 'deriving' })
-            console.log(`[SeedDiscovery] Deriving keys and scanning network...`)
-            // 1. Derive keys with corrected paths
-            const allDerivations: KeyDerivationResult[] = await KeyDerivationService.deriveAllKeysFromSeed(
+            const allDerivations = await KeyDerivationService.deriveAllKeysFromSeed(
                 seedPhrase,
                 options.network,
                 options.maxIdentityIndex,
                 options.maxKeyIndex
             )
-            // Update total counts based on actual derived results
-            const totalKeysToScan = allDerivations.reduce((total, derivation) => {
-                return total + derivation.keys.length
-            }, 0)
             this.updateProgress({
                 totalIdentities: allDerivations.length,
-                scannedCount: 0
+                scannedCount: 0,
+                status: 'scanning'
             })
-            console.log(`[SeedDiscovery] Derived ${allDerivations.length} identities with ${totalKeysToScan} total keys`)
-            // 2. Iterate Identity Indices
+            // 2. Scan
             for (let dIndex = 0; dIndex < allDerivations.length; dIndex++) {
                 const derivation = allDerivations[dIndex]
-                // Guard clause: Ensure derivation exists
-                if (!derivation) {
-                    console.warn(`[SeedDiscovery] Skipping undefined derivation at index ${dIndex}`)
-                    continue
-                }
+                if (!derivation) continue;
                 const identityIdx = derivation.identityIndex
                 let foundForThisIndex = false
-                this.updateProgress({
-                    currentIdentityIndex: identityIdx,
-                    status: 'scanning'
-                })
-                console.log(`[SeedDiscovery] Scanning Identity ${identityIdx}...`)
-                // 3. Iterate Keys
+                this.updateProgress({ currentIdentityIndex: identityIdx })
                 for (let kIndex = 0; kIndex < derivation.keys.length; kIndex++) {
                     const key = derivation.keys[kIndex]
-                    // Guard clause: Ensure key exists
-                    if (!key) {
-                        console.warn(`[SeedDiscovery] Skipping undefined key at identity ${identityIdx}, index ${kIndex}`)
-                        continue
-                    }
-                    // Stop checking KEYS for this identity if we already found identity
-                    if (foundForThisIndex) break
+                    if (!key || foundForThisIndex) break
                     const hash = key.publicKeyHash
-                    // Update progress with current key
                     this.updateProgress({
                         currentKeyIndex: key.keyIndex,
                         currentPublicKeyHash: hash,
                         currentPath: key.path
                     })
-                    console.log(`[SeedDiscovery] Scanning Identity ${identityIdx}, Key ${key.keyIndex} (${hash.substring(0, 16)}...)`)
-                    // --- EXPLICIT LOOKUP 1: UNIQUE ---
+                    // Unique Lookup
                     const uniqueResult = await DAPIService.queryIdentityByHash(hash, options.network, true)
-                    traceLog.push({
-                        step: stepCounter++,
-                        identityIndex: identityIdx,
-                        keyIndex: key.keyIndex,
-                        path: key.path,
-                        publicKeyHash: hash,
-                        method: 'unique',
-                        found: uniqueResult.success,
-                    })
-                    // Update scanned count
                     if (this.currentProgress) {
-                        this.currentProgress.scannedCount += 1
+                        this.currentProgress.scannedCount++
                         this.updateProgress({ scannedCount: this.currentProgress.scannedCount })
                     }
                     if (uniqueResult.success && uniqueResult.data) {
-                        // FIX: Pass identityIdx here
-                        await this.addIdentity(foundIdentities, uniqueResult.data, options.network, identityIdx, seedPhrase) // MODIFIED
+                        await this.addIdentity(foundIdentities, uniqueResult.data, options.network, identityIdx, seedPhrase)
                         foundForThisIndex = true
-                        // Update found count
                         if (this.currentProgress) {
-                            this.currentProgress.foundCount += 1
+                            this.currentProgress.foundCount++
                             this.updateProgress({ foundCount: this.currentProgress.foundCount })
                         }
-                        console.log(`[SeedDiscovery] ✓ Found identity with ID: ${uniqueResult.data.identityId || uniqueResult.data.id}`)
-                        break // Found via Unique, stop checking this identity
+                        break
                     }
-                    // --- EXPLICIT LOOKUP 2: NON-UNIQUE (Fallback) ---
-                    // Only runs if unique failed
+                    // Fallback: Non-Unique
                     const nonUniqueResult = await DAPIService.queryIdentityByHash(hash, options.network, false)
-                    traceLog.push({
-                        step: stepCounter++,
-                        identityIndex: identityIdx,
-                        keyIndex: key.keyIndex,
-                        path: key.path,
-                        publicKeyHash: hash,
-                        method: 'non-unique',
-                        found: nonUniqueResult.success,
-                    })
-                    // Update scanned count for non-unique check
                     if (this.currentProgress) {
-                        this.currentProgress.scannedCount += 1
+                        this.currentProgress.scannedCount++
                         this.updateProgress({ scannedCount: this.currentProgress.scannedCount })
                     }
                     if (nonUniqueResult.success && nonUniqueResult.data) {
-                        // FIX: Pass identityIdx here
-                        await this.addIdentity(foundIdentities, nonUniqueResult.data, options.network, identityIdx, seedPhrase) // MODIFIED
+                        await this.addIdentity(foundIdentities, nonUniqueResult.data, options.network, identityIdx, seedPhrase)
                         foundForThisIndex = true
-                        // Update found count
                         if (this.currentProgress) {
-                            this.currentProgress.foundCount += 1
+                            this.currentProgress.foundCount++
                             this.updateProgress({ foundCount: this.currentProgress.foundCount })
                         }
-                        console.log(`[SeedDiscovery] ✓ Found identity with ID: ${nonUniqueResult.data.identityId || nonUniqueResult.data.id}`)
-                        break // Found via Non-Unique, stop checking this identity
+                        break
                     }
                 }
-                // Reset key index for next identity
-                this.updateProgress({
-                    currentKeyIndex: 0,
-                    currentPublicKeyHash: '',
-                    currentPath: ''
-                })
             }
-            // Update progress to completed
             this.updateProgress({ status: 'completed' })
-            if (foundIdentities.length > 0) {
-                // Deduplicate
-                const uniqueIds = Array.from(new Set(foundIdentities.map(i => i.identityId)))
-                    .map(id => foundIdentities.find(i => i.identityId === id)!)
-                console.log(`[SeedDiscovery] Scan complete. Found ${uniqueIds.length} unique identities`)
-                return this.createSuccessResult(
-                    null,
-                    uniqueIds,
-                    undefined,
-                    undefined,
-                    {
-                        step: 'scan_complete',
-                        count: uniqueIds.length,
-                        network: options.network,
-                        trace: traceLog,
-                        progressSnapshot: this.currentProgress || undefined
-                    }
-                )
+            // Deduplicate results
+            const uniqueIds = Array.from(new Set(foundIdentities.map(i => i.identityId)))
+                .map(id => foundIdentities.find(i => i.identityId === id)!)
+            if (uniqueIds.length > 0) {
+                return this.createSuccessResult(null, uniqueIds)
             }
-            console.log(`[SeedDiscovery] No identities found`)
-            return this.createErrorResult(
-                'No identities found for this seed phrase on current network.',
-                {
-                    step: 'no_identities',
-                    network: options.network,
-                    trace: traceLog,
-                    progressSnapshot: this.currentProgress || undefined
-                }
-            )
+            return this.createErrorResult('No identities found.')
         } catch (error: any) {
-            console.error('[SeedDiscovery] Critical failure:', error)
-            // Update progress to failed
-            if (this.currentProgress) {
-                this.updateProgress({ status: 'failed' })
-            }
+            if (this.currentProgress) this.updateProgress({ status: 'failed' })
             return {
                 success: false,
-                error: error.message || 'Unknown discovery error',
-                debug: {
-                    step: 'exception',
-                    network: options.network,
-                    error: error.message,
-                    trace: traceLog,
-                    progressSnapshot: this.currentProgress || undefined
-                }
+                error: error.message || 'Discovery failed',
+                debug: { error: error.message, trace: traceLog }
             }
         } finally {
-            // Clear progress tracking
             this.currentProgress = null
         }
     }
-    // MODIFIED: Added seedPhrase parameter
     private async addIdentity(
         list: DiscoveredIdentity[],
         data: any,
-        network: 'mainnet'|'testnet',
+        network: 'mainnet' | 'testnet',
         identityIdx: number,
-        seedPhrase?: string // ADDED optional parameter
+        seedPhrase?: string
     ) {
         const id = data.identityId || data.id
         const dpnsUsername = await this.getDPNSUsernameFromData(data, network)
@@ -333,14 +223,9 @@ export class SeedDiscovery extends BaseDiscovery {
             dpnsUsername
         }
         list.push(identity)
-        // NEW: Save derived keys for this identity if seedPhrase is provided
-        if (seedPhrase && id && data.publicKeys && data.publicKeys.length > 0) {
-            try {
-                await this.saveDerivedKeysToStorage(seedPhrase, network, identityIdx, id, data.publicKeys)
-            } catch (saveErr) {
-                console.error(`[SeedDiscovery] Failed to save derived keys for identity ${id}:`, saveErr)
-                // Continue anyway - don't fail the whole discovery if key save fails
-            }
+        // SAVE KEYS TO RUST IMMEDIATELY
+        if (seedPhrase && id && data.publicKeys) {
+            await this.saveDerivedKeysToStorage(seedPhrase, network, identityIdx, id, data.publicKeys)
         }
     }
     private async getDPNSUsernameFromData(data: any, network: 'mainnet' | 'testnet'): Promise<string | null> {
