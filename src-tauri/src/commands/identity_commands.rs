@@ -9,6 +9,7 @@ use chrono::Utc;
 pub fn load_private_keys(app_handle: AppHandle<Wry>, network: String) -> Result<Option<PrivateKeyStore>, String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
+
     match manager.load::<PrivateKeyStore>(filename, "keystore") {
         Ok(data) => {
             if let Some(_store) = &data {
@@ -34,14 +35,17 @@ pub fn save_private_keys(
 ) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
+
     // Load existing keystore (Clone filename for load)
     let mut keystore = match manager.load::<PrivateKeyStore>(filename.clone(), "keystore") {
         Ok(Some(store)) => store,
         _ => PrivateKeyStore::default(),
     };
+
     // Get or create entry for this identity
     let identity_keys = keystore.identities.entry(identity_id.clone())
         .or_insert_with(Vec::new);
+
     // Update or add keys
     for new_key in private_keys {
         // Check if we already have this key_id
@@ -51,6 +55,7 @@ pub fn save_private_keys(
             identity_keys.push(new_key);
         }
     }
+
     // Save the updated keystore
     match manager.save(filename, "keystore", &keystore) {
         Ok(_) => {
@@ -63,44 +68,7 @@ pub fn save_private_keys(
         }
     }
 }
-#[tauri::command]
-pub fn save_mnemonic(
-    app_handle: AppHandle<Wry>,
-    network: String,
-    payload: IMnemonic
-) -> Result<(), String> {
-    let manager = StoreManager::new(&app_handle);
-    let filename = get_network_file(&network, "safu")?;
-    // Load existing to preserve keys
-    let mut keystore = match manager.load::<PrivateKeyStore>(filename.clone(), "keystore") {
-        Ok(Some(store)) => store,
-        _ => PrivateKeyStore::default(),
-    };
-    keystore.mnemonic = Some(payload);
-    match manager.save(filename, "keystore", &keystore) {
-        Ok(_) => {
-            println!("Mnemonic saved successfully for {}.", network);
-            Ok(())
-        }
-        Err(e) => {
-            println!("Failed to save mnemonic for {}: {}", network, e);
-            Err(e.to_string())
-        }
-    }
-}
-#[tauri::command]
-pub fn get_mnemonic(app_handle: AppHandle<Wry>, network: String) -> Result<Option<IMnemonic>, String> {
-    let manager = StoreManager::new(&app_handle);
-    let filename = get_network_file(&network, "safu")?;
-    match manager.load::<PrivateKeyStore>(filename, "keystore") {
-        Ok(Some(keystore)) => Ok(keystore.mnemonic),
-        Ok(None) => Ok(None),
-        Err(e) => {
-            println!("Failed to load keystore for {}: {}", network, e);
-            Ok(None)
-        }
-    }
-}
+
 #[tauri::command]
 pub fn get_identity_private_keys(
     app_handle: AppHandle<Wry>,
@@ -109,6 +77,7 @@ pub fn get_identity_private_keys(
 ) -> Result<Option<Vec<PrivateKeyEntry>>, String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
+
     match manager.load::<PrivateKeyStore>(filename, "keystore") {
         Ok(Some(keystore)) => {
             let keys = keystore.identities.get(&identity_id).cloned();
@@ -121,6 +90,7 @@ pub fn get_identity_private_keys(
         }
     }
 }
+
 #[tauri::command]
 pub fn delete_identity_keys(
     app_handle: AppHandle<Wry>,
@@ -129,16 +99,20 @@ pub fn delete_identity_keys(
 ) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
+
     let mut keystore = match manager.load::<PrivateKeyStore>(filename.clone(), "keystore") {
         Ok(Some(store)) => store,
         Ok(None) => return Ok(()), // Nothing to delete
         Err(e) => return Err(e.to_string()),
     };
+
     keystore.identities.remove(&identity_id);
+
     // If we deleted all identities, also clear mnemonic
     if keystore.identities.is_empty() {
         keystore.mnemonic = None;
     }
+
     match manager.save(filename, "keystore", &keystore) {
         Ok(_) => {
             println!("Deleted keys for identity {} on {}.", identity_id, network);
@@ -150,10 +124,12 @@ pub fn delete_identity_keys(
         }
     }
 }
+
 #[tauri::command]
 pub fn delete_private_keys(app_handle: AppHandle<Wry>, network: String) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
+
     match manager.delete(filename, "keystore") {
         Ok(_) => {
             println!("Private key store deleted successfully for {}.", network);
@@ -165,6 +141,7 @@ pub fn delete_private_keys(app_handle: AppHandle<Wry>, network: String) -> Resul
         }
     }
 }
+
 #[tauri::command]
 pub fn save_single_identity_keys(
     app_handle: AppHandle<Wry>,
@@ -177,15 +154,18 @@ pub fn save_single_identity_keys(
 ) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
+
     // Load existing keystore
     let mut keystore = match manager.load::<PrivateKeyStore>(filename.clone(), "keystore") {
         Ok(Some(store)) => store,
         _ => PrivateKeyStore::default(),
     };
+
     // Save mnemonic if provided
     if let Some(phrase) = seed_phrase {
         keystore.mnemonic = Some(IMnemonic { seed_phrase: phrase });
     }
+
     // Create key entries for the 3 standard keys
     let now = Utc::now().to_rfc3339();
     let keys = vec![
@@ -226,16 +206,20 @@ pub fn save_single_identity_keys(
             last_used: now,
         },
     ];
+
     keystore.identities.insert(identity_id.clone(), keys);
+
     match manager.save(filename, "keystore", &keystore) {
         Ok(_) => Ok(()),
         Err(e) => Err(e.to_string())
     }
 }
+
 #[tauri::command]
 pub fn load_identity_data(app_handle: AppHandle<Wry>, network: String) -> Result<Option<IdentityData>, String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "identity")?;
+
     match manager.load(filename, "identity") {
         Ok(data) => Ok(data),
         Err(e) => {
@@ -244,10 +228,12 @@ pub fn load_identity_data(app_handle: AppHandle<Wry>, network: String) -> Result
         }
     }
 }
+
 #[tauri::command]
 pub fn save_identity_data(app_handle: AppHandle<Wry>, network: String, payload: IdentityData) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "identity")?;
+
     match manager.save(filename, "identity", &payload) {
         Ok(_) => Ok(()),
         Err(e) => {
@@ -256,10 +242,12 @@ pub fn save_identity_data(app_handle: AppHandle<Wry>, network: String, payload: 
         }
     }
 }
+
 #[tauri::command]
 pub fn delete_identity_data(app_handle: AppHandle<Wry>, network: String) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "identity")?;
+
     match manager.delete(filename, "identity") {
         Ok(_) => Ok(()),
         Err(e) => {
@@ -268,9 +256,11 @@ pub fn delete_identity_data(app_handle: AppHandle<Wry>, network: String) -> Resu
         }
     }
 }
+
 // =============================================
 // NEW FUNCTIONS: DISCOVERED IDENTITIES STORAGE
 // =============================================
+
 #[tauri::command]
 pub fn save_discovered_identities(
     app_handle: AppHandle<Wry>,
@@ -279,16 +269,20 @@ pub fn save_discovered_identities(
 ) -> Result<usize, String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "discovered")?;
+
     // Load existing (clone filename)
     let mut store = match manager.load::<DiscoveredIdentitiesStore>(filename.clone(), "discovered") {
         Ok(Some(existing)) => existing,
         _ => DiscoveredIdentitiesStore::default(),
     };
+
     // Merge/update
     for di in discovered_identities {
         store.identities.insert(di.identity_id.clone(), di);
     }
+
     store.last_scan = Some(Utc::now().to_rfc3339());
+
     // Save
     match manager.save(filename, "discovered", &store) {
         Ok(_) => {
@@ -301,6 +295,7 @@ pub fn save_discovered_identities(
         }
     }
 }
+
 #[tauri::command]
 pub fn load_discovered_identities(
     app_handle: AppHandle<Wry>,
@@ -308,6 +303,7 @@ pub fn load_discovered_identities(
 ) -> Result<Option<DiscoveredIdentitiesStore>, String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "discovered")?;
+
     match manager.load::<DiscoveredIdentitiesStore>(filename, "discovered") {
         Ok(Some(store)) => Ok(Some(store)),
         Ok(None) => Ok(None),
@@ -317,6 +313,7 @@ pub fn load_discovered_identities(
         }
     }
 }
+
 #[tauri::command]
 pub fn clear_discovered_identities(
     app_handle: AppHandle<Wry>,
@@ -324,6 +321,7 @@ pub fn clear_discovered_identities(
 ) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "discovered")?;
+
     match manager.delete(filename, "discovered") {
         Ok(_) => Ok(()),
         Err(e) => {
