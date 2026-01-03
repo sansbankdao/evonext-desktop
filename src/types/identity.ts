@@ -82,13 +82,28 @@ export interface DiscoveredIdentity {
     username?: string | undefined;
     displayName?: string | undefined;
     avatarUrl?: string | undefined;
-    revision?: number | undefined; // FIX: Add | undefined
+    revision?: number | undefined;
     dpnsUsername?: string | null | undefined;
+}
+
+// ===== NEW: Types for Rust storage =====
+export interface RustDiscoveredIdentity {
+    identity_id: string;
+    identity_idx: number;
+    dpns_username?: string | null;
+    balance?: string | null;
+    key_type: 'seed' | 'private';
+    discovered_key?: string | null;
+    discovered_at: string;
+}
+
+export interface RustDiscoveredIdentitiesStore {
+    identities: Record<string, RustDiscoveredIdentity>;
+    last_scan?: string | null;
 }
 
 export interface IIdentityState {
     username: string | null;
-    // Added to match useIdentity expectations
     identityId: string | null;
     displayName: string | null;
 
@@ -107,6 +122,11 @@ export interface IIdentityState {
     // Connection methods
     connectWithSeed: (seedPhrase: string, network: string, targetId?: string, identityIndex?: number) => Promise<ConnectionResult>;
     connectWithSingleKey: (privateKey: string, identityId: string, network: string) => Promise<ConnectionResult>;
+
+    // NEW: Discovered identities storage methods
+    saveDiscoveredIdentities: (identities: DiscoveredIdentity[], network: 'mainnet' | 'testnet', keyType: 'seed' | 'private') => Promise<{success: boolean, savedCount: number, error?: string}>;
+    loadDiscoveredIdentities: (network: 'mainnet' | 'testnet') => Promise<RustDiscoveredIdentitiesStore | null>;
+    clearDiscoveredIdentities: (network: 'mainnet' | 'testnet') => Promise<{success: boolean, error?: string}>;
 
     // Storage methods
     saveToStorage: (networkOverride?: 'mainnet' | 'testnet') => Promise<void>;
@@ -155,6 +175,7 @@ export interface StorageKeys {
     identityData: string;
     license: string;
     settings: string;
+    discoveredIdentities: string; // NEW
 }
 
 export interface KeyGenerationResult {
