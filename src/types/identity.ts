@@ -55,35 +55,35 @@ export interface IExtendedPublicKey {
 }
 
 export interface IIdentity {
-    id?: string;
-    identityId?: string;
+    id?: string | undefined;
+    identityId?: string | undefined;
     identityIdx: number;
-    balance?: number | string | null | undefined; // Fixed: Allow number to match SDK/Discovery
+    balance?: number | string | null | undefined;
     publicKeys: IPublicKey[];
-    revision?: number | bigint; // Fixed: Allow bigint to match SDK
+    revision?: number | bigint | undefined;
 
-    username?: string;
-    avatarUrl?: string;
-    avatarHash?: string;
-    avatarFingerprint?: string;
-    displayName?: string;
-    publicMessage?: string;
+    username?: string | undefined;
+    avatarUrl?: string | undefined;
+    avatarHash?: string | undefined;
+    avatarFingerprint?: string | undefined;
+    displayName?: string | undefined;
+    publicMessage?: string | undefined;
     publicKeyIds?: number[] | undefined;
     isAuthenticated?: boolean | undefined;
     createdAt?: number | undefined;
 }
 
 export interface DiscoveredIdentity {
-    id?: string;
-    identityId: string; // CHANGED: Made required - we always have this when discovering
+    id?: string | undefined;
+    identityId: string;
     identityIdx: number;
     publicKeys: IPublicKey[];
     balance?: number | string | null | undefined;
-    username?: string;
-    displayName?: string;
-    avatarUrl?: string;
-    revision?: number;
-    dpnsUsername?: string | null;
+    username?: string | undefined;
+    displayName?: string | undefined;
+    avatarUrl?: string | undefined;
+    revision?: number | undefined; // FIX: Add | undefined
+    dpnsUsername?: string | null | undefined;
 }
 
 export interface IIdentityState {
@@ -111,6 +111,8 @@ export interface IIdentityState {
     // Storage methods
     saveToStorage: (networkOverride?: 'mainnet' | 'testnet') => Promise<void>;
     searchUserIdentities: (network: 'mainnet' | 'testnet') => Promise<DiscoveredIdentity[]>;
+
+    getCurrentNetwork: () => Promise<'mainnet' | 'testnet'>;
 
     // Optional methods called from actions
     clearStorage?: () => Promise<void>;

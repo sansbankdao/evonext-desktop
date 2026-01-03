@@ -8,7 +8,7 @@ import type {
     ConnectionResult,
     IIdentityState,
     DiscoveredIdentity,
-    IPublicKey
+    // IPublicKey
 } from '@/types'
 // --- IMPLEMENTATION ---
 interface Settings {
@@ -266,7 +266,7 @@ export const connectionActions = () => ({
                 const now = new Date().toISOString()
                 const privateKeyEntries: PrivateKeyEntryPayload[] = []
                 // Find first authentication key
-                const firstAuthKey = publicKeys.find(pk => pk.purpose === 0)
+                const firstAuthKey = publicKeys.find((pk: any) => pk.purpose === 0)
                 const privateKeyEntry: PrivateKeyEntryPayload = {
                     identity_id: trimmedId,
                     key_id: firstAuthKey?.id || 0,
