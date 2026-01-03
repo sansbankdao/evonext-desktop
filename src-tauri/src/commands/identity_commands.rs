@@ -30,16 +30,26 @@ pub fn load_private_keys(app_handle: AppHandle<Wry>, network: String) -> Result<
 pub fn save_private_keys(
     app_handle: AppHandle<Wry>,
     network: String,
-    identity_id: String,
-    private_keys: Vec<PrivateKeyEntry>
+    identity_id: String, // Tauri expects "identityId" from JS
+    private_keys: Vec<PrivateKeyEntry> // Tauri expects "privateKeys" from JS
 ) -> Result<(), String> {
+    println!("[DEBUG Backend 1] save_private_keys called for ID: {}", identity_id);
+    println!("[DEBUG Backend 2] Received {} keys to save", private_keys.len());
+
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
+    println!("[DEBUG Backend 3] Target filename: {}", filename);
 
     // Load existing keystore (Clone filename for load)
-    let mut keystore = match manager.load::<PrivateKeyStore>(filename.clone(), "keystore") {
-        Ok(Some(store)) => store,
-        _ => PrivateKeyStore::default(),
+    let mut keystore = match manager.load::<PrivateKeyStore>(filename, "keystore") {
+        Ok(Some(store)) => {
+            println!("[DEBUG Backend 4] Loaded existing keystore");
+            store
+        },
+        _ => {
+            println!("[DEBUG Backend 4] Creating NEW keystore");
+            PrivateKeyStore::default()
+        },
     };
 
     // Get or create entry for this identity
@@ -48,6 +58,7 @@ pub fn save_private_keys(
 
     // Update or add keys
     for new_key in private_keys {
+        println!("[DEBUG Backend 5] Processing key_id: {}", new_key.key_id);
         // Check if we already have this key_id
         if let Some(existing_index) = identity_keys.iter().position(|k| k.key_id == new_key.key_id) {
             identity_keys[existing_index] = new_key;
@@ -59,11 +70,11 @@ pub fn save_private_keys(
     // Save the updated keystore
     match manager.save(filename, "keystore", &keystore) {
         Ok(_) => {
-            println!("Private keys saved successfully for identity {} on {}.", identity_id, network);
+            println!("[DEBUG Backend 6] Success! Data written to disk.");
             Ok(())
         }
         Err(e) => {
-            println!("Failed to save private keys for {}: {}", network, e);
+            println!("[DEBUG Backend 6] ERROR writing to disk: {}", e);
             Err(e.to_string())
         }
     }
@@ -100,7 +111,7 @@ pub fn delete_identity_keys(
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
 
-    let mut keystore = match manager.load::<PrivateKeyStore>(filename.clone(), "keystore") {
+    let mut keystore = match manager.load::<PrivateKeyStore>(filename, "keystore") {
         Ok(Some(store)) => store,
         Ok(None) => return Ok(()), // Nothing to delete
         Err(e) => return Err(e.to_string()),
@@ -156,7 +167,7 @@ pub fn save_single_identity_keys(
     let filename = get_network_file(&network, "safu")?;
 
     // Load existing keystore
-    let mut keystore = match manager.load::<PrivateKeyStore>(filename.clone(), "keystore") {
+    let mut keystore = match manager.load::<PrivateKeyStore>(filename, "keystore") {
         Ok(Some(store)) => store,
         _ => PrivateKeyStore::default(),
     };
@@ -271,7 +282,7 @@ pub fn save_discovered_identities(
     let filename = get_network_file(&network, "discovered")?;
 
     // Load existing (clone filename)
-    let mut store = match manager.load::<DiscoveredIdentitiesStore>(filename.clone(), "discovered") {
+    let mut store = match manager.load::<DiscoveredIdentitiesStore>(filename, "discovered") {
         Ok(Some(existing)) => existing,
         _ => DiscoveredIdentitiesStore::default(),
     };

@@ -33,6 +33,7 @@ export class SeedDiscovery extends BaseDiscovery {
             }
         }
     }
+
     // Helper to save derived keys to Rust
     private async saveDerivedKeysToStorage(
         seedPhrase: string,
@@ -41,18 +42,20 @@ export class SeedDiscovery extends BaseDiscovery {
         identityId: string,
         publicKeys: any[]
     ): Promise<boolean> {
+        console.log(`[DEBUG Frontend 1] Preparing to save keys for ${identityId}`);
         try {
             if (!identityId || !publicKeys || publicKeys.length === 0) {
-                log('warn', `Cannot save keys: missing identity ID or public keys for ${identityId}`)
+                console.warn('[DEBUG Frontend 1.1] Missing ID or public keys');
                 return false
             }
+
             const now = new Date().toISOString()
             const privateKeyEntries: any[] = []
+
             for (let i = 0; i < publicKeys.length; i++) {
                 const publicKey = publicKeys[i]
-                // Simple assumption: iterating public keys matches derivation indices roughly
-                // In a robust system, we would check the key derivation path stored in the public key if available
                 const keyIndex = i
+
                 try {
                     const derivationResult = await KeyDerivationService.getPrivateKeyWASM(
                         seedPhrase,
@@ -60,6 +63,9 @@ export class SeedDiscovery extends BaseDiscovery {
                         identityIdx,
                         keyIndex
                     )
+
+                    // NOTE: The object structure here matches Rust Struct fields (snake_case)
+                    // BUT the invoke arguments below must be camelCase.
                     const keyEntry = {
                         identity_id: identityId,
                         key_id: publicKey.id || 0,
@@ -74,24 +80,32 @@ export class SeedDiscovery extends BaseDiscovery {
                     }
                     privateKeyEntries.push(keyEntry)
                 } catch (deriveErr) {
+                    console.error(`[DEBUG Frontend 1.2] Derivation error for index ${i}`, deriveErr);
                     continue
                 }
             }
+
             if (privateKeyEntries.length > 0) {
+                console.log(`[DEBUG Frontend 2] Invoking save_private_keys with ${privateKeyEntries.length} keys`);
+
+                // CRITICAL FIX: keys are camelCase (identityId, privateKeys)
+                // Values inside privateKeyEntries are snake_case because your Rust Struct properties are snake_case
                 await invoke('save_private_keys', {
                     network,
-                    identity_id: identityId,
-                    private_keys: privateKeyEntries
+                    identityId: identityId,       // <--- CHANGED FROM identity_id
+                    privateKeys: privateKeyEntries // <--- CHANGED FROM private_keys
                 })
-                log('info', `Saved ${privateKeyEntries.length} keys for identity ${identityId}`)
+
+                console.log(`[DEBUG Frontend 3] Keys saved successfully via Rust command`);
                 return true
             }
             return false
         } catch (err) {
-            log('error', `Failed to save derived keys for ${identityId}:`, err)
+            console.error(`[DEBUG Frontend ERROR] Failed to save keys:`, err)
             return false
         }
     }
+
     // Implements abstract method from BaseDiscovery
     async discover(
         input: string,
