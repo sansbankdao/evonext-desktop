@@ -7,6 +7,7 @@ import { storageActions } from './actions/storage'
 import { connectionActions } from './actions/connection'
 import { balanceActions } from './actions/balance'
 import { identityActions } from './actions/identity'
+import { discoveredIdentitiesActions } from './actions/discovered'
 
 /* Combine all actions. */
 const useIdentityActions = {
@@ -14,6 +15,7 @@ const useIdentityActions = {
     ...connectionActions(),
     ...identityActions(),
     ...balanceActions(),
+    ...discoveredIdentitiesActions(),
 }
 
 export const useIdentityStore = defineStore('identity', {

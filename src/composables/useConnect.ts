@@ -27,6 +27,7 @@ export function useConnect() {
     const isDiscovering = ref(false)
     const discoveryStatus = ref('')
     const debugOutput = ref<any>(null)
+    const isSavingToStorage = ref(false) // NEW: track storage saving
 
     // --- Progress tracking state ---
     const discoveryProgress = ref<ScanProgress | null>(null)
@@ -95,6 +96,49 @@ export function useConnect() {
         }
     })
 
+    // --- NEW: Save discovered identities to Rust ---
+    const saveDiscoveredIdentitiesToStorage = async (identities: DiscoveredIdentity[], keyType: 'seed' | 'private') => {
+        if (!identities || identities.length === 0 || isSavingToStorage.value) {
+            console.log('[useConnect] No identities to save or already saving, skipping storage')
+            return
+        }
+
+        isSavingToStorage.value = true
+        try {
+            const network = await ensure()
+            console.log(`[useConnect] Auto-saving ${identities.length} discovered ${keyType} identities to Rust...`)
+
+            const saveResult = await identityStore.saveDiscoveredIdentities(identities, network, keyType)
+
+            if (saveResult.success) {
+                console.log(`[useConnect] Successfully saved ${saveResult.savedCount} identities to Rust storage`)
+                // Update debug output with storage info
+                debugOutput.value = {
+                    ...debugOutput.value,
+                    storage: {
+                        saved: saveResult.savedCount,
+                        total: identities.length,
+                        type: keyType,
+                        timestamp: new Date().toISOString()
+                    }
+                }
+            } else {
+                console.warn(`[useConnect] Failed to save discovered identities: ${saveResult.error}`)
+            }
+        } catch (error: any) {
+            console.error('[useConnect] Error saving discovered identities:', error)
+            // Don't throw - storage failure shouldn't break discovery
+        } finally {
+            isSavingToStorage.value = false
+        }
+    }
+
+    // --- Set up progress callback ---
+    identityManager.setProgressCallback((progress: ScanProgress) => {
+        discoveryProgress.value = progress
+        discoveryStatus.value = progressMessage.value
+    })
+
     // --- Actions: State Helpers ---
     const updateConnectionMethod = (method: 'seed' | 'privateKey') => {
         connectionMethod.value = method
@@ -121,11 +165,6 @@ export function useConnect() {
         discoveryProgress.value = null
     }
 
-    const closeProgress = () => {
-        // Close just the progress bar
-        discoveryProgress.value = null
-    }
-
     const resetDiscovery = () => {
         // Hard reset: clear everything including results
         connectionError.value = null
@@ -143,6 +182,8 @@ export function useConnect() {
         discoveryProgress.value = null
         discoveryStatus.value = ''
 
+        isSavingToStorage.value = false // NEW: reset storage flag
+
         // Also reset stores for persistence
         seedStore.reset()
         keyStore.reset()
@@ -153,12 +194,6 @@ export function useConnect() {
         const num = typeof balance === 'string' ? parseFloat(balance) : balance
         return (num / 100000000).toFixed(2)
     }
-
-    // --- Set up progress callback ---
-    identityManager.setProgressCallback((progress: ScanProgress) => {
-        discoveryProgress.value = progress
-        discoveryStatus.value = progressMessage.value
-    })
 
     // --- Actions: Seed Logic ---
     const handlePaste = (pastedText: string | string[]) => {
@@ -231,6 +266,10 @@ export function useConnect() {
                 if (validIdentities.length > 0 && validIdentities[0]) {
                     selectedSeedIdentity.value = validIdentities[0]
                 }
+
+                // NEW: AUTO-SAVE discovered identities to Rust immediately
+                await saveDiscoveredIdentitiesToStorage(validIdentities, 'seed')
+
             } else {
                 seedDiscoveryError.value = result.error || 'No identities found for this seed.'
             }
@@ -258,13 +297,20 @@ export function useConnect() {
 
             if (result.success && result.identity) {
                 // Handle undefined case by converting to null if needed
-                discoveredIdentity.value = result.identity || null
-                manualIdentityId.value = result.identity.identityId || ''
+                const discovered = result.identity || null
+                discoveredIdentity.value = discovered
+                manualIdentityId.value = discovered.identityId || ''
 
                 discoveryDetails.value = {
                     detectedKeyType: result.detectedKeyType,
                     associatedKeys: result.associatedKeys || []
                 }
+
+                // NEW: AUTO-SAVE discovered identity to Rust immediately
+                if (discovered) {
+                    await saveDiscoveredIdentitiesToStorage([discovered], 'private')
+                }
+
             } else {
                 connectionError.value = result.error || 'Identity not found. You can enter ID manually.'
             }
@@ -365,6 +411,7 @@ export function useConnect() {
         isSearchingSeed,
         discoveryStatus,
         debugOutput,
+        isSavingToStorage, // NEW: export for UI feedback if needed
 
         // Progress
         discoveryProgress,
@@ -400,4 +447,9 @@ export function useConnect() {
         initialize,
         cleanup
     }
+}
+
+// NEW: Helper for closing progress - was missing
+const closeProgress = () => {
+    // Close just the progress bar
 }
