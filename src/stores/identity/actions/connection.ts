@@ -171,7 +171,7 @@ export const connectionActions = () => ({
                             })
                         } catch (e) { /* ignore */ }
                     }
-
+console.log('[DEBUG] privateKeyEntries', JSON.stringify(privateKeyEntries, null, 2))
                     if (privateKeyEntries.length > 0) {
                         await invoke('save_private_keys', {
                             network,
@@ -270,7 +270,7 @@ export const connectionActions = () => ({
                     created_at: now,
                     last_used: now
                 }
-
+console.log('[DEBUG] privateKeyEntry', JSON.stringify(privateKeyEntry, null, 2))
                 await invoke('save_private_keys', {
                     network,
                     identityId: trimmedId,          // camelCase
