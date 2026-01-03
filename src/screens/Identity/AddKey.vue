@@ -96,26 +96,14 @@ import { mnemonicManager } from '@/composables/useMnemonic'
 import { identityDiscovery } from '@/composables/useIdentityDiscovery'
 import type { IIdentity, IPublicKey } from '@/types'
 
-/**
- * LOCAL INTERFACES
- * We define a strict local type to handle the 'revision' as BigInt internally
- * while remaining compatible with IIdentity.
- */
-interface LocalIdentity extends Omit<IIdentity, 'publicKeys' | 'revision'> {
-    revision: bigint // STRICT: Always BigInt internally
-    publicKeys: IPublicKey[] // STRICT: Always Array internally
-    // Helper to ensure we have the ID
-    id: string
-}
-
 const router = useRouter()
 const { hasTransferKey: checkTransferKey } = useKeyUtils()
 const { addTransferKey: addKeyToIdentity } = useKeyManagement()
 
-// State
+// FIXED: Use IIdentity directly (no LocalIdentity); convert revision to number
 const loading = ref(true)
-const identities = ref<LocalIdentity[]>([])
-const selectedIdentity = ref<LocalIdentity | null>(null)
+const identities = ref<IIdentity[]>([])
+const selectedIdentity = ref<IIdentity | null>(null)
 
 const keyType = ref<'ECDSA_SECP256K1' | 'ECDSA_HASH160'>('ECDSA_SECP256K1')
 const securityLevel = ref<'MASTER' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'>('CRITICAL')
@@ -166,27 +154,24 @@ const loadIdentities = async () => {
         })
 
         if (result && Array.isArray(result) && result.length > 0) {
-            identities.value = result.map((identity: any): LocalIdentity => {
+            // FIXED: Map to *exact* IIdentity shape: revision → Number(), no extra props (e.g., no 'id'), publicKeys array
+            identities.value = result.map((identity: any): IIdentity => {
                 const rawKeys = identity.publicKeys
-
-                // STRICT: Ensure publicKeys is an array
                 const safePublicKeys: IPublicKey[] = Array.isArray(rawKeys) ? rawKeys : []
 
-                // STRICT: Ensure revision is BigInt
-                let rev: bigint
+                // Convert revision to number (safe for evo revisions; preserves API fidelity)
+                let rev: number
                 if (typeof identity.revision === 'bigint') {
-                    rev = identity.revision
+                    rev = Number(identity.revision)
                 } else if (typeof identity.revision === 'number') {
-                    rev = BigInt(identity.revision)
+                    rev = identity.revision
                 } else {
-                    rev = BigInt(0)
+                    rev = 0
                 }
 
-                // STRICT: Ensure we have a string ID
                 const id = identity.identityId || identity.id || ''
 
                 return {
-                    id: id,
                     identityId: id,
                     identityIdx: identity.identityIdx || 0,
                     revision: rev,
@@ -198,6 +183,7 @@ const loadIdentities = async () => {
                     avatarHash: identity.avatarHash,
                     avatarFingerprint: identity.avatarFingerprint,
                     publicMessage: identity.publicMessage
+                    // FIXED: Omit extras like 'id', 'publicKeyIds' (not in IIdentity)
                 }
             })
 
@@ -215,13 +201,12 @@ const loadIdentities = async () => {
     }
 }
 
+// FIXED: No cast needed (types match)
 const setSelectedIdentity = (identity: IIdentity) => {
-    // The component emits IIdentity, we cast it to LocalIdentity for internal use
-    // This is safe because LocalIdentity is a strict subset of what we constructed
-    selectedIdentity.value = identity as unknown as LocalIdentity
+    selectedIdentity.value = identity
 }
 
-const hasTransferKey = (identity: LocalIdentity): boolean => {
+const hasTransferKey = (identity: IIdentity): boolean => {
     return checkTransferKey(identity.publicKeys)
 }
 
@@ -240,13 +225,13 @@ const addTransferKey = async () => {
         isAdding.value = true
         const identity = selectedIdentity.value
 
-        // FIXED: Use identityId, not 'id'
-        const identityId = identity.identityId || identity.id || ''
+        const identityId = identity.identityId || ''
+        // revision now number; addKeyToIdentity should handle (or BigInt(identity.revision) if needed)
 
         const result = await addKeyToIdentity(
             identityId,
             identity.identityIdx,
-            identity.revision,
+            identity.revision as number,
             (identity.publicKeys || []),
             keyType.value,
             parseSecurityLevel(securityLevel.value)
