@@ -103,30 +103,23 @@ import { useRouter } from 'vue-router'
 import { useSettingsStore } from '@/stores/settings'
 import { useIdentityStore } from '@/stores/identity'
 import Header from '@/components/Header.vue'
-import type { IIdentity } from '@/types'
+// import type { IIdentity } from '@/types'
 
 const router = useRouter()
 const settingsStore = useSettingsStore()
 const identityStore = useIdentityStore()
 
-const identityData = ref<IIdentity | null>(null)
 const error = ref('')
 const isWiping = ref(false)
 
-// Computed properties
+// ✅ REPLACED: Reactive computeds from FIXED getters (no 'state'!)
+const identityData = computed(() => identityStore.identity)
+const displayName = computed(() => identityStore.displayName)
+const formattedBalance = computed(() => identityStore.formattedBalance)
+const publicKeysCount = computed(() => identityStore.publicKeysCount)
+
+// ✅ Existing computeds unchanged
 const currentNetwork = computed(() => settingsStore.state.network as 'mainnet' | 'testnet')
-const displayName = computed(() => {
-    if (!identityData.value) return 'Guest'
-    return identityData.value.username || identityData.value.identityId || 'Unknown'
-})
-const formattedBalance = computed(() => {
-    if (!identityData.value?.balance) return '0 DASH'
-    const dash = BigInt(identityData.value.balance) / BigInt(100_000_000_000)
-    return `${dash.toLocaleString()} DASH`
-})
-const publicKeysCount = computed(() => {
-    return identityData.value?.publicKeys?.length || 0
-})
 
 onMounted(async () => {
     await loadIdentityData()
@@ -135,10 +128,11 @@ onMounted(async () => {
 async function loadIdentityData() {
     try {
         error.value = ''
-        identityData.value = await identityStore.getIdentityFromStorage()
+        // ✅ Just hydrate store → getters/computeds react automatically!
+        await identityStore.initFromStorage()
+        // NO assignment needed! identityData computed updates instantly
     } catch (err: any) {
         error.value = err.message || 'Failed to load identity data'
-        identityData.value = null
     }
 }
 
@@ -160,13 +154,8 @@ async function wipeAllData() {
     error.value = ''
 
     try {
-        // Use store's clearStorage action (comprehensive wipe)
         await identityStore.clearStorage()
-
-        // Reset UI state
-        identityData.value = null
-
-        // Navigate to connect page with success message (optional)
+        // ✅ Store resets → computed identityData auto-nulls → UI updates!
         alert('All local data has been wiped successfully!')
         await router.push('/connect')
     } catch (err: any) {
