@@ -56,11 +56,11 @@ export interface IExtendedPublicKey {
 
 export interface IIdentity {
     id?: string | undefined;
-    identityId?: string | undefined;
+    identityId: string;
     identityIdx: number;
     balance?: number | string | null | undefined;
     publicKeys: IPublicKey[];
-    revision?: number | bigint | undefined;
+    revision?: number | undefined;
 
     username?: string | undefined;
     avatarUrl?: string | undefined;
