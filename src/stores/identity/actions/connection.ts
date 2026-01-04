@@ -4,11 +4,13 @@ import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
 import { KeyDerivationService } from '@/services/identity/keyDerivation.service'
 import { DAPIService } from '@/services/identity/discovery/DAPIService'
+import { usePlatform } from '@/composables/usePlatform'
 import type {
     ConnectionResult,
     IIdentityState,
     DiscoveredIdentity,
-    IIdentity
+    IIdentity,
+    RustDiscoveredIdentitiesStore
 } from '@/types'
 
 // Helper interfaces
@@ -17,12 +19,19 @@ interface Settings {
     [key: string]: any
 }
 
-// Helper with Logging
-const loadStorageData = async <T>(command: string, network: string, params?: any): Promise<T | null> => {
+interface StoredMnemonic {
+    seed_phrase: string;
+}
+
+// Fixed: Explicitly typed 'network' to match Invoke expectations
+const loadStorageData = async <T>(
+    command: string,
+    network: 'mainnet' | 'testnet',
+    params?: any
+): Promise<T | null> => {
     try {
         console.log(`[DEBUG Frontend Storage] Loading ${command}...`);
         let args = { network, ...params };
-        // Ensure camelCase for specific arguments if needed
         if(params && params.identity_id) {
              args.identityId = params.identity_id;
              delete args.identity_id;
@@ -35,7 +44,6 @@ const loadStorageData = async <T>(command: string, network: string, params?: any
 }
 
 export const connectionActions = () => ({
-    // NEW: Save discovered identities explicitly
     async saveDiscoveredIdentities(
         this: IIdentityState,
         identities: DiscoveredIdentity[],
@@ -44,8 +52,6 @@ export const connectionActions = () => ({
     ): Promise<{ success: boolean; savedCount: number; error?: string }> {
         return ErrorBoundary.wrap(async () => {
             try {
-                // Map frontend DiscoveredIdentity to Rust arguments
-                // Note: Rust struct fields are snake_case, but Tauri command args are camelCase
                 const mappedIdentities = identities.map(id => ({
                     identity_id: id.identityId,
                     identity_idx: id.identityIdx || 0,
@@ -58,7 +64,7 @@ export const connectionActions = () => ({
 
                 const count = await invoke<number>('save_discovered_identities', {
                     network,
-                    discoveredIdentities: mappedIdentities // camelCase argument name
+                    discoveredIdentities: mappedIdentities
                 })
                 return { success: true, savedCount: count }
             } catch (err: any) {
@@ -91,42 +97,56 @@ export const connectionActions = () => ({
                     this.identity = restoredIdentity
                     this.publicKeys = identityData.public_keys || []
 
-                    if (typeof this.searchUserIdentities === 'function') {
-                        await this.searchUserIdentities(network)
-                    }
                     return
-                }
-
-                // 2. Fallback: Load keys
-                const keystore = await loadStorageData<any>('load_private_keys', network)
-                if (keystore && keystore.identities) {
-                    const identityIds = Object.keys(keystore.identities)
-                    if (identityIds.length > 0) {
-                        const identityId = identityIds[0]!
-                        const result = await DAPIService.getIdentityById(identityId, network)
-                        if (result.success && result.data) {
-                            this.isAuthenticated = true
-                            this.username = result.data.identityId
-                            this.identityId = result.data.identityId
-
-                            const restoredIdentity: IIdentity = {
-                                identityId: result.data.identityId,
-                                identityIdx: 0,
-                                balance: result.data.balance || '0',
-                                publicKeys: result.data.publicKeys || []
-                            }
-                            this.identity = restoredIdentity
-
-                            if (typeof this.saveToStorage === 'function') {
-                                await this.saveToStorage(network)
-                            }
-                        }
-                    }
                 }
             } catch (err) {
                 log('error', 'Failed to initialize identity from storage:', err)
             }
         }, 'INIT_FROM_STORAGE_FAILED')
+    },
+
+    // NEW: Switch Identity Action
+    async switchIdentity(
+        this: IIdentityState,
+        targetIdentityId: string
+    ): Promise<ConnectionResult> {
+        return ErrorBoundary.wrap(async () => {
+            this.isConnecting = true;
+            try {
+                const settings = await invoke<Settings>('load_settings');
+                const network: 'mainnet' | 'testnet' = (settings?.network === 'testnet' ? 'testnet' : 'mainnet');
+
+                // 1. Load Mnemonic
+                const mnemonicData = await loadStorageData<StoredMnemonic>('load_mnemonic', network);
+                if (!mnemonicData?.seed_phrase) {
+                     throw new Error('No seed phrase found. Please connect with seed first.');
+                }
+
+                // 2. Find the index for this identity from Rust storage
+                const discovered = await loadStorageData<RustDiscoveredIdentitiesStore>('load_discovered_identities', network);
+
+                let targetIdx = 0;
+                if (discovered && discovered.identities && discovered.identities[targetIdentityId]) {
+                    targetIdx = discovered.identities[targetIdentityId].identity_idx;
+                } else {
+                    console.warn(`[switchIdentity] Index not found for ${targetIdentityId}, defaulting to 0`);
+                }
+
+                // 3. Connect using the seed flow
+                return await this.connectWithSeed(
+                    mnemonicData.seed_phrase,
+                    network,
+                    targetIdentityId,
+                    targetIdx
+                );
+
+            } catch(e: any) {
+                this.connectionError = e.message;
+                return { success: false, error: e.message };
+            } finally {
+                this.isConnecting = false;
+            }
+        }, 'SWITCH_IDENTITY_FAILED');
     },
 
     async connectWithSeed(
@@ -139,13 +159,31 @@ export const connectionActions = () => ({
         return ErrorBoundary.wrap(async () => {
             this.isConnecting = true
             this.connectionError = null
-            console.log(`[DEBUG Frontend Connect] Starting seed connection for ${targetId}`);
+            console.log(`[DEBUG Frontend Connect] Starting seed connection for ${targetId} at index ${identityIndex}`);
 
             try {
-                // 1. Save Mnemonic
+                // 0. INITIALIZE CLIENT DIRECTLY
+                const { initialize, reset } = usePlatform()
+
+                // Clean up previous connection
+                reset()
+
+                const sdk = await initialize({
+                    network,
+                    wallet: {
+                        mnemonic: seedPhrase,
+                        unsafeOptions: {
+                            skipSynchronizationBeforeHeight: 950000
+                        }
+                    }
+                })
+
+                if (!sdk) throw new Error('Failed to initialize Platform SDK');
+
+                // 1. Save Mnemonic to Rust (Persistence)
                 await invoke('save_mnemonic', { network, payload: { seed_phrase: seedPhrase } })
 
-                // 2. Ensure keys are in Rust storage
+                // 2. Ensure keys are in Rust storage (Optimistic / Fallback)
                 const existingKeys = await loadStorageData<any[]>('get_identity_private_keys', network, { identity_id: targetId })
 
                 if (!existingKeys || existingKeys.length === 0) {
@@ -171,42 +209,55 @@ export const connectionActions = () => ({
                             })
                         } catch (e) { /* ignore */ }
                     }
-console.log('[DEBUG] privateKeyEntries', JSON.stringify(privateKeyEntries, null, 2))
+
                     if (privateKeyEntries.length > 0) {
                         await invoke('save_private_keys', {
                             network,
-                            identityId: targetId,         // camelCase
-                            privateKeys: privateKeyEntries // camelCase
+                            identityId: targetId,
+                            privateKeys: privateKeyEntries
                         })
                     }
                 }
 
-                // 3. Verify Identity
-                const identityResult = await DAPIService.getIdentityById(targetId, network)
+                // 3. FETCH IDENTITY USING SDK DIRECTLY
+                let identityData: any = null;
+                let lastError = null;
 
-                if (!identityResult.success || !identityResult.data) {
-                    throw new Error(`Failed to fetch identity ${targetId} from network`)
+                // Cast to 'any' to avoid TS error: Property 'platform' does not exist on type...
+                const client = sdk as any;
+
+                for(let attempt = 1; attempt <= 3; attempt++) {
+                    try {
+                        // Using the authenticated SDK instance directly
+                        identityData = await client.platform.identities.get(targetId);
+                        if (identityData) break;
+                    } catch(e) {
+                        console.warn(`[Connect] Attempt ${attempt} failed to fetch identity:`, e);
+                        lastError = e;
+                        await new Promise(r => setTimeout(r, 1000));
+                    }
                 }
 
-                const identityData = identityResult.data
+                if (!identityData) {
+                    throw lastError || new Error(`Failed to fetch identity ${targetId} after 3 attempts`);
+                }
 
                 // 4. Update Store State
                 this.isAuthenticated = true
                 this.username = targetId
                 this.identityId = targetId
 
-                // DEFINE LOCALLY to ensure type safety (non-null) for return
                 const activeIdentity: IIdentity = {
                     identityId: targetId,
                     identityIdx: identityIndex,
-                    balance: identityData.balance || '0',
+                    balance: identityData.balance ? identityData.balance.toString() : '0',
                     revision: identityData.revision ? Number(identityData.revision) : undefined,
                     publicKeys: identityData.publicKeys || []
                 }
 
                 this.identity = activeIdentity
                 this.publicKeys = identityData.publicKeys || []
-                this.balance = identityData.balance?.toString() || '0'
+                this.balance = activeIdentity.balance
 
                 // 5. Save Identity Data Snapshot
                 if (typeof this.saveToStorage === 'function') {
@@ -216,7 +267,7 @@ console.log('[DEBUG] privateKeyEntries', JSON.stringify(privateKeyEntries, null,
                 return {
                     success: true,
                     identityId: targetId,
-                    identity: activeIdentity // Return local variable (non-null)
+                    identity: activeIdentity
                 }
             } catch (err: any) {
                 console.error('[DEBUG Frontend Connect Error]', err);
@@ -238,20 +289,44 @@ console.log('[DEBUG] privateKeyEntries', JSON.stringify(privateKeyEntries, null,
         return ErrorBoundary.wrap(async () => {
             this.isConnecting = true
             this.connectionError = null
-            console.log(`[DEBUG Frontend SingleKey] Connecting with ID: "${identityId}"`);
 
             try {
                 const trimmedId = identityId.trim()
                 if (!trimmedId) throw new Error('Identity ID is required')
 
-                // 1. Fetch Identity
-                const identityResult = await DAPIService.getIdentityById(trimmedId, network)
+                // 0. INITIALIZE CLIENT
+                const { initialize, reset } = usePlatform()
+                reset()
 
-                if (!identityResult.success || !identityResult.data) {
+                const sdk = await initialize({
+                    network,
+                    wallet: {
+                        privateKey: privateKey,
+                        unsafeOptions: {
+                            skipSynchronizationBeforeHeight: 950000
+                        }
+                    }
+                })
+
+                if (!sdk) throw new Error('Failed to initialize Platform SDK');
+
+                // 1. Fetch Identity Directly via SDK
+                let identityData: any = null;
+                const client = sdk as any; // Cast to any
+
+                for(let attempt = 1; attempt <= 3; attempt++) {
+                    try {
+                        identityData = await client.platform.identities.get(trimmedId);
+                        if (identityData) break;
+                    } catch(e) {
+                        await new Promise(r => setTimeout(r, 1000));
+                    }
+                }
+
+                if (!identityData) {
                     throw new Error('Failed to fetch identity details.')
                 }
 
-                const identityData = identityResult.data
                 const publicKeys = identityData.publicKeys || []
 
                 // 2. Save Private Key to Rust
@@ -270,11 +345,11 @@ console.log('[DEBUG] privateKeyEntries', JSON.stringify(privateKeyEntries, null,
                     created_at: now,
                     last_used: now
                 }
-console.log('[DEBUG] privateKeyEntry', JSON.stringify(privateKeyEntry, null, 2))
+
                 await invoke('save_private_keys', {
                     network,
-                    identityId: trimmedId,          // camelCase
-                    privateKeys: [privateKeyEntry]  // camelCase
+                    identityId: trimmedId,
+                    privateKeys: [privateKeyEntry]
                 })
 
                 // 3. Activate
@@ -282,11 +357,10 @@ console.log('[DEBUG] privateKeyEntry', JSON.stringify(privateKeyEntry, null, 2))
                 this.username = trimmedId
                 this.identityId = trimmedId
 
-                // DEFINE LOCALLY to ensure type safety (non-null) for return
                 const activeIdentity: IIdentity = {
                     identityId: trimmedId,
                     identityIdx: 0,
-                    balance: identityData.balance || '0',
+                    balance: identityData.balance ? identityData.balance.toString() : '0',
                     revision: identityData.revision ? Number(identityData.revision) : undefined,
                     publicKeys: publicKeys
                 }
@@ -300,7 +374,7 @@ console.log('[DEBUG] privateKeyEntry', JSON.stringify(privateKeyEntry, null, 2))
                 return {
                     success: true,
                     identityId: trimmedId,
-                    identity: activeIdentity // Return local variable (non-null)
+                    identity: activeIdentity
                 }
             } catch (err: any) {
                 console.error('[DEBUG Frontend SingleKey Error]', err);
@@ -369,6 +443,9 @@ console.log('[DEBUG] privateKeyEntry', JSON.stringify(privateKeyEntry, null, 2))
 
     async logout(this: IIdentityState) {
         if (typeof this.clearStorage === 'function') await this.clearStorage()
+        const { reset } = usePlatform()
+        reset()
+
         this.username = null
         this.identityId = null
         this.identity = null

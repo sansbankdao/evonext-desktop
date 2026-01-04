@@ -1,56 +1,50 @@
 // src/stores/identity/state.ts
-
-import type { ConnectionResult, IIdentityState } from '@/types'
+import type { IIdentityState } from '@/types'
 
 export const useIdentityState = (): IIdentityState => ({
     username: null,
     identityId: null,
     displayName: null,
+
     identity: null,
     balance: null,
+
+    // Now valid because interface is bigint | undefined
+    balanceBigInt: undefined,
+    dashBigInt: undefined,
+
     publicKeys: [],
     revision: null,
     isAuthenticated: false,
-    isConnecting: false,
-    connectionError: null,
     premiumAccess: false,
+    connectionError: null,
+    isConnecting: false,
     lastConnected: null,
 
-    // Stub implementations that will be replaced by actual actions
-    saveToStorage: async function(_networkOverride?: 'mainnet' | 'testnet') {
-        return Promise.resolve()
-    },
+    // Connection methods (placeholders, overridden by actions)
+    connectWithSeed: async () => ({ success: false, error: 'Not implemented' }),
+    connectWithSingleKey: async () => ({ success: false, error: 'Not implemented' }),
 
-    // Stub implementations that will be replaced by actual actions
-    searchUserIdentities: async function(_network: 'mainnet' | 'testnet') {
-        return Promise.resolve([])
-    },
+    // NEW: Identity Switching
+    switchIdentity: async () => ({ success: false, error: 'Not implemented' }),
 
-    // Stub implementations that will be replaced by actual actions
-    async connectWithSeed(_seedPhrase: string, _network: string, _targetId?: string, _identityIndex?: number) {
-        // This will be overridden by connectionActions
-        return { success: false, error: 'Not implemented' } as ConnectionResult
-    },
+    // NEW: Discovery Storage methods
+    saveDiscoveredIdentities: async () => ({ success: false, savedCount: 0 }),
+    loadDiscoveredIdentities: async () => null,
+    clearDiscoveredIdentities: async () => ({ success: false }),
 
-    // Stub implementations that will be replaced by actual actions
-    async connectWithSingleKey(_privateKey: string, _identityId: string, _network: string) {
-        // This will be overridden by connectionActions
-        return { success: false, error: 'Not implemented' } as ConnectionResult
-    },
+    // Storage methods
+    saveToStorage: async () => {},
+    searchUserIdentities: async () => [],
 
-    async saveDiscoveredIdentities(_identities: any[], _network: 'mainnet' | 'testnet', _keyType: 'seed' | 'private') {
-        return { success: false, savedCount: 0, error: 'Not implemented' }
-    },
+    getCurrentNetwork: async () => 'mainnet',
 
-    async loadDiscoveredIdentities(_network: 'mainnet' | 'testnet') {
-        return null
-    },
+    // Optional methods called from actions
+    clearStorage: async () => {},
+    fetchBalance: async () => {},
+    getGreeting: () => '',
+    loadFromStorage: async () => {},
 
-    async clearDiscoveredIdentities(_network: 'mainnet' | 'testnet') {
-        return { success: false, error: 'Not implemented' }
-    },
-
-    async getCurrentNetwork() {
-        return 'mainnet' as 'mainnet' | 'testnet'
-    },
+    // NEW: Logout
+    logout: async () => {}
 })

@@ -1,7 +1,7 @@
 // src/types/identity.ts
 
-export type PurposeType = 0 | 1 | 2 | 3 // 0=AUTHENTICATION, 1=ENCRYPTION, 2=DECRYPTION, 3=TRANSFER
-export type SecurityLevelType = 0 | 1 | 2 | 3 | 4 // 0=MASTER, 1=CRITICAL, 2=HIGH, 3=MEDIUM, 4=LOW
+export type PurposeType = 0 | 1 | 2 | 3
+export type SecurityLevelType = 0 | 1 | 2 | 3 | 4
 
 export interface IPublicKey {
     type: number;
@@ -13,7 +13,7 @@ export interface IPublicKey {
     dataBytes?: string | null;
     readOnly?: boolean;
     disabledAt?: string | null;
-    id?: number; // Added for UI indexing
+    id?: number;
 }
 
 export interface IPrivateKey extends IPublicKey {
@@ -35,12 +35,12 @@ export interface IUser {
     displayName: string;
     name?: string;
     identityId?: string;
-    address?: string;       // Required for Wallet screens
+    address?: string;
     avatar: string;
     avatarId?: string;
     avatarData?: string;
     bio?: string;
-    publicMessage?: string; // Added to match transformers
+    publicMessage?: string;
     followers?: number;
     following?: number;
     verified?: boolean;
@@ -48,7 +48,6 @@ export interface IUser {
     revision?: number;
 }
 
-/* Base interface definitions. */
 export interface IExtendedPublicKey {
     keyType: string;
     dataBytes: string;
@@ -86,7 +85,6 @@ export interface DiscoveredIdentity {
     dpnsUsername?: string | null | undefined;
 }
 
-// ===== NEW: Types for Rust storage =====
 export interface RustDiscoveredIdentity {
     identity_id: string;
     identity_idx: number;
@@ -109,8 +107,11 @@ export interface IIdentityState {
 
     identity: DiscoveredIdentity | null;
     balance: number | string | null | undefined;
-    balanceBigInt?: bigint;
-    dashBigInt?: bigint;
+
+    // FIXED: Explicitly allow undefined to satisfy exactOptionalPropertyTypes
+    balanceBigInt?: bigint | undefined;
+    dashBigInt?: bigint | undefined;
+
     publicKeys: IPublicKey[];
     revision: number | null;
     isAuthenticated: boolean;
@@ -123,7 +124,10 @@ export interface IIdentityState {
     connectWithSeed: (seedPhrase: string, network: string, targetId?: string, identityIndex?: number) => Promise<ConnectionResult>;
     connectWithSingleKey: (privateKey: string, identityId: string, network: string) => Promise<ConnectionResult>;
 
-    // NEW: Discovered identities storage methods
+    // NEW: Ability to switch active identity
+    switchIdentity: (targetIdentityId: string) => Promise<ConnectionResult>;
+
+    // Discovered identities storage methods
     saveDiscoveredIdentities: (identities: DiscoveredIdentity[], network: 'mainnet' | 'testnet', keyType: 'seed' | 'private') => Promise<{success: boolean, savedCount: number, error?: string}>;
     loadDiscoveredIdentities: (network: 'mainnet' | 'testnet') => Promise<RustDiscoveredIdentitiesStore | null>;
     clearDiscoveredIdentities: (network: 'mainnet' | 'testnet') => Promise<{success: boolean, error?: string}>;
@@ -139,12 +143,13 @@ export interface IIdentityState {
     fetchBalance?: () => Promise<void>;
     getGreeting?: () => string;
     loadFromStorage?: () => Promise<void>;
+    logout: () => Promise<void>;
 }
 
 export interface ConnectionResult {
     success: boolean;
     identityId?: string;
-    identity?: IIdentity; // Kept for backward compatibility
+    identity?: IIdentity;
     error?: string;
 }
 
@@ -175,7 +180,7 @@ export interface StorageKeys {
     identityData: string;
     license: string;
     settings: string;
-    discoveredIdentities: string; // NEW
+    discoveredIdentities: string;
 }
 
 export interface KeyGenerationResult {
@@ -203,20 +208,3 @@ export interface IdentityDiscoveryDetails {
         derivedFromInput: boolean;
     }>;
 }
-
-// FIXME -- MIGRATE DUPLICATES HERE
-// export interface KeyDerivationResult {
-//     identityIndex: number;
-//     keys: DerivedKey[];
-//     success: boolean;
-//     error?: string;
-// }
-// export interface DerivedKey {
-//     keyIndex: number;
-//     purpose: string;
-//     securityLevel: string;
-//     privateKey: any; // PrivateKeyWASM instance
-//     publicKey: string; // hex
-//     publicKeyHash: string; // hex
-//     path: string; // Derivation path (e.g., m/9'/1'/0'/0/0)
-// }

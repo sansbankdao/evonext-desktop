@@ -99,20 +99,15 @@ export function useConnect() {
     // --- NEW: Save discovered identities to Rust ---
     const saveDiscoveredIdentitiesToStorage = async (identities: DiscoveredIdentity[], keyType: 'seed' | 'private') => {
         if (!identities || identities.length === 0 || isSavingToStorage.value) {
-            console.log('[useConnect] No identities to save or already saving, skipping storage')
             return
         }
 
         isSavingToStorage.value = true
         try {
             const network = await ensure()
-            console.log(`[useConnect] Auto-saving ${identities.length} discovered ${keyType} identities to Rust...`)
-
             const saveResult = await identityStore.saveDiscoveredIdentities(identities, network, keyType)
 
             if (saveResult.success) {
-                console.log(`[useConnect] Successfully saved ${saveResult.savedCount} identities to Rust storage`)
-                // Update debug output with storage info
                 debugOutput.value = {
                     ...debugOutput.value,
                     storage: {
@@ -122,12 +117,9 @@ export function useConnect() {
                         timestamp: new Date().toISOString()
                     }
                 }
-            } else {
-                console.warn(`[useConnect] Failed to save discovered identities: ${saveResult.error}`)
             }
         } catch (error: any) {
             console.error('[useConnect] Error saving discovered identities:', error)
-            // Don't throw - storage failure shouldn't break discovery
         } finally {
             isSavingToStorage.value = false
         }
@@ -148,9 +140,7 @@ export function useConnect() {
             currentInputKey.value = ''
             discoveredIdentity.value = null
             discoveryDetails.value = null
-            // Keep seed words if switching back
         } else {
-            // Clear seed words when switching to private key
             seedWords.value = new Array(parseInt(seedWordCount.value)).fill('')
             selectedSeedIdentity.value = null
             seedDiscoveryResults.value = []
@@ -158,7 +148,6 @@ export function useConnect() {
     }
 
     const closeResults = () => {
-        // Explicitly clear results and selection
         seedDiscoveryResults.value = []
         selectedSeedIdentity.value = null
         seedDiscoveryError.value = null
@@ -166,7 +155,6 @@ export function useConnect() {
     }
 
     const resetDiscovery = () => {
-        // Hard reset: clear everything including results
         connectionError.value = null
         seedDiscoveryResults.value = []
         seedDiscoveryError.value = null
@@ -182,9 +170,8 @@ export function useConnect() {
         discoveryProgress.value = null
         discoveryStatus.value = ''
 
-        isSavingToStorage.value = false // NEW: reset storage flag
+        isSavingToStorage.value = false
 
-        // Also reset stores for persistence
         seedStore.reset()
         keyStore.reset()
     }
@@ -214,13 +201,11 @@ export function useConnect() {
                 seedWords.value[i] = w
             })
 
-            // Trigger discovery automatically on paste if full
             if (words.length >= count) {
                 discoverFromSeed()
             }
         }
 
-        // Also update the store for persistence/debounce
         seedStore.handlePaste(pastedText)
     }
 
@@ -229,20 +214,15 @@ export function useConnect() {
     }
 
     const discoverFromSeed = async () => {
-        // Basic validation
         const phrase = seedWords.value.join(' ').trim()
         const count = parseInt(seedWordCount.value)
         if (phrase.split(/\s+/).length !== count) return
 
         isDiscovering.value = true
         seedDiscoveryError.value = null
-        // Clear previous results only on new scan
         seedDiscoveryResults.value = []
         selectedSeedIdentity.value = null
-
-        // Reset progress
         discoveryProgress.value = null
-
         discoveryStatus.value = 'Deriving keys and scanning network...'
 
         try {
@@ -255,21 +235,17 @@ export function useConnect() {
             debugOutput.value = result.debug
 
             if (result.success && result.identities && result.identities.length > 0) {
-                // Filter out any undefined/null identities
                 const validIdentities = (result.identities as (DiscoveredIdentity | undefined)[]).filter(
                     (identity): identity is DiscoveredIdentity => identity !== undefined && identity !== null
                 )
 
                 seedDiscoveryResults.value = validIdentities
 
-                // Check if we have at least one valid identity
                 if (validIdentities.length > 0 && validIdentities[0]) {
                     selectedSeedIdentity.value = validIdentities[0]
                 }
 
-                // NEW: AUTO-SAVE discovered identities to Rust immediately
                 await saveDiscoveredIdentitiesToStorage(validIdentities, 'seed')
-
             } else {
                 seedDiscoveryError.value = result.error || 'No identities found for this seed.'
             }
@@ -296,7 +272,6 @@ export function useConnect() {
             debugOutput.value = result.debug
 
             if (result.success && result.identity) {
-                // Handle undefined case by converting to null if needed
                 const discovered = result.identity || null
                 discoveredIdentity.value = discovered
                 manualIdentityId.value = discovered.identityId || ''
@@ -306,11 +281,9 @@ export function useConnect() {
                     associatedKeys: result.associatedKeys || []
                 }
 
-                // NEW: AUTO-SAVE discovered identity to Rust immediately
                 if (discovered) {
                     await saveDiscoveredIdentitiesToStorage([discovered], 'private')
                 }
-
             } else {
                 connectionError.value = result.error || 'Identity not found. You can enter ID manually.'
             }
@@ -322,7 +295,7 @@ export function useConnect() {
     }
 
     const useManualIdentity = () => {
-        // Logic handled in computed isFormValid mostly
+        // Logic handled in computed isFormValid
     }
 
     // --- Actions: Final Connection ---
@@ -334,7 +307,6 @@ export function useConnect() {
             const network = await ensure()
 
             if (connectionMethod.value === 'seed') {
-                // SEED CONNECTION
                 const phrase = seedWords.value.join(' ').trim()
 
                 // Run discovery if we haven't yet or have no results
@@ -343,23 +315,23 @@ export function useConnect() {
                     if (seedDiscoveryResults.value.length === 0) {
                         throw new Error('No identities found for this seed phrase')
                     }
-                    // Auto-select first if only one
                     if (seedDiscoveryResults.value.length === 1 && seedDiscoveryResults.value[0]) {
                         selectedSeedIdentity.value = seedDiscoveryResults.value[0]
                     }
                 }
 
-                // Verify we have a selected identity
                 if (!selectedSeedIdentity.value?.identityId) {
                     throw new Error('Please select an identity from the discovered list')
                 }
 
-                // CRITICAL: Pass the identity index with the seed phrase
+                // CRITICAL: Ensure identityIdx is passed. Default to 0 if undefined.
+                const idx = selectedSeedIdentity.value.identityIdx ?? 0
+
                 const result = await identityStore.connectWithSeed(
                     phrase,
                     network,
                     selectedSeedIdentity.value.identityId,
-                    selectedSeedIdentity.value.identityIdx || 0
+                    idx
                 )
                 if (!result.success) throw new Error(result.error)
 
@@ -386,9 +358,7 @@ export function useConnect() {
         }
     }
 
-    // Lifecycle
     const initialize = () => {
-        // Optional: preload any saved seed/keys
         seedStore.initialize()
         keyStore.initialize()
     }
@@ -411,7 +381,7 @@ export function useConnect() {
         isSearchingSeed,
         discoveryStatus,
         debugOutput,
-        isSavingToStorage, // NEW: export for UI feedback if needed
+        isSavingToStorage,
 
         // Progress
         discoveryProgress,
@@ -442,14 +412,8 @@ export function useConnect() {
         handleConnect,
         resetDiscovery,
         closeResults,
-        closeProgress,
         useManualIdentity,
         initialize,
         cleanup
     }
-}
-
-// NEW: Helper for closing progress - was missing
-const closeProgress = () => {
-    // Close just the progress bar
 }
