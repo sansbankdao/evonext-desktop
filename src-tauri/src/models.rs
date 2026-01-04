@@ -3,7 +3,10 @@
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 
+// Added camelCase renaming to match JS/TS conventions
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct IAppSettings {
     pub network: String,
     pub theme: String,
@@ -12,6 +15,7 @@ pub struct IAppSettings {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct IAssets {
     pub identity_id: String,
     pub name: String,
@@ -19,38 +23,41 @@ pub struct IAssets {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct ILicense {
     pub license_id: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct IMnemonic {
     pub seed_phrase: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct PrivateKeyEntry {
     pub identity_id: String,
-    pub key_id: u32,           // The public key ID this private key corresponds to
-    pub purpose: u32,          // 0=AUTHENTICATION, 1=ENCRYPTION, 2=DECRYPTION, 3=TRANSFER
-    pub security_level: u32,   // 0=MASTER, 1=CRITICAL, 2=HIGH, 3=MEDIUM, 4=LOW
-    pub key_type: String,      // e.g., "ecdsa", "bls"
-    pub private_key: String,   // The private key in WIF or hex format
-    pub public_key: String,    // Optional: corresponding public key
-    pub derived_from_mnemonic: Option<bool>, // Whether this was derived from a mnemonic
+    pub key_id: u32,
+    pub purpose: u32,
+    pub security_level: u32,
+    pub key_type: String,
+    pub private_key: String,
+    pub public_key: String,
+    pub derived_from_mnemonic: Option<bool>,
     pub created_at: String,
     pub last_used: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct PrivateKeyStore {
-    // Store mnemonic separately
     pub mnemonic: Option<IMnemonic>,
-    // Store private keys, keyed by identity_id
     pub identities: HashMap<String, Vec<PrivateKeyEntry>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct IdentityData {
     pub username: String,
     pub identity_id: String,
@@ -64,17 +71,20 @@ pub struct IdentityData {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct IdentityPublicKey {
     pub id: u32,
+    #[serde(rename = "type")] // TS sends "type", Rust uses "type_"
     pub type_: String,
     pub purpose: u32,
     pub security_level: u32,
-    pub data: String, // Public key data (hex or base64)
+    pub data: String,
     pub read_only: bool,
     pub disabled_at: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct NotificationSettings {
     pub messages: bool,
     pub mentions: bool,
@@ -82,6 +92,7 @@ pub struct NotificationSettings {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct ProfileSettings {
     pub display_name: String,
     pub username: String,
@@ -90,18 +101,20 @@ pub struct ProfileSettings {
 
 // ===== NEW: Discovered Identities Storage =====
 #[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct DiscoveredIdentity {
     pub identity_id: String,
     pub identity_idx: u32,
     pub dpns_username: Option<String>,
     pub balance: Option<String>,
-    pub key_type: String, // "seed" or "private"
-    pub discovered_key: Option<String>, // Encrypted if private key, else None
+    pub key_type: String,
+    pub discovered_key: Option<String>,
     pub discovered_at: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct DiscoveredIdentitiesStore {
-    pub identities: HashMap<String, DiscoveredIdentity>, // Key: identity_id
+    pub identities: HashMap<String, DiscoveredIdentity>,
     pub last_scan: Option<String>,
 }

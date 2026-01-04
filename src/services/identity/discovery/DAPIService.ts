@@ -1,8 +1,5 @@
 // src/services/identity/discovery/DAPIService.ts
-
 import { invoke } from '@tauri-apps/api/core'
-// import type { DAPIResponse } from '../types'
-
 export interface DAPIHashSearchResult {
     success: boolean
     data?: any
@@ -10,7 +7,6 @@ export interface DAPIHashSearchResult {
     searchType: 'unique' | 'non-unique' | 'none'
     debug?: any
 }
-
 export class DAPIService {
     // Basic query wrapper - FIXED to use direct commands
     static async queryIdentityByHash(
@@ -84,7 +80,6 @@ export class DAPIService {
             }
         }
     }
-
     // DPNS Helper
     static async getDPNSUsername(
         identityId: string,
@@ -95,7 +90,6 @@ export class DAPIService {
                 identityId: identityId,
                 network: network
             })
-
             if (response?.success && response?.result) {
                 const res = response.result
                 if (typeof res === 'string') return res
@@ -135,7 +129,6 @@ export class DAPIService {
                     }
                 }
             }
-
             return {
                 success: false,
                 error: 'Not found or invalid response format',

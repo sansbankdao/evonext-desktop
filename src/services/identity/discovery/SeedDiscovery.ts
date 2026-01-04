@@ -1,4 +1,5 @@
 // src/services/identity/discovery/SeedDiscovery.ts
+
 import { KeyDerivationService } from '../keyDerivation.service'
 import { DAPIService } from './DAPIService'
 import { BaseDiscovery } from './BaseDiscovery'
@@ -10,18 +11,23 @@ import type {
     QueryTrace,
     ScanProgress,
 } from '../types'
+
 // Helper for hex conversion
 const toHexString = (bytes: Uint8Array | number[]): string => {
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 }
+
 export interface SeedDiscoveryOptions {
     network: 'mainnet' | 'testnet'
     maxIdentityIndex: number
     maxKeyIndex: number
 }
+
 export type ProgressCallback = (progress: ScanProgress) => void
+
 const GAP_LIMIT = 5;
 const MAX_IDENTITY_SCAN = 20;
+
 export class SeedDiscovery extends BaseDiscovery {
     private currentProgress: ScanProgress | null = null
     private progressCallback: ProgressCallback | null = null
@@ -45,11 +51,11 @@ export class SeedDiscovery extends BaseDiscovery {
         publicKeys: any[]
     ): Promise<boolean> {
         try {
-            if (!identityId || !publicKeys || publicKeys.length === 0) {
-                return false
-            }
+            if (!identityId || !publicKeys || publicKeys.length === 0) return false
+
             const now = new Date().toISOString()
             const privateKeyEntries: any[] = []
+
             for (let i = 0; i < publicKeys.length; i++) {
                 const publicKey = publicKeys[i]
                 const keyIndex = i
@@ -60,22 +66,21 @@ export class SeedDiscovery extends BaseDiscovery {
                         identityIdx,
                         keyIndex
                     )
+                    // CAMELCASE KEYS FOR RUST
                     const keyEntry = {
-                        identity_id: identityId,
-                        key_id: publicKey.id || 0,
+                        identityId: identityId,
+                        keyId: publicKey.id || 0,
                         purpose: publicKey.purpose || 0,
-                        security_level: publicKey.securityLevel || 0,
-                        key_type: publicKey.keyType || 'ecdsa',
-                        private_key: derivationResult.privateKey.WIF(),
-                        public_key: publicKey.data || '',
-                        derived_from_mnemonic: true,
-                        created_at: now,
-                        last_used: now
+                        securityLevel: publicKey.securityLevel || 0,
+                        keyType: publicKey.keyType || 'ecdsa',
+                        privateKey: derivationResult.privateKey.WIF(),
+                        publicKey: publicKey.data || '',
+                        derivedFromMnemonic: true,
+                        createdAt: now,
+                        lastUsed: now
                     }
                     privateKeyEntries.push(keyEntry)
-                } catch (deriveErr) {
-                    continue
-                }
+                } catch (deriveErr) { continue }
             }
             if (privateKeyEntries.length > 0) {
                 await invoke('save_private_keys', {
@@ -91,6 +96,7 @@ export class SeedDiscovery extends BaseDiscovery {
             return false
         }
     }
+
     // Implements abstract method from BaseDiscovery
     async discover(
         input: string,

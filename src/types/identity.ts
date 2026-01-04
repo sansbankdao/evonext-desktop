@@ -86,13 +86,13 @@ export interface DiscoveredIdentity {
 }
 
 export interface RustDiscoveredIdentity {
-    identity_id: string;
-    identity_idx: number;
-    dpns_username?: string | null;
+    identityId: string;
+    identityIdx: number;
+    dpnsUsername?: string | null;
     balance?: string | null;
-    key_type: 'seed' | 'private';
-    discovered_key?: string | null;
-    discovered_at: string;
+    keyType: 'seed' | 'private';
+    discoveredKey?: string | null;
+    discoveredAt: string;
 }
 
 export interface RustDiscoveredIdentitiesStore {
