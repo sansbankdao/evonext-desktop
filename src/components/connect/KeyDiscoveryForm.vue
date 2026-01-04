@@ -12,35 +12,51 @@
                     id="privateKey"
                     v-model="keyInput"
                     :disabled="props.isDiscovering"
-                    type="text"
+                    :type="showKey ? 'text' : 'password'"
                     autocomplete="off"
                     spellcheck="false"
                     placeholder="Enter WIF (X..., 7..., c...) or HEX private key"
-                    class="w-full px-4 py-3 rounded-xl border-2 transition-colors duration-200 focus:ring-2 focus:ring-cyan-500 focus:border-transparent focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 font-mono text-sm"
+                    class="w-full pl-4 pr-20 py-3 rounded-xl border-2 transition-colors duration-200 focus:ring-2 focus:ring-cyan-500 focus:border-transparent focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 font-mono text-sm"
                     @blur="handleKeyInputBlur"
                 />
 
-                <button
-                    v-if="keyInput"
-                    @click="clearKeyInput"
-                    class="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+                <!-- Controls Container -->
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center space-x-1">
+                    <!-- Toggle Visibility -->
+                    <button
+                        type="button"
+                        @click="showKey = !showKey"
+                        class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                        title="Toggle visibility"
+                    >
+                        <svg v-if="!showKey" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        </svg>
+                    </button>
+
+                    <!-- Clear Button -->
+                    <button
+                        v-if="keyInput"
+                        @click="clearKeyInput"
+                        class="p-1.5 text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                        title="Clear"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <div class="mt-2 text-xs text-slate-500 dark:text-slate-400 space-y-1">
-                <p class="font-medium">
-                    Supported Key Types:
-                </p>
-
+                <p class="font-medium">Supported Key Types:</p>
                 <ul class="list-disc list-inside space-y-0.5 pl-2 text-slate-500">
                     <li>Authentication (ECDSA/Hash160)</li>
-
                     <li>Transfer (ECDSA/Secp256k1)</li>
-
                     <li>Encryption (ECDSA/Secp256k1)</li>
                 </ul>
             </div>
@@ -244,6 +260,7 @@ const emit = defineEmits<{
 // Local state
 const keyInput = ref('')
 const localManualIdentityId = ref(props.manualIdentityId)
+const showKey = ref(false) // Toggle state
 
 // Computed
 const hasValidKeyInput = computed(() => {
@@ -251,15 +268,11 @@ const hasValidKeyInput = computed(() => {
     if (!key) return false
 
     // Standard Dash WIFs (Testnet: c, 9 | Mainnet: X, 7) + BTC/Legacy (K, L, 5)
-    // Supports 51 or 52 characters typically.
     if (/^[XxcLK9758y][0-9A-Za-z]{50,52}$/.test(key)) return true
-
     // HEX Private Key (64 chars)
     if (/^[0-9a-fA-F]{64}$/.test(key)) return true
-
     // Compressed PubKey (66 chars)
     if (/^0[23][0-9a-fA-F]{64}$/.test(key)) return true
-
     // Uncompressed PubKey (130 chars)
     if (/^04[0-9a-fA-F]{128}$/.test(key)) return true
 
@@ -274,10 +287,8 @@ const handleDiscoverClick = () => {
 }
 
 const handleKeyInputBlur = () => {
-    // Only auto-trigger if we aren't already successful
     if (hasValidKeyInput.value && !props.discoveredIdentity && !props.isDiscovering && !props.debugOutput) {
-       // Optional: Auto-discover logic removed to let user click button explicitly
-       // or uncomment: emit('discover-identity', keyInput.value.trim())
+       // Optional: Auto-trigger logic
     }
 }
 

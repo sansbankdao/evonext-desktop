@@ -1,42 +1,55 @@
 <!-- src/components/connect/ConnectSeedForm.vue -->
 <template>
     <div class="space-y-6">
-        <!-- Phrase Length Selector -->
-        <div>
-            <label class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-                <svg class="w-5 h-5 text-cyan-500 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2h10a2 2 0 012 2v2m0 0V9a2 2 0 00-2-2M5 11a2 2 0 012-2h10a2 2 0 012 2" />
+        <!-- Header Row: Phrase Length & Visibility Toggle -->
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <!-- Phrase Length Selector -->
+            <div class="flex-1">
+                <label class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-cyan-500 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2h10a2 2 0 012 2v2m0 0V9a2 2 0 00-2-2M5 11a2 2 0 012-2h10a2 2 0 012 2" />
+                    </svg>
+                    Phrase Length
+                </label>
+
+                <fieldset class="grid grid-cols-2 gap-3">
+                    <label :class="[
+                        'flex items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 group',
+                        wordCount === '12'
+                            ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 border-cyan-400 text-white shadow-cyan-500/25 ring-2 ring-cyan-400/30'
+                            : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 hover:text-slate-900 dark:hover:text-slate-100 bg-white dark:bg-slate-800'
+                    ]">
+                        <input type="radio" value="12" v-model="wordCount" class="sr-only">
+                        <span class="font-bold text-base">12 Words</span>
+                    </label>
+
+                    <label :class="[
+                        'flex items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 group',
+                        wordCount === '24'
+                            ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 border-cyan-400 text-white shadow-cyan-500/25 ring-2 ring-cyan-400/30'
+                            : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 hover:text-slate-900 dark:hover:text-slate-100 bg-white dark:bg-slate-800'
+                    ]">
+                        <input type="radio" value="24" v-model="wordCount" class="sr-only">
+                        <span class="font-bold text-base">24 Words</span>
+                    </label>
+                </fieldset>
+            </div>
+
+            <!-- Visibility Toggle -->
+            <button
+                type="button"
+                @click="showWords = !showWords"
+                class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors shadow-sm h-[52px]"
+            >
+                <svg v-if="!showWords" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
-                Phrase Length
-            </label>
-
-            <fieldset class="grid grid-cols-2 gap-3">
-                <label :class="[
-                    'flex items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 group',
-                    wordCount === '12'
-                        ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 border-cyan-400 text-white shadow-cyan-500/25 ring-2 ring-cyan-400/30'
-                        : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 hover:text-slate-900 dark:hover:text-slate-100 bg-white dark:bg-slate-800'
-                ]">
-                    <input type="radio" value="12" v-model="wordCount" class="sr-only">
-
-                    <span class="font-bold text-lg">
-                        12 Words
-                    </span>
-                </label>
-
-                <label :class="[
-                    'flex items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 group',
-                    wordCount === '24'
-                        ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 border-cyan-400 text-white shadow-cyan-500/25 ring-2 ring-cyan-400/30'
-                        : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 hover:text-slate-900 dark:hover:text-slate-100 bg-white dark:bg-slate-800'
-                ]">
-                    <input type="radio" value="24" v-model="wordCount" class="sr-only">
-
-                    <span class="font-bold text-lg">
-                        24 Words
-                    </span>
-                </label>
-            </fieldset>
+                <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                </svg>
+                <span class="text-sm font-medium">{{ showWords ? 'Hide Words' : 'Show Words' }}</span>
+            </button>
         </div>
 
         <!-- Seed Word Inputs -->
@@ -49,7 +62,7 @@
                 <input
                     v-model="seedWords[index]"
                     @paste.prevent="handlePaste"
-                    type="text"
+                    :type="showWords ? 'text' : 'password'"
                     autocomplete="off"
                     spellcheck="false"
                     :placeholder="(index + 1).toString()"
@@ -91,6 +104,7 @@ const emit = defineEmits<Emits>()
 
 const wordCount = ref(props.wordCount)
 const seedWords = ref([...props.seedWords])
+const showWords = ref(false) // State toggle for visibility
 
 // Watch word count changes and adjust array size
 watch(wordCount, (newCount) => {

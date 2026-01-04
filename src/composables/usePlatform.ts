@@ -4,12 +4,14 @@ import { computed, ref } from 'vue'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { useNetwork } from './useNetwork'
 
+// --- GLOBAL STATE ---
+// These must be defined OUTSIDE the function to be shared across the app
+const sdk = ref<DashPlatformSDK | null>(null)
+const loading = ref(false)
+const error = ref<string | null>(null)
+
 export function usePlatform() {
     const { ensure } = useNetwork()
-    // Make sdk global state so it persists across composable usages
-    const sdk = ref<DashPlatformSDK | null>(null)
-    const loading = ref(false)
-    const error = ref<string | null>(null)
 
     const initialize = async (options: any = {}): Promise<DashPlatformSDK> => {
         // If we have an SDK and no specific options are passed, return the existing one
