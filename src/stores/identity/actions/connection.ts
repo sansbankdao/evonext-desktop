@@ -12,18 +12,14 @@ import type {
     IIdentity,
     RustDiscoveredIdentitiesStore
 } from '@/types'
-
 // Helper interfaces
 interface Settings {
     network: 'mainnet' | 'testnet'
     [key: string]: any
 }
-
 interface StoredMnemonic {
     seed_phrase: string;
 }
-
-// Fixed: Explicitly typed 'network' to match Invoke expectations
 const loadStorageData = async <T>(
     command: string,
     network: 'mainnet' | 'testnet',
@@ -42,7 +38,6 @@ const loadStorageData = async <T>(
         return null
     }
 }
-
 export const connectionActions = () => ({
     async saveDiscoveredIdentities(
         this: IIdentityState,
@@ -61,7 +56,6 @@ export const connectionActions = () => ({
                     discovered_key: null,
                     discovered_at: new Date().toISOString()
                 }))
-
                 const count = await invoke<number>('save_discovered_identities', {
                     network,
                     discoveredIdentities: mappedIdentities
@@ -73,20 +67,17 @@ export const connectionActions = () => ({
             }
         }, 'SAVE_DISCOVERED_IDENTITIES_FAILED')
     },
-
     async initFromStorage(this: IIdentityState) {
         return ErrorBoundary.wrap(async () => {
             try {
                 const settings = await invoke<Settings>('load_settings')
                 const network: 'mainnet' | 'testnet' = (settings?.network === 'testnet' ? 'testnet' : 'mainnet')
-
                 // 1. Try to load Identity Data
                 const identityData = await loadStorageData<any>('load_identity_data', network)
                 if (identityData?.identity_id && identityData.is_authenticated) {
                     this.username = identityData.identity_id
                     this.identityId = identityData.identity_id
                     this.isAuthenticated = true
-
                     const restoredIdentity: IIdentity = {
                         identityId: identityData.identity_id,
                         identityIdx: identityData.identity_idx || 0,
@@ -96,7 +87,6 @@ export const connectionActions = () => ({
                     }
                     this.identity = restoredIdentity
                     this.publicKeys = identityData.public_keys || []
-
                     return
                 }
             } catch (err) {
@@ -104,8 +94,6 @@ export const connectionActions = () => ({
             }
         }, 'INIT_FROM_STORAGE_FAILED')
     },
-
-    // NEW: Switch Identity Action
     async switchIdentity(
         this: IIdentityState,
         targetIdentityId: string
@@ -115,31 +103,25 @@ export const connectionActions = () => ({
             try {
                 const settings = await invoke<Settings>('load_settings');
                 const network: 'mainnet' | 'testnet' = (settings?.network === 'testnet' ? 'testnet' : 'mainnet');
-
                 // 1. Load Mnemonic
                 const mnemonicData = await loadStorageData<StoredMnemonic>('load_mnemonic', network);
                 if (!mnemonicData?.seed_phrase) {
                      throw new Error('No seed phrase found. Please connect with seed first.');
                 }
-
                 // 2. Find the index for this identity from Rust storage
                 const discovered = await loadStorageData<RustDiscoveredIdentitiesStore>('load_discovered_identities', network);
-
                 let targetIdx = 0;
                 if (discovered && discovered.identities && discovered.identities[targetIdentityId]) {
                     targetIdx = discovered.identities[targetIdentityId].identity_idx;
                 } else {
                     console.warn(`[switchIdentity] Index not found for ${targetIdentityId}, defaulting to 0`);
                 }
-
-                // 3. Connect using the seed flow
                 return await this.connectWithSeed(
                     mnemonicData.seed_phrase,
                     network,
                     targetIdentityId,
                     targetIdx
                 );
-
             } catch(e: any) {
                 this.connectionError = e.message;
                 return { success: false, error: e.message };
@@ -148,7 +130,6 @@ export const connectionActions = () => ({
             }
         }, 'SWITCH_IDENTITY_FAILED');
     },
-
     async connectWithSeed(
         this: IIdentityState,
         seedPhrase: string,
@@ -160,15 +141,11 @@ export const connectionActions = () => ({
             this.isConnecting = true
             this.connectionError = null
             console.log(`[DEBUG Frontend Connect] Starting seed connection for ${targetId} at index ${identityIndex}`);
-
             try {
-                // 0. INITIALIZE CLIENT DIRECTLY
+                // 0. INITIALIZE CLIENT
                 const { initialize, reset } = usePlatform()
-
-                // Clean up previous connection
                 reset()
-
-                const sdk = await initialize({
+                const sdkInstance = await initialize({
                     network,
                     wallet: {
                         mnemonic: seedPhrase,
@@ -177,20 +154,15 @@ export const connectionActions = () => ({
                         }
                     }
                 })
-
-                if (!sdk) throw new Error('Failed to initialize Platform SDK');
-
+                if (!sdkInstance) throw new Error('Failed to initialize Platform SDK');
                 // 1. Save Mnemonic to Rust (Persistence)
                 await invoke('save_mnemonic', { network, payload: { seed_phrase: seedPhrase } })
-
-                // 2. Ensure keys are in Rust storage (Optimistic / Fallback)
+                // 2. Ensure keys are in Rust storage
                 const existingKeys = await loadStorageData<any[]>('get_identity_private_keys', network, { identity_id: targetId })
-
                 if (!existingKeys || existingKeys.length === 0) {
                     console.log('[DEBUG Frontend Connect] Keys missing, performing manual derivation fallback');
                     const now = new Date().toISOString()
                     const privateKeyEntries: any[] = []
-
                     // Fallback derivation loop
                     for (let i = 0; i < 5; i++) {
                         try {
@@ -209,7 +181,6 @@ export const connectionActions = () => ({
                             })
                         } catch (e) { /* ignore */ }
                     }
-
                     if (privateKeyEntries.length > 0) {
                         await invoke('save_private_keys', {
                             network,
@@ -218,18 +189,24 @@ export const connectionActions = () => ({
                         })
                     }
                 }
-
-                // 3. FETCH IDENTITY USING SDK DIRECTLY
+                // 3. FETCH IDENTITY (Safely accessing SDK)
                 let identityData: any = null;
                 let lastError = null;
-
-                // Cast to 'any' to avoid TS error: Property 'platform' does not exist on type...
-                const client = sdk as any;
-
+                // CRITICAL FIX: The DashPlatformSDK you are using does NOT have a .platform property.
+                // It exposes .identities directly.
+                const client = sdkInstance as any; // Cast to bypass strict TS check during development
+                console.log('[DEBUG Connect] Client Keys:', Object.keys(client));
                 for(let attempt = 1; attempt <= 3; attempt++) {
                     try {
-                        // Using the authenticated SDK instance directly
-                        identityData = await client.platform.identities.get(targetId);
+                        // Access .identities directly based on DashPlatformSDK.d.ts
+                        if (client.identities) {
+                            identityData = await client.identities.get(targetId);
+                        } else if (client.platform && client.platform.identities) {
+                            // Fallback if structure changes
+                            identityData = await client.platform.identities.get(targetId);
+                        } else {
+                            throw new Error('SDK Client missing identities controller');
+                        }
                         if (identityData) break;
                     } catch(e) {
                         console.warn(`[Connect] Attempt ${attempt} failed to fetch identity:`, e);
@@ -237,16 +214,13 @@ export const connectionActions = () => ({
                         await new Promise(r => setTimeout(r, 1000));
                     }
                 }
-
                 if (!identityData) {
                     throw lastError || new Error(`Failed to fetch identity ${targetId} after 3 attempts`);
                 }
-
                 // 4. Update Store State
                 this.isAuthenticated = true
                 this.username = targetId
                 this.identityId = targetId
-
                 const activeIdentity: IIdentity = {
                     identityId: targetId,
                     identityIdx: identityIndex,
@@ -254,16 +228,12 @@ export const connectionActions = () => ({
                     revision: identityData.revision ? Number(identityData.revision) : undefined,
                     publicKeys: identityData.publicKeys || []
                 }
-
                 this.identity = activeIdentity
                 this.publicKeys = identityData.publicKeys || []
                 this.balance = activeIdentity.balance
-
-                // 5. Save Identity Data Snapshot
                 if (typeof this.saveToStorage === 'function') {
                     await this.saveToStorage(network)
                 }
-
                 return {
                     success: true,
                     identityId: targetId,
@@ -279,7 +249,6 @@ export const connectionActions = () => ({
             }
         }, 'CONNECT_WITH_SEED_FAILED')
     },
-
     async connectWithSingleKey(
         this: IIdentityState,
         privateKey: string,
@@ -289,16 +258,13 @@ export const connectionActions = () => ({
         return ErrorBoundary.wrap(async () => {
             this.isConnecting = true
             this.connectionError = null
-
             try {
                 const trimmedId = identityId.trim()
                 if (!trimmedId) throw new Error('Identity ID is required')
-
                 // 0. INITIALIZE CLIENT
                 const { initialize, reset } = usePlatform()
                 reset()
-
-                const sdk = await initialize({
+                const sdkInstance = await initialize({
                     network,
                     wallet: {
                         privateKey: privateKey,
@@ -307,32 +273,30 @@ export const connectionActions = () => ({
                         }
                     }
                 })
-
-                if (!sdk) throw new Error('Failed to initialize Platform SDK');
-
-                // 1. Fetch Identity Directly via SDK
+                if (!sdkInstance) throw new Error('Failed to initialize Platform SDK');
+                // 1. Fetch Identity
                 let identityData: any = null;
-                const client = sdk as any; // Cast to any
-
+                const client = sdkInstance as any; // Cast for safety
                 for(let attempt = 1; attempt <= 3; attempt++) {
                     try {
-                        identityData = await client.platform.identities.get(trimmedId);
+                        // Access .identities directly
+                        if (client.identities) {
+                            identityData = await client.identities.get(trimmedId);
+                        } else {
+                            throw new Error('SDK Client missing identities controller');
+                        }
                         if (identityData) break;
                     } catch(e) {
                         await new Promise(r => setTimeout(r, 1000));
                     }
                 }
-
                 if (!identityData) {
                     throw new Error('Failed to fetch identity details.')
                 }
-
                 const publicKeys = identityData.publicKeys || []
-
                 // 2. Save Private Key to Rust
                 const now = new Date().toISOString()
                 const firstAuthKey = publicKeys.find((pk: any) => pk.purpose === 0)
-
                 const privateKeyEntry = {
                     identity_id: trimmedId,
                     key_id: firstAuthKey?.id || 0,
@@ -345,18 +309,15 @@ export const connectionActions = () => ({
                     created_at: now,
                     last_used: now
                 }
-
                 await invoke('save_private_keys', {
                     network,
                     identityId: trimmedId,
                     privateKeys: [privateKeyEntry]
                 })
-
                 // 3. Activate
                 this.isAuthenticated = true
                 this.username = trimmedId
                 this.identityId = trimmedId
-
                 const activeIdentity: IIdentity = {
                     identityId: trimmedId,
                     identityIdx: 0,
@@ -364,13 +325,10 @@ export const connectionActions = () => ({
                     revision: identityData.revision ? Number(identityData.revision) : undefined,
                     publicKeys: publicKeys
                 }
-
                 this.identity = activeIdentity
-
                 if (typeof this.saveToStorage === 'function') {
                     await this.saveToStorage(network)
                 }
-
                 return {
                     success: true,
                     identityId: trimmedId,
@@ -386,7 +344,6 @@ export const connectionActions = () => ({
             }
         }, 'CONNECT_WITH_SINGLE_KEY_FAILED')
     },
-
     async searchUserIdentities(
         this: IIdentityState,
         network: 'mainnet' | 'testnet'
@@ -394,7 +351,6 @@ export const connectionActions = () => ({
         return ErrorBoundary.wrap(async () => {
             const identityId = this.username || this.identityId
             if (!identityId) return []
-
             const result = await DAPIService.getIdentityById(identityId, network)
             if (result.success && result.data) {
                 const discovered: DiscoveredIdentity = {
@@ -405,7 +361,6 @@ export const connectionActions = () => ({
                     publicKeys: result.data.publicKeys || [],
                     dpnsUsername: result.data.dpnsUsername || null
                 }
-
                 if (this.identity) {
                     this.identity.publicKeys = discovered.publicKeys || []
                     this.identity.balance = discovered.balance
@@ -417,14 +372,12 @@ export const connectionActions = () => ({
             return []
         }, 'SEARCH_USER_IDENTITIES_FAILED')
     },
-
     async saveToStorage(this: IIdentityState, networkOverride?: 'mainnet' | 'testnet') {
         const storage = this as any
         if (typeof storage.saveToStorage === 'function') {
             await storage.saveToStorage(networkOverride)
         }
     },
-
     async clearStorage(this: IIdentityState) {
         try {
             const settings = await invoke<Settings>('load_settings')
@@ -440,18 +393,15 @@ export const connectionActions = () => ({
             log('error', 'Failed to clear storage:', err)
         }
     },
-
     async logout(this: IIdentityState) {
         if (typeof this.clearStorage === 'function') await this.clearStorage()
         const { reset } = usePlatform()
         reset()
-
         this.username = null
         this.identityId = null
         this.identity = null
         this.isAuthenticated = false
     },
-
     clearConnectionError(this: IIdentityState) {
         this.connectionError = null
     }

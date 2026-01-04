@@ -1,24 +1,27 @@
 // src/services/identity/discovery/SeedDiscovery.ts
-
 import { KeyDerivationService } from '../keyDerivation.service'
 import { DAPIService } from './DAPIService'
 import { BaseDiscovery } from './BaseDiscovery'
 import { invoke } from '@tauri-apps/api/core'
-// import { log } from '@/utils/env'
 import type { DiscoveredIdentity } from '@/types'
 import type {
     DiscoveryResult,
     DiscoveryOptions,
-    // KeyDerivationResult,
     QueryTrace,
     ScanProgress,
 } from '../types'
+// Helper for hex conversion
+const toHexString = (bytes: Uint8Array | number[]): string => {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 export interface SeedDiscoveryOptions {
     network: 'mainnet' | 'testnet'
     maxIdentityIndex: number
     maxKeyIndex: number
 }
 export type ProgressCallback = (progress: ScanProgress) => void
+const GAP_LIMIT = 5;
+const MAX_IDENTITY_SCAN = 20;
 export class SeedDiscovery extends BaseDiscovery {
     private currentProgress: ScanProgress | null = null
     private progressCallback: ProgressCallback | null = null
@@ -33,7 +36,6 @@ export class SeedDiscovery extends BaseDiscovery {
             }
         }
     }
-
     // Helper to save derived keys to Rust
     private async saveDerivedKeysToStorage(
         seedPhrase: string,
@@ -42,20 +44,15 @@ export class SeedDiscovery extends BaseDiscovery {
         identityId: string,
         publicKeys: any[]
     ): Promise<boolean> {
-        console.log(`[DEBUG Frontend 1] Preparing to save keys for ${identityId}`);
         try {
             if (!identityId || !publicKeys || publicKeys.length === 0) {
-                console.warn('[DEBUG Frontend 1.1] Missing ID or public keys');
                 return false
             }
-
             const now = new Date().toISOString()
             const privateKeyEntries: any[] = []
-
             for (let i = 0; i < publicKeys.length; i++) {
                 const publicKey = publicKeys[i]
                 const keyIndex = i
-
                 try {
                     const derivationResult = await KeyDerivationService.getPrivateKeyWASM(
                         seedPhrase,
@@ -63,9 +60,6 @@ export class SeedDiscovery extends BaseDiscovery {
                         identityIdx,
                         keyIndex
                     )
-
-                    // NOTE: The object structure here matches Rust Struct fields (snake_case)
-                    // BUT the invoke arguments below must be camelCase.
                     const keyEntry = {
                         identity_id: identityId,
                         key_id: publicKey.id || 0,
@@ -80,32 +74,23 @@ export class SeedDiscovery extends BaseDiscovery {
                     }
                     privateKeyEntries.push(keyEntry)
                 } catch (deriveErr) {
-                    console.error(`[DEBUG Frontend 1.2] Derivation error for index ${i}`, deriveErr);
                     continue
                 }
             }
-
             if (privateKeyEntries.length > 0) {
-                console.log(`[DEBUG Frontend 2] Invoking save_private_keys with ${privateKeyEntries.length} keys`);
-
-                // CRITICAL FIX: keys are camelCase (identityId, privateKeys)
-                // Values inside privateKeyEntries are snake_case because your Rust Struct properties are snake_case
                 await invoke('save_private_keys', {
                     network,
-                    identityId: identityId,       // <--- CHANGED FROM identity_id
-                    privateKeys: privateKeyEntries // <--- CHANGED FROM private_keys
+                    identityId: identityId,
+                    privateKeys: privateKeyEntries
                 })
-
-                console.log(`[DEBUG Frontend 3] Keys saved successfully via Rust command`);
                 return true
             }
             return false
         } catch (err) {
-            console.error(`[DEBUG Frontend ERROR] Failed to save keys:`, err)
+            console.error(`[SeedDiscovery] Failed to save keys:`, err)
             return false
         }
     }
-
     // Implements abstract method from BaseDiscovery
     async discover(
         input: string,
@@ -128,77 +113,92 @@ export class SeedDiscovery extends BaseDiscovery {
                 return this.createErrorResult('Invalid seed phrase length')
             }
             const foundIdentities: DiscoveredIdentity[] = []
+            let gapCount = 0;
+            let currentIdentityIdx = 0;
             this.currentProgress = {
                 currentIdentityIndex: 0,
                 currentKeyIndex: 0,
-                totalIdentities: options.maxIdentityIndex,
+                totalIdentities: 0,
                 totalKeysPerIdentity: Math.min(5, options.maxKeyIndex),
                 currentPublicKeyHash: '',
                 currentPath: '',
-                status: 'deriving',
+                status: 'scanning',
                 scannedCount: 0,
                 foundCount: 0
             }
-            // 1. Derive All Keys
-            this.updateProgress({ status: 'deriving' })
-            const allDerivations = await KeyDerivationService.deriveAllKeysFromSeed(
-                seedPhrase,
-                options.network,
-                options.maxIdentityIndex,
-                options.maxKeyIndex
-            )
-            this.updateProgress({
-                totalIdentities: allDerivations.length,
-                scannedCount: 0,
-                status: 'scanning'
-            })
-            // 2. Scan
-            for (let dIndex = 0; dIndex < allDerivations.length; dIndex++) {
-                const derivation = allDerivations[dIndex]
-                if (!derivation) continue;
-                const identityIdx = derivation.identityIndex
-                let foundForThisIndex = false
-                this.updateProgress({ currentIdentityIndex: identityIdx })
-                for (let kIndex = 0; kIndex < derivation.keys.length; kIndex++) {
-                    const key = derivation.keys[kIndex]
-                    if (!key || foundForThisIndex) break
-                    const hash = key.publicKeyHash
-                    this.updateProgress({
-                        currentKeyIndex: key.keyIndex,
-                        currentPublicKeyHash: hash,
-                        currentPath: key.path
-                    })
-                    // Unique Lookup
-                    const uniqueResult = await DAPIService.queryIdentityByHash(hash, options.network, true)
-                    if (this.currentProgress) {
-                        this.currentProgress.scannedCount++
-                        this.updateProgress({ scannedCount: this.currentProgress.scannedCount })
-                    }
-                    if (uniqueResult.success && uniqueResult.data) {
-                        await this.addIdentity(foundIdentities, uniqueResult.data, options.network, identityIdx, seedPhrase)
-                        foundForThisIndex = true
-                        if (this.currentProgress) {
-                            this.currentProgress.foundCount++
-                            this.updateProgress({ foundCount: this.currentProgress.foundCount })
+            // --- GAP LIMIT LOOP ---
+            while (gapCount < GAP_LIMIT && currentIdentityIdx < MAX_IDENTITY_SCAN) {
+                this.updateProgress({
+                    currentIdentityIndex: currentIdentityIdx,
+                    totalIdentities: currentIdentityIdx + GAP_LIMIT
+                });
+                let foundForThisIdentity = false;
+                const keysToCheck = 5;
+                for (let kIndex = 0; kIndex < keysToCheck; kIndex++) {
+                    if (foundForThisIdentity) break;
+                    try {
+                        // Derive single key
+                        const derivation = await KeyDerivationService.getPrivateKeyWASM(
+                            seedPhrase,
+                            options.network,
+                            currentIdentityIdx,
+                            kIndex
+                        );
+                        // FIX: Use correct WASM methods
+                        // 1. Get PublicKeyWASM object
+                        const pubKeyWasm = derivation.privateKey.getPublicKey();
+                        // 2. Get hash160 (returns Uint8Array)
+                        const hashBytes = pubKeyWasm.hash160();
+                        // 3. Convert to Hex
+                        const pkh = toHexString(hashBytes);
+                        const keyInfo = {
+                            keyIndex: kIndex,
+                            publicKeyHash: pkh,
+                            path: `m/44'/${options.network === 'mainnet' ? '5' : '1'}'/${currentIdentityIdx}'/0/${kIndex}`
+                        };
+                        this.updateProgress({
+                            currentKeyIndex: kIndex,
+                            currentPublicKeyHash: keyInfo.publicKeyHash,
+                            currentPath: keyInfo.path
+                        });
+                        // 1. Unique Lookup
+                        if (keyInfo.publicKeyHash) {
+                            const uniqueResult = await DAPIService.queryIdentityByHash(keyInfo.publicKeyHash, options.network, true);
+                            if (this.currentProgress) {
+                                this.currentProgress.scannedCount++;
+                                this.updateProgress({ scannedCount: this.currentProgress.scannedCount });
+                            }
+                            if (uniqueResult.success && uniqueResult.data) {
+                                await this.addIdentity(foundIdentities, uniqueResult.data, options.network, currentIdentityIdx, seedPhrase);
+                                foundForThisIdentity = true;
+                                break;
+                            }
+                            // 2. Fallback: Non-Unique
+                            const nonUniqueResult = await DAPIService.queryIdentityByHash(keyInfo.publicKeyHash, options.network, false);
+                            if (this.currentProgress) {
+                                this.currentProgress.scannedCount++;
+                                this.updateProgress({ scannedCount: this.currentProgress.scannedCount });
+                            }
+                            if (nonUniqueResult.success && nonUniqueResult.data) {
+                                await this.addIdentity(foundIdentities, nonUniqueResult.data, options.network, currentIdentityIdx, seedPhrase);
+                                foundForThisIdentity = true;
+                                break;
+                            }
                         }
-                        break
-                    }
-                    // Fallback: Non-Unique
-                    const nonUniqueResult = await DAPIService.queryIdentityByHash(hash, options.network, false)
-                    if (this.currentProgress) {
-                        this.currentProgress.scannedCount++
-                        this.updateProgress({ scannedCount: this.currentProgress.scannedCount })
-                    }
-                    if (nonUniqueResult.success && nonUniqueResult.data) {
-                        await this.addIdentity(foundIdentities, nonUniqueResult.data, options.network, identityIdx, seedPhrase)
-                        foundForThisIndex = true
-                        if (this.currentProgress) {
-                            this.currentProgress.foundCount++
-                            this.updateProgress({ foundCount: this.currentProgress.foundCount })
-                        }
-                        break
+                    } catch (e) {
+                         // Derivation error, skip key
                     }
                 }
+                if (foundForThisIdentity) {
+                    gapCount = 0;
+                    if (this.currentProgress) {
+                        this.currentProgress.foundCount++;
+                        this.updateProgress({ foundCount: this.currentProgress.foundCount });
+                    }
+                } else {
+                    gapCount++;
+                }
+                currentIdentityIdx++;
             }
             this.updateProgress({ status: 'completed' })
             // Deduplicate results
@@ -226,6 +226,8 @@ export class SeedDiscovery extends BaseDiscovery {
         identityIdx: number,
         seedPhrase?: string
     ) {
+        // Prevent adding duplicates
+        if (list.some(i => i.identityId === (data.identityId || data.id))) return;
         const id = data.identityId || data.id
         const dpnsUsername = await this.getDPNSUsernameFromData(data, network)
         const identity: DiscoveredIdentity = {
