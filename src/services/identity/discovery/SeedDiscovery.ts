@@ -10,12 +10,28 @@ import { hash160 } from '@evonext/crypto'
 // @ts-ignore
 import { binToHex } from '@evonext/utils'
 
+// FIXED: Re-added exported types needed by IdentityManager
+export type ProgressCallback = (details: any) => void
+
+export interface SeedDiscoveryOptions {
+    network?: 'mainnet' | 'testnet'
+    minIndexSearch?: number
+    gapLimit?: number
+}
+
 export class SeedDiscovery extends BaseDiscovery {
     private isCancelled = false
     private GAP_LIMIT = 5
+    // FIXED: Re-added callback support
+    private progressCallback: ProgressCallback | null = null
 
     cancel(): void {
         this.isCancelled = true
+    }
+
+    // FIXED: Added method expected by IdentityManager
+    setProgressCallback(callback: ProgressCallback): void {
+        this.progressCallback = callback
     }
 
     async discover(input: string, options?: any): Promise<any> {
@@ -24,6 +40,10 @@ export class SeedDiscovery extends BaseDiscovery {
     }
 
     protected updateProgress(details: any) {
+        // Hybrid approach: Call legacy callback AND dispatch event
+        if (this.progressCallback) {
+            this.progressCallback(details)
+        }
         const event = new CustomEvent('discovery:progress', { detail: details })
         window.dispatchEvent(event)
     }
@@ -31,38 +51,48 @@ export class SeedDiscovery extends BaseDiscovery {
     async discoverFromSeed(
         seedPhrase: string,
         network: 'mainnet' | 'testnet' = 'mainnet',
-        options?: { minIndexSearch?: number }
+        options?: SeedDiscoveryOptions
     ): Promise<DiscoveredIdentity[]> {
         this.isCancelled = false
         const results: DiscoveredIdentity[] = []
         let gapCount = 0
         let currentIndex = 0
         const minSearch = options?.minIndexSearch || 5
-        while ((gapCount < this.GAP_LIMIT) || (currentIndex < minSearch)) {
+
+        // Use gap limit from options if provided
+        const activeGapLimit = options?.gapLimit || this.GAP_LIMIT
+
+        while ((gapCount < activeGapLimit) || (currentIndex < minSearch)) {
             if (this.isCancelled) break
+
             try {
                 this.updateProgress({
                     currentIdentityIndex: currentIndex,
-                    totalIdentities: currentIndex + this.GAP_LIMIT,
+                    totalIdentities: currentIndex + activeGapLimit,
                     currentKeyIndex: 0,
                     totalKeysPerIdentity: 1,
                     scannedCount: currentIndex,
                     foundCount: results.length,
-                    message: `Scanning Identity #${currentIndex} (Gap: ${gapCount}/${this.GAP_LIMIT})`
+                    message: `Scanning Identity #${currentIndex} (Gap: ${gapCount}/${activeGapLimit})`
                 })
+
                 const { privateKey } = await KeyDerivationService.getPrivateKeyWASM(
                     seedPhrase,
                     network,
                     currentIndex,
                     0
                 )
+
                 const pubKey = privateKey.getPublicKey()
                 const pubKeyBytes = pubKey.bytes()
                 const pubKeyHash = binToHex(hash160(pubKeyBytes))
+
                 const result = await DAPIService.queryIdentityByHash(pubKeyHash, network, true)
+
                 if (result.success && result.data) {
                     const identityId = result.data.id
                     const dpnsName = await DAPIService.getDPNSUsername(identityId, network)
+
                     const discovered: DiscoveredIdentity = {
                         identityId: identityId,
                         identityIdx: currentIndex,
@@ -73,8 +103,10 @@ export class SeedDiscovery extends BaseDiscovery {
                         displayName: dpnsName || `Identity ${currentIndex}`,
                         revision: result.data.revision
                     }
+
                     results.push(discovered)
                     gapCount = 0
+
                     await this.saveDerivedKeysToStorage(
                         seedPhrase,
                         network,
@@ -91,6 +123,7 @@ export class SeedDiscovery extends BaseDiscovery {
             }
             currentIndex++
         }
+
         this.updateProgress({
             currentIdentityIndex: currentIndex,
             totalIdentities: currentIndex,
@@ -98,6 +131,7 @@ export class SeedDiscovery extends BaseDiscovery {
             foundCount: results.length,
             message: `Scan complete. Found ${results.length} identities.`
         })
+
         return results
     }
 
@@ -112,10 +146,12 @@ export class SeedDiscovery extends BaseDiscovery {
             if (!identityId || !publicKeys || publicKeys.length === 0) return false
             const now = new Date().toISOString()
             const privateKeyEntries: any[] = []
+
             for (let i = 0; i < publicKeys.length; i++) {
                 const publicKey = publicKeys[i]
                 const keyIndex = publicKey.id
                 if (keyIndex > 100) continue
+
                 try {
                     const derivationResult = await KeyDerivationService.getPrivateKeyWASM(
                         seedPhrase,
@@ -125,6 +161,7 @@ export class SeedDiscovery extends BaseDiscovery {
                     )
                     const derivedPub = derivationResult.privateKey.getPublicKey()
                     const derivedPubHex = binToHex(derivedPub.bytes())
+
                     const keyEntry = {
                         identityId: identityId,
                         keyId: publicKey.id,
@@ -140,6 +177,7 @@ export class SeedDiscovery extends BaseDiscovery {
                     privateKeyEntries.push(keyEntry)
                 } catch (deriveErr) { continue }
             }
+
             if (privateKeyEntries.length > 0) {
                 await invoke('save_private_keys', {
                     network,

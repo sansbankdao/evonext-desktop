@@ -1,6 +1,6 @@
 // src/services/identity/discovery/IdentityManager.ts
 import { KeyDiscovery } from './KeyDiscovery'
-import { SeedDiscovery } from './SeedDiscovery'
+import { SeedDiscovery, type ProgressCallback } from './SeedDiscovery'
 import { DAPIService } from './DAPIService'
 import { KeyDerivationService, type KeyType } from '../keyDerivation.service'
 import type { DiscoveredIdentity } from '@/types'
@@ -10,7 +10,6 @@ import type {
     AssociatedKey,
 } from '../types'
 import type { KeyHashDerivationResult } from '@/types'
-import type { ProgressCallback } from './SeedDiscovery'
 export class IdentityManager {
     private keyDiscovery: KeyDiscovery
     private seedDiscovery: SeedDiscovery
@@ -41,7 +40,7 @@ export class IdentityManager {
         } catch (error: any) {
             return {
                 success: false,
-                error:`Key discovery failed: ${error.message || 'Unknown error'}`,
+                error: `Key discovery failed: ${error.message || 'Unknown error'}`,
                 identities: null,
                 identity: null,
                 detectedKeyType: null,
@@ -72,7 +71,7 @@ export class IdentityManager {
         if (words.length !== 12 && words.length !== 24) {
             return {
                 success: false,
-                error:`Invalid seed phrase length: ${words.length} words. Expected 12 or 24.`,
+                error: `Invalid seed phrase length: ${words.length} words. Expected 12 or 24.`,
                 identities: null,
                 identity: null,
                 detectedKeyType: null,
@@ -81,16 +80,32 @@ export class IdentityManager {
             }
         }
         try {
+            // FIXED: Map options to the new SeedDiscovery signature
+            // maxIdentityIndex maps to minIndexSearch to ensure we check at least that many
             const seedOptions = {
                 network: options.network,
-                maxIdentityIndex: options.maxIdentityIndex || 5,
-                maxKeyIndex: 5
+                minIndexSearch: options.maxIdentityIndex || 5,
+                gapLimit: 5 // Default gap limit
             }
-            return await this.seedDiscovery.discoverFromSeed(seedPhrase, seedOptions)
+            // FIXED: Call with correct signature (phrase, network, options)
+            const identities = await this.seedDiscovery.discoverFromSeed(
+                seedPhrase,
+                options.network,
+                seedOptions
+            )
+            // FIXED: Wrap array result in DiscoveryResult object
+            return {
+                success: true,
+                identities: identities,
+                identity: null,
+                detectedKeyType: 'SEED',
+                associatedKeys: null,
+                debug: { step: 'seed_discovery_success', network: options.network }
+            }
         } catch (error: any) {
             return {
                 success: false,
-                error:`Seed discovery failed: ${error.message || 'Unknown error'}`,
+                error: `Seed discovery failed: ${error.message || 'Unknown error'}`,
                 identities: null,
                 identity: null,
                 detectedKeyType: null,
@@ -160,7 +175,7 @@ export class IdentityManager {
                 const dpnsUsername = await this.getDPNSUsername(identityId.trim(), network)
                 const discoveredIdentity: DiscoveredIdentity = {
                     identityId: identityData.identityId || identityData.id || identityId.trim(),
-                    identityIdx: 0, // Assigned default
+                    identityIdx: 0,
                     balance: this.formatBalance(identityData.balance),
                     revision: identityData.revision,
                     publicKeys: identityData.publicKeys || [],
@@ -178,7 +193,7 @@ export class IdentityManager {
             }
             return {
                 success: false,
-                error: result.error ||`No identity found with ID: ${identityId}`,
+                error: result.error || `No identity found with ID: ${identityId}`,
                 identities: null,
                 identity: null,
                 detectedKeyType: null,
@@ -188,7 +203,7 @@ export class IdentityManager {
         } catch (error: any) {
             return {
                 success: false,
-                error:`Failed to get identity by ID: ${error.message || 'Unknown error'}`,
+                error: `Failed to get identity by ID: ${error.message || 'Unknown error'}`,
                 identities: null,
                 identity: null,
                 detectedKeyType: null,
