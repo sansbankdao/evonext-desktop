@@ -8,7 +8,9 @@ use std::collections::HashMap;
 pub struct IAppSettings {
     pub network: String,
     pub theme: String,
+    #[serde(default)] // <--- FIX: Uses default values if missing
     pub notifications: NotificationSettings,
+    #[serde(default)] // <--- FIX: Uses default values if missing
     pub profile: ProfileSettings,
 }
 
@@ -81,19 +83,25 @@ pub struct IdentityPublicKey {
     pub disabled_at: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)] // Added Default derive
 #[serde(rename_all = "camelCase")]
 pub struct NotificationSettings {
+    #[serde(default)]
     pub messages: bool,
+    #[serde(default)]
     pub mentions: bool,
-    pub contact_requests: bool,
+    #[serde(default)]
+    pub contact_requests: bool, // FIX: Will default to false if missing
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)] // Added Default derive
 #[serde(rename_all = "camelCase")]
 pub struct ProfileSettings {
+    #[serde(default)]
     pub display_name: String,
+    #[serde(default)]
     pub username: String,
+    #[serde(default)]
     pub bio: String,
 }
 
