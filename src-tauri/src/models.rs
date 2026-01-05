@@ -3,8 +3,6 @@
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 
-// Added camelCase renaming to match JS/TS conventions
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct IAppSettings {
@@ -74,7 +72,7 @@ pub struct IdentityData {
 #[serde(rename_all = "camelCase")]
 pub struct IdentityPublicKey {
     pub id: u32,
-    #[serde(rename = "type")] // TS sends "type", Rust uses "type_"
+    #[serde(rename = "type")]
     pub type_: String,
     pub purpose: u32,
     pub security_level: u32,
@@ -99,7 +97,6 @@ pub struct ProfileSettings {
     pub bio: String,
 }
 
-// ===== NEW: Discovered Identities Storage =====
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct DiscoveredIdentity {

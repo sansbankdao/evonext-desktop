@@ -48,11 +48,6 @@ export interface IUser {
     revision?: number;
 }
 
-export interface IExtendedPublicKey {
-    keyType: string;
-    dataBytes: string;
-}
-
 export interface IIdentity {
     id?: string | undefined;
     identityId: string;
@@ -60,7 +55,6 @@ export interface IIdentity {
     balance?: number | string | null | undefined;
     publicKeys: IPublicKey[];
     revision?: number | undefined;
-
     username?: string | undefined;
     avatarUrl?: string | undefined;
     avatarHash?: string | undefined;
@@ -97,21 +91,29 @@ export interface RustDiscoveredIdentity {
 
 export interface RustDiscoveredIdentitiesStore {
     identities: Record<string, RustDiscoveredIdentity>;
-    last_scan?: string | null;
+    lastScan?: string | null;
+}
+
+export interface DiscoveryProgress {
+    currentIdentityIndex: number;
+    totalIdentities: number;
+    currentKeyIndex: number;
+    totalKeysPerIdentity: number;
+    scannedCount: number;
+    foundCount: number;
+    message?: string;
+    currentPublicKeyHash?: string;
+    currentPath?: string;
 }
 
 export interface IIdentityState {
     username: string | null;
     identityId: string | null;
     displayName: string | null;
-
     identity: DiscoveredIdentity | null;
     balance: number | string | null | undefined;
-
-    // FIXED: Explicitly allow undefined to satisfy exactOptionalPropertyTypes
     balanceBigInt?: bigint | undefined;
     dashBigInt?: bigint | undefined;
-
     publicKeys: IPublicKey[];
     revision: number | null;
     isAuthenticated: boolean;
@@ -119,26 +121,16 @@ export interface IIdentityState {
     connectionError: string | null;
     isConnecting: boolean
     lastConnected: number | null;
-
-    // Connection methods
+    discoveryProgress?: DiscoveryProgress | null;
     connectWithSeed: (seedPhrase: string, network: string, targetId?: string, identityIndex?: number) => Promise<ConnectionResult>;
     connectWithSingleKey: (privateKey: string, identityId: string, network: string) => Promise<ConnectionResult>;
-
-    // NEW: Ability to switch active identity
     switchIdentity: (targetIdentityId: string) => Promise<ConnectionResult>;
-
-    // Discovered identities storage methods
     saveDiscoveredIdentities: (identities: DiscoveredIdentity[], network: 'mainnet' | 'testnet', keyType: 'seed' | 'private') => Promise<{success: boolean, savedCount: number, error?: string}>;
     loadDiscoveredIdentities: (network: 'mainnet' | 'testnet') => Promise<RustDiscoveredIdentitiesStore | null>;
     clearDiscoveredIdentities: (network: 'mainnet' | 'testnet') => Promise<{success: boolean, error?: string}>;
-
-    // Storage methods
     saveToStorage: (networkOverride?: 'mainnet' | 'testnet') => Promise<void>;
     searchUserIdentities: (network: 'mainnet' | 'testnet') => Promise<DiscoveredIdentity[]>;
-
     getCurrentNetwork: () => Promise<'mainnet' | 'testnet'>;
-
-    // Optional methods called from actions
     clearStorage?: () => Promise<void>;
     fetchBalance?: () => Promise<void>;
     getGreeting?: () => string;
@@ -159,7 +151,6 @@ export interface SDKIdentityDetails {
     publicKeys: any[];
     revision: number;
 }
-
 export interface IdentitySearchOptions {
     minIndexSearch?: number;
     queryRegistry?: boolean;
