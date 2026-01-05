@@ -33,13 +33,14 @@ export function useConnect() {
         return (balance / 100000000).toFixed(4)
     }
 
-    const handlePaste = (event: ClipboardEvent) => {
-        const text = event.clipboardData?.getData('text')
-        if (!text) return
-        const words = text.trim().split(/\s+/)
-        if (words.length === 12 || words.length === 24) {
-            seedWordCount.value = String(words.length) as '12' | '24'
+    const handlePaste = (words: string[]) => {
+        const wordCount = words.length
+        if (wordCount === 12 || wordCount === 24) {
+            seedWordCount.value = String(wordCount) as '12' | '24'
             seedWords.value = words
+            seedDiscoveryError.value = null  // Clear any prior errors
+        } else {
+            seedDiscoveryError.value = `Invalid seed phrase length: ${wordCount} words (must be 12 or 24)`
         }
     }
 
