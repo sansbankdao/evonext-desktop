@@ -1,5 +1,7 @@
 // src/services/identity/discovery/DAPIService.ts
+
 import { invoke } from '@tauri-apps/api/core'
+
 export interface DAPIHashSearchResult {
     success: boolean
     data?: any
@@ -7,8 +9,8 @@ export interface DAPIHashSearchResult {
     searchType: 'unique' | 'non-unique' | 'none'
     debug?: any
 }
+
 export class DAPIService {
-    // Basic query wrapper - FIXED to use direct commands
     static async queryIdentityByHash(
         publicKeyHash: string,
         network: 'mainnet' | 'testnet',
@@ -22,65 +24,37 @@ export class DAPIService {
                 publicKeyHash: publicKeyHash,
                 network: network
             })
-            // The Rust command returns an array with one element containing the wrapper
             if (Array.isArray(response) && response[0]) {
                 const wrapper = response[0]
                 if (wrapper.success === true && Array.isArray(wrapper.result)) {
-                    // The actual identity data is in wrapper.result[0]
-                    const identityData = wrapper.result[0]
                     return {
                         success: true,
-                        data: identityData,
-                        searchType: unique ? 'unique' : 'non-unique',
-                        debug: {
-                            method,
-                            wrapper,
-                            network,
-                            hash: publicKeyHash
-                        }
+                        data: wrapper.result[0],
+                        searchType: unique ? 'unique' : 'non-unique'
                     }
                 } else if (wrapper.error) {
                     return {
                         success: false,
-                        error: wrapper.error,
-                        searchType: unique ? 'unique' : 'non-unique',
-                        debug: {
-                            method,
-                            wrapper,
-                            network,
-                            hash: publicKeyHash
-                        }
+                        error: typeof wrapper.error === 'string' ? wrapper.error : JSON.stringify(wrapper.error),
+                        searchType: unique ? 'unique' : 'non-unique'
                     }
                 }
             }
             return {
                 success: false,
                 error: 'No identity found',
-                searchType: unique ? 'unique' : 'non-unique',
-                debug: {
-                    method,
-                    response,
-                    network,
-                    hash: publicKeyHash
-                }
+                searchType: unique ? 'unique' : 'non-unique'
             }
         } catch (e: any) {
             console.error(`[DAPI] ERROR for ${publicKeyHash}:`, e)
             return {
                 success: false,
-                error: e.message,
-                searchType: unique ? 'unique' : 'non-unique',
-                debug: {
-                    method,
-                    error: e.message,
-                    stack: e.stack,
-                    network,
-                    hash: publicKeyHash
-                }
+                error: e.message || 'Unknown Rust Error',
+                searchType: unique ? 'unique' : 'non-unique'
             }
         }
     }
-    // DPNS Helper
+
     static async getDPNSUsername(
         identityId: string,
         network: 'mainnet' | 'testnet'
@@ -101,7 +75,7 @@ export class DAPIService {
             return null
         }
     }
-    // ID Lookup Helper
+
     static async getIdentityById(
         identityId: string,
         network: 'mainnet' | 'testnet'
@@ -112,13 +86,9 @@ export class DAPIService {
                 network: network,
                 withProof: false
             })
-            // Handle array response and unwrap result
-            // The Tauri command returns Vec<Value>, so invoke returns an array.
-            // The 'get_identity_info' implementation wraps the result in a success object.
             if (Array.isArray(response) && response[0]) {
                 const wrapper = response[0]
                 if (wrapper?.success === true && Array.isArray(wrapper.result)) {
-                    // The identity data is inside the result array
                     const identityData = wrapper.result[0]
                     if (identityData) {
                         return {
@@ -127,17 +97,24 @@ export class DAPIService {
                             searchType: 'none'
                         }
                     }
+                } else if (wrapper?.error) {
+                    return {
+                         success: false,
+                         error: `Platform Error: ${JSON.stringify(wrapper.error)}`,
+                         searchType: 'none'
+                    }
                 }
             }
             return {
                 success: false,
-                error: 'Not found or invalid response format',
+                error: 'Identity not found or invalid response format',
                 searchType: 'none'
             }
         } catch (e: any) {
+            console.error('[DAPI] getIdentityById Exception:', e)
             return {
                 success: false,
-                error: e.message,
+                error: e.message || String(e),
                 searchType: 'none'
             }
         }
