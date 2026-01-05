@@ -80,20 +80,16 @@ export class IdentityManager {
             }
         }
         try {
-            // FIXED: Map options to the new SeedDiscovery signature
-            // maxIdentityIndex maps to minIndexSearch to ensure we check at least that many
             const seedOptions = {
                 network: options.network,
                 minIndexSearch: options.maxIdentityIndex || 5,
-                gapLimit: 5 // Default gap limit
+                gapLimit: 5
             }
-            // FIXED: Call with correct signature (phrase, network, options)
             const identities = await this.seedDiscovery.discoverFromSeed(
                 seedPhrase,
                 options.network,
                 seedOptions
             )
-            // FIXED: Wrap array result in DiscoveryResult object
             return {
                 success: true,
                 identities: identities,
