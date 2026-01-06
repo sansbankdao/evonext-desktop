@@ -22,6 +22,9 @@ export const useIdentityState = (): IIdentityState => ({
     lastConnected: null,
     discoveryProgress: null,
 
+    // New: cache for multiple identities (loaded from Rust)
+    identitiesMap: {},
+
     connectWithSeed: async () => ({ success: false, error: 'Not implemented' }),
     connectWithSingleKey: async () => ({ success: false, error: 'Not implemented' }),
 

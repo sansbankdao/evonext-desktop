@@ -10,6 +10,7 @@ import { identityActions } from './actions/identity'
 import { discoveredIdentitiesActions } from './actions/discovered'
 import { unifiedActions } from './actions/unified'
 import { connectWriteOnlyActions } from './actions/connectWriteOnly'
+import { identitiesMapActions } from './actions/storage'
 
 const useIdentityActions = {
     ...storageActions(),
@@ -18,7 +19,8 @@ const useIdentityActions = {
     ...balanceActions(),
     ...discoveredIdentitiesActions(),
     ...unifiedActions(),
-    ...connectWriteOnlyActions()
+    ...connectWriteOnlyActions(),
+    ...identitiesMapActions(),
 }
 
 export const useIdentityStore = defineStore('identity', {

@@ -195,3 +195,16 @@ export const storageActions = () => ({
         }
     }
 })
+
+export function identitiesMapActions() {
+    return {
+        async loadAllIdentities(this: any, network: 'mainnet' | 'testnet') {
+            const map = await invoke<Record<string, any>>('load_identities_map', {
+                network
+            })
+            // Optionally cache it in the store
+            this.identitiesMap = map
+            return map
+        }
+    }
+}

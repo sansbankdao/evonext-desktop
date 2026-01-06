@@ -1,5 +1,6 @@
 // src-tauri/src/commands/identity_commands.rs
 
+use std::collections::HashMap;
 use tauri::AppHandle;
 use base64::{engine::general_purpose, Engine};
 // use serde::{Deserialize, Serialize};
@@ -11,6 +12,8 @@ use crate::models::{
 };
 use crate::utils::StoreManager;
 use crate::utils::network_file::get_network_file;
+
+type IdentityMap = HashMap<String, IdentityData>;
 
 // ---------------------- Helpers ----------------------
 fn pick_str(obj: &serde_json::Map<String, JsonValue>, keys: &[&str]) -> Option<String> {
@@ -184,6 +187,49 @@ fn save_keystore(app: &AppHandle, network: &str, store: &PrivateKeyStore) -> Res
         .map_err(|e| e.to_string())
 }
 
+fn load_identity_map(app: &AppHandle, network: &str) -> Result<IdentityMap, String> {
+    let manager = StoreManager::new(app);
+    let filename = get_network_file(network, "identity")?;
+
+    // Try map first
+    if let Ok(loaded) = manager.load::<IdentityMap>(filename, "identity") {
+        if let Some(map) = loaded {
+            return Ok(map);
+        }
+    }
+
+    // Fallback: legacy single identity
+    if let Ok(loaded_single) = manager.load::<IdentityData>(filename, "identity") {
+        if let Some(single) = loaded_single {
+            let mut map = IdentityMap::new();
+            map.insert(single.identity_id.clone(), single);
+            return Ok(map);
+        }
+    }
+
+    Ok(IdentityMap::new())
+}
+
+fn save_identity_map(app: &AppHandle, network: &str, map: &IdentityMap) -> Result<(), String> {
+    let manager = StoreManager::new(app);
+    let filename = get_network_file(network, "identity")?;
+    manager
+        .save(filename.clone(), "identity", map)
+        .map_err(|e| e.to_string())
+        .map(|_| {
+            println!("[save_identity_map] identity map written: {}", filename);
+        })
+}
+
+#[tauri::command]
+pub async fn load_identities_map(
+    app: AppHandle,
+    network: String,
+) -> Result<IdentityMap, String> {
+    let map = load_identity_map(&app, &network)?;
+    Ok(map)
+}
+
 // ---------------------- Commands: Debug ----------------------
 #[tauri::command]
 pub async fn debug_identity_payload(payload: JsonValue) -> Result<String, String> {
@@ -215,29 +261,24 @@ pub async fn save_identity_data_untyped(
     payload: JsonValue,
 ) -> Result<bool, String> {
     println!("[save_identity_data_untyped] network={}", network);
-    println!(
-        "[save_identity_data_untyped] raw payload={}",
-        payload
-    );
+    println!("[save_identity_data_untyped] raw payload={}", payload);
+
     let obj = payload
         .as_object()
         .ok_or_else(|| "payload must be an object".to_string())?;
+
     let identity_id = pick_str(obj, &["identity_id", "identityId"])
         .ok_or_else(|| "missing identity_id".to_string())?;
     let username = pick_str(obj, &["username"]).unwrap_or_else(|| identity_id.clone());
     let identity_idx = pick_u32(obj, &["identity_idx", "identityIdx"]).unwrap_or(0);
-    let balance = obj
-        .get("balance")
-        .and_then(|v| val_to_string(v));
-    let revision = obj
-        .get("revision")
-        .and_then(|v| val_to_u64(v));
-    let created_at = pick_str(obj, &["created_at", "createdAt"])
-        .or_else(|| Some(Utc::now().to_rfc3339()));
+    let balance = obj.get("balance").and_then(|v| val_to_string(v));
+    let revision = obj.get("revision").and_then(|v| val_to_u64(v));
+    let created_at = pick_str(obj, &["created_at", "createdAt"]).or_else(|| Some(Utc::now().to_rfc3339()));
     let is_authenticated = obj
         .get("is_authenticated")
         .and_then(|v| v.as_bool())
         .unwrap_or(true);
+
     let raw_pks = obj.get("public_keys").or_else(|| obj.get("publicKeys"));
     let normalized_pks = raw_pks.map(|v| normalize_public_keys(v));
     let pk_ids = match (&normalized_pks, obj.get("public_key_ids").or_else(|| obj.get("publicKeyIds"))) {
@@ -264,6 +305,7 @@ pub async fn save_identity_data_untyped(
             }
         }
     };
+
     if let Some(ref pks) = normalized_pks {
         println!(
             "[save_identity_data_untyped] normalized {} public keys",
@@ -272,9 +314,11 @@ pub async fn save_identity_data_untyped(
     } else {
         println!("[save_identity_data_untyped] no public_keys provided in payload");
     }
+
+    // Build IdentityData
     let identity = IdentityData {
         username,
-        identity_id,
+        identity_id: identity_id.clone(),
         identity_idx,
         balance,
         is_authenticated,
@@ -283,22 +327,13 @@ pub async fn save_identity_data_untyped(
         created_at,
         public_key_ids: pk_ids,
     };
-    let manager = StoreManager::new(&app);
-    let filename = get_network_file(&network, "identity")?;
-    match manager.save(filename, "identity", &identity) {
-        Ok(_) => {
-            println!(
-                "[save_identity_data_untyped] identity file written: {}",
-                filename
-            );
-            Ok(true)
-        }
-        Err(e) => {
-            let msg = format!("failed to save identity file: {}", e);
-            eprintln!("[save_identity_data_untyped] {}", msg);
-            Err(msg)
-        }
-    }
+
+    // Merge into identity map and save
+    let mut map = load_identity_map(&app, &network)?;
+    map.insert(identity_id.clone(), identity);
+
+    save_identity_map(&app, &network, &map)?;
+    Ok(true)
 }
 
 #[tauri::command]
@@ -308,18 +343,14 @@ pub async fn save_identity_data(
     identity: IdentityData,
 ) -> Result<bool, String> {
     println!(
-        "[save_identity_data] classic typed save for id={} idx={}",
+        "[save_identity_data] merge typed into map id={} idx={}",
         identity.identity_id, identity.identity_idx
     );
-    let manager = StoreManager::new(&app);
-    let filename = get_network_file(&network, "identity")?;
-    match manager.save(filename, "identity", &identity) {
-        Ok(_) => {
-            println!("[save_identity_data] identity file written: {}", filename);
-            Ok(true)
-        }
-        Err(e) => Err(e.to_string()),
-    }
+
+    let mut map = load_identity_map(&app, &network)?;
+    map.insert(identity.identity_id.clone(), identity);
+    save_identity_map(&app, &network, &map)?;
+    Ok(true)
 }
 
 #[tauri::command]

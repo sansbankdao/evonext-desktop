@@ -106,6 +106,10 @@ export interface DiscoveryProgress {
     currentPath?: string;
 }
 
+export interface IIdentityStoreMap {
+    [key: string]: IIdentity;
+}
+
 export interface IIdentityState {
     username: string | null;
     identityId: string | null;
@@ -122,6 +126,8 @@ export interface IIdentityState {
     isConnecting: boolean
     lastConnected: number | null;
     discoveryProgress?: DiscoveryProgress | null;
+    identitiesMap: IIdentityStoreMap;
+
     connectWithSeed: (seedPhrase: string, network: string, targetId?: string, identityIndex?: number) => Promise<ConnectionResult>;
     connectWithSingleKey: (privateKey: string, identityId: string, network: string) => Promise<ConnectionResult>;
     switchIdentity: (targetIdentityId: string) => Promise<ConnectionResult>;

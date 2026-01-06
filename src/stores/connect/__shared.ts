@@ -2,8 +2,8 @@
 
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { useSeedStore } from './seed'
-import { usePrivateKeyStore } from './privateKey'
+import { useSeedStore } from './__seed'
+import { usePrivateKeyStore } from './__privateKey'
 
 export const useConnectSharedStore = defineStore('connect.shared', () => {
     const method = ref<'seed' | 'privateKey'>('seed')
