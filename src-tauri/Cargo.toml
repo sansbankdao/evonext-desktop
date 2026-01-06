@@ -35,6 +35,13 @@ thiserror = "1.0"
 tokio = { version = "1.47", features = ["full"] }
 tower = { version = "0.4", features = ["limit", "load-shed", "util"] }
 tracing = "0.1"
+ts-rs = { version = "11", features = ["serde-compat"] }
+
+base64 = "0.22.1"
+hex = "0.4.3"
+sha2 = "0.10"
+ripemd = "0.1"
+bitcoin = "0.32.8"
 
 [features]
 # This section is used for custom features. You can leave it as is.

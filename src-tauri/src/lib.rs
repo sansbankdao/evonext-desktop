@@ -33,6 +33,7 @@ pub fn run() {
             // Unified Identity (Phase 1 add; not used by UI yet)
             commands::identity_v2::save_identity_unified,
             commands::identity_v2::query_and_update_identity,
+            commands::identity_v2::enrich_keystore_for_identity,
             // License
             commands::license_commands::load_license,
             commands::license_commands::save_license,

@@ -136,10 +136,8 @@ export class IdentityManager {
         const trimmedInput = input.trim()
         const words = trimmedInput.split(/\s+/)
         if (words.length === 12 || words.length === 24) {
-            console.log(`[IdentityManager] Auto-detected seed phrase (${words.length} words)`)
             return this.discoverFromSeed(trimmedInput, { ...options, maxIdentityIndex: 5 })
         }
-        console.log(`[IdentityManager] Auto-detected key input (${trimmedInput.length} chars)`)
         return this.discoverFromKey(trimmedInput, options)
     }
     async getDPNSUsername(
@@ -225,7 +223,7 @@ export class IdentityManager {
     ): Promise<KeyHashDerivationResult> {
         return KeyDerivationService.deriveAllPossibleHashes(keyInput, network)
     }
-    // Helper methods
+    // Helpers
     private formatBalance(balance: any): string {
         if (balance === undefined || balance === null) return '0'
         if (typeof balance === 'number') return balance.toString()
@@ -255,8 +253,6 @@ export class IdentityManager {
             'TRANSFER': 'Transfer',
             'ENCRYPTION': 'Encryption',
             'KEY_MANAGEMENT': 'Key Management',
-            'SIGNING': 'Signing',
-            'MASTER': 'Master'
         }
         return purposeMap[p] || String(purpose)
     }
