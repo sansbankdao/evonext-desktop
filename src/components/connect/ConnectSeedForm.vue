@@ -82,21 +82,152 @@
             You can paste your entire seed phrase into any field.
             The words will be automatically distributed.
         </div>
+
+        <!-- Step 2: Show Discovered Identity -->
+        <div v-if="discoveredIdentity" class="space-y-4 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold">2</div>
+                <h3 class="font-bold text-emerald-800 dark:text-emerald-300">Discovered Identity</h3>
+            </div>
+
+            <div>
+                <label class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Identity Details
+                </label>
+
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-500 dark:text-slate-400 font-medium min-w-[120px]">Identity ID:</span>
+                        <code class="text-sm font-mono bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded truncate flex-1">
+                            {{ discoveredIdentity.identityId }}
+                        </code>
+                        <button @click="copyToClipboard(discoveredIdentity.identityId!)" class="ml-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-500 dark:text-slate-400 font-medium min-w-[120px]">Balance:</span>
+                        <span class="text-emerald-600 dark:text-emerald-400 font-bold">
+                            {{ formatBalance(discoveredIdentity.balance?.toString() || '0') }} Dash
+                        </span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-500 dark:text-slate-400 font-medium min-w-[120px]">Revision:</span>
+                        <span class="text-slate-700 dark:text-slate-300">{{ (discoveredIdentity as any).revision }}</span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-500 dark:text-slate-400 font-medium min-w-[120px]">Public Keys:</span>
+                        <span class="text-slate-700 dark:text-slate-300">{{ (discoveredIdentity.publicKeys || []).length }} found</span>
+                    </div>
+
+                    <div v-if="(discoveredIdentity as any).dpnsUsername" class="flex items-center gap-2">
+                        <span class="text-slate-500 dark:text-slate-400 font-medium min-w-[120px]">DPNS Name:</span>
+                        <span class="text-blue-600 dark:text-blue-400 font-medium">{{ (discoveredIdentity as any).dpnsUsername }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-2">
+                <button
+                    @click.prevent="connectWriteOnlyFromDiscovered"
+                    class="w-full py-2 px-4 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Continue with this Identity
+                </button>
+            </div>
+        </div>
+
+        <!-- Or manually enter Identity ID -->
+        <div v-if="showManualIdentity" class="space-y-4 p-4 bg-slate-50 dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 rounded-full bg-slate-500 text-white flex items-center justify-center text-xs font-bold">2</div>
+
+                    <h3 class="font-bold text-slate-700 dark:text-slate-300">
+                        Enter Identity Manually
+                    </h3>
+                </div>
+
+                <button @click="toggleManualIdentity" class="text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">
+                    Cancel
+                </button>
+            </div>
+
+            <div>
+                <label for="manualIdentityId" class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Identity ID or DPNS Name
+                </label>
+
+                <input
+                    id="manualIdentityId"
+                    type="text"
+                    v-model="manualIdentityId"
+                    placeholder="e.g., username.dash or 5DbLwAxGBzUzo81VewMUwn4b5P4bpv9FNFybi25XB5Bk"
+                    class="w-full px-4 py-3 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-600 rounded-xl text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-4 focus:ring-slate-400/30 focus:border-slate-500 focus:bg-white dark:focus:bg-slate-800 transition-all duration-200 font-mono text-sm"
+                    @input="emitUpdate"
+                />
+            </div>
+
+            <div class="pt-2">
+                <button
+                    @click.prevent="$emit('use-manual-identity')"
+                    :disabled="!manualIdentityId.trim()"
+                    class="w-full py-2 px-4 bg-slate-500 hover:bg-slate-600 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Use this Identity ID
+                </button>
+            </div>
+        </div>
+
+        <!-- Or manually specify identity -->
+        <div v-if="!discoveredIdentity && !showManualIdentity" class="text-center">
+            <button
+                @click="toggleManualIdentity"
+                class="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 underline"
+            >
+                Can't discover identity? Enter Identity ID manually
+            </button>
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useIdentityStore } from '@/stores/identity'
+import type { DiscoveredIdentity } from '@/types'
 
 interface Props {
     wordCount: '12' | '24'
     seedWords: string[]
+    discoveredIdentity?: DiscoveredIdentity | null
+    manualIdentityId: string
+    network?: 'mainnet' | 'testnet'
 }
 
 interface Emits {
     (e: 'update:wordCount', count: '12' | '24'): void
     (e: 'update:seedWords', words: string[]): void
     (e: 'paste', words: string[]): void
+    (e: 'discover-identity'): void
+    (e: 'use-manual-identity'): void
+    (e: 'update:manualIdentityId', value: string): void
 }
 
 const props = defineProps<Props>()
@@ -104,7 +235,24 @@ const emit = defineEmits<Emits>()
 
 const wordCount = ref(props.wordCount)
 const seedWords = ref([...props.seedWords])
-const showWords = ref(false) // State toggle for visibility
+const showWords = ref(false)
+
+// FIX: define showManualIdentity and manualIdentityId for template
+const showManualIdentity = ref(false)
+const manualIdentityId = ref(props.manualIdentityId)
+
+// Persist manualIdentityId updates to parent
+watch(manualIdentityId, (value) => {
+    emit('update:manualIdentityId', value)
+})
+
+const store = useIdentityStore()
+const discoveredIdentity = ref<DiscoveredIdentity | null>(props.discoveredIdentity || null)
+watch(() => props.discoveredIdentity, (val) => {
+    discoveredIdentity.value = val || null
+})
+
+const network = ref<'mainnet' | 'testnet'>(props.network || 'testnet')
 
 // Watch word count changes and adjust array size
 watch(wordCount, (newCount) => {
@@ -129,8 +277,6 @@ watch(seedWords, (newWords) => {
 // Handle paste event
 const handlePaste = (event: ClipboardEvent) => {
     const pastedText = event.clipboardData?.getData('text') || ''
-
-    // Split by whitespace and clean up
     const words = pastedText
         .toLowerCase()
         .split(/\s+/)
@@ -138,23 +284,60 @@ const handlePaste = (event: ClipboardEvent) => {
         .filter((w) => w.length > 0)
 
     const totalSlots = seedWords.value.length
-
-    // Clear all fields first
     seedWords.value = Array(totalSlots).fill('')
 
-    // Distribute words across slots
     for (let i = 0; i < Math.min(words.length, totalSlots); i++) {
         seedWords.value[i] = words[i] || ''
     }
 
-    // Emit the updated seed words to parent
     emit('update:seedWords', seedWords.value)
-
-    // Emit paste event with words for parent
     emit('paste', words)
 }
 
 const emitUpdate = () => {
     emit('update:seedWords', seedWords.value)
+}
+
+async function connectWriteOnlyFromDiscovered() {
+    const id = discoveredIdentity.value
+    if (!id) return
+    try {
+        await store.connectWriteOnlyFromDiscovered(
+            {
+                identityId: id.identityId,
+                identityIdx: (id as any).identityIdx ?? 0,
+                balance: id.balance ?? null,
+                revision: (id as any).revision ?? null,
+                username: (id as any).username ?? id.identityId,
+                dpnsUsername: (id as any).dpnsUsername ?? null,
+                publicKeys: (id as any).publicKeys ?? null,
+                publicKeyIds: (id as any).publicKeyIds ?? null
+            },
+            network.value
+        )
+    } catch (e) {
+        console.error('connectWriteOnlyFromDiscovered failed:', e)
+    }
+}
+
+const formatBalance = (balance: string): string => {
+    if (!balance) return '0.00000000'
+    const bigIntBalance = BigInt(balance)
+    const dashBalance = Number(bigIntBalance) / 100000000
+    return dashBalance.toFixed(8)
+}
+
+const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+        .then(() => {
+            console.log('Copied to clipboard:', text)
+        })
+        .catch(err => {
+            console.error('Failed to copy:', err)
+        })
+}
+
+const toggleManualIdentity = () => {
+    showManualIdentity.value = !showManualIdentity.value
 }
 </script>

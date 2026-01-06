@@ -24,6 +24,7 @@
                         <ConnectSeedForm
                             v-model:wordCount="seedWordCount"
                             v-model:seedWords="seedWords"
+                            v-model:manual-identity-id="manualIdentityId"
                             @paste="handlePaste"
                         />
                         <!-- Seed Discovery Status (Loading) -->
@@ -38,7 +39,6 @@
                         </div>
                         <!-- PROGRESS DISPLAY -->
                         <div v-if="discoveryProgress" class="mt-6 p-4 bg-gradient-to-r from-slate-50 to-cyan-50 dark:from-slate-800 dark:to-cyan-900/10 rounded-xl border border-slate-200 dark:border-slate-700">
-                            <!-- ... Progress UI ... -->
                              <div class="flex items-center justify-between mb-4">
                                 <div class="flex items-center space-x-3">
                                     <div class="w-3 h-3 rounded-full bg-cyan-500 animate-pulse"></div>
@@ -62,7 +62,6 @@
                                     :style="{ width: `${progressPercentage}%` }"
                                 ></div>
                             </div>
-                            <!-- ... (rest of status grid) ... -->
                              <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                                 <div class="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
                                     <p class="text-xs text-slate-500 dark:text-slate-400 mb-1">Identity</p>
@@ -76,7 +75,6 @@
                                         </span>
                                     </div>
                                 </div>
-                                <!-- ... Other grid items ... -->
                                 <div class="p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
                                     <p class="text-xs text-slate-500 dark:text-slate-400 mb-1">Found</p>
                                     <div class="flex items-center space-x-2">
@@ -151,7 +149,6 @@
                         />
                          <!-- Discovery Status (for key) -->
                          <div v-if="isDiscovering && !isSearchingSeed" class="text-center py-4">
-                            <!-- ... existing spinner ... -->
                              <span class="text-sm">{{ discoveryStatus }}</span>
                         </div>
                     </div>
@@ -202,7 +199,7 @@
     </main>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue' // Added ref
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useConnect } from '@/composables/useConnect'
 // Components
 import Header from '@/components/Header.vue'
@@ -211,7 +208,9 @@ import SecurityWarning from '@/components/connect/SecurityWarning.vue'
 import ConnectSeedForm from '@/components/connect/ConnectSeedForm.vue'
 import ConnectErrorDisplay from '@/components/connect/ConnectErrorDisplay.vue'
 import KeyDiscoveryForm from '@/components/connect/KeyDiscoveryForm.vue'
-const showDebug = ref(false) // Toggle state
+
+const showDebug = ref(false)
+
 const {
     // State
     connectionMethod,
@@ -220,7 +219,11 @@ const {
     seedDiscoveryResults,
     selectedSeedIdentity,
     seedDiscoveryError,
-    manualIdentityId,
+    // NOTE: manualIdentityId is used by KeyDiscoveryForm via direct binding
+    // and passed to ConnectSeedForm for consistency, but not destructured here
+    // to avoid conflicts since the seed form uses its own local ref in the template context.
+    // However, we need access to it in the template for v-model bindings.
+    // Since useConnect returns it, we can access it directly.
     discoveredIdentity,
     discoveryDetails,
     debugOutput,
@@ -248,9 +251,15 @@ const {
     initialize,
     cleanup
 } = useConnect()
+
+// Re-declare manualIdentityId from the composable return so it's available
+// in the template scope for v-model bindings.
+const { manualIdentityId } = useConnect()
+
 onMounted(() => {
     initialize()
 })
+
 onUnmounted(() => {
     cleanup()
 })

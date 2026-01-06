@@ -9,15 +9,16 @@ import { balanceActions } from './actions/balance'
 import { identityActions } from './actions/identity'
 import { discoveredIdentitiesActions } from './actions/discovered'
 import { unifiedActions } from './actions/unified'
+import { connectWriteOnlyActions } from './actions/connectWriteOnly'
 
-/* Combine all actions. */
 const useIdentityActions = {
     ...storageActions(),
     ...connectionActions(),
     ...identityActions(),
     ...balanceActions(),
     ...discoveredIdentitiesActions(),
-    ...unifiedActions(), // New Phase 2 unified flow
+    ...unifiedActions(),
+    ...connectWriteOnlyActions()
 }
 
 export const useIdentityStore = defineStore('identity', {

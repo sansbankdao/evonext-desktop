@@ -221,46 +221,64 @@ export function useConnect() {
     }
 
     const handleConnect = async () => {
+        // Always write-only to Rust; no re-discovery, no extra calls
         try {
             const runNetwork = await ensure()
 
             if (connectionMethod.value === 'seed') {
                 const identity = selectedSeedIdentity.value
-                if (!identity) throw new Error('No identity selected')
-
-                await store.connectWithSeed(
-                    normalizeSeed(seedWords.value).join(' '),
-                    runNetwork,
-                    identity.identityId,
-                    identity.identityIdx
-                )
-            } else {
-                const id = normalizeId(
-                    manualIdentityId.value || discoveredIdentity.value?.identityId || ''
-                )
-                if (!id) throw new Error('Missing identity id')
-                if (!privateKeyInput.value?.trim()) {
-                    throw new Error('Missing private key input')
+                if (!identity) {
+                    throw new Error('No identity selected')
                 }
 
-                // Build preloaded snapshot from what we already discovered to avoid refetch
-                const preload = discoveredIdentity.value
+                await store.connectWriteOnlyFromDiscovered(
+                    {
+                        identityId: identity.identityId,
+                        identityIdx: identity.identityIdx ?? 0,
+                        balance: identity.balance ?? null,
+                        revision: (identity as any).revision ?? null,
+                        username: (identity as any).username ?? identity.identityId,
+                        dpnsUsername: (identity as any).dpnsUsername ?? null,
+                        publicKeys: (identity as any).publicKeys ?? null,
+                        publicKeyIds: (identity as any).publicKeyIds ?? null
+                    },
+                    runNetwork
+                )
+            } else {
+                // privateKey flow
+                const id =
+                    (manualIdentityId.value || discoveredIdentity.value?.identityId || '')
+                        .trim()
+                if (!id) throw new Error('Missing identity id')
+
+                // If discovery produced a snapshot, use it; otherwise write minimal identity
+                const snap = discoveredIdentity.value
                     ? {
                         identityId: discoveredIdentity.value.identityId,
+                        identityIdx: (discoveredIdentity.value as any).identityIdx ?? 0,
                         balance: discoveredIdentity.value.balance ?? null,
-                        revision: discoveredIdentity.value.revision ?? 0,
-                        publicKeys: discoveredIdentity.value.publicKeys || [],
-                        dpnsUsername: discoveredIdentity.value.dpnsUsername || null,
-                        identityIdx: 0
-                      }
-                    : null
+                        revision: (discoveredIdentity.value as any).revision ?? null,
+                        username:
+                            (discoveredIdentity.value as any).username ??
+                            discoveredIdentity.value.identityId,
+                        dpnsUsername:
+                            (discoveredIdentity.value as any).dpnsUsername ?? null,
+                        publicKeys: (discoveredIdentity.value as any).publicKeys ?? null,
+                        publicKeyIds:
+                            (discoveredIdentity.value as any).publicKeyIds ?? null
+                    }
+                    : {
+                        identityId: id,
+                        identityIdx: 0,
+                        balance: null,
+                        revision: null,
+                        username: id,
+                        dpnsUsername: null,
+                        publicKeys: null,
+                        publicKeyIds: null
+                    }
 
-                await store.connectWithSingleKey(
-                    privateKeyInput.value.trim(),
-                    id,
-                    runNetwork,
-                    preload
-                )
+                await store.connectWriteOnlyFromDiscovered(snap, runNetwork)
             }
         } catch (err: any) {
             console.error('Connect failed:', err)
