@@ -50,12 +50,12 @@ import {
     AdjustmentsHorizontalIcon,
     ArrowLeftStartOnRectangleIcon,
     ArrowRightStartOnRectangleIcon,
-    BookmarkSquareIcon,
+    // BookmarkSquareIcon,
     HashtagIcon,
     HomeIcon,
-    MagnifyingGlassIcon,
-    Squares2X2Icon,
-    UserGroupIcon,
+    // MagnifyingGlassIcon,
+    // Squares2X2Icon,
+    // UserGroupIcon,
     UsersIcon,
     WalletIcon,
 } from '@heroicons/vue/24/solid'
@@ -77,31 +77,31 @@ const navLinks = ref([
         text: 'Posts | Remix',
         icon: HashtagIcon,
     },
-    {
-        to: '/explorer',
-        text: 'Explorer',
-        icon: MagnifyingGlassIcon,
-    },
-    {
-        to: '/community',
-        text: 'Community',
-        icon: UserGroupIcon,
-    },
-    {
-        to: '/apps',
-        text: 'Mini Apps',
-        icon: Squares2X2Icon,
-    },
+    // {
+    //     to: '/explorer',
+    //     text: 'Explorer',
+    //     icon: MagnifyingGlassIcon,
+    // },
+    // {
+    //     to: '/community',
+    //     text: 'Community',
+    //     icon: UserGroupIcon,
+    // },
+    // {
+    //     to: '/apps',
+    //     text: 'Mini Apps',
+    //     icon: Squares2X2Icon,
+    // },
     {
         to: '/wallet',
         text: 'Wallet',
         icon: WalletIcon,
     },
-    {
-        to: '/favorites',
-        text: 'Favorites',
-        icon: BookmarkSquareIcon,
-    },
+    // {
+    //     to: '/favorites',
+    //     text: 'Favorites',
+    //     icon: BookmarkSquareIcon,
+    // },
     {
         to: '/identity',
         text: 'Identities',

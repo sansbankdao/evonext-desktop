@@ -1,4 +1,5 @@
 // src/services/identity/discovery/SeedDiscovery.ts
+
 import { BaseDiscovery } from './BaseDiscovery'
 import { DAPIService } from './DAPIService'
 import { KeyDerivationService } from '../keyDerivation.service'
@@ -8,17 +9,20 @@ import type { DiscoveredIdentity } from '@/types'
 import { hash160 } from '@evonext/crypto'
 // @ts-ignore
 import { binToHex } from '@evonext/utils'
+
 export type ProgressCallback = (details: any) => void
+
 export interface SeedDiscoveryOptions {
     network?: 'mainnet' | 'testnet'
     minIndexSearch?: number
     gapLimit?: number
+    maxKeyIndex?: number    // NEW: how many key indices to scan per identity index (inclusive)
 }
+
 export class SeedDiscovery extends BaseDiscovery {
     private isCancelled = false
     private GAP_LIMIT = 5
     private progressCallback: ProgressCallback | null = null
-    // Track the total limit we are scanning up to for accurate progress UI
     private scanLimit = 0
     cancel(): void {
         this.isCancelled = true
@@ -46,74 +50,80 @@ export class SeedDiscovery extends BaseDiscovery {
         const results: DiscoveredIdentity[] = []
         let gapCount = 0
         let currentIndex = 0
-        const minSearch = options?.minIndexSearch || 5
-        // Use gap limit from options if provided
-        const activeGapLimit = options?.gapLimit || this.GAP_LIMIT
-        // FIX: Calculate a fixed limit for the progress bar denominator
-        // We scan until we hit one of two conditions:
-        // 1. We find at least minSearch identities.
-        // 2. We hit 'gapLimit' empty addresses.
-        // To prevent the "6/5" issue, we assume a max search range of minSearch + gapLimit for UI purposes.
+        const minSearch = options?.minIndexSearch ?? 5
+        const activeGapLimit = options?.gapLimit ?? this.GAP_LIMIT
+        const maxKeyIndex = options?.maxKeyIndex ?? 5 // scan keys 0..5 per identity index
+        // Fixed denominator for the identity-level progress bar
         const maxSearchRange = minSearch + activeGapLimit
         this.scanLimit = maxSearchRange
         while ((gapCount < activeGapLimit) || (currentIndex < minSearch)) {
             if (this.isCancelled) break
-            try {
-                this.updateProgress({
-                    currentIdentityIndex: currentIndex,
-                    totalIdentities: this.scanLimit, // Fixed: Static limit
-                    currentKeyIndex: 0,
-                    totalKeysPerIdentity: 1,
-                    scannedCount: currentIndex,
-                    foundCount: results.length,
-                    message: `Scanning Identity #${currentIndex} (Gap: ${gapCount}/${activeGapLimit})`
-                })
-                // Pass network explicitly to KeyDerivationService
-                const { privateKey } = await KeyDerivationService.getPrivateKeyWASM(
-                    seedPhrase,
-                    network, // FIX: Use passed network
-                    currentIndex,
-                    0
-                )
-                const pubKey = privateKey.getPublicKey()
-                const pubKeyBytes = pubKey.bytes()
-                const pubKeyHash = binToHex(hash160(pubKeyBytes))
-                // Pass network explicitly to DAPIService
-                const result = await DAPIService.queryIdentityByHash(pubKeyHash, network, true)
-                if (result.success && result.data) {
-                    const identityId = result.data.id
-                    const dpnsName = await DAPIService.getDPNSUsername(identityId, network)
-                    const discovered: DiscoveredIdentity = {
-                        identityId: identityId,
-                        identityIdx: currentIndex,
-                        publicKeys: result.data.publicKeys || [],
-                        balance: result.data.balance,
-                        username: identityId,
-                        dpnsUsername: dpnsName,
-                        displayName: dpnsName || `Identity ${currentIndex}`,
-                        revision: result.data.revision
-                    }
-                    results.push(discovered)
-                    gapCount = 0
-                    // Save keys so connectWithSeed works seamlessly later
-                    await this.saveDerivedKeysToStorage(
+            let foundForIndex = false
+            for (let keyIndex = 0; keyIndex <= maxKeyIndex; keyIndex++) {
+                if (this.isCancelled) break
+                try {
+                    this.updateProgress({
+                        currentIdentityIndex: Math.min(currentIndex, this.scanLimit),
+                        totalIdentities: this.scanLimit,
+                        currentKeyIndex: keyIndex,
+                        totalKeysPerIdentity: maxKeyIndex + 1,
+                        scannedCount: currentIndex,
+                        foundCount: results.length,
+                        message: `Scanning Identity #${currentIndex} (Key ${keyIndex}/${maxKeyIndex}) Gap ${gapCount}/${activeGapLimit}`
+                    })
+                    const { privateKey } = await KeyDerivationService.getPrivateKeyWASM(
                         seedPhrase,
                         network,
                         currentIndex,
-                        identityId,
-                        result.data.publicKeys || []
+                        keyIndex
                     )
-                } else {
-                    gapCount++
+                    const pubKeyBytes = privateKey.getPublicKey().bytes()
+                    const pubKeyHash = binToHex(hash160(pubKeyBytes))
+                    // Try unique, then non-unique (match private-key discovery logic)
+                    const uniqueResult = await DAPIService.queryIdentityByHash(pubKeyHash, network, true)
+                    const result = uniqueResult.success
+                        ? uniqueResult
+                        : await DAPIService.queryIdentityByHash(pubKeyHash, network, false)
+                    if (result.success && result.data) {
+                        const identityData = result.data
+                        const identityId = identityData.identityId || identityData.id
+                        const dpnsName = await DAPIService.getDPNSUsername(identityId, network)
+                        const discovered: DiscoveredIdentity = {
+                            identityId: identityId,
+                            identityIdx: currentIndex,
+                            publicKeys: identityData.publicKeys || [],
+                            balance: identityData.balance,
+                            username: identityId,
+                            dpnsUsername: dpnsName,
+                            displayName: dpnsName || `Identity ${currentIndex}`,
+                            revision: identityData.revision
+                        }
+                        results.push(discovered)
+                        gapCount = 0
+                        foundForIndex = true
+                        // Save keys so connectWithSeed works seamlessly later
+                        await this.saveDerivedKeysToStorage(
+                            seedPhrase,
+                            network,
+                            currentIndex,
+                            identityId,
+                            identityData.publicKeys || []
+                        )
+                        break // stop scanning further key indices for this identity index
+                    }
+                } catch (error) {
+                    console.error(`Error scanning index ${currentIndex}, key ${keyIndex}:`, error)
+                    // continue to next keyIndex
                 }
-            } catch (error) {
-                console.error(`Error scanning index ${currentIndex}:`, error)
+            }
+            if (!foundForIndex) {
                 gapCount++
             }
             currentIndex++
         }
+        // Force final progress to show 100%
         this.updateProgress({
-            currentIdentityIndex: currentIndex,
+            currentIdentityIndex: this.scanLimit,
             totalIdentities: this.scanLimit,
             scannedCount: currentIndex,
             foundCount: results.length,
@@ -135,17 +145,16 @@ export class SeedDiscovery extends BaseDiscovery {
             for (let i = 0; i < publicKeys.length; i++) {
                 const publicKey = publicKeys[i]
                 const keyIndex = publicKey.id
-                if (keyIndex > 100) continue
+                if (keyIndex === undefined || keyIndex === null || keyIndex > 100) continue
                 try {
                     const derivationResult = await KeyDerivationService.getPrivateKeyWASM(
                         seedPhrase,
-                        network, // FIX: Use passed network
+                        network,
                         identityIdx,
                         keyIndex
                     )
-                    const derivedPub = derivationResult.privateKey.getPublicKey()
-                    const derivedPubHex = binToHex(derivedPub.bytes())
-                    const keyEntry = {
+                    const derivedPubHex = binToHex(derivationResult.privateKey.getPublicKey().bytes())
+                    privateKeyEntries.push({
                         identityId: identityId,
                         keyId: publicKey.id,
                         purpose: publicKey.purpose,
@@ -156,9 +165,10 @@ export class SeedDiscovery extends BaseDiscovery {
                         derivedFromMnemonic: true,
                         createdAt: now,
                         lastUsed: now
-                    }
-                    privateKeyEntries.push(keyEntry)
-                } catch (deriveErr) { continue }
+                    })
+                } catch {
+                    continue
+                }
             }
             if (privateKeyEntries.length > 0) {
                 await invoke('save_private_keys', {

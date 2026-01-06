@@ -15,33 +15,64 @@ import type {
     DiscoveryResult,
     DiscoveryOptions,
 } from '../types'
-
 export class KeyDiscovery extends BaseDiscovery {
-    /**
-     * Implement abstract discover method from BaseDiscovery
-     */
     async discover(
         input: string,
         options: DiscoveryOptions = { network: 'testnet' }
     ): Promise<DiscoveryResult> {
         return this.discoverFromKey(input, options)
     }
-
-    /**
-     * Main discovery method for any key format
-     */
     async discoverFromKey(
         keyInput: string,
         options: DiscoveryOptions
     ): Promise<DiscoveryResult> {
         try {
+            const clean = keyInput.trim()
+            const format = KeyDerivationService.detectKeyFormat(clean)
             console.log(`[KeyDiscovery] Starting discovery for key on ${options.network}`)
-            console.log(`[KeyDiscovery] Key input (first 20 chars): ${keyInput.substring(0, 20)}...`)
-
-            // Step 1: Get the Private Key object
-            const format = KeyDerivationService.detectKeyFormat(keyInput)
-            const privateKey: PrivateKeyWASM | null = this.getPrivateKeyInstance(keyInput, options.network)
-
+            console.log(`[KeyDiscovery] Detected format: ${format.format}`)
+            // If input is a public key, derive hash directly and query DAPI
+            const isPub =
+                format.format === 'COMPRESSED_PUBKEY' ||
+                format.format === 'UNCOMPRESSED_PUBKEY'
+            if (isPub) {
+                const pubBytes = hexToBin(clean.toLowerCase())
+                const publicKeyHash = binToHex(hash160(pubBytes))
+                const uniqueResult = await DAPIService.queryIdentityByHash(publicKeyHash, options.network, true)
+                const resultToUse = uniqueResult.success
+                    ? uniqueResult
+                    : await DAPIService.queryIdentityByHash(publicKeyHash, options.network, false)
+                if (resultToUse.success && resultToUse.data) {
+                    const identityData = resultToUse.data
+                    const dpnsName = await DAPIService.getDPNSUsername(
+                        identityData.identityId || identityData.id,
+                        options.network
+                    )
+                    const discoveredIdentity: DiscoveredIdentity = {
+                        identityId: identityData.identityId || identityData.id || '',
+                        identityIdx: 0,
+                        balance: this.formatBalance(identityData.balance),
+                        revision: identityData.revision || 0,
+                        publicKeys: identityData.publicKeys || [],
+                        dpnsUsername: dpnsName
+                    }
+                    const associatedKeys = this.extractAssociatedKeys(discoveredIdentity.publicKeys)
+                    return this.createSuccessResult(
+                        discoveredIdentity,
+                        null,
+                        format.format,
+                        associatedKeys,
+                        { step: 'public_key_search', keyType: format.format }
+                    )
+                }
+                return this.createErrorResult(
+                    'No identity found for this public key.',
+                    { step: 'public_key_search_failed', keyType: format.format }
+                )
+            }
+            // Private key path
+            const privateKey: PrivateKeyWASM | null =
+                this.getPrivateKeyInstance(clean, options.network)
             if (!privateKey) {
                 return this.createErrorResult(
                     `Unsupported key format or derivation failed. Detected: ${format.description}`,
@@ -52,49 +83,36 @@ export class KeyDiscovery extends BaseDiscovery {
                     }
                 )
             }
-
-            // Step 2: Derive Public Key Hash
-            // This is the definitive hash derived from the key, matching Seed Discovery logic
+            // Derive Public Key Hash from private key
             const publicKey = privateKey.getPublicKey()
             const publicKeyBytes = publicKey.bytes()
             const publicKeyHash = binToHex(hash160(publicKeyBytes))
-
-            console.log(`[KeyDiscovery] Derived Public Key Hash: ${publicKeyHash.substring(0, 24)}...`)
-
-            // Step 3: Search via Unique (Standard)
+            // Unique lookup
             const uniqueResult = await DAPIService.queryIdentityByHash(publicKeyHash, options.network, true)
-
             if (uniqueResult.success && uniqueResult.data) {
-                console.log(`[KeyDiscovery] Found via UNIQUE lookup`)
-
-                // Extract Identity Data
                 const identityData = uniqueResult.data
-                const dpnsName = await DAPIService.getDPNSUsername(identityData.identityId || identityData.id, options.network)
-
+                const dpnsName = await DAPIService.getDPNSUsername(
+                    identityData.identityId || identityData.id,
+                    options.network
+                )
                 const discoveredIdentity: DiscoveredIdentity = {
                     identityId: identityData.identityId || identityData.id || '',
-                    identityIdx: 0, // Single keys are always index 0
+                    identityIdx: 0,
                     balance: this.formatBalance(identityData.balance),
                     revision: identityData.revision || 0,
                     publicKeys: identityData.publicKeys || [],
                     dpnsUsername: dpnsName
                 }
-
-                // FIX: Save the key to Rust storage immediately upon successful discovery
-                // This matches the behavior of SeedDiscovery.ts
                 await this.saveDiscoveredKeyToStorage(
                     options.network,
                     privateKey,
                     identityData.identityId || identityData.id,
                     identityData.publicKeys || []
                 )
-
-                // Extract associated keys for the UI
                 const associatedKeys = this.extractAssociatedKeys(discoveredIdentity.publicKeys)
-
                 return this.createSuccessResult(
                     discoveredIdentity,
-                    null, // identities array is null for single key
+                    null,
                     format.format,
                     associatedKeys,
                     {
@@ -105,18 +123,14 @@ export class KeyDiscovery extends BaseDiscovery {
                     }
                 )
             }
-
-            // Step 4: Search via Non-Unique (Fallback)
-            // If unique failed, try non-unique
+            // Non-unique fallback
             const nonUniqueResult = await DAPIService.queryIdentityByHash(publicKeyHash, options.network, false)
-
             if (nonUniqueResult.success && nonUniqueResult.data) {
-                console.log(`[KeyDiscovery] Found via NON-UNIQUE lookup`)
-
-                // Extract Identity Data
                 const identityData = nonUniqueResult.data
-                const dpnsName = await DAPIService.getDPNSUsername(identityData.identityId || identityData.id, options.network)
-
+                const dpnsName = await DAPIService.getDPNSUsername(
+                    identityData.identityId || identityData.id,
+                    options.network
+                )
                 const discoveredIdentity: DiscoveredIdentity = {
                     identityId: identityData.identityId || identityData.id || '',
                     identityIdx: 0,
@@ -125,17 +139,13 @@ export class KeyDiscovery extends BaseDiscovery {
                     publicKeys: identityData.publicKeys || [],
                     dpnsUsername: dpnsName
                 }
-
-                // FIX: Save the key to Rust storage
                 await this.saveDiscoveredKeyToStorage(
                     options.network,
                     privateKey,
                     identityData.identityId || identityData.id,
                     identityData.publicKeys || []
                 )
-
                 const associatedKeys = this.extractAssociatedKeys(discoveredIdentity.publicKeys)
-
                 return this.createSuccessResult(
                     discoveredIdentity,
                     null,
@@ -149,9 +159,7 @@ export class KeyDiscovery extends BaseDiscovery {
                     }
                 )
             }
-
-            // Step 5: Failure
-            console.log(`[KeyDiscovery] No identity found for hash ${publicKeyHash.substring(0, 16)}...`)
+            // Failure
             return this.createErrorResult(
                 'No identity found. The key may not be registered on this network.',
                 {
@@ -165,42 +173,26 @@ export class KeyDiscovery extends BaseDiscovery {
             return this.handleError(error, 'Key Discovery')
         }
     }
-
-    /**
-     * Helper to derive PrivateKeyWASM from raw input
-     */
-    private getPrivateKeyInstance(keyInput: string, network: 'mainnet' | 'testnet'): PrivateKeyWASM | null {
+    private getPrivateKeyInstance(
+        keyInput: string,
+        network: 'mainnet' | 'testnet'
+    ): PrivateKeyWASM | null {
         try {
             const cleanKey = keyInput.trim()
             const format = KeyDerivationService.detectKeyFormat(cleanKey)
-
             if (format.format === 'WIF') {
                 return PrivateKeyWASM.fromWIF(cleanKey)
             }
-
             if (format.format === 'HEX_PRIVATE') {
                 return PrivateKeyWASM.fromHex(cleanKey.toLowerCase(), network)
             }
-
-            // Handle Public Keys (if user pasted them instead of private keys)
-            if (format.format === 'COMPRESSED_PUBKEY' || format.format === 'UNCOMPRESSED_PUBKEY') {
-                // We cannot derive a private key from a public key, but we can still search by hash
-                // However, for purpose of this specific function, we return null because
-                // we expect a Private Key object to derive the hash ourselves.
-                return null
-            }
-
+            // Public keys are handled in discoverFromKey without private key instance
             return null
         } catch (error) {
             console.error('[KeyDiscovery] Failed to get private key instance:', error)
             return null
         }
     }
-
-    /**
-     * FIX: Saves the discovered private key to Rust storage.
-     * This mirrors the logic in SeedDiscovery.saveDerivedKeysToStorage.
-     */
     private async saveDiscoveredKeyToStorage(
         network: 'mainnet' | 'testnet',
         privateKeyInstance: PrivateKeyWASM,
@@ -209,26 +201,15 @@ export class KeyDiscovery extends BaseDiscovery {
     ): Promise<boolean> {
         try {
             if (!identityId || !publicKeys || publicKeys.length === 0) return false
-
             const now = new Date().toISOString()
             const privateKeyEntries: any[] = []
-
-            // We only save the keys from the publicKeys list that we found
-            // This ensures we save the AUTH/TRANSFER/ENCRYPTION keys matching the identity
             for (let i = 0; i < publicKeys.length; i++) {
                 const publicKey = publicKeys[i]
                 const keyId = publicKey.id
                 if (keyId === undefined || keyId === null || keyId > 100) continue
-
                 try {
-                    // For a single private key input, we check if the public key
-                    // matches the derived private key to ensure we are saving the correct entry
-                    // (Note: In simple Key Discovery, usually we just save the key to index 0 or matching purpose)
-                    // To be safe, we save the private key against the IDs found in the identity
-
                     const derivedPub = privateKeyInstance.getPublicKey()
                     const derivedPubHex = binToHex(derivedPub.bytes())
-
                     const keyEntry = {
                         identityId: identityId,
                         keyId: publicKey.id,
@@ -237,7 +218,7 @@ export class KeyDiscovery extends BaseDiscovery {
                         keyType: publicKey.keyType || 'ecdsa',
                         privateKey: privateKeyInstance.WIF(),
                         publicKey: derivedPubHex,
-                        derivedFromMnemonic: false, // Important: false for single key
+                        derivedFromMnemonic: false,
                         createdAt: now,
                         lastUsed: now
                     }
@@ -247,25 +228,22 @@ export class KeyDiscovery extends BaseDiscovery {
                     continue
                 }
             }
-
-            // If we couldn't match public keys, we default to saving it as ID 0 (Auth) to ensure connectivity
             if (privateKeyEntries.length === 0) {
-                 const derivedPub = privateKeyInstance.getPublicKey()
-                 const derivedPubHex = binToHex(derivedPub.bytes())
-                 privateKeyEntries.push({
-                        identityId: identityId,
-                        keyId: 0, // Default to ID 0
-                        purpose: 0, // Default to Auth
-                        securityLevel: 0, // Default to Master
-                        keyType: 'ecdsa',
-                        privateKey: privateKeyInstance.WIF(),
-                        publicKey: derivedPubHex,
-                        derivedFromMnemonic: false,
-                        createdAt: now,
-                        lastUsed: now
-                    })
+                const derivedPub = privateKeyInstance.getPublicKey()
+                const derivedPubHex = binToHex(derivedPub.bytes())
+                privateKeyEntries.push({
+                    identityId: identityId,
+                    keyId: 0,
+                    purpose: 0,
+                    securityLevel: 0,
+                    keyType: 'ecdsa',
+                    privateKey: privateKeyInstance.WIF(),
+                    publicKey: derivedPubHex,
+                    derivedFromMnemonic: false,
+                    createdAt: now,
+                    lastUsed: now
+                })
             }
-
             if (privateKeyEntries.length > 0) {
                 await invoke('save_private_keys', {
                     network,

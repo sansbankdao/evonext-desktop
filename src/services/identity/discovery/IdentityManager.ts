@@ -1,4 +1,5 @@
 // src/services/identity/discovery/IdentityManager.ts
+
 import { KeyDiscovery } from './KeyDiscovery'
 import { SeedDiscovery, type ProgressCallback } from './SeedDiscovery'
 import { DAPIService } from './DAPIService'
@@ -19,6 +20,12 @@ export class IdentityManager {
     }
     setProgressCallback(callback: ProgressCallback) {
         this.seedDiscovery.setProgressCallback(callback)
+    }
+    clearProgressCallback() {
+        this.seedDiscovery.setProgressCallback(() => {})
+    }
+    cancelSeedDiscovery() {
+        this.seedDiscovery.cancel()
     }
     async discoverFromKey(
         keyInput: string,
@@ -83,7 +90,8 @@ export class IdentityManager {
             const seedOptions = {
                 network: options.network,
                 minIndexSearch: options.maxIdentityIndex || 5,
-                gapLimit: 5
+                gapLimit: 5,
+                maxKeyIndex: 5 // scan keys 0..5 per identity index
             }
             const identities = await this.seedDiscovery.discoverFromSeed(
                 seedPhrase,
@@ -260,6 +268,7 @@ export class IdentityManager {
         return levelMap[securityLevel.toUpperCase()] || securityLevel
     }
     cleanup() {
+        this.cancelSeedDiscovery()
         KeyDerivationService.cleanup()
     }
 }
