@@ -91,7 +91,7 @@ export class IdentityManager {
                 network: options.network,
                 minIndexSearch: options.maxIdentityIndex || 5,
                 gapLimit: 5,
-                maxKeyIndex: 5 // scan keys 0..5 per identity index
+                maxKeyIndex: 5
             }
             const identities = await this.seedDiscovery.discoverFromSeed(
                 seedPhrase,
@@ -100,7 +100,7 @@ export class IdentityManager {
             )
             return {
                 success: true,
-                identities: identities,
+                identities,
                 identity: null,
                 detectedKeyType: 'SEED',
                 associatedKeys: null,
@@ -225,6 +225,7 @@ export class IdentityManager {
     ): Promise<KeyHashDerivationResult> {
         return KeyDerivationService.deriveAllPossibleHashes(keyInput, network)
     }
+    // Helper methods
     private formatBalance(balance: any): string {
         if (balance === undefined || balance === null) return '0'
         if (typeof balance === 'number') return balance.toString()
@@ -235,7 +236,7 @@ export class IdentityManager {
         if (!Array.isArray(publicKeys) || publicKeys.length === 0) {
             return []
         }
-        return publicKeys.map(key => ({
+        return publicKeys.map((key: any) => ({
             purpose: this.getKeyPurposeDisplay(key.purpose),
             securityLevel: this.getSecurityLevelDisplay(key.securityLevel),
             keyType: key.keyType || 'UNKNOWN',
@@ -243,9 +244,13 @@ export class IdentityManager {
             derivedFromInput: false
         }))
     }
-    private getKeyPurposeDisplay(purpose: string): string {
-        if (!purpose) return 'Unknown'
+    private getKeyPurposeDisplay(purpose: string | number): string {
+        const p = typeof purpose === 'string' ? purpose.toUpperCase() : String(purpose)
         const purposeMap: Record<string, string> = {
+            '0': 'Authentication',
+            '1': 'Transfer',
+            '2': 'Encryption',
+            '3': 'Key Management',
             'AUTHENTICATION': 'Authentication',
             'TRANSFER': 'Transfer',
             'ENCRYPTION': 'Encryption',
@@ -253,28 +258,34 @@ export class IdentityManager {
             'SIGNING': 'Signing',
             'MASTER': 'Master'
         }
-        return purposeMap[purpose.toUpperCase()] || purpose
+        return purposeMap[p] || String(purpose)
     }
-    private getSecurityLevelDisplay(securityLevel: string): string {
-        if (!securityLevel) return 'Unknown'
+    private getSecurityLevelDisplay(securityLevel: string | number): string {
+        const s = typeof securityLevel === 'string' ? securityLevel.toUpperCase() : String(securityLevel)
         const levelMap: Record<string, string> = {
+            '0': 'Master',
+            '1': 'Critical',
+            '2': 'High',
+            '3': 'Medium',
+            '4': 'Low',
             'CRITICAL': 'Critical',
             'HIGH': 'High',
             'MEDIUM': 'Medium',
             'LOW': 'Low',
             'MASTER': 'Master'
         }
-        return levelMap[securityLevel.toUpperCase()] || securityLevel
+        return levelMap[s] || String(securityLevel)
     }
     cleanup() {
         this.cancelSeedDiscovery()
         KeyDerivationService.cleanup()
     }
 }
-let identityManager: IdentityManager | null = null
+// Singleton accessor to preserve existing imports
+let identityManagerSingleton: IdentityManager | null = null
 export function getIdentityManager(): IdentityManager {
-    if (!identityManager) {
-        identityManager = new IdentityManager()
+    if (!identityManagerSingleton) {
+        identityManagerSingleton = new IdentityManager()
     }
-    return identityManager
+    return identityManagerSingleton
 }

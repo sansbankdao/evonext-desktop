@@ -2,7 +2,7 @@
 
 use serde_json::Value;
 use crate::dapi::types::{DAPIError, Network, TokenContractInfo};
-use super::super::DAPIClient;
+use crate::dapi::DAPIClient;
 
 impl DAPIClient {
     /// Get token contract information (typed)
@@ -22,7 +22,7 @@ impl DAPIClient {
         self.request(method, params, network).await
     }
 
-    /// Get token statuses for multiple tokens (untyped for safety)
+    /// Get token statuses for multiple tokens (untyped)
     pub async fn get_token_statuses(
         &self,
         token_ids: Vec<String>,
@@ -37,11 +37,10 @@ impl DAPIClient {
 
         let token_ids_array: Vec<Value> = token_ids.into_iter().map(Value::String).collect();
         let params = vec![Value::Array(token_ids_array)];
-
         self.request(method, params, network).await
     }
 
-    /// Get total token supply (untyped for safety)
+    /// Get total token supply (untyped)
     pub async fn get_token_total_supply(
         &self,
         token_id: String,
@@ -58,7 +57,7 @@ impl DAPIClient {
         self.request(method, params, network).await
     }
 
-    /// Get token balances for multiple identities (untyped for safety)
+    /// Get token balances for multiple identities (untyped)
     pub async fn get_identities_token_balances(
         &self,
         identity_ids: Vec<String>,
@@ -74,7 +73,6 @@ impl DAPIClient {
 
         let identities_array: Vec<Value> = identity_ids.into_iter().map(Value::String).collect();
         let params = vec![Value::Array(identities_array), Value::String(token_id)];
-
         self.request(method, params, network).await
     }
 
@@ -91,9 +89,7 @@ impl DAPIClient {
             Network::Testnet => DUSD_CONTRACT_ID_TESTNET,
         };
 
-        let result = self
-            .get_token_contract_info(contract_id.to_string(), network, with_proof)
-            .await?;
+        let result = self.get_token_contract_info(contract_id.to_string(), network, with_proof).await?;
         Ok(result.into_iter().next())
     }
 
@@ -110,9 +106,7 @@ impl DAPIClient {
             Network::Testnet => SANS_CONTRACT_ID_TESTNET,
         };
 
-        let result = self
-            .get_token_contract_info(contract_id.to_string(), network, with_proof)
-            .await?;
+        let result = self.get_token_contract_info(contract_id.to_string(), network, with_proof).await?;
         Ok(result.into_iter().next())
     }
 
@@ -129,13 +123,11 @@ impl DAPIClient {
             Network::Testnet => EVONEXT_CONTRACT_ID_TESTNET,
         };
 
-        let result = self
-            .get_token_contract_info(contract_id.to_string(), network, with_proof)
-            .await?;
+        let result = self.get_token_contract_info(contract_id.to_string(), network, with_proof).await?;
         Ok(result.into_iter().next())
     }
 
-    /// Get token balances for common tokens (DUSD, SANS) - untyped for safety
+    /// Get token balances for common tokens (DUSD, SANS) - untyped
     pub async fn get_common_token_balances(
         &self,
         identity_id: String,
@@ -154,17 +146,8 @@ impl DAPIClient {
 
         let token_ids = vec![dusd_id.to_string(), sans_id.to_string()];
 
-        // IMPORTANT:
-        // Use UFCS and explicitly call the identity module method to avoid
-        // ambiguity if another method of the same name exists anywhere else.
-        crate::dapi::client::methods::identity::DAPIClient::get_identity_token_balances(
-            self,
-            identity_id,
-            token_ids,
-            network,
-            with_proof,
-        )
-        .await
+        // Call the identity method directly on self
+        self.get_identity_token_balances(identity_id, token_ids, network, with_proof).await
     }
 
     /// Get all token balances for an identity (currently common tokens) - untyped
@@ -177,7 +160,7 @@ impl DAPIClient {
         self.get_common_token_balances(identity_id, network, with_proof).await
     }
 
-    /// Format token balance with decimals (utility)
+    /// Format token balance with decimals
     pub fn format_token_balance(balance: u64, decimals: u32) -> String {
         let divisor = 10u64.pow(decimals);
         let whole = balance / divisor;
@@ -198,7 +181,7 @@ impl DAPIClient {
         }
     }
 
-    /// Convert formatted balance back to atomic units (utility)
+    /// Convert formatted balance back to atomic units
     pub fn parse_token_amount(amount: &str, decimals: u32) -> Option<u64> {
         let parts: Vec<&str> = amount.split('.').collect();
 
@@ -210,14 +193,12 @@ impl DAPIClient {
             2 => {
                 let whole = parts[0].parse::<u64>().ok()?;
                 let fraction_str = parts[1];
-
                 let fraction = if fraction_str.len() > decimals as usize {
                     fraction_str[..decimals as usize].parse::<u64>().ok()?
                 } else {
                     let padded = format!("{:<0width$}", fraction_str, width = decimals as usize);
                     padded.parse::<u64>().ok()?
                 };
-
                 Some(whole * 10u64.pow(decimals) + fraction)
             }
             _ => None,

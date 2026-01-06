@@ -2,10 +2,10 @@
 
 use serde_json::Value;
 use crate::dapi::types::{DAPIError, Network};
-use super::super::DAPIClient;
+use crate::dapi::DAPIClient;
 
 impl DAPIClient {
-    /// Fetch identity information (untyped Value to avoid serde mismatches)
+    /// Fetch identity information (untyped)
     pub async fn get_identity(
         &self,
         identity_id: String,
@@ -22,7 +22,7 @@ impl DAPIClient {
         self.request::<Value>(method, params, network).await
     }
 
-    /// Get identity balance (untyped for safety)
+    /// Get identity balance (untyped)
     pub async fn get_identity_balance(
         &self,
         identity_id: String,
@@ -39,7 +39,7 @@ impl DAPIClient {
         self.request::<Value>(method, params, network).await
     }
 
-    /// Get identity by public key hash (untyped for safety)
+    /// Get identity by public key hash (untyped)
     pub async fn get_identity_by_public_key_hash(
         &self,
         public_key_hash: String,
@@ -109,7 +109,6 @@ impl DAPIClient {
         };
 
         let mut params = vec![Value::String(identity_id)];
-
         params.push(key_request_type.map(Value::String).unwrap_or(Value::Null));
 
         if let Some(ids) = key_ids {
@@ -125,7 +124,7 @@ impl DAPIClient {
         self.request::<Value>(method, params, network).await
     }
 
-    /// Get token balances for an identity (untyped)
+    /// Get token balances for an identity across provided token IDs (untyped)
     pub async fn get_identity_token_balances(
         &self,
         identity_id: String,
@@ -139,9 +138,8 @@ impl DAPIClient {
             "get_identity_token_balances".to_string()
         };
 
-        let mut params = vec![Value::String(identity_id)];
         let token_ids_array: Vec<Value> = token_ids.into_iter().map(Value::String).collect();
-        params.push(Value::Array(token_ids_array));
+        let params = vec![Value::String(identity_id), Value::Array(token_ids_array)];
 
         self.request::<Value>(method, params, network).await
     }
@@ -198,12 +196,16 @@ impl DAPIClient {
         };
 
         let mut params = vec![];
+
         let ids_array: Vec<Value> = identity_ids.into_iter().map(Value::String).collect();
         params.push(Value::Array(ids_array));
+
         params.push(Value::String(contract_id));
 
         if let Some(purposes_vec) = purposes {
-            let purposes_array: Vec<Value> = purposes_vec.into_iter().map(|p| Value::Number(p.into())).collect();
+            let purposes_array: Vec<Value> = purposes_vec.into_iter()
+                .map(|p| Value::Number(p.into()))
+                .collect();
             params.push(Value::Array(purposes_array));
         } else {
             params.push(Value::Null);

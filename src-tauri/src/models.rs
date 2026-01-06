@@ -3,7 +3,6 @@
 use serde::{Serialize, Deserialize, Deserializer};
 use serde::de::{Error as DeError, Unexpected};
 use std::collections::HashMap;
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct IAppSettings {
@@ -14,7 +13,6 @@ pub struct IAppSettings {
     #[serde(default)]
     pub profile: ProfileSettings,
 }
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct IAssets {
@@ -22,19 +20,16 @@ pub struct IAssets {
     pub name: String,
     pub symbol: String,
 }
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ILicense {
     pub license_id: String,
 }
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct IMnemonic {
     pub seed_phrase: String,
 }
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PrivateKeyEntry {
@@ -49,15 +44,12 @@ pub struct PrivateKeyEntry {
     pub created_at: String,
     pub last_used: String,
 }
-
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct PrivateKeyStore {
     pub mnemonic: Option<IMnemonic>,
     pub identities: HashMap<String, Vec<PrivateKeyEntry>>,
 }
-
-// Accept u64 or stringified u64 (and null) for compatibility with UI payloads
 fn de_u64_from_str_or_num<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
 where
     D: Deserializer<'de>,
@@ -82,15 +74,12 @@ where
         NumOrStr::Null => Ok(None),
     }
 }
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct IdentityData {
     pub username: String,
     pub identity_id: String,
-    // widen from u8 to u32 to avoid range/rust-side deserialization issues
     pub identity_idx: u32,
-    // keep credits as string to avoid JS float precision pitfalls
     pub balance: Option<String>,
     pub is_authenticated: bool,
     pub public_keys: Option<Vec<IdentityPublicKey>>,
@@ -99,7 +88,6 @@ pub struct IdentityData {
     pub created_at: Option<String>,
     pub public_key_ids: Option<Vec<u32>>,
 }
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct IdentityPublicKey {
@@ -112,7 +100,6 @@ pub struct IdentityPublicKey {
     pub read_only: bool,
     pub disabled_at: Option<String>,
 }
-
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct NotificationSettings {
@@ -123,7 +110,6 @@ pub struct NotificationSettings {
     #[serde(default)]
     pub contact_requests: bool,
 }
-
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileSettings {
@@ -134,7 +120,6 @@ pub struct ProfileSettings {
     #[serde(default)]
     pub bio: String,
 }
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct DiscoveredIdentity {
@@ -146,7 +131,6 @@ pub struct DiscoveredIdentity {
     pub discovered_key: Option<String>,
     pub discovered_at: String,
 }
-
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct DiscoveredIdentitiesStore {
