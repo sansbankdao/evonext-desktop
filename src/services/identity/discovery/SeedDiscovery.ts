@@ -9,16 +9,13 @@ import type { DiscoveredIdentity } from '@/types'
 import { hash160 } from '@evonext/crypto'
 // @ts-ignore
 import { binToHex } from '@evonext/utils'
-
 export type ProgressCallback = (details: any) => void
-
 export interface SeedDiscoveryOptions {
     network?: 'mainnet' | 'testnet'
     minIndexSearch?: number
     gapLimit?: number
-    maxKeyIndex?: number    // NEW: how many key indices to scan per identity index (inclusive)
+    maxKeyIndex?: number    // inclusive, how many key indices per identity index (0..max)
 }
-
 export class SeedDiscovery extends BaseDiscovery {
     private isCancelled = false
     private GAP_LIMIT = 5
@@ -52,7 +49,7 @@ export class SeedDiscovery extends BaseDiscovery {
         let currentIndex = 0
         const minSearch = options?.minIndexSearch ?? 5
         const activeGapLimit = options?.gapLimit ?? this.GAP_LIMIT
-        const maxKeyIndex = options?.maxKeyIndex ?? 5 // scan keys 0..5 per identity index
+        const maxKeyIndex = options?.maxKeyIndex ?? 5 // try 0..5 per identity index
         // Fixed denominator for the identity-level progress bar
         const maxSearchRange = minSearch + activeGapLimit
         this.scanLimit = maxSearchRange
@@ -113,7 +110,6 @@ export class SeedDiscovery extends BaseDiscovery {
                     }
                 } catch (error) {
                     console.error(`Error scanning index ${currentIndex}, key ${keyIndex}:`, error)
-                    // continue to next keyIndex
                 }
             }
             if (!foundForIndex) {

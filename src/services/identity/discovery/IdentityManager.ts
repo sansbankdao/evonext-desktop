@@ -225,7 +225,6 @@ export class IdentityManager {
     ): Promise<KeyHashDerivationResult> {
         return KeyDerivationService.deriveAllPossibleHashes(keyInput, network)
     }
-    // Helper methods
     private formatBalance(balance: any): string {
         if (balance === undefined || balance === null) return '0'
         if (typeof balance === 'number') return balance.toString()

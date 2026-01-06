@@ -23,6 +23,16 @@ interface StoredMnemonic {
     seedPhrase: string;
 }
 
+// Preloaded identity snapshot (from discovery), used to avoid refetch
+export interface PreloadedIdentitySnapshot {
+    identityId: string
+    balance?: string | number | null
+    revision?: string | number | null
+    publicKeys?: any[] // same shape as DAPI result publicKeys
+    dpnsUsername?: string | null
+    identityIdx?: number
+}
+
 const loadStorageData = async <T>(
     command: string,
     network: 'mainnet' | 'testnet',
@@ -66,6 +76,7 @@ export const connectionActions = () => ({
             }
         }, 'SAVE_DISCOVERED_IDENTITIES_FAILED')
     },
+
     async initFromStorage(this: IIdentityState) {
         return ErrorBoundary.wrap(async () => {
             try {
@@ -99,6 +110,7 @@ export const connectionActions = () => ({
             }
         }, 'INIT_FROM_STORAGE_FAILED')
     },
+
     async switchIdentity(
         this: IIdentityState,
         targetIdentityId: string
@@ -124,6 +136,7 @@ export const connectionActions = () => ({
             }
         }, 'SWITCH_IDENTITY_FAILED');
     },
+
     async connectWithSeed(
         this: IIdentityState,
         seedPhrase: string,
@@ -145,6 +158,7 @@ export const connectionActions = () => ({
                     }
                 })
                 await invoke('save_mnemonic', { network, payload: { seedPhrase: seedPhrase } })
+
                 const existingKeys = await loadStorageData<any[]>('get_identity_private_keys', network, { identityId: targetId })
                 if (!existingKeys || existingKeys.length === 0) {
                     const now = new Date().toISOString()
@@ -174,24 +188,48 @@ export const connectionActions = () => ({
                         })
                     }
                 }
+
+                // Prefer DAPI fetch (now untyped) but we can also tolerate strings in storage save
                 const fetchResult = await DAPIService.getIdentityById(targetId, network);
                 if (!fetchResult.success || !fetchResult.data) {
                     throw new Error(fetchResult.error || `Failed to fetch identity ${targetId}`);
                 }
                 const identityData = fetchResult.data;
+
+                // Build payload and SAVE IMMEDIATELY (no type crash possible)
+                const payload = {
+                    username: targetId,
+                    identity_id: targetId,
+                    identity_idx: identityIndex,
+                    balance: identityData.balance ? String(identityData.balance) : null,
+                    is_authenticated: true,
+                    public_keys: identityData.publicKeys || [],
+                    revision: typeof identityData.revision === 'string'
+                        ? Number(identityData.revision) || 0
+                        : (identityData.revision || 0),
+                    created_at: new Date().toISOString(),
+                    public_key_ids: (identityData.publicKeys || []).map((pk: any) => pk.id || 0)
+                }
+
+                // Log raw payload and save via tolerant path
+                try { await invoke('debug_identity_payload', { payload }) } catch {}
+                await invoke('save_identity_data_untyped', { network, payload })
+
+                // Update state
                 this.isAuthenticated = true
                 this.username = targetId
                 this.identityId = targetId
                 const activeIdentity: IIdentity = {
                     identityId: targetId,
                     identityIdx: identityIndex,
-                    balance: identityData.balance ? identityData.balance.toString() : '0',
-                    revision: identityData.revision ? Number(identityData.revision) : undefined,
+                    balance: payload.balance || '0',
+                    revision: payload.revision ? Number(payload.revision) : undefined,
                     publicKeys: identityData.publicKeys || []
                 }
                 this.identity = activeIdentity
                 this.publicKeys = identityData.publicKeys || []
                 this.balance = activeIdentity.balance
+
                 if (typeof this.saveToStorage === 'function') await this.saveToStorage(network)
                 return { success: true, identityId: targetId, identity: activeIdentity }
             } catch (err: any) {
@@ -202,11 +240,14 @@ export const connectionActions = () => ({
             }
         }, 'CONNECT_WITH_SEED_FAILED')
     },
+
+    // CHANGED: optional preloaded snapshot to skip DAPI fetch and save directly
     async connectWithSingleKey(
         this: IIdentityState,
         privateKey: string,
         identityId: string,
-        network: 'mainnet' | 'testnet' = 'mainnet'
+        network: 'mainnet' | 'testnet' = 'mainnet',
+        preloaded?: PreloadedIdentitySnapshot | null
     ): Promise<ConnectionResult> {
         return ErrorBoundary.wrap(async () => {
             this.isConnecting = true
@@ -223,12 +264,28 @@ export const connectionActions = () => ({
                         unsafeOptions: { skipSynchronizationBeforeHeight: 950000 }
                     }
                 })
-                const fetchResult = await DAPIService.getIdentityById(trimmedId, network);
-                if (!fetchResult.success || !fetchResult.data) {
-                    throw new Error(fetchResult.error || 'Failed to fetch identity details.');
+
+                // If we have discovery result, use it directly to save identity
+                let identityData: any | null = null
+                if (preloaded && preloaded.identityId === trimmedId) {
+                    identityData = {
+                        identityId: preloaded.identityId,
+                        balance: preloaded.balance ?? '0',
+                        revision: preloaded.revision ?? 0,
+                        publicKeys: preloaded.publicKeys || []
+                    }
+                } else {
+                    // Fallback to DAPI fetch (now untyped on Rust side)
+                    const fetchResult = await DAPIService.getIdentityById(trimmedId, network);
+                    if (!fetchResult.success || !fetchResult.data) {
+                        throw new Error(fetchResult.error || 'Failed to fetch identity details.');
+                    }
+                    identityData = fetchResult.data;
                 }
-                const identityData = fetchResult.data;
+
                 const publicKeys = identityData.publicKeys || []
+
+                // Save the single provided key (matching pk if possible; backend already handles update semantics)
                 const now = new Date().toISOString()
                 const firstAuthKey = publicKeys.find((pk: any) => pk.purpose === 0)
                 const privateKeyEntry = {
@@ -248,15 +305,36 @@ export const connectionActions = () => ({
                     identityId: trimmedId,
                     privateKeys: [privateKeyEntry]
                 })
+
+                // Build payload and SAVE IMMEDIATELY (no type crash possible)
+                const payload = {
+                    username: trimmedId,
+                    identity_id: trimmedId,
+                    identity_idx: 0,
+                    balance: identityData.balance ? String(identityData.balance) : null,
+                    is_authenticated: true,
+                    public_keys: publicKeys,
+                    revision: typeof identityData.revision === 'string'
+                        ? Number(identityData.revision) || 0
+                        : (identityData.revision || 0),
+                    created_at: new Date().toISOString(),
+                    public_key_ids: publicKeys.map((pk: any) => pk.id || 0)
+                }
+
+                // Log raw payload and save via tolerant path
+                try { await invoke('debug_identity_payload', { payload }) } catch {}
+                await invoke('save_identity_data_untyped', { network, payload })
+
+                // Update state
                 this.isAuthenticated = true
                 this.username = trimmedId
                 this.identityId = trimmedId
                 const activeIdentity: IIdentity = {
                     identityId: trimmedId,
                     identityIdx: 0,
-                    balance: identityData.balance ? identityData.balance.toString() : '0',
-                    revision: identityData.revision ? Number(identityData.revision) : undefined,
-                    publicKeys: publicKeys
+                    balance: payload.balance || '0',
+                    revision: payload.revision ? Number(payload.revision) : undefined,
+                    publicKeys
                 }
                 this.identity = activeIdentity
                 if (typeof this.saveToStorage === 'function') await this.saveToStorage(network)
@@ -269,6 +347,7 @@ export const connectionActions = () => ({
             }
         }, 'CONNECT_WITH_SINGLE_KEY_FAILED')
     },
+
     async searchUserIdentities(this: IIdentityState, network: 'mainnet' | 'testnet'): Promise<DiscoveredIdentity[]> {
         return ErrorBoundary.wrap(async () => {
             const result = await DAPIService.getIdentityById(this.username || this.identityId || '', network)
@@ -283,10 +362,12 @@ export const connectionActions = () => ({
             return []
         }, 'SEARCH_USER_IDENTITIES_FAILED')
     },
+
     async saveToStorage(this: IIdentityState, networkOverride?: 'mainnet' | 'testnet') {
         const storage = this as any
         if (typeof storage.saveToStorage === 'function') await storage.saveToStorage(networkOverride)
     },
+
     async clearStorage(this: IIdentityState) {
         try {
             const settings = await invoke<Settings>('load_settings')
@@ -299,6 +380,7 @@ export const connectionActions = () => ({
             ])
         } catch (e) { console.error(e) }
     },
+
     async logout(this: IIdentityState) {
         if (typeof this.clearStorage === 'function') await this.clearStorage()
         const { reset } = usePlatform()
@@ -307,6 +389,7 @@ export const connectionActions = () => ({
         this.identityId = null
         this.isAuthenticated = false
     },
+
     clearConnectionError(this: IIdentityState) {
         this.connectionError = null
     }

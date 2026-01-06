@@ -1,11 +1,11 @@
 // src-tauri/src/dapi/client/methods/tokens.rs
 
 use serde_json::Value;
-use crate::dapi::types::{DAPIError, Network, TokenBalance, TokenContractInfo};
+use crate::dapi::types::{DAPIError, Network, TokenContractInfo};
 use super::super::DAPIClient;
 
 impl DAPIClient {
-    /// Get token contract information
+    /// Get token contract information (typed)
     pub async fn get_token_contract_info(
         &self,
         contract_id: String,
@@ -18,14 +18,11 @@ impl DAPIClient {
             "get_token_contract_info".to_string()
         };
 
-        let params = vec![
-            Value::String(contract_id),
-        ];
-
+        let params = vec![Value::String(contract_id)];
         self.request(method, params, network).await
     }
 
-    /// Get token statuses for multiple tokens
+    /// Get token statuses for multiple tokens (untyped for safety)
     pub async fn get_token_statuses(
         &self,
         token_ids: Vec<String>,
@@ -39,14 +36,12 @@ impl DAPIClient {
         };
 
         let token_ids_array: Vec<Value> = token_ids.into_iter().map(Value::String).collect();
-        let params = vec![
-            Value::Array(token_ids_array),
-        ];
+        let params = vec![Value::Array(token_ids_array)];
 
         self.request(method, params, network).await
     }
 
-    /// Get total token supply
+    /// Get total token supply (untyped for safety)
     pub async fn get_token_total_supply(
         &self,
         token_id: String,
@@ -59,14 +54,11 @@ impl DAPIClient {
             "get_token_total_supply".to_string()
         };
 
-        let params = vec![
-            Value::String(token_id),
-        ];
-
+        let params = vec![Value::String(token_id)];
         self.request(method, params, network).await
     }
 
-    /// Get token balances for multiple identities
+    /// Get token balances for multiple identities (untyped for safety)
     pub async fn get_identities_token_balances(
         &self,
         identity_ids: Vec<String>,
@@ -81,15 +73,12 @@ impl DAPIClient {
         };
 
         let identities_array: Vec<Value> = identity_ids.into_iter().map(Value::String).collect();
-        let params = vec![
-            Value::Array(identities_array),
-            Value::String(token_id),
-        ];
+        let params = vec![Value::Array(identities_array), Value::String(token_id)];
 
         self.request(method, params, network).await
     }
 
-    /// Get DUSD token contract info
+    /// Get DUSD token contract info (typed)
     pub async fn get_dusd_token_info(
         &self,
         network: Network,
@@ -102,11 +91,13 @@ impl DAPIClient {
             Network::Testnet => DUSD_CONTRACT_ID_TESTNET,
         };
 
-        let result = self.get_token_contract_info(contract_id.to_string(), network, with_proof).await?;
+        let result = self
+            .get_token_contract_info(contract_id.to_string(), network, with_proof)
+            .await?;
         Ok(result.into_iter().next())
     }
 
-    /// Get SANS token contract info
+    /// Get SANS token contract info (typed)
     pub async fn get_sans_token_info(
         &self,
         network: Network,
@@ -119,11 +110,13 @@ impl DAPIClient {
             Network::Testnet => SANS_CONTRACT_ID_TESTNET,
         };
 
-        let result = self.get_token_contract_info(contract_id.to_string(), network, with_proof).await?;
+        let result = self
+            .get_token_contract_info(contract_id.to_string(), network, with_proof)
+            .await?;
         Ok(result.into_iter().next())
     }
 
-    /// Get EvoNext token contract info
+    /// Get EvoNext token contract info (typed)
     pub async fn get_evonext_token_info(
         &self,
         network: Network,
@@ -136,45 +129,55 @@ impl DAPIClient {
             Network::Testnet => EVONEXT_CONTRACT_ID_TESTNET,
         };
 
-        let result = self.get_token_contract_info(contract_id.to_string(), network, with_proof).await?;
+        let result = self
+            .get_token_contract_info(contract_id.to_string(), network, with_proof)
+            .await?;
         Ok(result.into_iter().next())
     }
 
-    /// Get token balances for common tokens (DUSD, SANS)
+    /// Get token balances for common tokens (DUSD, SANS) - untyped for safety
     pub async fn get_common_token_balances(
         &self,
         identity_id: String,
         network: Network,
         with_proof: bool,
-    ) -> Result<Vec<TokenBalance>, DAPIError> {
-        use crate::constants::{DUSD_CONTRACT_ID_MAINNET, DUSD_CONTRACT_ID_TESTNET, SANS_CONTRACT_ID_MAINNET, SANS_CONTRACT_ID_TESTNET};
+    ) -> Result<Vec<Value>, DAPIError> {
+        use crate::constants::{
+            DUSD_CONTRACT_ID_MAINNET, DUSD_CONTRACT_ID_TESTNET,
+            SANS_CONTRACT_ID_MAINNET, SANS_CONTRACT_ID_TESTNET
+        };
 
         let (dusd_id, sans_id) = match network {
             Network::Mainnet => (DUSD_CONTRACT_ID_MAINNET, SANS_CONTRACT_ID_MAINNET),
             Network::Testnet => (DUSD_CONTRACT_ID_TESTNET, SANS_CONTRACT_ID_TESTNET),
         };
 
-        let token_ids = vec![
-            dusd_id.to_string(),
-            sans_id.to_string(),
-        ];
+        let token_ids = vec![dusd_id.to_string(), sans_id.to_string()];
 
-        self.get_identity_token_balances(identity_id, token_ids, network, with_proof).await
+        // IMPORTANT:
+        // Use UFCS and explicitly call the identity module method to avoid
+        // ambiguity if another method of the same name exists anywhere else.
+        crate::dapi::client::methods::identity::DAPIClient::get_identity_token_balances(
+            self,
+            identity_id,
+            token_ids,
+            network,
+            with_proof,
+        )
+        .await
     }
 
-    /// Get all token balances for an identity
+    /// Get all token balances for an identity (currently common tokens) - untyped
     pub async fn get_all_token_balances(
         &self,
         identity_id: String,
         network: Network,
         with_proof: bool,
-    ) -> Result<Vec<TokenBalance>, DAPIError> {
-        // First, get all token contracts the identity might have
-        // For now, we'll just get common tokens
+    ) -> Result<Vec<Value>, DAPIError> {
         self.get_common_token_balances(identity_id, network, with_proof).await
     }
 
-    /// Format token balance with decimals
+    /// Format token balance with decimals (utility)
     pub fn format_token_balance(balance: u64, decimals: u32) -> String {
         let divisor = 10u64.pow(decimals);
         let whole = balance / divisor;
@@ -195,27 +198,22 @@ impl DAPIClient {
         }
     }
 
-    /// Convert formatted balance back to atomic units
+    /// Convert formatted balance back to atomic units (utility)
     pub fn parse_token_amount(amount: &str, decimals: u32) -> Option<u64> {
         let parts: Vec<&str> = amount.split('.').collect();
 
         match parts.len() {
             1 => {
-                // Whole number only
                 let whole = parts[0].parse::<u64>().ok()?;
                 Some(whole * 10u64.pow(decimals))
             }
             2 => {
-                // Has fractional part
                 let whole = parts[0].parse::<u64>().ok()?;
                 let fraction_str = parts[1];
 
-                // Pad or truncate fractional part
                 let fraction = if fraction_str.len() > decimals as usize {
-                    // Too many decimal places, truncate
                     fraction_str[..decimals as usize].parse::<u64>().ok()?
                 } else {
-                    // Pad with zeros
                     let padded = format!("{:<0width$}", fraction_str, width = decimals as usize);
                     padded.parse::<u64>().ok()?
                 };

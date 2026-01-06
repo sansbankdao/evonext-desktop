@@ -31,42 +31,36 @@ impl DAPIClient {
     where
         T: for<'de> Deserialize<'de> + Serialize + Clone + Send + Sync + std::fmt::Debug,
     {
-        // Convert array params to hashmap for validation
+        // Validate using param names
         let method_info = MethodParamInfo::for_method(&method)?;
         let mut params_map = HashMap::new();
-
-        // Clone params for use in validation before they're consumed
         let params_clone = params.clone();
-
         for (i, value) in params_clone.into_iter().enumerate() {
             if i < method_info.required_params.len() {
                 params_map.insert(method_info.required_params[i].to_string(), value);
             }
         }
-
-        // Validate parameters using the hashmap
         validate_dapi_params(&method, &params_map)?;
 
-        // Create request - params should be an array for DAPI
+        // Prepare request body
         let request = DAPIRequest {
             method: method.clone(),
-            params: Value::Array(params), // Use the original params vector
+            params: Value::Array(params),
             network: Some(network.as_str().to_string()),
         };
 
-        // Generate cache key
-        let cache_key = format!("{}-{}", method, request.params.to_string());
+        // CRITICAL: include network in cache key so mainnet/testnet never collide
+        let cache_key = format!("{}-{}-{}", method, request.params.to_string(), network.as_str());
 
-        // Check cache first
+        // Cache lookup
         if let Some(cached) = self.cache.lock().await.get(&cache_key) {
             if let Ok(result) = serde_json::from_value::<Vec<T>>(cached.clone()) {
-                info!("Cache hit for method: {}", method);
+                info!("Cache hit for method: {} (network={})", method, network.as_str());
                 return Ok(result);
             }
         }
 
-        // Make API request
-        info!("Making DAPI request: {} to {}", method, self.endpoint);
+        info!("Making DAPI request: {} to {} (network={})", method, self.endpoint, network.as_str());
         let response = self.client
             .post(&self.endpoint)
             .json(&request)
@@ -97,16 +91,14 @@ impl DAPIClient {
             return Err(DAPIError::APIFailed(format!("DAPI method {} failed", method)));
         }
 
-        // Convert response to typed result
         let result = api_response.into_result::<T>()?;
 
-        // Cache the result
+        // Cache store
         let cache_value = serde_json::to_value(&result)
             .map_err(|e| DAPIError::SerializationError(e.to_string()))?;
-
         self.cache.lock().await.set(cache_key, cache_value);
 
-        info!("DAPI request successful: {} returned {} items", method, result.len());
+        info!("DAPI request successful: {} returned {} items (network={})", method, result.len(), network.as_str());
         Ok(result)
     }
 

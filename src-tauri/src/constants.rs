@@ -17,6 +17,12 @@ pub const IDENTITY_MAINNET_FILE: &str = ".identity-mainnet.json";
 #[allow(dead_code)]
 pub const IDENTITY_TESTNET_FILE: &str = ".identity-testnet.json";
 
+// NEW: discovered identities storage files
+#[allow(dead_code)]
+pub const DISCOVERED_MAINNET_FILE: &str = ".discovered-mainnet.json";
+#[allow(dead_code)]
+pub const DISCOVERED_TESTNET_FILE: &str = ".discovered-testnet.json";
+
 #[allow(dead_code)]
 pub const MIN_CREDIT_TRANSFER: u64 = 100_000;
 #[allow(dead_code)]

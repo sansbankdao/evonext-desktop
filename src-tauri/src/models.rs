@@ -1,6 +1,7 @@
 // src-tauri/src/models.rs
 
-use serde::{Serialize, Deserialize};
+use serde::{Serialize, Deserialize, Deserializer};
+use serde::de::{Error as DeError, Unexpected};
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -8,9 +9,9 @@ use std::collections::HashMap;
 pub struct IAppSettings {
     pub network: String,
     pub theme: String,
-    #[serde(default)] // <--- FIX: Uses default values if missing
+    #[serde(default)]
     pub notifications: NotificationSettings,
-    #[serde(default)] // <--- FIX: Uses default values if missing
+    #[serde(default)]
     pub profile: ProfileSettings,
 }
 
@@ -56,15 +57,44 @@ pub struct PrivateKeyStore {
     pub identities: HashMap<String, Vec<PrivateKeyEntry>>,
 }
 
+// Accept u64 or stringified u64 (and null) for compatibility with UI payloads
+fn de_u64_from_str_or_num<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum NumOrStr {
+        Num(u64),
+        Str(String),
+        Null,
+    }
+    match NumOrStr::deserialize(deserializer)? {
+        NumOrStr::Num(n) => Ok(Some(n)),
+        NumOrStr::Str(s) => {
+            if s.is_empty() {
+                return Ok(None);
+            }
+            s.parse::<u64>()
+                .map(Some)
+                .map_err(|_| D::Error::invalid_value(Unexpected::Str(&s), &"a u64 or stringified u64"))
+        }
+        NumOrStr::Null => Ok(None),
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct IdentityData {
     pub username: String,
     pub identity_id: String,
-    pub identity_idx: u8,
+    // widen from u8 to u32 to avoid range/rust-side deserialization issues
+    pub identity_idx: u32,
+    // keep credits as string to avoid JS float precision pitfalls
     pub balance: Option<String>,
     pub is_authenticated: bool,
     pub public_keys: Option<Vec<IdentityPublicKey>>,
+    #[serde(default, deserialize_with = "de_u64_from_str_or_num")]
     pub revision: Option<u64>,
     pub created_at: Option<String>,
     pub public_key_ids: Option<Vec<u32>>,
@@ -83,7 +113,7 @@ pub struct IdentityPublicKey {
     pub disabled_at: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)] // Added Default derive
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct NotificationSettings {
     #[serde(default)]
@@ -91,10 +121,10 @@ pub struct NotificationSettings {
     #[serde(default)]
     pub mentions: bool,
     #[serde(default)]
-    pub contact_requests: bool, // FIX: Will default to false if missing
+    pub contact_requests: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)] // Added Default derive
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileSettings {
     #[serde(default)]

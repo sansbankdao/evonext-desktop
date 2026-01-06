@@ -1,5 +1,7 @@
 // src/composables/useConnect.ts
 
+// src/composables/useConnect.ts
+
 import { ref, computed, watch } from 'vue'
 import { useIdentityStore } from '@/stores/identity'
 import { storeToRefs } from 'pinia'
@@ -11,14 +13,17 @@ import type {
     DiscoveryProgress
 } from '@/types'
 import type { DiscoveryResult } from '@/services/identity/types'
+
 export function useConnect() {
     const store = useIdentityStore()
     const { network: _currentNetwork, ensure } = useNetwork()
     const { isConnecting, connectionError } = storeToRefs(store)
+
     // =========================================================================
     // State: Connection Method & General
     // =========================================================================
     const connectionMethod = ref<'seed' | 'privateKey'>('seed')
+
     // =========================================================================
     // State: Seed Phrase Discovery
     // =========================================================================
@@ -28,6 +33,7 @@ export function useConnect() {
     const selectedSeedIdentity = ref<DiscoveredIdentity | null>(null)
     const seedDiscoveryError = ref<string | null>(null)
     const isSearchingSeed = ref(false)
+
     // Keep seedWords length synced to wordCount always
     watch(seedWordCount, (count) => {
         const targetLen = count === '24' ? 24 : 12
@@ -38,6 +44,7 @@ export function useConnect() {
         selectedSeedIdentity.value = null
         seedDiscoveryError.value = null
     })
+
     // =========================================================================
     // State: Private Key Discovery
     // =========================================================================
@@ -48,19 +55,23 @@ export function useConnect() {
     const debugOutput = ref<DiscoveryResult | null>(null)
     const privateKeyDiscoveryError = ref<string | null>(null)
     const isDiscovering = ref(false)
+
     // =========================================================================
     // State: Progress Tracking
     // =========================================================================
     const localDiscoveryProgress = ref<DiscoveryProgress | null>(null)
+
     // Run tokens to prevent stale updates
     const activeSeedRun = ref<symbol | null>(null)
     const activeKeyRun = ref<symbol | null>(null)
+
     // =========================================================================
     // Helpers
     // =========================================================================
     const normalizeSeed = (words: string[]) =>
         words.map(w => w.trim().toLowerCase()).filter(w => w.length > 0)
     const normalizeId = (id: string) => id.trim()
+
     // =========================================================================
     // Actions
     // =========================================================================
@@ -70,12 +81,14 @@ export function useConnect() {
         seedDiscoveryError.value = null
         privateKeyDiscoveryError.value = null
     }
+
     const formatBalance = (balance: number | string | null | undefined): string => {
         if (balance === undefined || balance === null) return '0.0000'
         const val = typeof balance === 'string' ? parseFloat(balance) : balance
         if (isNaN(val)) return '0.0000'
         return (val / 100000000).toFixed(4)
     }
+
     const handlePaste = async (words: string[]) => {
         const wordCount = words.length
         if (wordCount === 12 || wordCount === 24) {
@@ -88,6 +101,7 @@ export function useConnect() {
                 `Invalid seed phrase length: ${wordCount} words (must be 12 or 24)`
         }
     }
+
     const startSeedDiscovery = async () => {
         if (isSearchingSeed.value) return
         isSearchingSeed.value = true
@@ -96,27 +110,33 @@ export function useConnect() {
         localDiscoveryProgress.value = null
         seedDiscoveryError.value = null
         store.clearConnectionError()
+
         // CRITICAL: lock network from settings at run start
         const runNetwork = await ensure()
         const run = Symbol('seed')
         activeSeedRun.value = run
+
         const manager = getIdentityManager()
         manager.setProgressCallback((details: any) => {
             if (activeSeedRun.value !== run) return
             localDiscoveryProgress.value = details as DiscoveryProgress
         })
+
         try {
             const cleaned = normalizeSeed(seedWords.value)
             const expectedLen = seedWordCount.value === '24' ? 24 : 12
             if (cleaned.length !== expectedLen) {
                 throw new Error(`Seed has ${cleaned.length} words, expected ${expectedLen}`)
             }
+
             const seedPhrase = cleaned.join(' ')
             const result: DiscoveryResult = await manager.discoverFromSeed(seedPhrase, {
                 network: runNetwork,
                 maxIdentityIndex: 5
             })
+
             if (activeSeedRun.value !== run) return
+
             if (result.success && result.identities?.length) {
                 seedDiscoveryResults.value = result.identities
                 selectedSeedIdentity.value = result.identities[0] ?? null
@@ -140,9 +160,11 @@ export function useConnect() {
             }
         }
     }
+
     const handleDiscoverIdentity = async (key: string) => {
         const trimmedKey = key?.trim()
         if (!trimmedKey || isDiscovering.value) return
+
         isDiscovering.value = true
         privateKeyInput.value = trimmedKey
         debugOutput.value = null
@@ -151,17 +173,21 @@ export function useConnect() {
         privateKeyDiscoveryError.value = null
         manualIdentityId.value = ''
         store.clearConnectionError()
+
         // CRITICAL: lock network from settings at run start
         const runNetwork = await ensure()
         const run = Symbol('key')
         activeKeyRun.value = run
+
         try {
             const manager = getIdentityManager()
             const result: DiscoveryResult = await manager.discoverFromKey(trimmedKey, {
                 network: runNetwork
             })
+
             if (activeKeyRun.value !== run) return
             debugOutput.value = result
+
             if (result.success && result.identity) {
                 discoveredIdentity.value = result.identity
                 manualIdentityId.value = result.identity.identityId
@@ -193,12 +219,15 @@ export function useConnect() {
             }
         }
     }
+
     const handleConnect = async () => {
         try {
             const runNetwork = await ensure()
+
             if (connectionMethod.value === 'seed') {
                 const identity = selectedSeedIdentity.value
                 if (!identity) throw new Error('No identity selected')
+
                 await store.connectWithSeed(
                     normalizeSeed(seedWords.value).join(' '),
                     runNetwork,
@@ -213,10 +242,24 @@ export function useConnect() {
                 if (!privateKeyInput.value?.trim()) {
                     throw new Error('Missing private key input')
                 }
+
+                // Build preloaded snapshot from what we already discovered to avoid refetch
+                const preload = discoveredIdentity.value
+                    ? {
+                        identityId: discoveredIdentity.value.identityId,
+                        balance: discoveredIdentity.value.balance ?? null,
+                        revision: discoveredIdentity.value.revision ?? 0,
+                        publicKeys: discoveredIdentity.value.publicKeys || [],
+                        dpnsUsername: discoveredIdentity.value.dpnsUsername || null,
+                        identityIdx: 0
+                      }
+                    : null
+
                 await store.connectWithSingleKey(
                     privateKeyInput.value.trim(),
                     id,
-                    runNetwork
+                    runNetwork,
+                    preload
                 )
             }
         } catch (err: any) {
@@ -226,6 +269,7 @@ export function useConnect() {
             throw err
         }
     }
+
     const resetDiscovery = () => {
         discoveredIdentity.value = null
         discoveryDetails.value = null
@@ -234,6 +278,7 @@ export function useConnect() {
         privateKeyDiscoveryError.value = null
         activeKeyRun.value = null
     }
+
     const closeResults = () => {
         seedDiscoveryResults.value = []
         selectedSeedIdentity.value = null
@@ -241,6 +286,7 @@ export function useConnect() {
         localDiscoveryProgress.value = null
         activeSeedRun.value = null
     }
+
     const useManualIdentity = () => {
         const norm = normalizeId(manualIdentityId.value)
         manualIdentityId.value = norm
@@ -249,24 +295,30 @@ export function useConnect() {
             discoveryDetails.value = null
         }
     }
+
     const selectSeedIdentity = (identity: DiscoveredIdentity) => {
         selectedSeedIdentity.value = identity
     }
+
     const switchIdentity = async (targetIdentityId: string): Promise<ConnectionResult> => {
         return await store.switchIdentity(targetIdentityId.trim())
     }
+
     const initialize = () => { }
+
     const cleanup = () => {
         // Clear sensitive data and tokens
         privateKeyInput.value = ''
         activeSeedRun.value = null
         activeKeyRun.value = null
+
         const manager = getIdentityManager()
         manager.cancelSeedDiscovery()
         if (typeof manager.cleanup === 'function') {
             manager.cleanup()
         }
     }
+
     // =========================================================================
     // Computed Properties
     // =========================================================================
@@ -280,9 +332,11 @@ export function useConnect() {
         const keyOk = !!privateKeyInput.value?.trim()
         return idOk && keyOk
     })
+
     const discoveryProgress = computed(
         () => localDiscoveryProgress.value || store.discoveryProgress
     )
+
     const progressPercentage = computed(() => {
         const progress = discoveryProgress.value
         if (!progress) return 0
@@ -293,12 +347,15 @@ export function useConnect() {
             Math.round((currentIdentityIndex / totalIdentities) * 100)
         )
     })
+
     const progressMessage = computed(() => discoveryProgress.value?.message || '')
+
     const discoveryStatus = computed(() => {
         if (isSearchingSeed.value) return 'Scanning network...'
         if (isDiscovering.value) return 'Deriving keys and querying DAPI...'
         return ''
     })
+
     return {
         // State
         connectionMethod,
@@ -312,18 +369,22 @@ export function useConnect() {
         discoveryDetails,
         debugOutput,
         privateKeyDiscoveryError,
+
         // Store State
         isConnecting,
         connectionError,
         discoveryProgress,
+
         // Loading States
         isSearchingSeed,
         isDiscovering,
         discoveryStatus,
+
         // Computed
         isFormValid,
         progressPercentage,
         progressMessage,
+
         // Actions
         updateConnectionMethod,
         formatBalance,

@@ -7,21 +7,14 @@ mod menu;
 mod constants;
 mod utils;
 
-// Required for `app.handle()` method
-// use tauri::Manager;
-
 pub fn run() {
     tauri::Builder::default()
-        // --- 1. Initialize Plugins ---
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        // .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-
-        // --- 2. Register Commands ---
         .invoke_handler(tauri::generate_handler![
             // Assets
             commands::asset_commands::load_assets,
@@ -34,9 +27,12 @@ pub fn run() {
             commands::identity_commands::delete_private_keys,
             commands::identity_commands::save_single_identity_keys,
 
+            // Identity data
             commands::identity_commands::load_identity_data,
+            commands::identity_commands::save_identity_data_untyped,
             commands::identity_commands::save_identity_data,
             commands::identity_commands::delete_identity_data,
+            commands::identity_commands::debug_identity_payload,
 
             // License
             commands::license_commands::load_license,
@@ -80,12 +76,7 @@ pub fn run() {
             commands::dapi_commands::get_identity_by_non_unique_public_key_hash,
         ])
         .setup(|app| {
-            // Initialize Menu
             menu::setup_menus(app)?;
-
-            // Optional: Add any Webview listeners here if needed in future
-            // let webview = app.get_webview_window("main");
-
             Ok(())
         })
         .on_menu_event(|app, event| {
@@ -98,7 +89,6 @@ pub fn run() {
                 tauri::RunEvent::WindowEvent { label, event, .. } => {
                     if label == "main" {
                         if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                           // Handle close logic here if strictly necessary
                            api.prevent_close();
                         }
                     }

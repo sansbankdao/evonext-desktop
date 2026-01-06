@@ -1,28 +1,26 @@
 // src-tauri/src/commands/identity_commands.rs
 
 use tauri::{AppHandle, Wry};
-use crate::models::{PrivateKeyStore, PrivateKeyEntry, IMnemonic, IdentityData, DiscoveredIdentity, DiscoveredIdentitiesStore};
+use crate::models::{
+    PrivateKeyStore, PrivateKeyEntry, IMnemonic, IdentityData, DiscoveredIdentity,
+    DiscoveredIdentitiesStore, IdentityPublicKey
+};
 use crate::utils::{StoreManager, network_file::get_network_file};
 use chrono::Utc;
+
+#[tauri::command]
+pub fn debug_identity_payload(payload: serde_json::Value) -> Result<(), String> {
+    println!("[DEBUG] Incoming identity payload JSON: {}", payload);
+    Ok(())
+}
 
 #[tauri::command]
 pub fn load_private_keys(app_handle: AppHandle<Wry>, network: String) -> Result<Option<PrivateKeyStore>, String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
-
     match manager.load::<PrivateKeyStore>(filename, "keystore") {
-        Ok(data) => {
-            if let Some(_store) = &data {
-                println!("Private key store loaded successfully for {}.", network);
-            } else {
-                println!("No private key store found for {}, returning None.", network);
-            }
-            Ok(data)
-        }
-        Err(e) => {
-            println!("Failed to load private key store for {}: {}", network, e);
-            Err(e.to_string())
-        }
+        Ok(data) => Ok(data),
+        Err(e) => Err(e.to_string())
     }
 }
 
@@ -30,8 +28,8 @@ pub fn load_private_keys(app_handle: AppHandle<Wry>, network: String) -> Result<
 pub fn save_private_keys(
     app_handle: AppHandle<Wry>,
     network: String,
-    identity_id: String, // Tauri expects "identityId" from JS
-    private_keys: Vec<PrivateKeyEntry> // Tauri expects "privateKeys" from JS
+    identity_id: String,
+    private_keys: Vec<PrivateKeyEntry>
 ) -> Result<(), String> {
     println!("[DEBUG Backend 1] save_private_keys called for ID: {}", identity_id);
     println!("[DEBUG Backend 2] Received {} keys to save", private_keys.len());
@@ -40,26 +38,16 @@ pub fn save_private_keys(
     let filename = get_network_file(&network, "safu")?;
     println!("[DEBUG Backend 3] Target filename: {}", filename);
 
-    // Load existing keystore (Clone filename for load)
     let mut keystore = match manager.load::<PrivateKeyStore>(filename, "keystore") {
-        Ok(Some(store)) => {
-            println!("[DEBUG Backend 4] Loaded existing keystore");
-            store
-        },
-        _ => {
-            println!("[DEBUG Backend 4] Creating NEW keystore");
-            PrivateKeyStore::default()
-        },
+        Ok(Some(store)) => store,
+        _ => PrivateKeyStore::default(),
     };
 
-    // Get or create entry for this identity
     let identity_keys = keystore.identities.entry(identity_id.clone())
         .or_insert_with(Vec::new);
 
-    // Update or add keys
     for new_key in private_keys {
         println!("[DEBUG Backend 5] Processing key_id: {}", new_key.key_id);
-        // Check if we already have this key_id
         if let Some(existing_index) = identity_keys.iter().position(|k| k.key_id == new_key.key_id) {
             identity_keys[existing_index] = new_key;
         } else {
@@ -67,17 +55,8 @@ pub fn save_private_keys(
         }
     }
 
-    // Save the updated keystore
-    match manager.save(filename, "keystore", &keystore) {
-        Ok(_) => {
-            println!("[DEBUG Backend 6] Success! Data written to disk.");
-            Ok(())
-        }
-        Err(e) => {
-            println!("[DEBUG Backend 6] ERROR writing to disk: {}", e);
-            Err(e.to_string())
-        }
-    }
+    manager.save(filename, "keystore", &keystore)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -88,17 +67,10 @@ pub fn get_identity_private_keys(
 ) -> Result<Option<Vec<PrivateKeyEntry>>, String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
-
     match manager.load::<PrivateKeyStore>(filename, "keystore") {
-        Ok(Some(keystore)) => {
-            let keys = keystore.identities.get(&identity_id).cloned();
-            Ok(keys)
-        }
+        Ok(Some(keystore)) => Ok(keystore.identities.get(&identity_id).cloned()),
         Ok(None) => Ok(None),
-        Err(e) => {
-            println!("Failed to load keystore for {}: {}", network, e);
-            Ok(None)
-        }
+        Err(e) => Err(e.to_string())
     }
 }
 
@@ -110,47 +82,24 @@ pub fn delete_identity_keys(
 ) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
-
     let mut keystore = match manager.load::<PrivateKeyStore>(filename, "keystore") {
         Ok(Some(store)) => store,
-        Ok(None) => return Ok(()), // Nothing to delete
+        Ok(None) => return Ok(()),
         Err(e) => return Err(e.to_string()),
     };
-
     keystore.identities.remove(&identity_id);
-
-    // If we deleted all identities, also clear mnemonic
     if keystore.identities.is_empty() {
         keystore.mnemonic = None;
     }
-
-    match manager.save(filename, "keystore", &keystore) {
-        Ok(_) => {
-            println!("Deleted keys for identity {} on {}.", identity_id, network);
-            Ok(())
-        }
-        Err(e) => {
-            println!("Failed to delete keys for {}: {}", network, e);
-            Err(e.to_string())
-        }
-    }
+    manager.save(filename, "keystore", &keystore)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn delete_private_keys(app_handle: AppHandle<Wry>, network: String) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
-
-    match manager.delete(filename, "keystore") {
-        Ok(_) => {
-            println!("Private key store deleted successfully for {}.", network);
-            Ok(())
-        }
-        Err(e) => {
-            println!("Failed to delete private keys for {}: {}", network, e);
-            Err(e.to_string())
-        }
-    }
+    manager.delete(filename, "keystore").map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -165,111 +114,107 @@ pub fn save_single_identity_keys(
 ) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
-
-    // Load existing keystore
     let mut keystore = match manager.load::<PrivateKeyStore>(filename, "keystore") {
         Ok(Some(store)) => store,
         _ => PrivateKeyStore::default(),
     };
-
-    // Save mnemonic if provided
     if let Some(phrase) = seed_phrase {
         keystore.mnemonic = Some(IMnemonic { seed_phrase: phrase });
     }
-
-    // Create key entries for the 3 standard keys
     let now = Utc::now().to_rfc3339();
     let keys = vec![
-        PrivateKeyEntry {
-            identity_id: identity_id.clone(),
-            key_id: 0, // AUTH key ID
-            purpose: 0, // AUTHENTICATION
-            security_level: 0, // MASTER
-            key_type: "ecdsa".to_string(),
-            private_key: auth_key,
-            public_key: "".to_string(), // Will be populated later
-            derived_from_mnemonic: Some(true),
-            created_at: now.clone(),
-            last_used: now.clone(),
-        },
-        PrivateKeyEntry {
-            identity_id: identity_id.clone(),
-            key_id: 3, // TRANSFER key ID (purpose 3)
-            purpose: 3, // TRANSFER
-            security_level: 0, // MASTER
-            key_type: "ecdsa".to_string(),
-            private_key: transfer_key,
-            public_key: "".to_string(),
-            derived_from_mnemonic: Some(true),
-            created_at: now.clone(),
-            last_used: now.clone(),
-        },
-        PrivateKeyEntry {
-            identity_id: identity_id.clone(),
-            key_id: 4, // ENCRYPTION key ID (purpose 4)
-            purpose: 4, // ENCRYPTION
-            security_level: 0, // MASTER
-            key_type: "ecdsa".to_string(),
-            private_key: encryption_key,
-            public_key: "".to_string(),
-            derived_from_mnemonic: Some(true),
-            created_at: now.clone(),
-            last_used: now,
-        },
+        PrivateKeyEntry { identity_id: identity_id.clone(), key_id: 0, purpose: 0, security_level: 0, key_type: "ecdsa".to_string(), private_key: auth_key,      public_key: "".to_string(), derived_from_mnemonic: Some(true), created_at: now.clone(), last_used: now.clone() },
+        PrivateKeyEntry { identity_id: identity_id.clone(), key_id: 3, purpose: 3, security_level: 0, key_type: "ecdsa".to_string(), private_key: transfer_key, public_key: "".to_string(), derived_from_mnemonic: Some(true), created_at: now.clone(), last_used: now.clone() },
+        PrivateKeyEntry { identity_id: identity_id.clone(), key_id: 4, purpose: 4, security_level: 0, key_type: "ecdsa".to_string(), private_key: encryption_key, public_key: "".to_string(), derived_from_mnemonic: Some(true), created_at: now.clone(), last_used: now.clone() },
     ];
-
     keystore.identities.insert(identity_id.clone(), keys);
-
-    match manager.save(filename, "keystore", &keystore) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e.to_string())
-    }
+    manager.save(filename, "keystore", &keystore).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn load_identity_data(app_handle: AppHandle<Wry>, network: String) -> Result<Option<IdentityData>, String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "identity")?;
-
-    match manager.load(filename, "identity") {
-        Ok(data) => Ok(data),
-        Err(e) => {
-            println!("Failed to load identity data for {}: {}", network, e);
-            Err(e.to_string())
-        }
-    }
+    manager.load(filename, "identity").map_err(|e| e.to_string())
 }
 
+// Tolerant save path (accepts raw JSON and converts safely)
 #[tauri::command]
-pub fn save_identity_data(app_handle: AppHandle<Wry>, network: String, payload: IdentityData) -> Result<(), String> {
+pub fn save_identity_data_untyped(app_handle: AppHandle<Wry>, network: String, payload: serde_json::Value) -> Result<(), String> {
+    println!("[DEBUG] save_identity_data_untyped: network={}", network);
+    println!("[DEBUG] raw payload={}", payload);
+
+    let username = payload.get("username").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+    let identity_id = payload.get("identity_id").and_then(|v| v.as_str()).unwrap_or_default().to_string();
+    let identity_idx = payload.get("identity_idx").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+
+    let balance = match payload.get("balance") {
+        Some(v) if v.is_string() => v.as_str().map(|s| s.to_string()),
+        Some(v) if v.is_u64()    => Some(v.as_u64().unwrap().to_string()),
+        Some(v) if v.is_number() => Some(v.to_string()),
+        _ => None,
+    };
+
+    let is_authenticated = payload.get("is_authenticated").and_then(|v| v.as_bool()).unwrap_or(false);
+
+    let revision = match payload.get("revision") {
+        Some(v) if v.is_u64()    => Some(v.as_u64().unwrap()),
+        Some(v) if v.is_string() => v.as_str().and_then(|s| s.parse::<u64>().ok()),
+        Some(v) if v.is_number() => v.as_u64(),
+        _ => None,
+    };
+
+    let public_keys: Option<Vec<IdentityPublicKey>> = match payload.get("public_keys") {
+        Some(v) => serde_json::from_value(v.clone()).ok(),
+        None => None,
+    };
+
+    let created_at = payload.get("created_at").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let public_key_ids: Option<Vec<u32>> = match payload.get("public_key_ids") {
+        Some(v) => serde_json::from_value(v.clone()).ok(),
+        None => None,
+    };
+
+    let converted = IdentityData {
+        username,
+        identity_id,
+        identity_idx,
+        balance,
+        is_authenticated,
+        public_keys,
+        revision,
+        created_at,
+        public_key_ids,
+    };
+
+    println!("[DEBUG] converted payload: id={} idx={} rev={:?} bal={:?}", converted.identity_id, converted.identity_idx, converted.revision, converted.balance);
+
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "identity")?;
+    manager.save(filename, "identity", &converted).map_err(|e| e.to_string())
+}
 
-    match manager.save(filename, "identity", &payload) {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            println!("Failed to save identity data for {}: {}", network, e);
-            Err(e.to_string())
-        }
-    }
+// Strict path (kept for compatibility)
+#[tauri::command]
+pub fn save_identity_data(app_handle: AppHandle<Wry>, network: String, payload: IdentityData) -> Result<(), String> {
+    println!("[DEBUG] save_identity_data: network={}", network);
+    println!("[DEBUG] identity_id={}, idx={}, balance={:?}, revision={:?}",
+        payload.identity_id, payload.identity_idx, payload.balance, payload.revision
+    );
+    let manager = StoreManager::new(&app_handle);
+    let filename = get_network_file(&network, "identity")?;
+    manager.save(filename, "identity", &payload).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn delete_identity_data(app_handle: AppHandle<Wry>, network: String) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "identity")?;
-
-    match manager.delete(filename, "identity") {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            println!("Failed to delete identity data for {}: {}", network, e);
-            Err(e.to_string())
-        }
-    }
+    manager.delete(filename, "identity").map_err(|e| e.to_string())
 }
 
 // =============================================
-// NEW FUNCTIONS: DISCOVERED IDENTITIES STORAGE
+// DISCOVERED IDENTITIES STORAGE
 // =============================================
 
 #[tauri::command]
@@ -281,30 +226,19 @@ pub fn save_discovered_identities(
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "discovered")?;
 
-    // Load existing (clone filename)
     let mut store = match manager.load::<DiscoveredIdentitiesStore>(filename, "discovered") {
         Ok(Some(existing)) => existing,
         _ => DiscoveredIdentitiesStore::default(),
     };
 
-    // Merge/update
     for di in discovered_identities {
         store.identities.insert(di.identity_id.clone(), di);
     }
 
     store.last_scan = Some(Utc::now().to_rfc3339());
-
-    // Save
-    match manager.save(filename, "discovered", &store) {
-        Ok(_) => {
-            println!("Saved {} discovered identities for {}", store.identities.len(), network);
-            Ok(store.identities.len())
-        }
-        Err(e) => {
-            println!("Failed to save discovered identities for {}: {}", network, e);
-            Err(e.to_string())
-        }
-    }
+    manager.save(filename, "discovered", &store)
+        .map(|_| store.identities.len())
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -314,15 +248,7 @@ pub fn load_discovered_identities(
 ) -> Result<Option<DiscoveredIdentitiesStore>, String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "discovered")?;
-
-    match manager.load::<DiscoveredIdentitiesStore>(filename, "discovered") {
-        Ok(Some(store)) => Ok(Some(store)),
-        Ok(None) => Ok(None),
-        Err(e) => {
-            println!("Failed to load discovered identities for {}: {}", network, e);
-            Err(e.to_string())
-        }
-    }
+    manager.load::<DiscoveredIdentitiesStore>(filename, "discovered").map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -332,12 +258,5 @@ pub fn clear_discovered_identities(
 ) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "discovered")?;
-
-    match manager.delete(filename, "discovered") {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            println!("Failed to clear discovered identities for {}: {}", network, e);
-            Err(e.to_string())
-        }
-    }
+    manager.delete(filename, "discovered").map_err(|e| e.to_string())
 }

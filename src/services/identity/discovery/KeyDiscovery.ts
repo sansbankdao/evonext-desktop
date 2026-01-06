@@ -38,6 +38,7 @@ export class KeyDiscovery extends BaseDiscovery {
             if (isPub) {
                 const pubBytes = hexToBin(clean.toLowerCase())
                 const publicKeyHash = binToHex(hash160(pubBytes))
+                console.log(`[KeyDiscovery] Derived Public Key Hash: ${publicKeyHash.substring(0, 24)}...`)
                 const uniqueResult = await DAPIService.queryIdentityByHash(publicKeyHash, options.network, true)
                 const resultToUse = uniqueResult.success
                     ? uniqueResult
@@ -87,6 +88,7 @@ export class KeyDiscovery extends BaseDiscovery {
             const publicKey = privateKey.getPublicKey()
             const publicKeyBytes = publicKey.bytes()
             const publicKeyHash = binToHex(hash160(publicKeyBytes))
+            console.log(`[KeyDiscovery] Derived Public Key Hash: ${publicKeyHash.substring(0, 24)}...`)
             // Unique lookup
             const uniqueResult = await DAPIService.queryIdentityByHash(publicKeyHash, options.network, true)
             if (uniqueResult.success && uniqueResult.data) {
@@ -186,13 +188,14 @@ export class KeyDiscovery extends BaseDiscovery {
             if (format.format === 'HEX_PRIVATE') {
                 return PrivateKeyWASM.fromHex(cleanKey.toLowerCase(), network)
             }
-            // Public keys are handled in discoverFromKey without private key instance
+            // Public keys are handled separately above
             return null
         } catch (error) {
             console.error('[KeyDiscovery] Failed to get private key instance:', error)
             return null
         }
     }
+    // Save ONLY the matching key (not every keyId). Multiple keys require the seed path.
     private async saveDiscoveredKeyToStorage(
         network: 'mainnet' | 'testnet',
         privateKeyInstance: PrivateKeyWASM,
@@ -202,37 +205,30 @@ export class KeyDiscovery extends BaseDiscovery {
         try {
             if (!identityId || !publicKeys || publicKeys.length === 0) return false
             const now = new Date().toISOString()
-            const privateKeyEntries: any[] = []
-            for (let i = 0; i < publicKeys.length; i++) {
-                const publicKey = publicKeys[i]
-                const keyId = publicKey.id
-                if (keyId === undefined || keyId === null || keyId > 100) continue
-                try {
-                    const derivedPub = privateKeyInstance.getPublicKey()
-                    const derivedPubHex = binToHex(derivedPub.bytes())
-                    const keyEntry = {
-                        identityId: identityId,
-                        keyId: publicKey.id,
-                        purpose: publicKey.purpose,
-                        securityLevel: publicKey.securityLevel,
-                        keyType: publicKey.keyType || 'ecdsa',
-                        privateKey: privateKeyInstance.WIF(),
-                        publicKey: derivedPubHex,
-                        derivedFromMnemonic: false,
-                        createdAt: now,
-                        lastUsed: now
-                    }
-                    privateKeyEntries.push(keyEntry)
-                } catch (deriveErr) {
-                    console.warn(`[KeyDiscovery] Failed to prepare key entry for ID ${publicKey.id}`, deriveErr)
-                    continue
-                }
-            }
-            if (privateKeyEntries.length === 0) {
-                const derivedPub = privateKeyInstance.getPublicKey()
-                const derivedPubHex = binToHex(derivedPub.bytes())
-                privateKeyEntries.push({
-                    identityId: identityId,
+            const derivedPubHex = binToHex(privateKeyInstance.getPublicKey().bytes())
+            // Try to match exact public key
+            const matching = publicKeys.find((pk: any) => {
+                const dataHex = (pk.data || pk.dataB64 || '').toString().toLowerCase()
+                return dataHex && dataHex === derivedPubHex.toLowerCase()
+            })
+            const entries: any[] = []
+            if (matching) {
+                entries.push({
+                    identityId,
+                    keyId: matching.id ?? 0,
+                    purpose: matching.purpose ?? 0,
+                    securityLevel: matching.securityLevel ?? 0,
+                    keyType: matching.keyType || 'ecdsa',
+                    privateKey: privateKeyInstance.WIF(),
+                    publicKey: derivedPubHex,
+                    derivedFromMnemonic: false,
+                    createdAt: now,
+                    lastUsed: now
+                })
+            } else {
+                // Fallback: save as keyId 0 if no exact match found
+                entries.push({
+                    identityId,
                     keyId: 0,
                     purpose: 0,
                     securityLevel: 0,
@@ -244,16 +240,12 @@ export class KeyDiscovery extends BaseDiscovery {
                     lastUsed: now
                 })
             }
-            if (privateKeyEntries.length > 0) {
-                await invoke('save_private_keys', {
-                    network,
-                    identityId: identityId,
-                    privateKeys: privateKeyEntries
-                })
-                console.log(`[KeyDiscovery] Saved ${privateKeyEntries.length} key(s) to Rust storage for ${identityId}`)
-                return true
-            }
-            return false
+            await invoke('save_private_keys', {
+                network,
+                identityId,
+                privateKeys: entries
+            })
+            return true
         } catch (err) {
             console.error(`[KeyDiscovery] Failed to save keys:`, err)
             return false
