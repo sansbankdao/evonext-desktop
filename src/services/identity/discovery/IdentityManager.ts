@@ -11,22 +11,28 @@ import type {
     AssociatedKey,
 } from '../types'
 import type { KeyHashDerivationResult } from '@/types'
+
 export class IdentityManager {
     private keyDiscovery: KeyDiscovery
     private seedDiscovery: SeedDiscovery
+
     constructor() {
         this.keyDiscovery = new KeyDiscovery()
         this.seedDiscovery = new SeedDiscovery()
     }
+
     setProgressCallback(callback: ProgressCallback) {
         this.seedDiscovery.setProgressCallback(callback)
     }
+
     clearProgressCallback() {
         this.seedDiscovery.setProgressCallback(() => {})
     }
+
     cancelSeedDiscovery() {
         this.seedDiscovery.cancel()
     }
+
     async discoverFromKey(
         keyInput: string,
         options: DiscoveryOptions = { network: 'testnet' }
@@ -42,6 +48,7 @@ export class IdentityManager {
                 debug: { step: 'input_validation', network: options.network }
             }
         }
+
         try {
             return await this.keyDiscovery.discover(keyInput, options)
         } catch (error: any) {
@@ -56,6 +63,7 @@ export class IdentityManager {
             }
         }
     }
+
     async discoverFromSeed(
         seedPhrase: string,
         options: DiscoveryOptions & { maxIdentityIndex?: number } = {
@@ -74,7 +82,9 @@ export class IdentityManager {
                 debug: { step: 'input_validation', network: options.network }
             }
         }
+
         const words = seedPhrase.trim().split(/\s+/)
+
         if (words.length !== 12 && words.length !== 24) {
             return {
                 success: false,
@@ -86,6 +96,7 @@ export class IdentityManager {
                 debug: { step: 'seed_validation', network: options.network }
             }
         }
+
         try {
             const seedOptions = {
                 network: options.network,
@@ -118,6 +129,7 @@ export class IdentityManager {
             }
         }
     }
+
     async discover(
         input: string,
         options: DiscoveryOptions = { network: 'testnet' }
@@ -133,13 +145,17 @@ export class IdentityManager {
                 debug: { step: 'input_validation', network: options.network }
             }
         }
+
         const trimmedInput = input.trim()
         const words = trimmedInput.split(/\s+/)
+
         if (words.length === 12 || words.length === 24) {
             return this.discoverFromSeed(trimmedInput, { ...options, maxIdentityIndex: 5 })
         }
+
         return this.discoverFromKey(trimmedInput, options)
     }
+
     async getDPNSUsername(
         identityId: string,
         network: 'mainnet' | 'testnet' = 'testnet'
@@ -155,6 +171,7 @@ export class IdentityManager {
             return null
         }
     }
+
     async getIdentityById(
         identityId: string,
         network: 'mainnet' | 'testnet' = 'testnet'
@@ -171,7 +188,9 @@ export class IdentityManager {
                     debug: { step: 'identity_id_validation', network }
                 }
             }
+
             const result = await DAPIService.getIdentityById(identityId.trim(), network)
+
             if (result.success && result.data) {
                 const identityData = result.data
                 const dpnsUsername = await this.getDPNSUsername(identityId.trim(), network)
@@ -193,6 +212,7 @@ export class IdentityManager {
                     debug: result.debug
                 }
             }
+
             return {
                 success: false,
                 error: result.error || `No identity found with ID: ${identityId}`,
@@ -214,15 +234,18 @@ export class IdentityManager {
             }
         }
     }
+
     detectKeyFormat(keyInput: string): { format: KeyType; description: string } {
         return KeyDerivationService.detectKeyFormat(keyInput)
     }
+
     async deriveKeyHashes(
         keyInput: string,
         network: 'mainnet' | 'testnet' = 'testnet'
     ): Promise<KeyHashDerivationResult> {
         return KeyDerivationService.deriveAllPossibleHashes(keyInput, network)
     }
+
     // Helpers
     private formatBalance(balance: any): string {
         if (balance === undefined || balance === null) return '0'
@@ -230,6 +253,7 @@ export class IdentityManager {
         if (typeof balance === 'string') return balance
         try { return balance.toString() } catch { return '0' }
     }
+
     private extractAssociatedKeys(publicKeys: any[]): AssociatedKey[] {
         if (!Array.isArray(publicKeys) || publicKeys.length === 0) {
             return []
@@ -242,20 +266,22 @@ export class IdentityManager {
             derivedFromInput: false
         }))
     }
+
     private getKeyPurposeDisplay(purpose: string | number): string {
         const p = typeof purpose === 'string' ? purpose.toUpperCase() : String(purpose)
         const purposeMap: Record<string, string> = {
             '0': 'Authentication',
-            '1': 'Transfer',
-            '2': 'Encryption',
-            '3': 'Key Management',
+            '1': 'Encryption',
+            '2': 'Decryption',
+            '3': 'Transfer',
             'AUTHENTICATION': 'Authentication',
-            'TRANSFER': 'Transfer',
             'ENCRYPTION': 'Encryption',
-            'KEY_MANAGEMENT': 'Key Management',
+            'DECRYPTION': 'Decryption',
+            'TRANSFER': 'Transfer',
         }
         return purposeMap[p] || String(purpose)
     }
+
     private getSecurityLevelDisplay(securityLevel: string | number): string {
         const s = typeof securityLevel === 'string' ? securityLevel.toUpperCase() : String(securityLevel)
         const levelMap: Record<string, string> = {
@@ -264,24 +290,28 @@ export class IdentityManager {
             '2': 'High',
             '3': 'Medium',
             '4': 'Low',
+            'MASTER': 'Master',
             'CRITICAL': 'Critical',
             'HIGH': 'High',
             'MEDIUM': 'Medium',
             'LOW': 'Low',
-            'MASTER': 'Master'
         }
         return levelMap[s] || String(securityLevel)
     }
+
     cleanup() {
         this.cancelSeedDiscovery()
         KeyDerivationService.cleanup()
     }
 }
+
 // Singleton accessor to preserve existing imports
 let identityManagerSingleton: IdentityManager | null = null
+
 export function getIdentityManager(): IdentityManager {
     if (!identityManagerSingleton) {
         identityManagerSingleton = new IdentityManager()
     }
+
     return identityManagerSingleton
 }

@@ -69,20 +69,23 @@ fn base64_to_hex(s: &str) -> Option<String> {
 fn purpose_to_u32(purpose: Option<String>, fallback: Option<u32>) -> u32 {
     if let Some(p) = purpose {
         let up = p.to_uppercase();
+
         return match up.as_str() {
             "AUTHENTICATION" => 0,
-            "TRANSFER" => 1,
-            "ENCRYPTION" => 2,
-            "KEY_MANAGEMENT" => 3,
+            "ENCRYPTION" => 1,
+            "DECRYPTION" => 2,
+            "TRANSFER" => 3,
             _ => fallback.unwrap_or(0),
         };
     }
+
     fallback.unwrap_or(0)
 }
 
 fn sec_level_to_u32(seclvl: Option<String>, fallback: Option<u32>) -> u32 {
     if let Some(s) = seclvl {
         let up = s.to_uppercase();
+
         return match up.as_str() {
             "MASTER" => 0,
             "CRITICAL" => 1,
@@ -92,6 +95,7 @@ fn sec_level_to_u32(seclvl: Option<String>, fallback: Option<u32>) -> u32 {
             _ => fallback.unwrap_or(0),
         };
     }
+
     fallback.unwrap_or(0)
 }
 
@@ -110,6 +114,7 @@ fn normalize_public_keys(raw: &JsonValue) -> Vec<IdentityPublicKey> {
                 continue;
             }
         };
+
         let id = pick_u32(obj, &["id"]).unwrap_or(idx as u32);
         let type_ = pick_str(obj, &["type", "type_", "keyType"]).unwrap_or_else(|| "UNKNOWN".to_string());
         let purpose_str = pick_str(obj, &["purpose"]);
@@ -148,6 +153,7 @@ fn normalize_public_keys(raw: &JsonValue) -> Vec<IdentityPublicKey> {
 fn derive_public_key_ids(pks: &Vec<IdentityPublicKey>, maybe_ids: Option<&JsonValue>) -> Vec<u32> {
     if let Some(JsonValue::Array(ids)) = maybe_ids {
         let mut v = Vec::new();
+
         for (i, it) in ids.iter().enumerate() {
             if let Some(n) = it.as_u64() {
                 v.push(n as u32);
@@ -161,10 +167,12 @@ fn derive_public_key_ids(pks: &Vec<IdentityPublicKey>, maybe_ids: Option<&JsonVa
                 v.push(i as u32);
             }
         }
+
         if !v.is_empty() {
             return v;
         }
     }
+
     pks.iter().map(|pk| pk.id).collect()
 }
 

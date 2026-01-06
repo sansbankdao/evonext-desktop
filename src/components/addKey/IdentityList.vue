@@ -97,41 +97,6 @@ const getIdentityDisplayName = (identity: IIdentity): string => {
     return 'Unnamed Identity'
 }
 
-// const getPurposeLabel = (purpose: number | string): string => {
-//     const purposeNum = typeof purpose === 'string' ? parseInt(purpose) : purpose
-//     switch(purposeNum) {
-//         case 0: return 'AUTHENTICATION'
-//         case 1: return 'TRANSFER'
-//         case 2: return 'ENCRYPTION'
-//         case 3: return 'TRANSFER'
-//         default: return `Purpose ${purpose}`
-//     }
-// }
-
-// const getSecurityLevelLabel = (level: number | string): string => {
-//     const levelNum = typeof level === 'string' ? parseInt(level) : level
-//     switch(levelNum) {
-//         case 0: return 'MASTER'
-//         case 1: return 'CRITICAL'
-//         case 2: return 'HIGH'
-//         case 3: return 'MEDIUM'
-//         case 4: return 'LOW'
-//         default: return `Level ${level}`
-//     }
-// }
-
-// const getSecurityLevelClass = (level: number | string): string => {
-//     const levelNum = typeof level === 'string' ? parseInt(level) : level
-//     switch(levelNum) {
-//         case 0: return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
-//         case 1: return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-//         case 2: return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300'
-//         case 3: return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'
-//         case 4: return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-//         default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
-//     }
-// }
-
 const getKeyBadgeClass = (key: IPublicKey): string => {
     const purpose = typeof key.purpose === 'string' ? parseInt(key.purpose) : key.purpose
     if (purpose === 1 || purpose === 3) return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'

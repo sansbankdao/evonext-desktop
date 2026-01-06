@@ -140,8 +140,8 @@ const getPurposeLabel = (purpose: number | string): string => {
     const purposeNum = typeof purpose === 'string' ? parseInt(purpose) : purpose
     switch(purposeNum) {
         case 0: return 'AUTHENTICATION'
-        case 1: return 'TRANSFER'
-        case 2: return 'ENCRYPTION'
+        case 1: return 'ENCRYPTION'
+        case 2: return 'DECRYPTION'
         case 3: return 'TRANSFER'
         default: return `Purpose ${purpose}`
     }

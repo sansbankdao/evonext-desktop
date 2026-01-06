@@ -6,11 +6,14 @@ export function useKeyUtils() {
     // Generate stable unique ID for a public key
     const generateKeyId = (key: IPublicKey, index: number): string => {
         const purpose = typeof key.purpose === 'string' ? key.purpose : key.purpose.toString()
+
         const securityLevel = typeof key.securityLevel === 'string' ? key.securityLevel : key.securityLevel.toString()
+
         const typeStr = (key as any).type || key.keyType || 'unknown'
 
         // Create a simple hash from the data if available
         let dataHash = ''
+
         if (key.data) {
             try {
                 // Convert to string and take first 8 chars of base64
@@ -32,17 +35,20 @@ export function useKeyUtils() {
     // Convert purpose to label
     const getPurposeLabel = (purpose: number | string): string => {
         const purposeNum = typeof purpose === 'string' ? parseInt(purpose) : purpose
+
         switch(purposeNum) {
             case 0: return 'AUTHENTICATION'
-            case 1: return 'TRANSFER'
-            case 2: return 'ENCRYPTION'
+            case 1: return 'ENCRYPTION'
+            case 2: return 'DECRYPTION'
             case 3: return 'TRANSFER'
             default: return `Purpose ${purpose}`
         }
     }
+
     // Convert security level to label
     const getSecurityLevelLabel = (level: number | string): string => {
         const levelNum = typeof level === 'string' ? parseInt(level) : level
+
         switch(levelNum) {
             case 0: return 'MASTER'
             case 1: return 'CRITICAL'
@@ -52,9 +58,11 @@ export function useKeyUtils() {
             default: return `Level ${level}`
         }
     }
+
     // Get CSS class for security level
     const getSecurityLevelClass = (level: number | string): string => {
         const levelNum = typeof level === 'string' ? parseInt(level) : level
+
         switch(levelNum) {
             case 0: return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
             case 1: return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
@@ -64,6 +72,7 @@ export function useKeyUtils() {
             default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
         }
     }
+
     // Get CSS class for key badge
     const getKeyBadgeClass = (key: IPublicKey): string => {
         const purpose = typeof key.purpose === 'string' ? parseInt(key.purpose) : key.purpose
@@ -72,6 +81,7 @@ export function useKeyUtils() {
         if (purpose === 2) return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
     }
+
     // Get short key type label
     const getKeyTypeShort = (key: IPublicKey): string => {
         const purpose = typeof key.purpose === 'string' ? parseInt(key.purpose) : key.purpose
@@ -80,6 +90,7 @@ export function useKeyUtils() {
         if (purpose === 2) return 'ENCRYPT'
         return 'KEY'
     }
+
     // Check if keys array contains a transfer key
     const hasTransferKey = (publicKeys?: IPublicKey[]): boolean => {
         return publicKeys?.some((key: IPublicKey) => {
@@ -87,6 +98,7 @@ export function useKeyUtils() {
             return purpose === 1 || purpose === 3
         }) || false
     }
+
     // Parse purpose string/number to enum
     const parsePurpose = (purpose: string | number): PurposeType => {
         if (typeof purpose === 'string') {
@@ -98,6 +110,7 @@ export function useKeyUtils() {
         }
         return purpose as PurposeType
     }
+
     // Parse security level string/number to enum
     const parseSecurityLevel = (level: string | number): SecurityLevelType => {
         if (typeof level === 'string') {
@@ -109,6 +122,7 @@ export function useKeyUtils() {
         }
         return level as SecurityLevelType
     }
+
     // Get identity display name
     const getIdentityDisplayName = (identity: any): string => {
         if (identity.display_name) return identity.display_name
@@ -116,11 +130,13 @@ export function useKeyUtils() {
         if (identity.username) return identity.username.split('.')[0] || 'Unnamed Identity'
         return 'Unnamed Identity'
     }
+
     // Get identity initial for avatar
     const getIdentityInitial = (identity: any): string => {
         const name = getIdentityDisplayName(identity)
         return name.charAt(0).toUpperCase()
     }
+
     return {
         generateKeyId,
         getPurposeLabel,

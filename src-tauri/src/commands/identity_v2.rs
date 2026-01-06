@@ -13,6 +13,7 @@ use ripemd::Ripemd160;
 use hex;
 use base64;
 use ts_rs::TS;
+
 // =====================================================
 // Public API payload/result (also exported to TS later)
 // =====================================================
@@ -28,6 +29,7 @@ pub struct UnifiedCommandResult {
 #[derive(Serialize, Deserialize, Clone, Debug, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export, export_to = "../src/types/rust/")]
+
 pub struct SaveIdentityPayload {
     pub identity_id: String,
     pub identity_idx: Option<u32>,
@@ -40,6 +42,7 @@ pub struct SaveIdentityPayload {
     pub public_keys: Option<Vec<JsonValue>>,    // tolerant; normalized here
     pub created_at: Option<String>,
 }
+
 // =====================================================
 // Unified entrypoint: save identity (tolerant, normalized)
 // =====================================================
@@ -134,6 +137,7 @@ pub async fn save_identity_unified(
         }
     }
 }
+
 // =====================================================
 // Query identity (reads what we saved, no network)
 // =====================================================
@@ -176,6 +180,7 @@ pub async fn query_and_update_identity(
         }),
     }
 }
+
 // =====================================================
 // Enrich keystore: fill publicKey, map to identity keys
 // =====================================================
@@ -355,29 +360,34 @@ pub async fn enrich_keystore_for_identity(
         }),
     }
 }
+
 // =====================================================
 // Helpers
 // =====================================================
 fn normalize_public_key(default_id: u32, raw: &JsonValue) -> Result<IdentityPublicKey, String> {
     let obj = raw.as_object().ok_or("public key not an object")?;
+
     let id = match obj.get("id") {
         Some(JsonValue::Number(n)) => n.as_u64().unwrap_or(default_id as u64) as u32,
         Some(JsonValue::String(s)) => s.parse::<u32>().unwrap_or(default_id),
         _ => default_id,
     };
+
     let type_str =
         pick_string(obj, &["type", "type_", "keyType"]).unwrap_or("UNKNOWN".to_string());
+
     let purpose_u32 = match pick_string(obj, &["purpose"]).as_deref() {
         Some("AUTHENTICATION") => 0,
-        Some("TRANSFER") => 1,
-        Some("ENCRYPTION") => 2,
-        Some("KEY_MANAGEMENT") => 3,
+        Some("ENCRYPTION") => 1,
+        Some("DECRYPTION") => 2,
+        Some("TRANSFER") => 3,
         Some(s) => s.parse::<u32>().unwrap_or(0),
         None => match obj.get("purpose") {
             Some(JsonValue::Number(n)) => n.as_u64().unwrap_or(0) as u32,
             _ => 0,
         },
     };
+
     let security_u32 = match pick_string(obj, &["securityLevel"]).as_deref() {
         Some("MASTER") => 0,
         Some("CRITICAL") => 1,
@@ -390,11 +400,14 @@ fn normalize_public_key(default_id: u32, raw: &JsonValue) -> Result<IdentityPubl
             _ => 0,
         },
     };
+
     let read_only = match obj.get("readOnly") {
         Some(JsonValue::Bool(b)) => *b,
         _ => false,
     };
+
     let disabled_at = pick_string(obj, &["disabledAt"]);
+
     // Prefer hex "data"; fallback to base64 "dataB64"
     let data_hex = if let Some(s) = pick_string(obj, &["data"]) {
         s
@@ -403,6 +416,7 @@ fn normalize_public_key(default_id: u32, raw: &JsonValue) -> Result<IdentityPubl
     } else {
         "".to_string()
     };
+
     Ok(IdentityPublicKey {
         id,
         type_: type_str,
@@ -413,6 +427,7 @@ fn normalize_public_key(default_id: u32, raw: &JsonValue) -> Result<IdentityPubl
         disabled_at,
     })
 }
+
 fn pick_string(obj: &serde_json::Map<String, JsonValue>, keys: &[&str]) -> Option<String> {
     for k in keys {
         if let Some(JsonValue::String(s)) = obj.get(*k) {
@@ -421,23 +436,28 @@ fn pick_string(obj: &serde_json::Map<String, JsonValue>, keys: &[&str]) -> Optio
     }
     None
 }
+
 fn base64_to_hex(input: &str) -> Option<String> {
     let bytes = base64::decode(input).ok()?;
     Some(hex::encode(bytes))
 }
+
 fn hash160_hex(data: &[u8]) -> String {
     let sha = Sha256::digest(data);
     let ripe = Ripemd160::digest(sha);
     hex::encode(ripe)
 }
+
 fn equals_hex_case_insensitive(a: &str, b: &str) -> bool {
     a.trim().eq_ignore_ascii_case(b.trim())
 }
+
 fn apply_purpose_security(entry: &mut PrivateKeyEntry, purpose: u32, security_level: u32) {
     // Only overwrite if we actually matched the on-chain key
     entry.purpose = purpose;
     entry.security_level = security_level;
 }
+
 // Derive compressed secp256k1 public key from WIF private key (bitcoin 0.32)
 fn derive_compressed_pubkey_hex_from_wif(wif: &str) -> Option<String> {
     let pk = bitcoin::PrivateKey::from_wif(wif).ok()?;
