@@ -123,7 +123,8 @@ export interface IIdentityState {
     isAuthenticated: boolean;
     premiumAccess: boolean;
     connectionError: string | null;
-    isConnecting: boolean
+    isConnected: boolean;
+    isConnecting: boolean;
     lastConnected: number | null;
     discoveryProgress?: DiscoveryProgress | null;
     identitiesMap: IIdentityStoreMap;

@@ -1,18 +1,20 @@
 // src/composables/useConnect.ts
 
-// src/composables/useConnect.ts
-
 import { ref, computed, watch } from 'vue'
 import { useIdentityStore } from '@/stores/identity'
 import { storeToRefs } from 'pinia'
 import { getIdentityManager } from '@/services/identity/discovery/IdentityManager'
 import { useNetwork } from '@/composables/useNetwork'
+import { useNotification } from '@/composables/useNotification'
+import { invoke } from '@tauri-apps/api/core'
 import type {
     ConnectionResult,
     DiscoveredIdentity,
     DiscoveryProgress
 } from '@/types'
 import type { DiscoveryResult } from '@/services/identity/types'
+
+const { showSuccess, showError } = useNotification()
 
 export function useConnect() {
     const store = useIdentityStore()
@@ -221,15 +223,15 @@ export function useConnect() {
     }
 
     const handleConnect = async () => {
-        // Always write-only to Rust; no re-discovery, no extra calls
+        if (store.isConnecting) return
+        store.isConnecting = true
+
         try {
             const runNetwork = await ensure()
 
             if (connectionMethod.value === 'seed') {
                 const identity = selectedSeedIdentity.value
-                if (!identity) {
-                    throw new Error('No identity selected')
-                }
+                if (!identity) throw new Error('No identity selected')
 
                 await store.connectWriteOnlyFromDiscovered(
                     {
@@ -244,14 +246,15 @@ export function useConnect() {
                     },
                     runNetwork
                 )
+
+                // Seed flow: we are not deriving and saving private keys here
+                // (requires mnemonic derivation). Identity written successfully.
             } else {
-                // privateKey flow
                 const id =
                     (manualIdentityId.value || discoveredIdentity.value?.identityId || '')
                         .trim()
                 if (!id) throw new Error('Missing identity id')
 
-                // If discovery produced a snapshot, use it; otherwise write minimal identity
                 const snap = discoveredIdentity.value
                     ? {
                         identityId: discoveredIdentity.value.identityId,
@@ -279,12 +282,64 @@ export function useConnect() {
                     }
 
                 await store.connectWriteOnlyFromDiscovered(snap, runNetwork)
+
+                // PRIVATE KEY FLOW: write a single key to SAFU (minimal, no derivation)
+                // Use provided key input if available
+                const pk = privateKeyInput.value?.trim()
+                if (pk) {
+                    // Use discovered details for purpose/security if present; else defaults
+                    const first = (discoveryDetails.value?.associatedKeys || [])[0] || {}
+                    const purposeStr = String(first.purpose || 'AUTHENTICATION').toUpperCase()
+                    const secStr = String(first.securityLevel || 'MASTER').toUpperCase()
+
+                    const purposeMap: Record<string, number> = {
+                        AUTHENTICATION: 0,
+                        ENCRYPTION: 1,
+                        DECRYPTION: 2,
+                        TRANSFER: 3
+                    }
+                    const secMap: Record<string, number> = {
+                        MASTER: 0,
+                        CRITICAL: 1,
+                        HIGH: 2,
+                        MEDIUM: 3,
+                        LOW: 4
+                    }
+
+                    const purpose = purposeMap[purposeStr] ?? 0
+                    const security_level = secMap[secStr] ?? 0
+
+                    const now = new Date().toISOString()
+                    const entry = {
+                        identity_id: id,
+                        key_id: 0,
+                        purpose,
+                        security_level,
+                        key_type: String(first.keyType || 'UNKNOWN'),
+                        private_key: pk,            // store as entered (WIF/HEX)
+                        public_key: '',             // no derivation here
+                        derived_from_mnemonic: false,
+                        created_at: now,
+                        last_used: now
+                    }
+
+                    await invoke<boolean>('save_single_identity_keys', {
+                        identityId: id,
+                        key: entry,
+                        network: runNetwork
+                    })
+                }
             }
+
+            showSuccess(`Connected to ${store.username || store.identityId || 'identity'}`)
         } catch (err: any) {
+            showError(err?.message || 'Failed to connect')
             console.error('Connect failed:', err)
             store.clearConnectionError()
             store.connectionError = err?.message || 'Failed to connect'
             throw err
+        } finally {
+            store.isConnecting = false
         }
     }
 

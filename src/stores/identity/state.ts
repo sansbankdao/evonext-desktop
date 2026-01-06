@@ -19,6 +19,7 @@ export const useIdentityState = (): IIdentityState => ({
     premiumAccess: false,
     connectionError: null,
     isConnecting: false,
+    isConnected: false, // NEW
     lastConnected: null,
     discoveryProgress: null,
 

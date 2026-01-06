@@ -21,8 +21,8 @@ export function connectWriteOnlyActions() {
             network: Network
         ): Promise<void> {
             if (!discovered || !discovered.identityId) {
-                this.error = 'No discovered identity to connect'
-                throw new Error(this.error)
+                this.connectionError = 'No discovered identity to connect'
+                throw new Error(this.connectionError)
             }
 
             const payload: any = {
@@ -52,28 +52,28 @@ export function connectWriteOnlyActions() {
             })
 
             if (!ok) {
-                this.error = 'Failed to connect (write identity)'
+                this.connectionError = 'Failed to connect (write identity)'
                 this.isConnected = false
-                throw new Error(this.error)
+                throw new Error(this.connectionError)
             }
 
-            this.activeIdentity = {
-                identityId: payload.identity_id,
-                identityIdx: payload.identity_idx,
-                username: payload.username,
-                displayName: payload.username,
-                dpnsUsername: discovered.dpnsUsername ?? null,
-                balance: payload.balance ?? '0',
-                revision:
-                    typeof payload.revision === 'number'
-                        ? payload.revision
-                        : Number(payload.revision || 0),
-                publicKeys: discovered.publicKeys ?? [],
-                isAuthenticated: true,
-                createdAt: payload.created_at
+            // Update store fields used by Header and the rest of the app
+            this.identityId = payload.identity_id
+            this.username = payload.username
+            this.identity = {
+                id: payload.identity_id,
+                idx: payload.identity_idx,
+                username: payload.username
             }
+            this.publicKeys = discovered.publicKeys ?? []
+            this.revision =
+                typeof payload.revision === 'number'
+                    ? payload.revision
+                    : Number(payload.revision || 0)
+            this.isAuthenticated = true
             this.isConnected = true
-            this.error = null
+            this.lastConnected = payload.created_at
+            this.connectionError = null
         }
     }
 }
