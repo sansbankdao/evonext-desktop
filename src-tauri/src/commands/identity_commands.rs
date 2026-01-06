@@ -1,14 +1,17 @@
 // src-tauri/src/commands/identity_commands.rs
 
 use tauri::AppHandle;
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value as JsonValue};
+use base64::{engine::general_purpose, Engine};
+// use serde::{Deserialize, Serialize};
+use serde_json::{Value as JsonValue};
+// use serde_json::{json, Value as JsonValue};
 use chrono::Utc;
 use crate::models::{
     IdentityData, IdentityPublicKey, PrivateKeyEntry, PrivateKeyStore,
 };
 use crate::utils::StoreManager;
 use crate::utils::network_file::get_network_file;
+
 // ---------------------- Helpers ----------------------
 fn pick_str(obj: &serde_json::Map<String, JsonValue>, keys: &[&str]) -> Option<String> {
     for k in keys {
@@ -18,9 +21,11 @@ fn pick_str(obj: &serde_json::Map<String, JsonValue>, keys: &[&str]) -> Option<S
     }
     None
 }
+
 fn pick_bool(obj: &serde_json::Map<String, JsonValue>, key: &str) -> Option<bool> {
     obj.get(key).and_then(|v| v.as_bool())
 }
+
 fn pick_u32(obj: &serde_json::Map<String, JsonValue>, keys: &[&str]) -> Option<u32> {
     for k in keys {
         match obj.get(*k) {
@@ -35,6 +40,7 @@ fn pick_u32(obj: &serde_json::Map<String, JsonValue>, keys: &[&str]) -> Option<u
     }
     None
 }
+
 fn val_to_u64(val: &JsonValue) -> Option<u64> {
     match val {
         JsonValue::Number(n) => n.as_u64(),
@@ -42,6 +48,7 @@ fn val_to_u64(val: &JsonValue) -> Option<u64> {
         _ => None,
     }
 }
+
 fn val_to_string(val: &JsonValue) -> Option<String> {
     match val {
         JsonValue::String(s) => Some(s.clone()),
@@ -50,10 +57,12 @@ fn val_to_string(val: &JsonValue) -> Option<String> {
         _ => None,
     }
 }
+
 fn base64_to_hex(s: &str) -> Option<String> {
-    let bytes = base64::decode(s).ok()?;
+    let bytes = general_purpose::STANDARD.decode(s).ok()?;
     Some(hex::encode(bytes))
 }
+
 fn purpose_to_u32(purpose: Option<String>, fallback: Option<u32>) -> u32 {
     if let Some(p) = purpose {
         let up = p.to_uppercase();
@@ -67,6 +76,7 @@ fn purpose_to_u32(purpose: Option<String>, fallback: Option<u32>) -> u32 {
     }
     fallback.unwrap_or(0)
 }
+
 fn sec_level_to_u32(seclvl: Option<String>, fallback: Option<u32>) -> u32 {
     if let Some(s) = seclvl {
         let up = s.to_uppercase();
@@ -81,12 +91,14 @@ fn sec_level_to_u32(seclvl: Option<String>, fallback: Option<u32>) -> u32 {
     }
     fallback.unwrap_or(0)
 }
+
 fn normalize_public_keys(raw: &JsonValue) -> Vec<IdentityPublicKey> {
     let mut out: Vec<IdentityPublicKey> = Vec::new();
     let arr = match raw.as_array() {
         Some(a) => a,
         None => return out,
     };
+
     for (idx, v) in arr.iter().enumerate() {
         let obj = match v.as_object() {
             Some(o) => o,
@@ -129,6 +141,7 @@ fn normalize_public_keys(raw: &JsonValue) -> Vec<IdentityPublicKey> {
     }
     out
 }
+
 fn derive_public_key_ids(pks: &Vec<IdentityPublicKey>, maybe_ids: Option<&JsonValue>) -> Vec<u32> {
     if let Some(JsonValue::Array(ids)) = maybe_ids {
         let mut v = Vec::new();
@@ -151,6 +164,7 @@ fn derive_public_key_ids(pks: &Vec<IdentityPublicKey>, maybe_ids: Option<&JsonVa
     }
     pks.iter().map(|pk| pk.id).collect()
 }
+
 // ---------------------- Key Store helpers ----------------------
 fn load_keystore(app: &AppHandle, network: &str) -> Result<PrivateKeyStore, String> {
     let manager = StoreManager::new(app);
@@ -161,6 +175,7 @@ fn load_keystore(app: &AppHandle, network: &str) -> Result<PrivateKeyStore, Stri
         .unwrap_or_default();
     Ok(store)
 }
+
 fn save_keystore(app: &AppHandle, network: &str, store: &PrivateKeyStore) -> Result<(), String> {
     let manager = StoreManager::new(app);
     let filename = get_network_file(network, "safu")?;
@@ -168,6 +183,7 @@ fn save_keystore(app: &AppHandle, network: &str, store: &PrivateKeyStore) -> Res
         .save(filename, "keystore", store)
         .map_err(|e| e.to_string())
 }
+
 // ---------------------- Commands: Debug ----------------------
 #[tauri::command]
 pub async fn debug_identity_payload(payload: JsonValue) -> Result<String, String> {
@@ -177,6 +193,7 @@ pub async fn debug_identity_payload(payload: JsonValue) -> Result<String, String
     );
     Ok("ok".to_string())
 }
+
 // ---------------------- Commands: Identity Data ----------------------
 #[tauri::command]
 pub async fn load_identity_data(
@@ -190,6 +207,7 @@ pub async fn load_identity_data(
         Err(e) => Err(e.to_string()),
     }
 }
+
 #[tauri::command]
 pub async fn save_identity_data_untyped(
     app: AppHandle,
@@ -267,7 +285,7 @@ pub async fn save_identity_data_untyped(
     };
     let manager = StoreManager::new(&app);
     let filename = get_network_file(&network, "identity")?;
-    match manager.save(filename.clone(), "identity", &identity) {
+    match manager.save(filename, "identity", &identity) {
         Ok(_) => {
             println!(
                 "[save_identity_data_untyped] identity file written: {}",
@@ -282,6 +300,7 @@ pub async fn save_identity_data_untyped(
         }
     }
 }
+
 #[tauri::command]
 pub async fn save_identity_data(
     app: AppHandle,
@@ -294,7 +313,7 @@ pub async fn save_identity_data(
     );
     let manager = StoreManager::new(&app);
     let filename = get_network_file(&network, "identity")?;
-    match manager.save(filename.clone(), "identity", &identity) {
+    match manager.save(filename, "identity", &identity) {
         Ok(_) => {
             println!("[save_identity_data] identity file written: {}", filename);
             Ok(true)
@@ -302,6 +321,7 @@ pub async fn save_identity_data(
         Err(e) => Err(e.to_string()),
     }
 }
+
 #[tauri::command]
 pub async fn delete_identity_data(app: AppHandle, network: String) -> Result<bool, String> {
     let manager = StoreManager::new(&app);
@@ -311,6 +331,7 @@ pub async fn delete_identity_data(app: AppHandle, network: String) -> Result<boo
         Err(e) => Err(e.to_string()),
     }
 }
+
 // ---------------------- Commands: Key Store (restored) ----------------------
 #[tauri::command]
 pub async fn load_private_keys(
@@ -321,6 +342,7 @@ pub async fn load_private_keys(
     let store = load_keystore(&app, &network)?;
     Ok(Some(store))
 }
+
 #[tauri::command]
 pub async fn save_private_keys(
     app: AppHandle,
@@ -347,6 +369,7 @@ pub async fn save_private_keys(
     println!("[DEBUG Backend] save_private_keys complete");
     Ok(true)
 }
+
 #[tauri::command]
 pub async fn delete_private_keys(
     app: AppHandle,
@@ -364,6 +387,7 @@ pub async fn delete_private_keys(
         Ok(false)
     }
 }
+
 #[tauri::command]
 pub async fn save_single_identity_keys(
     app: AppHandle,
