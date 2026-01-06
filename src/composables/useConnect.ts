@@ -21,14 +21,8 @@ export function useConnect() {
     const { network: _currentNetwork, ensure } = useNetwork()
     const { isConnecting, connectionError } = storeToRefs(store)
 
-    // =========================================================================
-    // State: Connection Method & General
-    // =========================================================================
     const connectionMethod = ref<'seed' | 'privateKey'>('seed')
 
-    // =========================================================================
-    // State: Seed Phrase Discovery
-    // =========================================================================
     const seedWordCount = ref<'12' | '24'>('12')
     const seedWords = ref<string[]>(Array(12).fill(''))
     const seedDiscoveryResults = ref<DiscoveredIdentity[]>([])
@@ -36,7 +30,6 @@ export function useConnect() {
     const seedDiscoveryError = ref<string | null>(null)
     const isSearchingSeed = ref(false)
 
-    // Keep seedWords length synced to wordCount always
     watch(seedWordCount, (count) => {
         const targetLen = count === '24' ? 24 : 12
         const next = seedWords.value.slice(0, targetLen)
@@ -47,9 +40,6 @@ export function useConnect() {
         seedDiscoveryError.value = null
     })
 
-    // =========================================================================
-    // State: Private Key Discovery
-    // =========================================================================
     const manualIdentityId = ref('')
     const privateKeyInput = ref('')
     const discoveredIdentity = ref<DiscoveredIdentity | null>(null)
@@ -58,25 +48,15 @@ export function useConnect() {
     const privateKeyDiscoveryError = ref<string | null>(null)
     const isDiscovering = ref(false)
 
-    // =========================================================================
-    // State: Progress Tracking
-    // =========================================================================
     const localDiscoveryProgress = ref<DiscoveryProgress | null>(null)
 
-    // Run tokens to prevent stale updates
     const activeSeedRun = ref<symbol | null>(null)
     const activeKeyRun = ref<symbol | null>(null)
 
-    // =========================================================================
-    // Helpers
-    // =========================================================================
     const normalizeSeed = (words: string[]) =>
         words.map(w => w.trim().toLowerCase()).filter(w => w.length > 0)
     const normalizeId = (id: string) => id.trim()
 
-    // =========================================================================
-    // Actions
-    // =========================================================================
     const updateConnectionMethod = (method: 'seed' | 'privateKey') => {
         connectionMethod.value = method
         store.clearConnectionError()
@@ -113,7 +93,6 @@ export function useConnect() {
         seedDiscoveryError.value = null
         store.clearConnectionError()
 
-        // CRITICAL: lock network from settings at run start
         const runNetwork = await ensure()
         const run = Symbol('seed')
         activeSeedRun.value = run
@@ -142,7 +121,6 @@ export function useConnect() {
             if (result.success && result.identities?.length) {
                 seedDiscoveryResults.value = result.identities
                 selectedSeedIdentity.value = result.identities[0] ?? null
-                // Persist discovered identities for index/switch recovery
                 await store.saveDiscoveredIdentities(
                     result.identities,
                     runNetwork,
@@ -176,7 +154,6 @@ export function useConnect() {
         manualIdentityId.value = ''
         store.clearConnectionError()
 
-        // CRITICAL: lock network from settings at run start
         const runNetwork = await ensure()
         const run = Symbol('key')
         activeKeyRun.value = run
@@ -222,19 +199,18 @@ export function useConnect() {
         }
     }
 
-    const handleConnect = async () => {
-        if (store.isConnecting) return
-        store.isConnecting = true
+        const handleConnect = async () => {
+            if (store.isConnecting) return
+            store.isConnecting = true
 
-        try {
-            const runNetwork = await ensure()
+            try {
+                const runNetwork = await ensure()
 
-            if (connectionMethod.value === 'seed') {
-                const identity = selectedSeedIdentity.value
-                if (!identity) throw new Error('No identity selected')
+                if (connectionMethod.value === 'seed') {
+                    const identity = selectedSeedIdentity.value
+                    if (!identity) throw new Error('No identity selected')
 
-                await store.connectWriteOnlyFromDiscovered(
-                    {
+                    const snap = {
                         identityId: identity.identityId,
                         identityIdx: identity.identityIdx ?? 0,
                         balance: identity.balance ?? null,
@@ -243,105 +219,131 @@ export function useConnect() {
                         dpnsUsername: (identity as any).dpnsUsername ?? null,
                         publicKeys: (identity as any).publicKeys ?? null,
                         publicKeyIds: (identity as any).publicKeyIds ?? null
-                    },
-                    runNetwork
-                )
-
-                // Seed flow: we are not deriving and saving private keys here
-                // (requires mnemonic derivation). Identity written successfully.
-            } else {
-                const id =
-                    (manualIdentityId.value || discoveredIdentity.value?.identityId || '')
-                        .trim()
-                if (!id) throw new Error('Missing identity id')
-
-                const snap = discoveredIdentity.value
-                    ? {
-                        identityId: discoveredIdentity.value.identityId,
-                        identityIdx: (discoveredIdentity.value as any).identityIdx ?? 0,
-                        balance: discoveredIdentity.value.balance ?? null,
-                        revision: (discoveredIdentity.value as any).revision ?? null,
-                        username:
-                            (discoveredIdentity.value as any).username ??
-                            discoveredIdentity.value.identityId,
-                        dpnsUsername:
-                            (discoveredIdentity.value as any).dpnsUsername ?? null,
-                        publicKeys: (discoveredIdentity.value as any).publicKeys ?? null,
-                        publicKeyIds:
-                            (discoveredIdentity.value as any).publicKeyIds ?? null
                     }
-                    : {
+
+                    await store.connectWriteOnlyFromDiscovered(snap, runNetwork)
+
+                    // Update store so Header reflects the active connection
+                    store.isAuthenticated = true
+                    store.identityId = identity.identityId
+                    store.username = identity.dpnsUsername || identity.identityId
+
+                    // Assign full object to match IIdentity
+                    store.identity = {
+                        id: identity.identityId,
+                        identityId: identity.identityId,
+                        identityIdx: identity.identityIdx ?? 0,
+                        publicKeys: (identity as any).publicKeys ?? []
+                    }
+                } else {
+                    const id =
+                        (manualIdentityId.value || discoveredIdentity.value?.identityId || '')
+                            .trim()
+                    if (!id) throw new Error('Missing identity id')
+
+                    const snap = discoveredIdentity.value
+                        ? {
+                            identityId: discoveredIdentity.value.identityId,
+                            identityIdx: (discoveredIdentity.value as any).identityIdx ?? 0,
+                            balance: discoveredIdentity.value.balance ?? null,
+                            revision: (discoveredIdentity.value as any).revision ?? null,
+                            username:
+                                (discoveredIdentity.value as any).username ??
+                                discoveredIdentity.value.identityId,
+                            dpnsUsername:
+                                (discoveredIdentity.value as any).dpnsUsername ?? null,
+                            publicKeys: (discoveredIdentity.value as any).publicKeys ?? null,
+                            publicKeyIds:
+                                (discoveredIdentity.value as any).publicKeyIds ?? null
+                        }
+                        : {
+                            identityId: id,
+                            identityIdx: 0,
+                            balance: null,
+                            revision: null,
+                            username: id,
+                            dpnsUsername: null,
+                            publicKeys: null,
+                            publicKeyIds: null
+                        }
+
+                    await store.connectWriteOnlyFromDiscovered(snap, runNetwork)
+
+                    // Update store so Header reflects the active connection
+                    store.isAuthenticated = true
+                    store.identityId = id
+                    store.username =
+                        (snap as any).dpnsUsername || (snap as any).username || id
+
+                    // Assign full object to match IIdentity
+                    store.identity = {
+                        id,
                         identityId: id,
-                        identityIdx: 0,
-                        balance: null,
-                        revision: null,
-                        username: id,
-                        dpnsUsername: null,
-                        publicKeys: null,
-                        publicKeyIds: null
+                        identityIdx: (snap as any).identityIdx ?? 0,
+                        publicKeys: (snap as any).publicKeys ?? []
                     }
 
-                await store.connectWriteOnlyFromDiscovered(snap, runNetwork)
+                    // PRIVATE KEY FLOW: write a single key to SAFU (minimal, no derivation)
+                    const pk = privateKeyInput.value?.trim()
+                    if (pk) {
+                        const first = (discoveryDetails.value?.associatedKeys || [])[0] || {}
+                        const purposeStr = String(first.purpose || 'AUTHENTICATION').toUpperCase()
+                        const secStr = String(first.securityLevel || 'MASTER').toUpperCase()
 
-                // PRIVATE KEY FLOW: write a single key to SAFU (minimal, no derivation)
-                // Use provided key input if available
-                const pk = privateKeyInput.value?.trim()
-                if (pk) {
-                    // Use discovered details for purpose/security if present; else defaults
-                    const first = (discoveryDetails.value?.associatedKeys || [])[0] || {}
-                    const purposeStr = String(first.purpose || 'AUTHENTICATION').toUpperCase()
-                    const secStr = String(first.securityLevel || 'MASTER').toUpperCase()
+                        const purposeMap: Record<string, number> = {
+                            AUTHENTICATION: 0,
+                            ENCRYPTION: 1,
+                            DECRYPTION: 2,
+                            TRANSFER: 3
+                        }
+                        const secMap: Record<string, number> = {
+                            MASTER: 0,
+                            CRITICAL: 1,
+                            HIGH: 2,
+                            MEDIUM: 3,
+                            LOW: 4
+                        }
 
-                    const purposeMap: Record<string, number> = {
-                        AUTHENTICATION: 0,
-                        ENCRYPTION: 1,
-                        DECRYPTION: 2,
-                        TRANSFER: 3
+                        const purpose = purposeMap[purposeStr] ?? 0
+                        const security_level = secMap[secStr] ?? 0
+
+                        const now = new Date().toISOString()
+                        // Snake_case fields to match Rust PrivateKeyEntry
+                        const entry = {
+                            key_id: 0,
+                            purpose,
+                            security_level,
+                            key_type: String(first.keyType || 'ECDSA_SECP256K1'),
+                            private_key: pk,
+                            public_key: '',
+                            derived_from_mnemonic: false,
+                            created_at: now,
+                            last_used: now
+                        }
+
+                        try {
+                            await invoke<boolean>('save_single_identity_keys', {
+                                identity_id: id,
+                                key: entry,
+                                network: runNetwork
+                            })
+                        } catch (e) {
+                            console.error('save_single_identity_keys failed:', e)
+                        }
                     }
-                    const secMap: Record<string, number> = {
-                        MASTER: 0,
-                        CRITICAL: 1,
-                        HIGH: 2,
-                        MEDIUM: 3,
-                        LOW: 4
-                    }
-
-                    const purpose = purposeMap[purposeStr] ?? 0
-                    const security_level = secMap[secStr] ?? 0
-
-                    const now = new Date().toISOString()
-                    const entry = {
-                        identity_id: id,
-                        key_id: 0,
-                        purpose,
-                        security_level,
-                        key_type: String(first.keyType || 'UNKNOWN'),
-                        private_key: pk,            // store as entered (WIF/HEX)
-                        public_key: '',             // no derivation here
-                        derived_from_mnemonic: false,
-                        created_at: now,
-                        last_used: now
-                    }
-
-                    await invoke<boolean>('save_single_identity_keys', {
-                        identityId: id,
-                        key: entry,
-                        network: runNetwork
-                    })
                 }
-            }
 
-            showSuccess(`Connected to ${store.username || store.identityId || 'identity'}`)
-        } catch (err: any) {
-            showError(err?.message || 'Failed to connect')
-            console.error('Connect failed:', err)
-            store.clearConnectionError()
-            store.connectionError = err?.message || 'Failed to connect'
-            throw err
-        } finally {
-            store.isConnecting = false
+                showSuccess(`Connected to ${store.username || store.identityId || 'identity'}`)
+            } catch (err: any) {
+                showError(err?.message || 'Failed to connect')
+                console.error('Connect failed:', err)
+                store.clearConnectionError()
+                store.connectionError = err?.message || 'Failed to connect'
+                throw err
+            } finally {
+                store.isConnecting = false
+            }
         }
-    }
 
     const resetDiscovery = () => {
         discoveredIdentity.value = null
@@ -380,7 +382,6 @@ export function useConnect() {
     const initialize = () => { }
 
     const cleanup = () => {
-        // Clear sensitive data and tokens
         privateKeyInput.value = ''
         activeSeedRun.value = null
         activeKeyRun.value = null
@@ -392,9 +393,6 @@ export function useConnect() {
         }
     }
 
-    // =========================================================================
-    // Computed Properties
-    // =========================================================================
     const isFormValid = computed(() => {
         if (connectionMethod.value === 'seed') {
             return !!selectedSeedIdentity.value
@@ -430,7 +428,6 @@ export function useConnect() {
     })
 
     return {
-        // State
         connectionMethod,
         seedWordCount,
         seedWords,
@@ -443,22 +440,18 @@ export function useConnect() {
         debugOutput,
         privateKeyDiscoveryError,
 
-        // Store State
         isConnecting,
         connectionError,
         discoveryProgress,
 
-        // Loading States
         isSearchingSeed,
         isDiscovering,
         discoveryStatus,
 
-        // Computed
         isFormValid,
         progressPercentage,
         progressMessage,
 
-        // Actions
         updateConnectionMethod,
         formatBalance,
         handlePaste,

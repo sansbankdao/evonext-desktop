@@ -23,12 +23,11 @@ interface StoredMnemonic {
     seedPhrase: string;
 }
 
-// Preloaded identity snapshot (from discovery), used to avoid refetch
 export interface PreloadedIdentitySnapshot {
     identityId: string
     balance?: string | number | null
     revision?: string | number | null
-    publicKeys?: any[] // same shape as DAPI result publicKeys
+    publicKeys?: any[]
     dpnsUsername?: string | null
     identityIdx?: number
 }
@@ -159,59 +158,68 @@ export const connectionActions = () => ({
                 })
                 await invoke('save_mnemonic', { network, payload: { seedPhrase: seedPhrase } })
 
-                const existingKeys = await loadStorageData<any[]>('get_identity_private_keys', network, { identityId: targetId })
-                if (!existingKeys || existingKeys.length === 0) {
-                    const now = new Date().toISOString()
-                    const privateKeyEntries: any[] = []
-                    for (let i = 0; i < 5; i++) {
-                        try {
-                            const res = await KeyDerivationService.getPrivateKeyWASM(seedPhrase, network, identityIndex, i)
-                            privateKeyEntries.push({
-                                identityId: targetId,
-                                keyId: i,
-                                purpose: i === 0 ? 0 : 3,
-                                securityLevel: 0,
-                                keyType: 'ecdsa',
-                                privateKey: res.privateKey.WIF(),
-                                publicKey: '',
-                                derivedFromMnemonic: true,
-                                createdAt: now,
-                                lastUsed: now
-                            })
-                        } catch (e) { /* ignore */ }
-                    }
-                    if (privateKeyEntries.length > 0) {
-                        await invoke('save_private_keys', {
-                            network,
-                            identityId: targetId,
-                            privateKeys: privateKeyEntries
-                        })
-                    }
-                }
-
-                // Prefer DAPI fetch (now untyped) but we can also tolerate strings in storage save
+                // Fetch identity from DAPI first (registered keys only)
                 const fetchResult = await DAPIService.getIdentityById(targetId, network);
                 if (!fetchResult.success || !fetchResult.data) {
                     throw new Error(fetchResult.error || `Failed to fetch identity ${targetId}`);
                 }
                 const identityData = fetchResult.data;
+                const publicKeys = identityData.publicKeys || []
 
-                // Build payload and SAVE IMMEDIATELY (no type crash possible)
+                // Load current keystore to avoid duplicates
+                const keystore = await invoke<any>('load_private_keys', { network }).catch(() => null)
+                const existingEntries = keystore?.identities?.[targetId] || []
+                const existingKeyIds = new Set<number>((existingEntries || []).map((e: any) => Number(e.key_id ?? e.keyId ?? 0)))
+
+                // Derive only registered keys that are missing in SAFU
+                const now = new Date().toISOString()
+                const privateKeyEntries: any[] = []
+
+                for (const pk of publicKeys) {
+                    const keyId = Number(pk.id ?? pk.keyId ?? 0)
+                    if (existingKeyIds.has(keyId)) continue
+
+                    try {
+                        const res = await KeyDerivationService.getPrivateKeyWASM(seedPhrase, network, identityIndex, keyId)
+                        privateKeyEntries.push({
+                            key_id: keyId,
+                            purpose: Number(pk.purpose ?? pk.purposeNumber ?? 0),
+                            security_level: Number(pk.securityLevel ?? pk.securityLevelNumber ?? 0),
+                            key_type: String(pk.keyType ?? pk.type ?? 'ECDSA_SECP256K1'),
+                            private_key: res.privateKey.WIF(),
+                            public_key: pk.data || '',
+                            derived_from_mnemonic: true,
+                            created_at: now,
+                            last_used: now
+                        })
+                    } catch (e) {
+                        console.error('Derivation failed for keyId', keyId, e)
+                    }
+                }
+
+                if (privateKeyEntries.length > 0) {
+                    await invoke('save_private_keys', {
+                        identity_id: targetId,
+                        keys: privateKeyEntries,
+                        network
+                    })
+                }
+
+                // Build payload and SAVE IMMEDIATELY
                 const payload = {
                     username: targetId,
                     identity_id: targetId,
                     identity_idx: identityIndex,
                     balance: identityData.balance ? String(identityData.balance) : null,
                     is_authenticated: true,
-                    public_keys: identityData.publicKeys || [],
+                    public_keys: publicKeys,
                     revision: typeof identityData.revision === 'string'
                         ? Number(identityData.revision) || 0
                         : (identityData.revision || 0),
                     created_at: new Date().toISOString(),
-                    public_key_ids: (identityData.publicKeys || []).map((pk: any) => pk.id || 0)
+                    public_key_ids: publicKeys.map((pk: any) => pk.id || 0)
                 }
 
-                // Log raw payload and save via tolerant path
                 try { await invoke('debug_identity_payload', { payload }) } catch {}
                 await invoke('save_identity_data_untyped', { network, payload })
 
@@ -224,10 +232,10 @@ export const connectionActions = () => ({
                     identityIdx: identityIndex,
                     balance: payload.balance || '0',
                     revision: payload.revision ? Number(payload.revision) : undefined,
-                    publicKeys: identityData.publicKeys || []
+                    publicKeys
                 }
                 this.identity = activeIdentity
-                this.publicKeys = identityData.publicKeys || []
+                this.publicKeys = publicKeys || []
                 this.balance = activeIdentity.balance
 
                 if (typeof this.saveToStorage === 'function') await this.saveToStorage(network)
@@ -241,7 +249,6 @@ export const connectionActions = () => ({
         }, 'CONNECT_WITH_SEED_FAILED')
     },
 
-    // CHANGED: optional preloaded snapshot to skip DAPI fetch and save directly
     async connectWithSingleKey(
         this: IIdentityState,
         privateKey: string,
@@ -265,7 +272,6 @@ export const connectionActions = () => ({
                     }
                 })
 
-                // If we have discovery result, use it directly to save identity
                 let identityData: any | null = null
                 if (preloaded && preloaded.identityId === trimmedId) {
                     identityData = {
@@ -275,38 +281,35 @@ export const connectionActions = () => ({
                         publicKeys: preloaded.publicKeys || []
                     }
                 } else {
-                    // Fallback to DAPI fetch (now untyped on Rust side)
                     const fetchResult = await DAPIService.getIdentityById(trimmedId, network);
                     if (!fetchResult.success || !fetchResult.data) {
-                        throw new Error(fetchResult.error || 'Failed to fetch identity details.');
+                        throw new Error(fetchResult.error || 'Failed to fetch identity details.')
                     }
                     identityData = fetchResult.data;
                 }
 
                 const publicKeys = identityData.publicKeys || []
-
-                // Save the single provided key (matching pk if possible; backend already handles update semantics)
                 const now = new Date().toISOString()
-                const firstAuthKey = publicKeys.find((pk: any) => pk.purpose === 0)
+                const firstAuthKey = publicKeys.find((pk: any) => (pk.purpose ?? pk.purposeNumber) === 0)
+
                 const privateKeyEntry = {
-                    identityId: trimmedId,
-                    keyId: firstAuthKey?.id || 0,
+                    key_id: firstAuthKey?.id || 0,
                     purpose: 0,
-                    securityLevel: firstAuthKey?.securityLevel || 0,
-                    keyType: firstAuthKey?.keyType || 'ecdsa',
-                    privateKey: privateKey,
-                    publicKey: firstAuthKey?.data || '',
-                    derivedFromMnemonic: false,
-                    createdAt: now,
-                    lastUsed: now
+                    security_level: firstAuthKey?.securityLevel || 0,
+                    key_type: String(firstAuthKey?.keyType || 'ECDSA_SECP256K1'),
+                    private_key: privateKey,
+                    public_key: firstAuthKey?.data || '',
+                    derived_from_mnemonic: false,
+                    created_at: now,
+                    last_used: now
                 }
+
                 await invoke('save_private_keys', {
-                    network,
-                    identityId: trimmedId,
-                    privateKeys: [privateKeyEntry]
+                    identity_id: trimmedId,
+                    keys: [privateKeyEntry],
+                    network
                 })
 
-                // Build payload and SAVE IMMEDIATELY (no type crash possible)
                 const payload = {
                     username: trimmedId,
                     identity_id: trimmedId,
@@ -321,11 +324,9 @@ export const connectionActions = () => ({
                     public_key_ids: publicKeys.map((pk: any) => pk.id || 0)
                 }
 
-                // Log raw payload and save via tolerant path
                 try { await invoke('debug_identity_payload', { payload }) } catch {}
                 await invoke('save_identity_data_untyped', { network, payload })
 
-                // Update state
                 this.isAuthenticated = true
                 this.username = trimmedId
                 this.identityId = trimmedId
@@ -374,7 +375,7 @@ export const connectionActions = () => ({
             const network = settings?.network === 'testnet' ? 'testnet' : 'mainnet'
             await Promise.all([
                 invoke('delete_identity_data', { network }),
-                invoke('delete_private_keys', { network }),
+                invoke('delete_private_keys', { identity_id: this.identityId || '', network }),
                 invoke('delete_mnemonic', { network }),
                 invoke('clear_discovered_identities', { network })
             ])

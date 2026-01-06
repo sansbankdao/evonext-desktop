@@ -10,29 +10,18 @@ export interface Notification {
     timeout?: NodeJS.Timeout
 }
 
+// Singleton notifications list so all useNotification() calls share the same state
+const notifications = reactive<Notification[]>([])
+let nextId = 1
+
 export function useNotification() {
-    const notifications = reactive<Notification[]>([])
-
-    let nextId = 1
-
     const show = (message: string, type: Notification['type'] = 'info', duration: number = 3000) => {
         const id = nextId++
-
-        const notification: Notification = {
-            id,
-            type,
-            message,
-            duration
-        }
-
+        const notification: Notification = { id, type, message, duration }
         notifications.push(notification)
-
         if (duration > 0) {
-            notification.timeout = setTimeout(() => {
-                dismiss(id)
-            }, duration)
+            notification.timeout = setTimeout(() => dismiss(id), duration)
         }
-
         return id
     }
 
@@ -50,14 +39,11 @@ export function useNotification() {
 
     const dismiss = (id: number) => {
         const index = notifications.findIndex(n => n.id === id)
-
         if (index !== -1) {
             const notification = notifications[index]
-
             if (notification?.timeout) {
                 clearTimeout(notification.timeout)
             }
-
             notifications.splice(index, 1)
         }
     }
@@ -68,7 +54,6 @@ export function useNotification() {
                 clearTimeout(notification.timeout)
             }
         })
-
         notifications.length = 0
     }
 
