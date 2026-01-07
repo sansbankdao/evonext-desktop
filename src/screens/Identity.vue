@@ -77,26 +77,29 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import { useIdentity } from '@/composables/useIdentity'
+// import { useIdentity } from '@/composables/useIdentity'
 import { useConnect } from '@/composables/useConnect'
+import { useIdentityStore } from '@/stores/identity'
 import type { DiscoveredIdentity } from '@/types'
 import Header from '@/components/Header.vue'
 
+const store = useIdentityStore()
+
+// Directly use the store's value. Since identityId is a computed ref in the store,
+// creating a local computed ref here ensures reactivity.
+const activeIdentityId = computed(() => store.identityId || '')
+
 const loading = ref(true)
 const identities = ref<DiscoveredIdentity[]>([])
-const activeIdentityId = ref<string>('')
-const { identityId } = useIdentity()
+// We can still use the composable if needed, but switching is handled via store actions
 const { switchIdentity } = useConnect()
 
-// const missingTransferKeys = computed(() => [])
 const init = async () => {
     loading.value = true
 
     try {
-        if (identityId.value) activeIdentityId.value = identityId.value
-
         const settings = await invoke<any>('load_settings').catch(() => null)
         const network = settings?.network === 'testnet' ? 'testnet' : 'mainnet'
 
@@ -124,19 +127,24 @@ const init = async () => {
 }
 
 const handleSwitch = async (targetId: string) => {
-    try {
-        loading.value = true
+    // Optional: Prevent clicking if already loading
+    if (loading.value) return
 
+    loading.value = true
+    try {
         const result = await switchIdentity(targetId)
 
         if (result.success) {
-            activeIdentityId.value = targetId
-            window.location.reload()
+            // No need to manually set activeIdentityId here anymore.
+            // The store update (via switchIdentity -> connectWithSeed -> loadFromStorage)
+            // will trigger the computed ref to update automatically.
+            console.log(`Switched to ${targetId}`)
         } else {
             alert("Failed to switch: " + result.error)
         }
     } catch (e) {
         console.error(e)
+        alert("An error occurred while switching identities.")
     } finally {
         loading.value = false
     }
@@ -150,6 +158,5 @@ const getAvatar = (identity: DiscoveredIdentity) => {
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
 }
 
-// const hasTransferKeyForIdentity = (identity: DiscoveredIdentity) => false
 onMounted(init)
 </script>
