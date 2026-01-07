@@ -79,7 +79,6 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-
 import { useConnect } from '@/composables/useConnect'
 import { useIdentityStore } from '@/stores/identity'
 import type { DiscoveredIdentity } from '@/types'
@@ -87,7 +86,7 @@ import Header from '@/components/Header.vue'
 
 const store = useIdentityStore()
 const { switchIdentity } = useConnect()
-// Use a computed ref to ensure UI updates instantly when store.identityId changes
+
 const activeIdentityId = computed(() => store.identityId || '')
 
 const loading = ref(true)
@@ -97,16 +96,15 @@ const init = async () => {
     try {
         const settings = await invoke<any>('load_settings').catch(() => null)
         const network = settings?.network === 'testnet' ? 'testnet' : 'mainnet'
-
-        // Load all identities from the new map
-        const map = await invoke<Record<string, any>>('load_identities_map', { network }).catch(() => null)
-
-        if (map && typeof map === 'object' && Object.keys(map).length > 0) {
-            identities.value = Object.values(map).map((raw: any) => ({
+        // Load the raw map
+        const rawData = await invoke<any>('load_identities_map', { network }).catch(() => null)
+        if (rawData && typeof rawData === 'object' && Object.keys(rawData).length > 0) {
+            identities.value = Object.values(rawData).map((raw: any) => ({
+                // FIX: Handle both camelCase (new) and snake_case (legacy) keys
                 identityId: raw.identityId || raw.identity_id,
                 identityIdx: raw.identityIdx ?? raw.identity_idx ?? 0,
                 dpnsUsername: raw.dpnsUsername ?? raw.dpns_username ?? null,
-                balance: raw.balance ?? null,
+                balance: raw.balance ? String(raw.balance) : null,
                 revision: raw.revision ?? null,
                 publicKeys: raw.publicKeys ?? raw.public_keys ?? []
             }))
