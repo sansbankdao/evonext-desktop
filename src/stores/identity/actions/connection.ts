@@ -64,6 +64,7 @@ export const connectionActions = () => ({
                     discoveredKey: null,
                     discoveredAt: new Date().toISOString()
                 }))
+                // Tauri v2: discoveredIdentities (camelCase) matches Rust snake_case arg
                 const count = await invoke<number>('save_discovered_identities', {
                     network,
                     discoveredIdentities: mappedIdentities
@@ -181,16 +182,19 @@ export const connectionActions = () => ({
 
                     try {
                         const res = await KeyDerivationService.getPrivateKeyWASM(seedPhrase, network, identityIndex, keyId)
+
+                        // FIXED: Use camelCase keys and include identityId
                         privateKeyEntries.push({
-                            key_id: keyId,
+                            identityId: targetId,
+                            keyId: keyId,
                             purpose: Number(pk.purpose ?? pk.purposeNumber ?? 0),
-                            security_level: Number(pk.securityLevel ?? pk.securityLevelNumber ?? 0),
-                            key_type: String(pk.keyType ?? pk.type ?? 'ECDSA_SECP256K1'),
-                            private_key: res.privateKey.WIF(),
-                            public_key: pk.data || '',
-                            derived_from_mnemonic: true,
-                            created_at: now,
-                            last_used: now
+                            securityLevel: Number(pk.securityLevel ?? pk.securityLevelNumber ?? 0),
+                            keyType: String(pk.keyType ?? pk.type ?? 'ECDSA_SECP256K1'),
+                            privateKey: res.privateKey.WIF(),
+                            publicKey: pk.data || '',
+                            derivedFromMnemonic: true,
+                            createdAt: now,
+                            lastUsed: now
                         })
                     } catch (e) {
                         console.error('Derivation failed for keyId', keyId, e)
@@ -198,8 +202,9 @@ export const connectionActions = () => ({
                 }
 
                 if (privateKeyEntries.length > 0) {
+                    // FIXED: Use identityId (camelCase) for Invoke argument
                     await invoke('save_private_keys', {
-                        identity_id: targetId,
+                        identityId: targetId,
                         keys: privateKeyEntries,
                         network
                     })
@@ -292,20 +297,23 @@ export const connectionActions = () => ({
                 const now = new Date().toISOString()
                 const firstAuthKey = publicKeys.find((pk: any) => (pk.purpose ?? pk.purposeNumber) === 0)
 
+                // FIXED: Use camelCase keys and include identityId
                 const privateKeyEntry = {
-                    key_id: firstAuthKey?.id || 0,
+                    identityId: trimmedId,
+                    keyId: firstAuthKey?.id || 0,
                     purpose: 0,
-                    security_level: firstAuthKey?.securityLevel || 0,
-                    key_type: String(firstAuthKey?.keyType || 'ECDSA_SECP256K1'),
-                    private_key: privateKey,
-                    public_key: firstAuthKey?.data || '',
-                    derived_from_mnemonic: false,
-                    created_at: now,
-                    last_used: now
+                    securityLevel: firstAuthKey?.securityLevel || 0,
+                    keyType: String(firstAuthKey?.keyType || 'ECDSA_SECP256K1'),
+                    privateKey: privateKey,
+                    publicKey: firstAuthKey?.data || '',
+                    derivedFromMnemonic: false,
+                    createdAt: now,
+                    lastUsed: now
                 }
 
+                // FIXED: Use identityId (camelCase) for Invoke argument
                 await invoke('save_private_keys', {
-                    identity_id: trimmedId,
+                    identityId: trimmedId,
                     keys: [privateKeyEntry],
                     network
                 })
@@ -375,7 +383,8 @@ export const connectionActions = () => ({
             const network = settings?.network === 'testnet' ? 'testnet' : 'mainnet'
             await Promise.all([
                 invoke('delete_identity_data', { network }),
-                invoke('delete_private_keys', { identity_id: this.identityId || '', network }),
+                // FIXED: Use identityId (camelCase) for Invoke argument
+                invoke('delete_private_keys', { identityId: this.identityId || '', network }),
                 invoke('delete_mnemonic', { network }),
                 invoke('clear_discovered_identities', { network })
             ])
