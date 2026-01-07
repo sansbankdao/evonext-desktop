@@ -362,12 +362,34 @@ pub async fn save_identity_data(
 }
 
 #[tauri::command]
-pub async fn delete_identity_data(app: AppHandle, network: String) -> Result<bool, String> {
+pub async fn delete_identity_data(
+    app: AppHandle,
+    network: String,
+    identity_id: Option<String> // <--- ADDED: Optional ID parameter
+) -> Result<bool, String> {
     let manager = StoreManager::new(&app);
     let filename = get_network_file(&network, "identity")?;
-    match manager.delete(filename, "identity") {
-        Ok(_) => Ok(true),
-        Err(e) => Err(e.to_string()),
+    // FIX: If ID is provided, remove specific identity from map instead of deleting file
+    if let Some(id) = identity_id {
+        let mut map = load_identity_map(&app, &network)?;
+        if map.remove(&id).is_some() {
+            match manager.save(filename, "identity", &map) {
+                Ok(_) => {
+                    println!("[delete_identity_data] Removed specific identity {} from map: {}", id, filename);
+                    Ok(true)
+                }
+                Err(e) => Err(e.to_string())
+            }
+        } else {
+            println!("[delete_identity_data] Identity {} not found in map", id);
+            Ok(false)
+        }
+    } else {
+        // Existing behavior: Nuke the file if no ID provided
+        match manager.delete(filename, "identity") {
+            Ok(_) => Ok(true),
+            Err(e) => Err(e.to_string()),
+        }
     }
 }
 
@@ -426,18 +448,33 @@ pub async fn save_private_keys(
 #[tauri::command]
 pub async fn delete_private_keys(
     app: AppHandle,
-    identity_id: String,
     network: String,
+    identity_id: Option<String>, // <--- ADDED: Optional ID parameter
 ) -> Result<bool, String> {
-    println!("[DEBUG Backend] delete_private_keys id={} network={}", identity_id, network);
-    let mut store = load_keystore(&app, &network)?;
-    if store.identities.remove(&identity_id).is_some() {
-        save_keystore(&app, &network, &store)?;
-        println!("[DEBUG Backend] Keys removed for {}", identity_id);
-        Ok(true)
+    let manager = StoreManager::new(&app);
+    let filename = get_network_file(&network, "safu")?;
+    // FIX: If ID is provided, remove specific identity's keys from map.
+    // Otherwise, delete the entire SAFU file.
+    if let Some(id) = identity_id {
+        let mut store = load_keystore(&app, &network)?;
+        if store.identities.remove(&id).is_some() {
+            match manager.save(filename, "keystore", &store) {
+                Ok(_) => {
+                    println!("[delete_private_keys] Removed keys for identity {} from: {}", id, filename);
+                    Ok(true)
+                }
+                Err(e) => Err(e.to_string())
+            }
+        } else {
+            println!("[delete_private_keys] No keys found for identity {}", id);
+            Ok(false)
+        }
     } else {
-        println!("[DEBUG Backend] No keys found for {}", identity_id);
-        Ok(false)
+        // Existing behavior: Nuke the file if no ID provided
+        match manager.delete(filename, "keystore") {
+            Ok(_) => Ok(true),
+            Err(e) => Err(e.to_string()),
+        }
     }
 }
 

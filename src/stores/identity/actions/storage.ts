@@ -75,8 +75,8 @@ export const storageActions = () => ({
         try {
             const network = await this.getCurrentNetwork()
             await Promise.all([
-                invoke('delete_identity_data', { network }),
-                invoke('delete_private_keys', { network }),
+                invoke('delete_private_keys', { network, identityId: this.identityId || '' }),
+                invoke('delete_identity_data', { network, identityId: this.identityId || '' }),
                 invoke('delete_mnemonic', { network }),
                 invoke('clear_discovered_identities', { network })
             ])
