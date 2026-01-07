@@ -232,3 +232,22 @@ export interface IdentityDiscoveryDetails {
         derivedFromInput: boolean;
     }>;
 }
+
+// FIX: Renamed interface to avoid conflict with Rust struct name collision
+// and standardize naming (I prefix). Maps to 'PrivateKeyEntry' in exports.
+export interface IPrivateKeyEntry {
+    id: number
+    identityId: string
+    keyId: number
+    purpose: number
+    securityLevel: number
+    keyType: string
+    privateKey: string
+    publicKey: string
+    derivedFromMnemonic?: boolean
+    created_at?: string
+    last_used?: string
+}
+
+// Explicit Export for your existing code usage
+export type PrivateKeyEntry = IPrivateKeyEntry
