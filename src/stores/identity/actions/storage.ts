@@ -28,11 +28,8 @@ export const storageActions = () => ({
             publicKeys: data.publicKeys ?? data.public_keys ?? null,
             createdAt: new Date().toISOString(),
             isAuthenticated: true,
-            public_key_ids: Array.isArray(data.publicKeys ?? data.public_keys)
-                ? (data.publicKeys ?? data.public_keys).map((pk: any, i: number) =>
-                    typeof pk.id === 'number' ? pk.id : i
-                )
-                : []
+            // NEW: Explicitly pass the active_identity_id to persist it in the same pass
+            active_identity_id: targetId
         }
         log('debug', `[Storage] saveIdentityDataToStore start id=${targetId} net=${network}`)
         log('debug', `[Storage] unified payload: ${JSON.stringify(fullIdentityObject)}`)
@@ -99,7 +96,7 @@ export const storageActions = () => ({
     },
     /**
      * Loads identity from persistent storage.
-     * Includes "Network Safety Check".
+     * Includes "Network Safety Check" and "Persistence Logic".
      */
     async loadFromStorage(this: IIdentityState) {
         try {
@@ -116,21 +113,32 @@ export const storageActions = () => ({
                 log('debug', `[Storage] load_identities_map failed: ${String(e)}`)
             }
             if (loadedMap) {
-                const keys = Object.keys(loadedMap)
-                const targetId = (this.identityId ?? keys[0]) as string
+                // 1. Extract valid identity keys (exclude metadata keys like __active_identity_id)
+                const availableIds = Object.keys(loadedMap).filter(k => k !== '__active_identity_id')
+                if (availableIds.length === 0) {
+                    this.resetStoreState()
+                    return
+                }
+                // 2. Determine target ID
+                // Priority: Persisted Marker -> Current Store State (if valid) -> First Available
+                const persistedActiveId = loadedMap['__active_identity_id'] as string | undefined
+                // FIX: Initialize targetId definitively to satisfy TS
+                let targetId: string = availableIds[0] || ''
+                let needsPersistenceUpdate = false
+                if (persistedActiveId && availableIds.includes(persistedActiveId)) {
+                    // We have a valid persisted marker
+                    targetId = persistedActiveId
+                    log('info', `[Storage] Loaded persisted active identity: ${targetId}`)
+                } else {
+                    // No valid marker, or marker points to deleted identity.
+                    // We will use the first available, but we MUST update the file now.
+                    targetId = availableIds[0] || ''
+                    needsPersistenceUpdate = true
+                    log('warn', `[Storage] No valid active marker. Defaulting to first available: ${targetId}`)
+                }
+                // 3. Load Data
                 const data = loadedMap[targetId]
-                log('debug', `[Storage] selected identityId=${targetId}`)
                 if (data) {
-                    // NETWORK SAFETY CHECK
-                    // We compare to requested network (from settings) vs. file we just loaded.
-                    // Note: We loaded specifically for 'network', so if 'data' exists, it belongs to that network.
-                    // But we enforce a check to be sure 'identityId' is valid.
-                    const currentNet = network
-                    if (!targetId) {
-                        log('warn', `[Storage] Network mismatch reset: UI is ${currentNet}, loaded data for empty target`)
-                        this.resetStoreState()
-                        return
-                    }
                     const publicKeys = data.publicKeys ?? data.public_keys ?? []
                     this.username = data.username ?? data.dpnsUsername ?? data.identity_id ?? null
                     this.identityId = data.identity_id || targetId || null
@@ -151,6 +159,15 @@ export const storageActions = () => ({
                     this.isAuthenticated = data.isAuthenticated ?? true
                     this.publicKeys = publicKeys
                     this.isConnected = this.isAuthenticated && !!this.identityId
+                    // 4. Persistence Fix: If we defaulted to the first one, update the file immediately
+                    // so the next restart remembers this choice.
+                    if (needsPersistenceUpdate) {
+                        log('info', `[Storage] Updating active identity marker in file to: ${targetId}`)
+                        invoke('update_active_identity_marker', {
+                            network: network,
+                            activeId: targetId
+                        }).catch(e => console.error('[Storage] Failed to persist marker:', e))
+                    }
                     log('info', `[Storage] Identity map loaded for ${network}`)
                     return
                 } else {
@@ -159,7 +176,7 @@ export const storageActions = () => ({
                     return
                 }
             }
-            // Fallback: legacy single IdentityData
+            // Fallback: legacy single IdentityData (Old Path)
             const data = await invoke<any>('load_identity_data', { network })
             log('debug', `[Storage] load_identity_data: ${data ? 'found' : 'none'}`)
             if (data) {
