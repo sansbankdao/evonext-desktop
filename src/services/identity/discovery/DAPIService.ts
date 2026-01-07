@@ -25,15 +25,17 @@ export class DAPIService {
                 network: network
             })
 
+            // Tauri often returns an array of command results: [Result]
             if (Array.isArray(response) && response[0]) {
                 const wrapper = response[0]
-                if (wrapper.success === true && Array.isArray(wrapper.result)) {
+                // Handle cases where the command returns a standard Result object
+                if (wrapper?.success === true && Array.isArray(wrapper.result)) {
                     return {
                         success: true,
                         data: wrapper.result[0],
                         searchType: unique ? 'unique' : 'non-unique'
                     }
-                } else if (wrapper.error) {
+                } else if (wrapper?.error) {
                     return {
                         success: false,
                         error: typeof wrapper.error === 'string' ? wrapper.error : JSON.stringify(wrapper.error),
@@ -67,6 +69,7 @@ export class DAPIService {
                 network: network
             })
 
+            // Tauri returns [Result]
             if (response?.success && response?.result) {
                 const res = response.result
                 if (typeof res === 'string') return res
@@ -85,30 +88,64 @@ export class DAPIService {
         network: 'mainnet' | 'testnet'
     ): Promise<DAPIHashSearchResult> {
         try {
-            const response = await invoke<any>('get_identity_info', {
-                // FIX: camelCase arguments for Tauri v2
+            // Invoke the backend command
+            const rawResponse = await invoke<any>('get_identity_info', {
                 identityId: identityId,
                 network: network,
                 withProof: false
             })
 
-            if (Array.isArray(response) && response[0]) {
-                const wrapper = response[0]
-                if (wrapper?.success === true && Array.isArray(wrapper.result)) {
-                    const identityData = wrapper.result[0]
-                    if (identityData) {
-                        return {
-                            success: true,
-                            data: identityData,
-                            searchType: 'none'
-                        }
-                    }
-                } else if (wrapper?.error) {
+            // We expect an array wrapper from Tauri: [CommandResult]
+            // CommandResult usually has { success: true, result: ... }
+            // OR { success: false, error: ... }
+            if (!Array.isArray(rawResponse) || !rawResponse[0]) {
+                return {
+                    success: false,
+                    error: 'Response is not an array',
+                    searchType: 'none'
+                }
+            }
+            const wrapper = rawResponse[0]
+            // Case 1: Standard Tauri Success Wrapper
+            // { success: true, result: { identityId: "...", publicKeys: [...] } }
+            if (wrapper?.success === true) {
+                // The actual data might be in 'result', 'data', or be the wrapper itself
+                // Based on your logs, wrapper IS the identity object.
+                // We check for identityId to be sure.
+                if (wrapper.identityId) {
                     return {
-                         success: false,
-                         error: `Platform Error: ${JSON.stringify(wrapper.error)}`,
-                         searchType: 'none'
+                        success: true,
+                        data: wrapper,
+                        searchType: 'none'
                     }
+                }
+                // Fallbacks for other standard shapes if identityId isn't top level
+                const rawData = wrapper.result ?? wrapper.data ?? wrapper
+                if (rawData && rawData.identityId) {
+                    return {
+                        success: true,
+                        data: rawData,
+                        searchType: 'none'
+                    }
+                }
+            }
+
+            // Case 2: Standard Tauri Error Wrapper
+            if (wrapper?.error) {
+                return {
+                    success: false,
+                    error: typeof wrapper.error === 'string' ? wrapper.error : JSON.stringify(wrapper.error),
+                    searchType: 'none'
+                }
+            }
+
+            // Case 3: Raw Object returned without wrapper (Edge case)
+            // If wrapper has identityId but no success field, treat as success
+            if (wrapper.identityId) {
+                 return {
+                    success: true,
+                    data: wrapper,
+                    searchType: 'none'
                 }
             }
 
