@@ -7,6 +7,7 @@ import { getIdentityManager } from '@/services/identity/discovery/IdentityManage
 import { useNetwork } from '@/composables/useNetwork'
 import { useNotification } from '@/composables/useNotification'
 import { invoke } from '@tauri-apps/api/core'
+import { KeyDerivationService } from '@/services/identity/keyDerivation.service'
 import type {
     ConnectionResult,
     DiscoveredIdentity,
@@ -212,7 +213,7 @@ export function useConnect() {
                 const identity = selectedSeedIdentity.value
                 if (!identity) throw new Error('No identity selected')
 
-                // 1) Identity write-only (no DAPI)
+                // 1) Identity write-only
                 await store.connectWriteOnlyFromDiscovered(
                     {
                         identityId: identity.identityId,
@@ -227,7 +228,7 @@ export function useConnect() {
                     runNetwork
                 )
 
-                // 2) Deterministic SAFU write for registered public keys only
+                // 2) Deterministic SAFU write
                 const cleaned = normalizeSeed(seedWords.value)
                 const expectedLen = seedWordCount.value === '24' ? 24 : 12
                 if (cleaned.length !== expectedLen) {
@@ -257,38 +258,39 @@ export function useConnect() {
                     const pk = publicKeys[i] || {}
                     const keyId = Number(pk.id ?? i)
 
-                    try {
-                        const res = await (await import('@/services/identity/keyDerivation.service')).KeyDerivationService.getPrivateKeyWASM(
-                            seedPhrase,
-                            runNetwork,
-                            identity.identityIdx ?? 0,
-                            keyId
-                        )
-                        const purposeStr = String(pk.purpose || 'AUTHENTICATION').toUpperCase()
-                        const secStr = String(pk.securityLevel || 'MASTER').toUpperCase()
+                    const res = await KeyDerivationService.getPrivateKeyWASM(
+                        seedPhrase,
+                        runNetwork,
+                        identity.identityIdx ?? 0,
+                        keyId
+                    )
+                    const purposeStr = String(pk.purpose || 'AUTHENTICATION').toUpperCase()
+                    const secStr = String(pk.securityLevel || 'MASTER').toUpperCase()
 
-                        entries.push({
-                            key_id: keyId,
-                            purpose: purposeMap[purposeStr] ?? 0,
-                            security_level: secMap[secStr] ?? 0,
-                            key_type: String(pk.keyType || pk.type || 'ECDSA_SECP256K1'),
-                            private_key: res.privateKey.WIF(),
-                            public_key: pk.data || '',
-                            derived_from_mnemonic: true,
-                            created_at: now,
-                            last_used: now
-                        })
-                    } catch (e) {
-                        console.error('Seed derivation failed for key', keyId, e)
-                    }
+                    // Note: Object properties must be camelCase to match Rust struct #[serde(rename_all = "camelCase")]
+                    entries.push({
+                        identityId: identity.identityId,
+                        keyId: keyId,
+                        purpose: purposeMap[purposeStr] ?? 0,
+                        securityLevel: secMap[secStr] ?? 0,
+                        keyType: String(pk.keyType || pk.type || 'ECDSA_SECP256K1'),
+                        privateKey: res.privateKey.WIF(),
+                        publicKey: pk.data || '',
+                        derivedFromMnemonic: true,
+                        createdAt: now,
+                        lastUsed: now
+                    })
                 }
 
                 if (entries.length > 0) {
+                    // FIX: Invoke argument 'identity_id' MUST be passed as 'identityId' in Tauri v2
                     await invoke<boolean>('save_private_keys', {
-                        identity_id: identity.identityId,
+                        identityId: identity.identityId, // <--- CHANGED FROM identity_id
                         keys: entries,
                         network: runNetwork
                     })
+                } else if (publicKeys.length > 0) {
+                    throw new Error('Failed to derive private keys for the selected identity.')
                 }
             } else {
                 const id =
@@ -322,10 +324,10 @@ export function useConnect() {
                         publicKeyIds: null
                     }
 
-                // 1) Identity write-only (no DAPI)
+                // 1) Identity write-only
                 await store.connectWriteOnlyFromDiscovered(snap, runNetwork)
 
-                // 2) Deterministic SAFU write: single provided key
+                // 2) Deterministic SAFU write
                 const pk = privateKeyInput.value?.trim()
                 if (pk) {
                     const first = (discoveryDetails.value?.associatedKeys || [])[0] || {}
@@ -350,20 +352,24 @@ export function useConnect() {
                     const security_level = secMap[secStr] ?? 0
 
                     const now = new Date().toISOString()
+
+                    // Note: Object properties must be camelCase to match Rust struct #[serde(rename_all = "camelCase")]
                     const entry = {
-                        key_id: 0,
+                        identityId: id,
+                        keyId: 0,
                         purpose,
-                        security_level,
-                        key_type: String(first.keyType || 'ECDSA_SECP256K1'),
-                        private_key: pk,
-                        public_key: '',
-                        derived_from_mnemonic: false,
-                        created_at: now,
-                        last_used: now
+                        securityLevel: security_level,
+                        keyType: String(first.keyType || 'ECDSA_SECP256K1'),
+                        privateKey: pk,
+                        publicKey: '',
+                        derivedFromMnemonic: false,
+                        createdAt: now,
+                        lastUsed: now
                     }
 
+                    // FIX: Invoke argument 'identity_id' MUST be passed as 'identityId' in Tauri v2
                     await invoke<boolean>('save_single_identity_keys', {
-                        identity_id: id,
+                        identityId: id, // <--- CHANGED FROM identity_id
                         key: entry,
                         network: runNetwork
                     })
@@ -372,10 +378,11 @@ export function useConnect() {
 
             showSuccess(`Connected to ${store.username || store.identityId || 'identity'}`)
         } catch (err: any) {
-            showError(err?.message || 'Failed to connect')
+            const msg = typeof err === 'string' ? err : (err?.message || 'Failed to connect');
+            showError(msg)
             console.error('Connect failed:', err)
             store.clearConnectionError()
-            store.connectionError = err?.message || 'Failed to connect'
+            store.connectionError = msg
             throw err
         } finally {
             store.isConnecting = false
