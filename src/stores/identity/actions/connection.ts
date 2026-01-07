@@ -1,6 +1,4 @@
 // src/stores/identity/actions/connection.ts
-
-// import { invoke } from '@tauri-apps/api/core'
 import { ErrorBoundary } from '@/utils/errors'
 import { KeyDerivationService } from '@/services/identity/keyDerivation.service'
 import { DAPIService } from '@/services/identity/discovery/DAPIService'
@@ -11,7 +9,6 @@ import type {
     DiscoveredIdentity,
     IIdentity
 } from '@/types'
-
 export const connectionActions = () => ({
     /**
      * Initialize the store from storage (called on app start)
@@ -26,26 +23,44 @@ export const connectionActions = () => ({
         targetIdentityId: string
     ): Promise<ConnectionResult> {
         return ErrorBoundary.wrap(async () => {
-            this.isConnecting = true;
+            this.isConnecting = true
             try {
-                const network = await this.getCurrentNetwork();
-                // Load mnemonic
-                const mnemonicData = await this.loadMnemonic(network);
-                if (!mnemonicData?.seedPhrase) throw new Error('No seed phrase found.');
-                const discovered = await this.loadDiscoveredIdentities(network);
-                let targetIdx = 0;
+                const network = await this.getCurrentNetwork()
+                const mnemonicData = await this.loadMnemonic(network)
+                if (!mnemonicData?.seedPhrase) throw new Error('No seed phrase found')
+                const discovered = await this.loadDiscoveredIdentities(network)
+                let targetIdx = 0
                 if (discovered && discovered.identities && discovered.identities[targetIdentityId]) {
-                    targetIdx = discovered.identities[targetIdentityId].identityIdx;
+                    targetIdx = discovered.identities[targetIdentityId].identityIdx
                 }
-                await this.connectWithSeed(mnemonicData.seedPhrase, network, targetIdentityId, targetIdx);
+                await this.connectWithSeed(
+                    mnemonicData.seedPhrase,
+                    network,
+                    targetIdentityId,
+                    targetIdx
+                )
                 return { success: true, identityId: targetIdentityId }
             } catch(e: any) {
-                this.connectionError = e.message;
-                return { success: false, error: e.message };
+                this.connectionError = e.message
+                return { success: false, error: e.message }
             } finally {
-                this.isConnecting = false;
+                this.isConnecting = false
             }
-        }, 'SWITCH_IDENTITY_FAILED');
+        }, 'SWITCH_IDENTITY_FAILED')
+    },
+    // Legacy Support for ConnectSeedForm - CORRECTED ORDER
+    async connectWriteOnlyFromDiscovered(
+        this: IIdentityState,
+        identity: DiscoveredIdentity,
+        seedPhrase: string
+    ): Promise<ConnectionResult> {
+        const network = await this.getCurrentNetwork()
+        return this.connectWithSeed(
+            seedPhrase,
+            network,
+            identity.identityId,
+            identity.identityIdx
+        )
     },
     async connectWithSeed(
         this: IIdentityState,
@@ -55,12 +70,11 @@ export const connectionActions = () => ({
         identityIndex: number = 0
     ): Promise<ConnectionResult> {
         return ErrorBoundary.wrap(async () => {
-            this.isConnecting = true;
+            this.isConnecting = true
             this.connectionError = null
             try {
                 const { initialize, reset } = usePlatform()
                 reset()
-                // 1. Initialize SDK
                 await initialize({
                     network,
                     wallet: {
@@ -68,17 +82,13 @@ export const connectionActions = () => ({
                         unsafeOptions: { skipSynchronizationBeforeHeight: 950000 }
                     }
                 })
-                // 2. Save Mnemonic
-                await this.saveMnemonicToStore(network, seedPhrase);
-                // 3. Fetch Identity
-                const fetchResult = await DAPIService.getIdentityById(targetId, network);
+                await this.saveMnemonicToStore(network, seedPhrase)
+                const fetchResult = await DAPIService.getIdentityById(targetId, network)
                 if (!fetchResult.success || !fetchResult.data) {
-                    throw new Error(fetchResult.error || `Failed to fetch identity ${targetId}`);
+                    throw new Error(fetchResult.error || `Failed to fetch identity ${targetId}`)
                 }
-                const identityData = fetchResult.data;
+                const identityData = fetchResult.data
                 const publicKeys = identityData.publicKeys || []
-                // 4. Derive and Save Private Keys
-                // We use KeyDerivationService locally to calculate keys, then save using store action
                 const purposeMap: Record<string, number> = {
                     AUTHENTICATION: 0, ENCRYPTION: 1, DECRYPTION: 2, TRANSFER: 3
                 }
@@ -112,13 +122,12 @@ export const connectionActions = () => ({
                             lastUsed: now
                         })
                     } catch (e) {
-                         // Skip keys that fail derivation (e.g. strict index mismatches)
+                        // Skip keys that fail derivation
                     }
                 }
                 if (privateKeyEntries.length > 0) {
-                    await this.saveKeys(network, targetId, privateKeyEntries);
+                    await this.saveKeys(network, targetId, privateKeyEntries)
                 }
-                // 5. Update State & Save Identity Data
                 const activeIdentity: IIdentity = {
                     identityId: targetId,
                     identityIdx: identityIndex,
@@ -127,12 +136,13 @@ export const connectionActions = () => ({
                     publicKeys
                 }
                 this.isAuthenticated = true
+                this.isConnected = true
                 this.username = targetId
                 this.identityId = targetId
                 this.identity = activeIdentity
                 this.publicKeys = publicKeys
                 this.balance = activeIdentity.balance
-                await this.saveToStorage(network);
+                await this.saveToStorage(network)
                 return { success: true, identityId: targetId, identity: activeIdentity }
             } catch (err: any) {
                 this.connectionError = err.message || 'Failed to connect'
@@ -173,11 +183,11 @@ export const connectionActions = () => ({
                         publicKeys: preloaded.publicKeys || []
                     }
                 } else {
-                    const fetchResult = await DAPIService.getIdentityById(trimmedId, network);
+                    const fetchResult = await DAPIService.getIdentityById(trimmedId, network)
                     if (!fetchResult.success || !fetchResult.data) {
-                        throw new Error(fetchResult.error || 'Failed to fetch identity details.')
+                        throw new Error(fetchResult.error || 'Failed to fetch identity details')
                     }
-                    identityData = fetchResult.data;
+                    identityData = fetchResult.data
                 }
                 const publicKeys = identityData.publicKeys || []
                 const now = new Date().toISOString()
@@ -194,7 +204,7 @@ export const connectionActions = () => ({
                     createdAt: now,
                     lastUsed: now
                 }
-                await this.saveKeys(network, trimmedId, [privateKeyEntry]);
+                await this.saveKeys(network, trimmedId, [privateKeyEntry])
                 const activeIdentity: IIdentity = {
                     identityId: trimmedId,
                     identityIdx: 0,
@@ -203,12 +213,13 @@ export const connectionActions = () => ({
                     publicKeys
                 }
                 this.isAuthenticated = true
+                this.isConnected = true
                 this.username = trimmedId
                 this.identityId = trimmedId
                 this.identity = activeIdentity
                 this.publicKeys = publicKeys
                 this.balance = activeIdentity.balance
-                await this.saveToStorage(network);
+                await this.saveToStorage(network)
                 return { success: true, identityId: trimmedId, identity: activeIdentity }
             } catch (err: any) {
                 this.connectionError = err.message || 'Failed to connect'
@@ -219,7 +230,7 @@ export const connectionActions = () => ({
         }, 'CONNECT_WITH_SINGLE_KEY_FAILED')
     },
     async logout(this: IIdentityState) {
-        await this.clearStorage();
+        await this.clearStorage()
     },
     clearConnectionError(this: IIdentityState) {
         this.connectionError = null

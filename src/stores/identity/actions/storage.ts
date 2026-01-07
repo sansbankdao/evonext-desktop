@@ -1,13 +1,12 @@
 // src/stores/identity/actions/storage.ts
-
 import { invoke } from '@tauri-apps/api/core'
 import { type IIdentityState, type RustDiscoveredIdentitiesStore, type DiscoveredIdentity } from '@/types'
 import { log } from '@/utils/env'
-
 export const storageActions = () => ({
     // --- Main Persistence Methods ---
     /**
      * Helper to save identity object (non-keys) to Rust storage
+     * Uses unified command to normalize fields and write .identity-[network].json
      */
     async saveIdentityDataToStore(
         this: IIdentityState,
@@ -17,19 +16,26 @@ export const storageActions = () => ({
     ): Promise<void> {
         try {
             const payload = {
-                username: data.username || targetId,
-                identity_id: targetId,
-                identity_idx: data.identity_idx || 0,
-                balance: data.balance ? String(data.balance) : null,
-                is_authenticated: true,
-                public_keys: data.public_keys || [],
+                identityId: targetId,
+                identityIdx: data.identityIdx ?? data.identity_idx ?? 0,
+                username: data.username ?? this.username ?? targetId,
+                dpnsUsername: data.dpnsUsername ?? null,
+                balance: data.balance != null ? String(data.balance) : null,
                 revision: typeof data.revision === 'string'
                     ? Number(data.revision) || 0
-                    : (data.revision || 0),
-                created_at: new Date().toISOString(),
-                public_key_ids: (data.public_keys || []).map((pk: any) => pk.id || 0)
+                    : (data.revision ?? null),
+                // Prefer publicKeys from TS store, fallback to legacy public_keys if present
+                publicKeys: data.publicKeys ?? data.public_keys ?? null,
+                createdAt: new Date().toISOString()
             }
-            await invoke('save_identity_data_untyped', { network, payload })
+            const res = await invoke<{
+                success: boolean
+                error?: string
+                payload?: unknown
+            }>('save_identity_unified', { network, payload })
+            if (!res || !res.success) {
+                throw new Error(res?.error || 'save_identity_unified failed')
+            }
             log('info', `[Storage] Identity data saved for ${targetId} on ${network}`)
         } catch (err: any) {
             log('error', '[Storage] Failed to save identity data:', err)
@@ -37,7 +43,7 @@ export const storageActions = () => ({
         }
     },
     /**
-     * Save private keys to Rust storage
+     * Save private keys to Rust storage (.safu-[network].json)
      */
     async saveKeys(
         this: IIdentityState,
@@ -46,12 +52,11 @@ export const storageActions = () => ({
         keys: any[]
     ): Promise<void> {
         try {
-            // Backend handles duplicates gracefully, but we prevent empty arrays
             if (!keys || keys.length === 0) return
             await invoke('save_private_keys', {
                 network,
                 identityId: targetId,
-                keys: keys
+                keys
             })
             log('info', `[Storage] Keys saved for ${targetId} on ${network}`)
         } catch (err: any) {
@@ -66,10 +71,21 @@ export const storageActions = () => ({
         try {
             const network = networkOverride || await this.getCurrentNetwork()
             if (this.identity && this.identityId) {
+                // Ensure publicKeys on the identity we pass
+                const identityForSave = {
+                    identityId: this.identity.identityId || this.identityId,
+                    identityIdx: this.identity.identityIdx ?? 0,
+                    username: this.username ?? this.identityId,
+                    balance: this.balance ?? this.identity.balance,
+                    revision: this.revision ?? this.identity.revision ?? 0,
+                    publicKeys: Array.isArray(this.publicKeys) && this.publicKeys.length > 0
+                        ? this.publicKeys
+                        : (this.identity.publicKeys || [])
+                }
                 await this.saveIdentityDataToStore(
                     network,
                     this.identityId,
-                    this.identity
+                    identityForSave
                 )
             }
         } catch (err) {
@@ -78,28 +94,72 @@ export const storageActions = () => ({
     },
     /**
      * Loads identity state from persistent storage
+     * Supports both map format and legacy single entry format
      */
     async loadFromStorage(this: IIdentityState) {
         try {
             const network = await this.getCurrentNetwork()
+            // Preferred: load identity map and select current identityId or first
+            let loadedMap: Record<string, any> | null = null
+            try {
+                loadedMap = await invoke<Record<string, any>>(
+                    'load_identities_map',
+                    { network }
+                )
+            } catch {
+                loadedMap = null
+            }
+            if (loadedMap && Object.keys(loadedMap).length > 0) {
+                const keys = Object.keys(loadedMap)
+                const targetId = (this.identityId ?? keys[0]) as string
+                const data = loadedMap[targetId]
+                if (data) {
+                    this.username = data.username || data.identity_id || null
+                    this.identityId = data.identity_id || targetId || null
+                    const publicKeys = data.public_keys || []
+                    this.identity = {
+                        identityId: data.identity_id || targetId,
+                        identityIdx: data.identity_idx || 0,
+                        balance: data.balance || '0',
+                        revision: typeof data.revision === 'number'
+                            ? data.revision
+                            : Number(data.revision || 0),
+                        publicKeys,
+                        username: data.username || undefined
+                    }
+                    this.balance = data.balance || null
+                    this.revision = typeof data.revision === 'number'
+                        ? data.revision
+                        : Number(data.revision || 0)
+                    this.isAuthenticated = data.is_authenticated ?? true
+                    this.publicKeys = publicKeys
+                    log('info', `[Storage] Identity map loaded for ${network}`)
+                    return
+                }
+            }
+            // Fallback: legacy single IdentityData
             const data = await invoke<any>('load_identity_data', { network })
             if (data) {
                 this.username = data.username || null
                 this.identityId = data.identity_id || null
+                const publicKeys = data.public_keys || []
                 this.identity = {
                     identityId: data.identity_id || '',
                     identityIdx: data.identity_idx || 0,
                     balance: data.balance || '0',
-                    revision: data.revision || 0,
-                    publicKeys: data.public_keys || [],
-                    // FIX: IIdentity does not have dpnsUsername. Map to username or omit.
-                    username: data.dpns_username || data.username || undefined
+                    revision: typeof data.revision === 'number'
+                        ? data.revision
+                        : Number(data.revision || 0),
+                    publicKeys,
+                    username: data.username || undefined
                 }
                 this.balance = data.balance || null
-                this.revision = data.revision || null
-                this.isAuthenticated = data.is_authenticated || false
-                this.publicKeys = data.public_keys || []
-                log('info', `[Storage] Identity data loaded for ${network}`)
+                this.revision = typeof data.revision === 'number'
+                    ? data.revision
+                    : Number(data.revision || 0)
+                this.isAuthenticated = data.is_authenticated ?? true
+                this.publicKeys = publicKeys
+                log('info', `[Storage] Legacy identity data loaded for ${network}`)
             } else {
                 log('info', `[Storage] No identity data found for ${network}`)
             }
@@ -113,10 +173,14 @@ export const storageActions = () => ({
     async clearStorage(this: IIdentityState) {
         try {
             const network = await this.getCurrentNetwork()
-            // Delete current identity specific data
-            await invoke('delete_private_keys', { network, identityId: this.identityId || '' })
-            await invoke('delete_identity_data', { network, identityId: this.identityId || '' })
-            // If we are doing a full reset/logout, we might want to clear global items too
+            await invoke('delete_private_keys', {
+                network,
+                identityId: this.identityId || ''
+            })
+            await invoke('delete_identity_data', {
+                network,
+                identityId: this.identityId || ''
+            })
             await invoke('delete_mnemonic', { network })
             await invoke('clear_discovered_identities', { network })
             this.username = null
@@ -126,6 +190,7 @@ export const storageActions = () => ({
             this.revision = null
             this.isAuthenticated = false
             this.publicKeys = []
+            this.isConnected = false
             log('info', '[Storage] Storage cleared')
         } catch (err: any) {
             log('error', '[Storage] Failed to clear storage:', err)
@@ -151,9 +216,11 @@ export const storageActions = () => ({
         network: 'mainnet' | 'testnet'
     ): Promise<{ seedPhrase: string } | null> {
         try {
-            return await invoke<{ seedPhrase: string } | null>('load_mnemonic', { network })
-        } catch (err) {
-            // It's possible mnemonic doesn't exist
+            return await invoke<{ seedPhrase: string } | null>(
+                'load_mnemonic',
+                { network }
+            )
+        } catch {
             return null
         }
     },
@@ -213,7 +280,10 @@ export const storageActions = () => ({
         network: 'mainnet' | 'testnet'
     ): Promise<RustDiscoveredIdentitiesStore | null> {
         try {
-            return await invoke<RustDiscoveredIdentitiesStore | null>('load_discovered_identities', { network })
+            return await invoke<RustDiscoveredIdentitiesStore | null>(
+                'load_discovered_identities',
+                { network }
+            )
         } catch (err: any) {
             log('error', '[Storage] Failed to load discovered identities:', err)
             return null
@@ -231,12 +301,14 @@ export const storageActions = () => ({
         }
     }
 })
-
 export function identitiesMapActions() {
     return {
         async loadAllIdentities(this: any, network: 'mainnet' | 'testnet') {
             try {
-                const map = await invoke<Record<string, any>>('load_identities_map', { network })
+                const map = await invoke<Record<string, any>>(
+                    'load_identities_map',
+                    { network }
+                )
                 this.identitiesMap = map
                 return map
             } catch (e) {

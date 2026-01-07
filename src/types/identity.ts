@@ -71,6 +71,7 @@ export interface DiscoveredIdentity {
     identityId: string;
     identityIdx: number;
     publicKeys: IPublicKey[];
+    publicKeyIds?: number[] | undefined; // Added to match legacy component usage
     balance?: number | string | null | undefined;
     username?: string | undefined;
     displayName?: string | undefined;
@@ -78,6 +79,7 @@ export interface DiscoveredIdentity {
     revision?: number | undefined;
     dpnsUsername?: string | null | undefined;
 }
+
 export interface RustDiscoveredIdentity {
     identityId: string;
     identityIdx: number;
@@ -126,21 +128,28 @@ export interface IIdentityActions {
     saveDiscoveredIdentities: (identities: DiscoveredIdentity[], network: 'mainnet' | 'testnet', keyType: 'seed' | 'private') => Promise<{ success: boolean; savedCount: number, error?: string }>;
     loadDiscoveredIdentities: (network: 'mainnet' | 'testnet') => Promise<RustDiscoveredIdentitiesStore | null>;
     clearDiscoveredIdentities: (network: 'mainnet' | 'testnet') => Promise<{ success: boolean; error?: string }>;
+
     // Connection
     connectWithSeed: (seedPhrase: string, network: 'mainnet' | 'testnet', targetId: string, identityIdx: number) => Promise<ConnectionResult>;
     connectWithSingleKey: (privateKey: string, identityId: string, network: 'mainnet' | 'testnet', preloaded?: any) => Promise<ConnectionResult>;
     switchIdentity: (targetIdentityId: string) => Promise<ConnectionResult>;
+
+    // Restore legacy action required by ConnectSeedForm - CORRECTED ORDER
+    connectWriteOnlyFromDiscovered: (identity: DiscoveredIdentity, seedPhrase: string) => Promise<ConnectionResult>;
+
     // Core Storage / Persistence
     saveKeys: (network: 'mainnet' | 'testnet', identityId: string, keys: any[]) => Promise<void>;
     loadFromStorage: () => Promise<void>;
     saveToStorage: (networkOverride?: 'mainnet' | 'testnet') => Promise<void>;
     clearStorage: () => Promise<void>;
     getCurrentNetwork: () => Promise<'mainnet' | 'testnet'>;
+
     // Helpers (Internal or specialized) - Made Required
     saveMnemonicToStore: (network: 'mainnet' | 'testnet', seedPhrase: string) => Promise<void>;
     loadMnemonic: (network: 'mainnet' | 'testnet') => Promise<{ seedPhrase: string } | null>;
     loadSettings: () => Promise<any>;
     saveIdentityDataToStore: (network: 'mainnet' | 'testnet', targetId: string, data: any) => Promise<void>;
+
     // Auth
     logout: () => Promise<void>;
     clearConnectionError: () => void;
