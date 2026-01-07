@@ -3,9 +3,7 @@
 use std::collections::HashMap;
 use tauri::AppHandle;
 use base64::{engine::general_purpose, Engine};
-// use serde::{Deserialize, Serialize};
 use serde_json::{Value as JsonValue};
-// use serde_json::{json, Value as JsonValue};
 use chrono::Utc;
 use crate::models::{
     IdentityData, IdentityPublicKey, PrivateKeyEntry, PrivateKeyStore,
@@ -43,7 +41,6 @@ fn pick_u32(obj: &serde_json::Map<String, JsonValue>, keys: &[&str]) -> Option<u
     }
     None
 }
-
 fn val_to_u64(val: &JsonValue) -> Option<u64> {
     match val {
         JsonValue::Number(n) => n.as_u64(),
@@ -195,26 +192,45 @@ fn save_keystore(app: &AppHandle, network: &str, store: &PrivateKeyStore) -> Res
         .map_err(|e| e.to_string())
 }
 
+// ---------------------- Identity Map helpers ----------------------
+/// Loads the identity map from disk.
+/// REGRESSION FIX:
+/// 1. Attempts to load the "identities" map (New Structure).
+/// 2. Falls back to "identity" single object (Legacy Structure).
 fn load_identity_map(app: &AppHandle, network: &str) -> Result<IdentityMap, String> {
     let manager = StoreManager::new(app);
     let filename = get_network_file(network, "identity")?;
-
-    // Try map first
-    if let Ok(loaded) = manager.load::<IdentityMap>(filename, "identity") {
-        if let Some(map) = loaded {
-            return Ok(map);
+    // 1. Try loading the NEW structure: { "identities": { ... } }
+    // We load as JsonValue first to handle potential nested keys safely
+    if let Ok(Some(raw_val)) = manager.load::<JsonValue>(filename.clone(), "identities") {
+        if let JsonValue::Object(map) = raw_val {
+            // We found the "identities" map.
+            // We need to deserialize each value into IdentityData.
+            // Since HashMap<String, IdentityData> is our target, serde can do this directly
+            // if the raw_val is exactly the map.
+            // However, if raw_val IS the map, we can just use from_value.
+            match serde_json::from_value::<IdentityMap>(JsonValue::Object(map)) {
+                Ok(parsed_map) => {
+                    println!("[load_identity_map] Loaded new 'identities' map ({} entries)", parsed_map.len());
+                    return Ok(parsed_map);
+                }
+                Err(e) => {
+                    eprintln!("[load_identity_map] Failed to parse 'identities' map: {}", e);
+                    // Fallthrough to legacy
+                }
+            }
         }
     }
-
-    // Fallback: legacy single identity
-    if let Ok(loaded_single) = manager.load::<IdentityData>(filename, "identity") {
-        if let Some(single) = loaded_single {
-            let mut map = IdentityMap::new();
-            map.insert(single.identity_id.clone(), single);
-            return Ok(map);
-        }
+    // 2. Fallback: Try loading the LEGACY single identity: { "identity": IdentityData }
+    // This handles the case where the user has an old file written before the refactor.
+    if let Ok(Some(single)) = manager.load::<IdentityData>(filename, "identity") {
+        let mut map = IdentityMap::new();
+        map.insert(single.identity_id.clone(), single);
+        println!("[load_identity_map] Loaded legacy 'identity' single object");
+        return Ok(map);
     }
 
+    // 3. No data found
     Ok(IdentityMap::new())
 }
 
@@ -234,6 +250,7 @@ pub async fn load_identities_map(
     app: AppHandle,
     network: String,
 ) -> Result<IdentityMap, String> {
+    // FIX: This command now uses the corrected helper logic
     let map = load_identity_map(&app, &network)?;
     Ok(map)
 }
@@ -339,7 +356,6 @@ pub async fn save_identity_data_untyped(
     // Merge into identity map and save
     let mut map = load_identity_map(&app, &network)?;
     map.insert(identity_id.clone(), identity);
-
     save_identity_map(&app, &network, &map)?;
     Ok(true)
 }
@@ -365,7 +381,7 @@ pub async fn save_identity_data(
 pub async fn delete_identity_data(
     app: AppHandle,
     network: String,
-    identity_id: Option<String> // <--- ADDED: Optional ID parameter
+    identity_id: Option<String>
 ) -> Result<bool, String> {
     let manager = StoreManager::new(&app);
     let filename = get_network_file(&network, "identity")?;
@@ -449,12 +465,10 @@ pub async fn save_private_keys(
 pub async fn delete_private_keys(
     app: AppHandle,
     network: String,
-    identity_id: Option<String>, // <--- ADDED: Optional ID parameter
+    identity_id: Option<String>,
 ) -> Result<bool, String> {
     let manager = StoreManager::new(&app);
     let filename = get_network_file(&network, "safu")?;
-    // FIX: If ID is provided, remove specific identity's keys from map.
-    // Otherwise, delete the entire SAFU file.
     if let Some(id) = identity_id {
         let mut store = load_keystore(&app, &network)?;
         if store.identities.remove(&id).is_some() {
@@ -470,7 +484,6 @@ pub async fn delete_private_keys(
             Ok(false)
         }
     } else {
-        // Existing behavior: Nuke the file if no ID provided
         match manager.delete(filename, "keystore") {
             Ok(_) => Ok(true),
             Err(e) => Err(e.to_string()),
