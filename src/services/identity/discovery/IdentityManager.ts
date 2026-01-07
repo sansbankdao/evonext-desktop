@@ -1,5 +1,6 @@
 // src/services/identity/discovery/IdentityManager.ts
 
+// import { useIdentityStore } from '@/stores/identity'
 import { KeyDiscovery } from './KeyDiscovery'
 import { SeedDiscovery, type ProgressCallback } from './SeedDiscovery'
 import { DAPIService } from './DAPIService'
@@ -10,29 +11,24 @@ import type {
     DiscoveryOptions,
     AssociatedKey,
 } from '../types'
-import type { KeyHashDerivationResult } from '@/types'
+import type { KeyHashDerivationResult, IIdentityActions } from '@/types'
 
 export class IdentityManager {
     private keyDiscovery: KeyDiscovery
     private seedDiscovery: SeedDiscovery
-
-    constructor() {
-        this.keyDiscovery = new KeyDiscovery()
-        this.seedDiscovery = new SeedDiscovery()
+    constructor(private store: IIdentityActions) {
+        this.keyDiscovery = new KeyDiscovery(this.store)
+        this.seedDiscovery = new SeedDiscovery(this.store)
     }
-
     setProgressCallback(callback: ProgressCallback) {
         this.seedDiscovery.setProgressCallback(callback)
     }
-
     clearProgressCallback() {
         this.seedDiscovery.setProgressCallback(() => {})
     }
-
     cancelSeedDiscovery() {
         this.seedDiscovery.cancel()
     }
-
     async discoverFromKey(
         keyInput: string,
         options: DiscoveryOptions = { network: 'testnet' }
@@ -40,7 +36,7 @@ export class IdentityManager {
         if (!keyInput || typeof keyInput !== 'string' || keyInput.trim().length === 0) {
             return {
                 success: false,
-                error: 'Invalid key input. Please provide a valid private key or public key.',
+                error: 'Invalid key input.',
                 identities: null,
                 identity: null,
                 detectedKeyType: null,
@@ -48,7 +44,6 @@ export class IdentityManager {
                 debug: { step: 'input_validation', network: options.network }
             }
         }
-
         try {
             return await this.keyDiscovery.discover(keyInput, options)
         } catch (error: any) {
@@ -63,7 +58,6 @@ export class IdentityManager {
             }
         }
     }
-
     async discoverFromSeed(
         seedPhrase: string,
         options: DiscoveryOptions & { maxIdentityIndex?: number } = {
@@ -74,7 +68,7 @@ export class IdentityManager {
         if (!seedPhrase || typeof seedPhrase !== 'string' || seedPhrase.trim().length === 0) {
             return {
                 success: false,
-                error: 'Invalid seed phrase. Please provide a valid 12 or 24-word seed phrase.',
+                error: 'Invalid seed phrase.',
                 identities: null,
                 identity: null,
                 detectedKeyType: null,
@@ -82,13 +76,11 @@ export class IdentityManager {
                 debug: { step: 'input_validation', network: options.network }
             }
         }
-
         const words = seedPhrase.trim().split(/\s+/)
-
         if (words.length !== 12 && words.length !== 24) {
             return {
                 success: false,
-                error: `Invalid seed phrase length: ${words.length} words. Expected 12 or 24.`,
+                error: `Invalid seed phrase length: ${words.length} words.`,
                 identities: null,
                 identity: null,
                 detectedKeyType: null,
@@ -96,7 +88,6 @@ export class IdentityManager {
                 debug: { step: 'seed_validation', network: options.network }
             }
         }
-
         try {
             const seedOptions = {
                 network: options.network,
@@ -120,7 +111,7 @@ export class IdentityManager {
         } catch (error: any) {
             return {
                 success: false,
-                error: `Seed discovery failed: ${error.message || 'Unknown error'}`,
+                error: `Seed discovery failed: ${error.message}`,
                 identities: null,
                 identity: null,
                 detectedKeyType: null,
@@ -129,7 +120,6 @@ export class IdentityManager {
             }
         }
     }
-
     async discover(
         input: string,
         options: DiscoveryOptions = { network: 'testnet' }
@@ -137,7 +127,7 @@ export class IdentityManager {
         if (!input || typeof input !== 'string' || input.trim().length === 0) {
             return {
                 success: false,
-                error: 'Invalid input. Please provide a seed phrase or key.',
+                error: 'Invalid input.',
                 identities: null,
                 identity: null,
                 detectedKeyType: null,
@@ -145,52 +135,31 @@ export class IdentityManager {
                 debug: { step: 'input_validation', network: options.network }
             }
         }
-
         const trimmedInput = input.trim()
         const words = trimmedInput.split(/\s+/)
-
         if (words.length === 12 || words.length === 24) {
             return this.discoverFromSeed(trimmedInput, { ...options, maxIdentityIndex: 5 })
         }
-
         return this.discoverFromKey(trimmedInput, options)
     }
-
     async getDPNSUsername(
         identityId: string,
         network: 'mainnet' | 'testnet' = 'testnet'
     ): Promise<string | null> {
         try {
-            if (!identityId || typeof identityId !== 'string' || identityId.trim().length === 0) {
-                console.warn('[IdentityManager] Invalid identity ID for DPNS lookup:', identityId)
-                return null
-            }
+            if (!identityId) return null
             return await DAPIService.getDPNSUsername(identityId.trim(), network)
         } catch (error) {
-            console.error('[IdentityManager] Failed to get DPNS username:', error)
             return null
         }
     }
-
     async getIdentityById(
         identityId: string,
         network: 'mainnet' | 'testnet' = 'testnet'
     ): Promise<DiscoveryResult> {
         try {
-            if (!identityId || typeof identityId !== 'string' || identityId.trim().length === 0) {
-                return {
-                    success: false,
-                    error: 'Invalid identity ID',
-                    identities: null,
-                    identity: null,
-                    detectedKeyType: null,
-                    associatedKeys: null,
-                    debug: { step: 'identity_id_validation', network }
-                }
-            }
-
+            if (!identityId) return { success: false, error: 'Invalid ID', identities: null, identity: null, detectedKeyType: null, associatedKeys: null }
             const result = await DAPIService.getIdentityById(identityId.trim(), network)
-
             if (result.success && result.data) {
                 const identityData = result.data
                 const dpnsUsername = await this.getDPNSUsername(identityId.trim(), network)
@@ -212,10 +181,9 @@ export class IdentityManager {
                     debug: result.debug
                 }
             }
-
             return {
                 success: false,
-                error: result.error || `No identity found with ID: ${identityId}`,
+                error: result.error || 'No identity found',
                 identities: null,
                 identity: null,
                 detectedKeyType: null,
@@ -225,27 +193,23 @@ export class IdentityManager {
         } catch (error: any) {
             return {
                 success: false,
-                error: `Failed to get identity by ID: ${error.message || 'Unknown error'}`,
+                error: error.message,
                 identities: null,
                 identity: null,
                 detectedKeyType: null,
-                associatedKeys: null,
-                debug: { step: 'get_identity_by_id_exception', network, error: error.message }
+                associatedKeys: null
             }
         }
     }
-
     detectKeyFormat(keyInput: string): { format: KeyType; description: string } {
         return KeyDerivationService.detectKeyFormat(keyInput)
     }
-
     async deriveKeyHashes(
         keyInput: string,
         network: 'mainnet' | 'testnet' = 'testnet'
     ): Promise<KeyHashDerivationResult> {
         return KeyDerivationService.deriveAllPossibleHashes(keyInput, network)
     }
-
     // Helpers
     private formatBalance(balance: any): string {
         if (balance === undefined || balance === null) return '0'
@@ -253,7 +217,6 @@ export class IdentityManager {
         if (typeof balance === 'string') return balance
         try { return balance.toString() } catch { return '0' }
     }
-
     private extractAssociatedKeys(publicKeys: any[]): AssociatedKey[] {
         if (!Array.isArray(publicKeys) || publicKeys.length === 0) {
             return []
@@ -262,11 +225,10 @@ export class IdentityManager {
             purpose: this.getKeyPurposeDisplay(key.purpose),
             securityLevel: this.getSecurityLevelDisplay(key.securityLevel),
             keyType: key.keyType || 'UNKNOWN',
-            data: key.data || key.dataB64 || '',
-            derivedFromInput: false
+            derivedFromInput: false,
+            data: key.data || key.dataB64 || ''
         }))
     }
-
     private getKeyPurposeDisplay(purpose: string | number): string {
         const p = typeof purpose === 'string' ? purpose.toUpperCase() : String(purpose)
         const purposeMap: Record<string, string> = {
@@ -281,7 +243,6 @@ export class IdentityManager {
         }
         return purposeMap[p] || String(purpose)
     }
-
     private getSecurityLevelDisplay(securityLevel: string | number): string {
         const s = typeof securityLevel === 'string' ? securityLevel.toUpperCase() : String(securityLevel)
         const levelMap: Record<string, string> = {
@@ -298,20 +259,16 @@ export class IdentityManager {
         }
         return levelMap[s] || String(securityLevel)
     }
-
     cleanup() {
         this.cancelSeedDiscovery()
         KeyDerivationService.cleanup()
     }
 }
-
-// Singleton accessor to preserve existing imports
 let identityManagerSingleton: IdentityManager | null = null
-
-export function getIdentityManager(): IdentityManager {
+export function getIdentityManager(store?: any): IdentityManager {
     if (!identityManagerSingleton) {
-        identityManagerSingleton = new IdentityManager()
+        if(!store) console.warn('[IdentityManager] Initialized without store. Persistence may fail.')
+        identityManagerSingleton = new IdentityManager(store || {})
     }
-
     return identityManagerSingleton
 }

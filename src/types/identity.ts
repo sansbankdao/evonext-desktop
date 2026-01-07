@@ -78,7 +78,6 @@ export interface DiscoveredIdentity {
     revision?: number | undefined;
     dpnsUsername?: string | null | undefined;
 }
-
 export interface RustDiscoveredIdentity {
     identityId: string;
     identityIdx: number;
@@ -110,11 +109,49 @@ export interface IIdentityStoreMap {
     [key: string]: IIdentity;
 }
 
-export interface IIdentityState {
+export interface ConnectionResult {
+    success: boolean;
+    identityId?: string;
+    identity?: IIdentity;
+    error?: string;
+}
+
+export interface StoredMnemonic {
+    seedPhrase: string;
+}
+
+// --- STORE ACTIONS SIGNATURES ---
+export interface IIdentityActions {
+    // Discovery Storage
+    saveDiscoveredIdentities: (identities: DiscoveredIdentity[], network: 'mainnet' | 'testnet', keyType: 'seed' | 'private') => Promise<{ success: boolean; savedCount: number, error?: string }>;
+    loadDiscoveredIdentities: (network: 'mainnet' | 'testnet') => Promise<RustDiscoveredIdentitiesStore | null>;
+    clearDiscoveredIdentities: (network: 'mainnet' | 'testnet') => Promise<{ success: boolean; error?: string }>;
+    // Connection
+    connectWithSeed: (seedPhrase: string, network: 'mainnet' | 'testnet', targetId: string, identityIdx: number) => Promise<ConnectionResult>;
+    connectWithSingleKey: (privateKey: string, identityId: string, network: 'mainnet' | 'testnet', preloaded?: any) => Promise<ConnectionResult>;
+    switchIdentity: (targetIdentityId: string) => Promise<ConnectionResult>;
+    // Core Storage / Persistence
+    saveKeys: (network: 'mainnet' | 'testnet', identityId: string, keys: any[]) => Promise<void>;
+    loadFromStorage: () => Promise<void>;
+    saveToStorage: (networkOverride?: 'mainnet' | 'testnet') => Promise<void>;
+    clearStorage: () => Promise<void>;
+    getCurrentNetwork: () => Promise<'mainnet' | 'testnet'>;
+    // Helpers (Internal or specialized) - Made Required
+    saveMnemonicToStore: (network: 'mainnet' | 'testnet', seedPhrase: string) => Promise<void>;
+    loadMnemonic: (network: 'mainnet' | 'testnet') => Promise<{ seedPhrase: string } | null>;
+    loadSettings: () => Promise<any>;
+    saveIdentityDataToStore: (network: 'mainnet' | 'testnet', targetId: string, data: any) => Promise<void>;
+    // Auth
+    logout: () => Promise<void>;
+    clearConnectionError: () => void;
+}
+
+// --- STORE STATE / ACTIONS INTERFACE ---
+export interface IIdentityState extends IIdentityActions {
     username: string | null;
     identityId: string | null;
     displayName: string | null;
-    identity: DiscoveredIdentity | null;
+    identity: IIdentity | null;
     balance: number | string | null | undefined;
     balanceBigInt?: bigint | undefined;
     dashBigInt?: bigint | undefined;
@@ -128,28 +165,6 @@ export interface IIdentityState {
     lastConnected: number | null;
     discoveryProgress?: DiscoveryProgress | null;
     identitiesMap: IIdentityStoreMap;
-
-    connectWithSeed: (seedPhrase: string, network: string, targetId?: string, identityIndex?: number) => Promise<ConnectionResult>;
-    connectWithSingleKey: (privateKey: string, identityId: string, network: string) => Promise<ConnectionResult>;
-    switchIdentity: (targetIdentityId: string) => Promise<ConnectionResult>;
-    saveDiscoveredIdentities: (identities: DiscoveredIdentity[], network: 'mainnet' | 'testnet', keyType: 'seed' | 'private') => Promise<{success: boolean, savedCount: number, error?: string}>;
-    loadDiscoveredIdentities: (network: 'mainnet' | 'testnet') => Promise<RustDiscoveredIdentitiesStore | null>;
-    clearDiscoveredIdentities: (network: 'mainnet' | 'testnet') => Promise<{success: boolean, error?: string}>;
-    saveToStorage: (networkOverride?: 'mainnet' | 'testnet') => Promise<void>;
-    searchUserIdentities: (network: 'mainnet' | 'testnet') => Promise<DiscoveredIdentity[]>;
-    getCurrentNetwork: () => Promise<'mainnet' | 'testnet'>;
-    clearStorage?: () => Promise<void>;
-    fetchBalance?: () => Promise<void>;
-    getGreeting?: () => string;
-    loadFromStorage?: () => Promise<void>;
-    logout: () => Promise<void>;
-}
-
-export interface ConnectionResult {
-    success: boolean;
-    identityId?: string;
-    identity?: IIdentity;
-    error?: string;
 }
 
 export interface SDKIdentityDetails {
@@ -158,6 +173,7 @@ export interface SDKIdentityDetails {
     publicKeys: any[];
     revision: number;
 }
+
 export interface IdentitySearchOptions {
     minIndexSearch?: number;
     queryRegistry?: boolean;

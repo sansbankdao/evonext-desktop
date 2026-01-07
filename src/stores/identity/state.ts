@@ -15,35 +15,32 @@ export const useIdentityState = (): IIdentityState => ({
 
     publicKeys: [],
     revision: null,
+
     isAuthenticated: false,
     premiumAccess: false,
+
     connectionError: null,
     isConnecting: false,
-    isConnected: false, // NEW
+    isConnected: false,
     lastConnected: null,
+
     discoveryProgress: null,
 
-    // New: cache for multiple identities (loaded from Rust)
     identitiesMap: {},
 
+
+    // --- Actions Stubs (Satisfy Typescript, overridden by Store Actions) ---
     connectWithSeed: async () => ({ success: false, error: 'Not implemented' }),
     connectWithSingleKey: async () => ({ success: false, error: 'Not implemented' }),
-
     switchIdentity: async () => ({ success: false, error: 'Not implemented' }),
-
+    logout: async () => {},
     saveDiscoveredIdentities: async () => ({ success: false, savedCount: 0 }),
     loadDiscoveredIdentities: async () => null,
     clearDiscoveredIdentities: async () => ({ success: false }),
-
+    saveKeys: async () => {},
     saveToStorage: async () => {},
-    searchUserIdentities: async () => [],
-
-    getCurrentNetwork: async () => 'mainnet',
-
-    clearStorage: async () => {},
-    fetchBalance: async () => {},
-    getGreeting: () => '',
     loadFromStorage: async () => {},
-
-    logout: async () => {}
+    clearStorage: async () => {},
+    getCurrentNetwork: async () => 'mainnet',
+    clearConnectionError: () => {}
 })
