@@ -97,17 +97,30 @@
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <!-- Assets List -->
             <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-2xl border-2 border-slate-200 dark:border-slate-700 hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 group">
-                <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-8 flex items-center gap-3">
-                    <svg class="w-7 h-7 text-indigo-500 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
-                    My Assets
-                </h2>
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-3">
+                        <svg class="w-7 h-7 text-indigo-500 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        My Assets
+                        <span v-if="Wallet.isLoading" class="text-sm font-normal text-amber-500 animate-pulse">
+                            (Loading...)
+                        </span>
+                    </h2>
+
+                    <button
+                        @click="forceRefresh"
+                        class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1 rounded transition-colors"
+                        title="Force Refresh Assets"
+                    >
+                        Force Refresh
+                    </button>
+                </div>
 
                 <div class="space-y-4">
                     <div
                         v-for="asset in Wallet.assets"
-                        :key="asset.symbol"
+                        :key="asset.id"
                         role="button"
                         tabindex="0"
                         @click="router.push(`/wallet/asset/${asset.symbol}`)"
@@ -185,7 +198,6 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
                                 </svg>
 
-
                                 <svg v-if="tx.type === 'received'" class="h-6 w-6 text-emerald-500 hover:text-emerald-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                                 </svg>
@@ -232,6 +244,42 @@
                 </div>
             </div>
         </div>
+
+        <!-- DEBUG SECTION -->
+        <div class="mt-8 bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 p-6 rounded-2xl">
+            <h3 class="text-lg font-bold text-red-800 dark:text-red-300 mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                Debug Information
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm font-mono">
+                <div class="bg-white dark:bg-slate-900 p-4 rounded shadow border border-red-100 dark:border-red-900">
+                    <p class="font-bold text-slate-700 dark:text-slate-300 mb-2">Identity Store State</p>
+                    <ul class="space-y-1 text-slate-600 dark:text-slate-400 text-xs">
+                        <li>Is Connected: {{ Identity.isConnected }}</li>
+                        <li>Username: {{ Identity.username }}</li>
+                        <li>Identity ID (.identityId): {{ Identity.identity?.identityId }}</li>
+                        <li>Balance: {{ Identity.balance }}</li>
+                    </ul>
+                </div>
+
+                <div class="bg-white dark:bg-slate-900 p-4 rounded shadow border border-red-100 dark:border-red-900">
+                    <p class="font-bold text-slate-700 dark:text-slate-300 mb-2">Wallet Store State</p>
+                    <ul class="space-y-1 text-slate-600 dark:text-slate-400 text-xs">
+                        <li>Assets Count: {{ Wallet.assets.length }}</li>
+                        <li>Is Loading: {{ Wallet.isLoading }}</li>
+                        <li>User: {{ Wallet.user ? Wallet.user.username : 'null' }}</li>
+                        <li>Transactions Count: {{ Wallet.transactions.length }}</li>
+                    </ul>
+                </div>
+
+                <div class="col-span-1 md:col-span-2 bg-white dark:bg-slate-900 p-4 rounded shadow border border-red-100 dark:border-red-900 overflow-x-auto">
+                    <p class="font-bold text-slate-700 dark:text-slate-300 mb-2">First Asset (Raw)</p>
+                    <pre class="text-xs text-slate-600 dark:text-slate-400">{{ JSON.stringify(Wallet.assets[0], null, 2) }}</pre>
+                </div>
+            </div>
+        </div>
+
     </main>
 </template>
 
@@ -252,6 +300,7 @@ const Identity = useIdentityStore()
 const System = useSystemStore()
 
 const totalBalance = computed(() => {
+    // FIX: Check if Identity has balance, regardless of ID structure
     if (Identity.isConnected && Identity.balance) {
         const credits = parseInt(Identity.balance as string, 10)
         const duffs = credits / 1000
@@ -262,9 +311,9 @@ const totalBalance = computed(() => {
     }
     // Fallback to mock data from wallet store
     return {
-        dash: Wallet.assets.find(a => a.symbol === 'DASH')?.balance || 0,
+        dash: Number(Wallet.assets.find(a => a.symbol === 'DASH')?.balance) || 0,
         usd: Wallet.totalUsdValue || 0,
-        credits: Wallet.assets.find(a => a.symbol === 'CREDITS')?.balance || 0,
+        credits: Number(Wallet.assets.find(a => a.symbol === 'CREDITS')?.balance) || 0,
         duffs: 0
     }
 })
@@ -303,6 +352,11 @@ const assetIconExists = (symbol: string) => {
     return commonIcons.includes(lower) || lower === 'credits'
 }
 
+const forceRefresh = async () => {
+    console.log('🔄 Force Refresh triggered')
+    await Wallet.refreshBalances()
+}
+
 onMounted(async () => {
     await nextTick()
 
@@ -317,18 +371,17 @@ onMounted(async () => {
     } else {
         console.log('Using identity data for user:', Identity.username)
 
-        /* Set (real?) identity ID. */
-        const realIdentityId = Identity.identity?.id
+        /* FIX: Use .identityId instead of .id */
+        const realIdentityId = Identity.identity?.identityId
 
-        /* Validate (real?) identity ID. */
+        /* Validate real identity ID. */
         if (realIdentityId) {
-            // FIX: Provide all required properties for IUser
             Wallet.user = {
                 username: Identity.username || 'Unknown',
                 displayName: Identity.username || 'Unknown',
                 name: Identity.username || '',
                 address: realIdentityId,
-                avatar: '', // Required property, providing empty string
+                avatar: '',
                 identityId: realIdentityId
             }
             console.log('✅ Setting wallet user with real identity ID:', realIdentityId)
@@ -337,7 +390,6 @@ onMounted(async () => {
             await Wallet.refreshBalances()
         } else {
             console.warn('❌ No real identity ID found, falling back to mock data')
-            // Wallet.initializeMockData()
         }
     }
 })

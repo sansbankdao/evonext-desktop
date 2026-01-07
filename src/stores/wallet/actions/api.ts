@@ -1,27 +1,33 @@
 // src/stores/wallet/actions/api.ts
+
 /* Import modules. */
 import { ErrorBoundary, NetworkError } from '@/utils/errors'
-import { getPlatformEndpoint } from '@/utils/env'
+import { getPlatformEndpoint, getExplorerEndpoint } from '@/utils/env'
+
 /* Import types. */
 import type { IdentityTransfer, TokenTransition, ApiResponse } from '@/types/wallet'
-const EXPLORER_API_URL = 'https://platform-explorer.pshenmic.dev'
+
 /**
  * Fetches identity transactions (history) from the 3rd party Explorer API
+ * NOTE: Uses /transfers endpoint which returns { resultSet: [...] }
  */
 export const fetchIdentityTransactions = async (
     identityId: string,
     limit: number = 20,
 ): Promise<any[]> => {
     return ErrorBoundary.wrap(async () => {
-        // NOTE: Using the explorer API provided in requirements
+        // FIX: Use the dynamic helper to ensure Testnet/Mainnet match
+        const explorerUrl = getExplorerEndpoint()
+
+        // FIX: Verified working endpoint is /transfers
         const response = await fetch(
-            `${EXPLORER_API_URL}/identity/${identityId}/transactions?page=1&limit=${limit}&order=desc`
+            `${explorerUrl}/identity/${identityId}/transfers?page=1&limit=${limit}&order=desc`
         )
         if (!response.ok) {
             throw new NetworkError(`Explorer API error! status: ${response.status}`)
         }
         const data = await response.json()
-        // Explorer API returns { resultSet: [...] } or just array
+        // Explorer API returns { resultSet: [...], pagination: {...} }
         if (data.resultSet && Array.isArray(data.resultSet)) {
             return data.resultSet
         }
@@ -31,6 +37,7 @@ export const fetchIdentityTransactions = async (
         return []
     }, 'FETCH_EXPLORER_TRANSACTIONS_FAILED')
 }
+
 /**
  * Fetches identity credit transfers for a given identity (Platform Native)
  */
@@ -53,6 +60,7 @@ export const fetchIdentityTransfers = async (
         return (data as any).result || []
     }, 'FETCH_IDENTITY_TRANSFERS_FAILED')
 }
+
 /**
  * Fetches token transitions for a given token contract
  */
@@ -75,6 +83,7 @@ export const fetchTokenTransitions = async (
         return (data as any).result || []
     }, 'FETCH_TOKEN_TRANSITIONS_FAILED')
 }
+
 /**
  * Fetches the balance for a specific token contract owned by an identity
  */

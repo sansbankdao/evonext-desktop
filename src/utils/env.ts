@@ -1,4 +1,5 @@
 // src/utils/env.ts
+
 /**
  * Environment Configuration Utilities
  * Loads environment variables with fallbacks and validation.
@@ -119,12 +120,19 @@ export function getPlatformEndpoint(): string {
   return isTestnet() ? PLATFORM_HTTP_API_TESTNET : PLATFORM_HTTP_API_MAINNET
 }
 
+// FIX: Explicit helper for Explorer URL
+export function getExplorerEndpoint(): string {
+  // Use the testnet endpoint if configured for testnet
+  return isTestnet() ? PLATFORM_HTTP_API_TESTNET : PLATFORM_HTTP_API_MAINNET
+}
+
 // Logging helper
 export function log(level: 'debug' | 'info' | 'warn' | 'error', ...args: any[]) {
   const levels = ['debug', 'info', 'warn', 'error']
   const currentLevelIndex = levels.indexOf(LOG_LEVEL)
   const messageLevelIndex = levels.indexOf(level)
 
+  // FIX: Correct syntax if (...) { }
   if (messageLevelIndex >= currentLevelIndex) {
     const logger = console[level] || console.log
     logger(`[${level.toUpperCase()}]`, ...args)

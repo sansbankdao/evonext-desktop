@@ -1,4 +1,5 @@
 // src/stores/wallet/actions/index.ts
+/* Import modules. */
 import { invoke } from '@tauri-apps/api/core'
 import { useWalletStore } from '../index'
 import { useIdentityStore } from '@/stores/identity'
@@ -15,22 +16,34 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>) {
     const identityStore = useIdentityStore()
     const systemStore = useSystemStore()
 
-    if (!identityStore.isConnected || !identityStore.identity?.id) {
+    if (!identityStore.isConnected) {
         console.warn('Cannot refresh balances: Identity not connected')
         return
     }
 
     this.isLoading = true
-    const identityId = identityStore.identity.id
+
+    // FIX: Use .identityId instead of .id
+    const identityId = identityStore.identity?.identityId || identityStore.identityId
+
+    if (!identityId) {
+        console.error('Cannot refresh balances: No Identity ID found in store.')
+        this.isLoading = false
+        return
+    }
+
+    console.log(`🔄 Refreshing balances for ID: ${identityId}`)
 
     // 1. Initialize Asset List with Native Dash/Credits
     const newAssets: IAsset[] = []
 
     // Add Credits (Native)
-    const creditBalance = identityStore.balance ? Number(identityStore.balance) : 0
+    const creditBalance = identityStore.balance && !isNaN(Number(identityStore.balance))
+        ? Number(identityStore.balance)
+        : 0
 
     newAssets.push({
-        id: 'credits', // <--- FIX: Added ID
+        id: 'credits',
         name: 'Dash Credits',
         symbol: 'CREDITS',
         precision: 2,
@@ -48,12 +61,12 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>) {
         usdValue: 0
     })
 
-    // Add DASH (Layer 1 representation via Platform)
-    // Calculating DASH from Credits for display (Approximate)
-    const dashAmount = creditBalance / 100000000
+    // Add DASH (Layer 1 representation)
+    // 1 Dash = 100,000,000 duffs = 100,000,000,000 credits
+    const dashAmount = creditBalance / 100000000000
 
     newAssets.push({
-        id: 'dash', // <--- FIX: Added ID
+        id: 'dash',
         name: 'Dash',
         symbol: 'DASH',
         precision: 8,
@@ -78,18 +91,19 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>) {
         })
 
         if (storedAssets && Array.isArray(storedAssets)) {
+            console.log(`📦 Found ${storedAssets.length} stored assets`)
+
             for (const assetDef of storedAssets) {
                 let balance = BigInt(0)
                 let balanceFormatted = '0.00'
 
-                // Handle ID mapping: use asset_id from Rust, otherwise symbol/identity combo
                 const contractId = assetDef.asset_id || (assetDef as any).assetId || (assetDef as any).contractId
-                const assetId = contractId || `${assetDef.symbol}-${identityStore.identity?.id}`
+                const assetId = contractId || `${assetDef.symbol}-${identityId}`
 
+                // FIX: Correct if syntax
                 if (contractId) {
                     try {
                         balance = await fetchTokenBalance(identityId, contractId)
-                        // TODO: Use actual precision from assetDef
                         const divisor = BigInt(10 ** (assetDef.precision || 18))
                         const whole = balance / divisor
                         balanceFormatted = whole.toString()
@@ -99,7 +113,7 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>) {
                 }
 
                 newAssets.push({
-                    id: assetId, // <--- FIX: Added ID
+                    id: assetId,
                     name: assetDef.name,
                     symbol: assetDef.symbol,
                     precision: assetDef.precision || 18,
@@ -123,6 +137,7 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>) {
     }
 
     this.assets = newAssets
+    console.log(`✅ Assets updated. Total: ${newAssets.length}`)
 
     // 3. Fetch Transactions
     await this.fetchRealTransactions()
@@ -134,57 +149,83 @@ export async function fetchLiveBalances(this: ReturnType<typeof useWalletStore>)
 }
 
 /**
- * Fetches transactions from the Explorer API and maps them to the UI model
+ * Fetches transactions from the Explorer API
  */
 export async function fetchRealTransactions(this: ReturnType<typeof useWalletStore>, limit: number = 20) {
     const identityStore = useIdentityStore()
-    if (!identityStore.identity?.id) return
+
+    // FIX: Use .identityId instead of .id
+    const identityId = identityStore.identity?.identityId || identityStore.identityId
+
+    if (!identityId) {
+        console.warn('Cannot fetch transactions: No Identity ID')
+        return
+    }
 
     try {
-        const explorerTxs = await fetchIdentityTransactions(identityStore.identity.id, limit)
+        console.log(`🕵️ Fetching transactions for ${identityId} from Explorer...`)
+        const explorerTxs = await fetchIdentityTransactions(identityId, limit)
+
+        console.log(`✅ Explorer returned ${explorerTxs.length} transactions`)
 
         // Map Explorer format to ITransaction UI format
         this.transactions = explorerTxs.map((tx: any): ITransaction => {
-            const isSender = tx.sender === identityStore.identity?.id
+            const isSender = tx.sender === identityId
+            const isRecipient = tx.recipient === identityId
 
             let title = 'Transaction'
             let subtitle = new Date(tx.timestamp).toLocaleString()
             let amountFormatted = '0'
             let type: any = 'UNKNOWN'
+            let status: 'Completed' | 'Pending...' | 'Failed' = 'Completed'
 
-            // Mapping based on Platform Explorer structure
+            // Calculate Direction
+            let direction: 'INCOMING' | 'OUTGOING' | 'SELF' = 'SELF'
+            if (isSender && !isRecipient) direction = 'OUTGOING'
+            if (!isSender && isRecipient) direction = 'INCOMING'
+
+            // FIX: Correct if syntax
             if (tx.type === 'IDENTITY_CREDIT_TRANSFER') {
                 type = 'IDENTITY_CREDIT_TRANSFER'
                 title = isSender ? 'Sent Credits' : 'Received Credits'
-                const rawAmount = tx.data?.amount || 0
+                // FIX: Explorer API returns 'amount' at root level
+                const rawAmount = tx.amount || 0
                 amountFormatted = `${Number(rawAmount).toLocaleString()} Credits`
             } else if (tx.type === 'IDENTITY_TOP_UP') {
+                type = 'IDENTITY_TOP_UP'
                 title = 'Identity Top Up'
+                amountFormatted = 'N/A'
+            } else if (tx.type === 'IDENTITY_CREATE') {
+                type = 'IDENTITY_CREATE'
+                title = 'Identity Created'
                 amountFormatted = 'N/A'
             }
 
-            const txHash = tx.hash || tx.txid || ''
+            // FIX: Explorer API uses 'txHash'
+            const txHash = tx.txHash || tx.hash || ''
 
             return {
-                id: txHash, // <--- FIX: Map hash to id for UI lookup
+                id: txHash,
                 hash: txHash,
                 confirmations: 1,
                 senderId: tx.sender || 'Unknown',
                 receiverId: tx.recipient || 'Unknown',
-                amount: tx.data?.amount || 0,
+                amount: tx.amount || 0,
                 amountFormatted,
                 assetType: 'COIN',
                 assetSymbol: 'CREDITS',
-                status: 'Completed',
+                status,
                 type,
-                direction: isSender ? 'OUTGOING' : 'INCOMING',
+                direction,
                 title,
                 subtitle,
                 date: new Date(tx.timestamp).getTime(),
                 createdAt: new Date(tx.timestamp).getTime(),
-                network: 'mainnet'
+                network: 'testnet' // Based on your debug URL
             }
         })
+
+        console.log(`✅ Mapped ${this.transactions.length} transactions for UI`)
     } catch (err) {
         console.error('Failed to fetch real transactions:', err)
     }
