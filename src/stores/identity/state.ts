@@ -31,7 +31,6 @@ export const useIdentityState = (): IIdentityState => ({
     // --- Actions Stubs (Satisfy Typescript, overridden by Store Actions) ---
     connectWithSeed: async () => ({ success: false, error: 'Not implemented' }),
     connectWithSingleKey: async () => ({ success: false, error: 'Not implemented' }),
-    switchIdentity: async () => ({ success: false, error: 'Not implemented' }),
 
     // Stub for the legacy action required by ConnectSeedForm
     connectWriteOnlyFromDiscovered: async () => ({ success: false, error: 'Not implemented' }),
@@ -52,8 +51,17 @@ export const useIdentityState = (): IIdentityState => ({
     // Helper stubs now required by strict interface
     saveMnemonicToStore: async () => {},
     loadMnemonic: async () => null,
-    loadSettings: async () => null,
+    loadSettings: async () => {
+        // Implementation provided in storage.ts
+        // This matches the signature in IIdentityActions
+        return null
+    },
+
     saveIdentityDataToStore: async () => {},
+
+    // Added to satisfy IIdentityActions interface
+    switchIdentity: async () => ({ success: false, error: 'Not implemented' }),
+    resetStoreState: () => {},
 
     clearConnectionError: () => {}
 })

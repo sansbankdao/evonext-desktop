@@ -195,6 +195,9 @@ export const connectionActions = () => ({
                 } else {
                     const fetchResult = await DAPIService.getIdentityById(trimmedId, network)
                     if (!fetchResult.success || !fetchResult.data) {
+                         // Allow continuing if fetch fails but preloaded exists?
+                         // For now strict check as per original logic,
+                         // but we can log to error for debugging.
                         throw new Error(fetchResult.error || 'Failed to fetch identity details')
                     }
                     identityData = fetchResult.data

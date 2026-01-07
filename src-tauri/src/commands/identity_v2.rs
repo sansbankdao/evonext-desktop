@@ -11,7 +11,7 @@ use sha2::Digest as ShaDigest;
 use sha2::Sha256;
 use ripemd::Ripemd160;
 use hex;
-use base64;
+use base64::{engine::general_purpose, Engine};
 use ts_rs::TS;
 
 // =====================================================
@@ -26,10 +26,10 @@ pub struct UnifiedCommandResult {
     #[ts(type = "unknown")]
     pub payload: Option<JsonValue>,
 }
+
 #[derive(Serialize, Deserialize, Clone, Debug, TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export, export_to = "../src/types/rust/")]
-
 pub struct SaveIdentityPayload {
     pub identity_id: String,
     pub identity_idx: Option<u32>,
@@ -57,12 +57,14 @@ pub async fn save_identity_unified(
         "[Unified] payload={}",
         serde_json::to_string(&payload).unwrap_or_default()
     );
+
     let revision_u64: Option<u64> = match payload.revision.as_ref() {
         Some(JsonValue::Number(n)) => n.as_u64(),
         Some(JsonValue::String(s)) => s.parse::<u64>().ok(),
         Some(_) => None,
         None => None,
     };
+
     // Normalize public keys (accepts DAPI-like and our internal shapes)
     let normalized_public_keys = payload
         .public_keys
@@ -71,26 +73,26 @@ pub async fn save_identity_unified(
             raw_vec
                 .iter()
                 .enumerate()
-                .filter_map(|(i, v)| {
-                    match normalize_public_key(i as u32, v) {
-                        Ok(pk) => {
-                            println!(
-                                "[Unified] normalized pk[{}]: id={} type={} purpose={} secLevel={} data_len={}",
-                                i, pk.id, pk.type_, pk.purpose, pk.security_level, pk.data.len()
-                            );
-                            Some(pk)
-                        }
-                        Err(e) => {
-                            eprintln!("[Unified] normalize_public_key failed at index {}: {}", i, e);
-                            None
-                        }
+                .filter_map(|(i, v)| match normalize_public_key(i as u32, v) {
+                    Ok(pk) => {
+                        println!(
+                            "[Unified] normalized pk[{}]: id={} type={} purpose={} secLevel={} data_len={}",
+                            i, pk.id, pk.type_, pk.purpose, pk.security_level, pk.data.len()
+                        );
+                        Some(pk)
+                    }
+                    Err(e) => {
+                        eprintln!("[Unified] normalize_public_key failed at index {}: {}", i, e);
+                        None
                     }
                 })
                 .collect::<Vec<IdentityPublicKey>>()
         });
+
     let pk_ids = normalized_public_keys
         .as_ref()
         .map(|v| v.iter().map(|pk| pk.id).collect::<Vec<u32>>());
+
     let identity = IdentityData {
         username: payload
             .username
@@ -110,11 +112,35 @@ pub async fn save_identity_unified(
         ),
         public_key_ids: pk_ids,
     };
+
     let manager = StoreManager::new(&app);
     let filename = get_network_file(&network, "identity")?;
-    match manager.save(filename.clone(), "identity", &identity) {
+
+    // 1. Load existing map as JsonValue to handle Options/Nulls gracefully
+    let mut identities_value: JsonValue = match manager.load::<JsonValue>(filename.clone(), "identities") {
+        Ok(Some(val)) => val,
+        Ok(None) => JsonValue::Object(serde_json::Map::new()),
+        Err(_) => JsonValue::Object(serde_json::Map::new()),
+    };
+
+    // 2. Insert/Update the new identity into the map
+    // We construct the JsonValue for the identity explicitly to avoid borrowing issues
+    let identity_value = serde_json::to_value(&identity).map_err(|e| e.to_string())?;
+
+    if let JsonValue::Object(ref mut map) = identities_value {
+        map.insert(payload.identity_id.clone(), identity_value);
+    } else {
+        // Should not happen given logic above, but handle safely
+        return Err("Existing identities data was not a JSON Object".to_string());
+    }
+
+    // 3. Save the modified map back
+    match manager.save(filename.clone(), "identities", &identities_value) {
         Ok(_) => {
-            println!("[Unified] identity file written: {}", filename);
+            println!(
+                "[Unified] identity file written: {} (identities map updated)",
+                filename
+            );
             Ok(UnifiedCommandResult {
                 success: true,
                 error: None,
@@ -153,24 +179,32 @@ pub async fn query_and_update_identity(
     );
     let manager = StoreManager::new(&app);
     let filename = get_network_file(&network, "identity")?;
-    match manager.load::<IdentityData>(filename, "identity") {
-        Ok(Some(data)) => {
-            println!(
-                "[Unified] loaded identity: id={} idx={} rev={:?} pks_len={}",
-                data.identity_id,
-                data.identity_idx,
-                data.revision,
-                data.public_keys.as_ref().map(|v| v.len()).unwrap_or(0)
-            );
-            Ok(UnifiedCommandResult {
-                success: true,
-                error: None,
-                payload: Some(serde_json::to_value(&data).unwrap_or(JsonValue::Null)),
-            })
+
+    // Load map as JsonValue
+    match manager.load::<JsonValue>(filename, "identities") {
+        Ok(Some(JsonValue::Object(map))) => {
+            if let Some(data) = map.get(&identity_id) {
+                // Return the raw JsonValue object for the identity
+                println!(
+                    "[Unified] loaded identity: id={}",
+                    identity_id
+                );
+                Ok(UnifiedCommandResult {
+                    success: true,
+                    error: None,
+                    payload: Some(data.clone()),
+                })
+            } else {
+                Ok(UnifiedCommandResult {
+                    success: false,
+                    error: Some("Identity not found".to_string()),
+                    payload: None,
+                })
+            }
         }
-        Ok(None) => Ok(UnifiedCommandResult {
+        Ok(_) => Ok(UnifiedCommandResult {
             success: false,
-            error: Some("No identity stored".to_string()),
+            error: Some("No identities map found".to_string()),
             payload: None,
         }),
         Err(e) => Ok(UnifiedCommandResult {
@@ -195,11 +229,27 @@ pub async fn enrich_keystore_for_identity(
         network, &identity_id
     );
     let manager = StoreManager::new(&app);
-    // 1) Load identity (for registered public keys)
+
+    // 1) Load identity map as JsonValue to handle Options
     let identity_file = get_network_file(&network, "identity")?;
-    let identity_opt = manager
-        .load::<IdentityData>(identity_file, "identity")
-        .map_err(|e| e.to_string())?;
+    let identity_opt: Option<IdentityData> = match manager.load::<JsonValue>(identity_file.clone(), "identities") {
+        Ok(Some(JsonValue::Object(map))) => {
+            if let Some(data_val) = map.get(&identity_id) {
+                match serde_json::from_value::<IdentityData>(data_val.clone()) {
+                    Ok(data) => Some(data),
+                    Err(e) => {
+                        eprintln!("[Unified] Failed to parse IdentityData from JSON: {}", e);
+                        None
+                    }
+                }
+            } else {
+                None
+            }
+        }
+        Ok(_) => None,
+        Err(_) => None,
+    };
+
     let identity = match identity_opt {
         Some(i) => i,
         None => {
@@ -212,12 +262,14 @@ pub async fn enrich_keystore_for_identity(
             });
         }
     };
+
     if identity.identity_id != identity_id {
         println!(
             "[Unified] Warning: loaded identity_id {} differs from parameter {}",
             identity.identity_id, identity_id
         );
     }
+
     let registered = identity.public_keys.clone().unwrap_or_default();
     println!(
         "[Unified] {} registered public keys from identity file",
@@ -234,12 +286,14 @@ pub async fn enrich_keystore_for_identity(
             &pk.data.chars().take(8).collect::<String>()
         );
     }
+
     // 2) Load keystore (safu)
     let safu_file = get_network_file(&network, "safu")?;
     let mut keystore = manager
         .load::<PrivateKeyStore>(safu_file.clone(), "keystore")
         .map_err(|e| e.to_string())?
         .unwrap_or_default();
+
     let entries = match keystore.identities.get_mut(&identity_id) {
         Some(v) => v,
         None => {
@@ -255,6 +309,7 @@ pub async fn enrich_keystore_for_identity(
             });
         }
     };
+
     // 3) For each keystore entry:
     //    - derive pubkey if empty
     //    - compute HASH160(pubkey)
@@ -269,9 +324,13 @@ pub async fn enrich_keystore_for_identity(
             entry.purpose,
             entry.security_level
         );
+
         if entry.public_key.is_empty() {
             if let Some(pub_hex) = derive_compressed_pubkey_hex_from_wif(&entry.private_key) {
-                println!("[Unified] Derived pubkey for keyId {}: {}", entry.key_id, &pub_hex);
+                println!(
+                    "[Unified] Derived pubkey for keyId {}: {}",
+                    entry.key_id, &pub_hex
+                );
                 entry.public_key = pub_hex;
                 updated += 1;
             } else {
@@ -281,10 +340,12 @@ pub async fn enrich_keystore_for_identity(
                 );
             }
         }
+
         if entry.public_key.is_empty() {
             // Can't hash or match without a public key
             continue;
         }
+
         let pub_hex = entry.public_key.clone();
         let pub_bytes = match hex::decode(&pub_hex) {
             Ok(b) => b,
@@ -303,6 +364,7 @@ pub async fn enrich_keystore_for_identity(
             &pub_hex.chars().take(8).collect::<String>(),
             &hash160_hex.chars().take(8).collect::<String>()
         );
+
         // Try to match
         let mut matched = false;
         for (j, pk) in registered.iter().enumerate() {
@@ -336,6 +398,7 @@ pub async fn enrich_keystore_for_identity(
                 }
             }
         }
+
         if !matched {
             println!(
                 "[Unified] No identity key matched for keystore keyId {} (pub {}, hash160 {})",
@@ -343,10 +406,14 @@ pub async fn enrich_keystore_for_identity(
             );
         }
     }
+
     // 4) Save keystore back
     match manager.save(safu_file.clone(), "keystore", &keystore) {
         Ok(_) => {
-            println!("[Unified] Keystore enriched and saved: {} (updated={})", safu_file, updated);
+            println!(
+                "[Unified] Keystore enriched and saved: {} (updated={})",
+                safu_file, updated
+            );
             Ok(UnifiedCommandResult {
                 success: true,
                 error: None,
@@ -365,7 +432,9 @@ pub async fn enrich_keystore_for_identity(
 // Helpers
 // =====================================================
 fn normalize_public_key(default_id: u32, raw: &JsonValue) -> Result<IdentityPublicKey, String> {
-    let obj = raw.as_object().ok_or("public key not an object")?;
+    let obj = raw
+        .as_object()
+        .ok_or_else(|| "public key not an object".to_string())?;
 
     let id = match obj.get("id") {
         Some(JsonValue::Number(n)) => n.as_u64().unwrap_or(default_id as u64) as u32,
@@ -438,7 +507,7 @@ fn pick_string(obj: &serde_json::Map<String, JsonValue>, keys: &[&str]) -> Optio
 }
 
 fn base64_to_hex(input: &str) -> Option<String> {
-    let bytes = base64::decode(input).ok()?;
+    let bytes = base64::engine::general_purpose::STANDARD.decode(input).ok()?;
     Some(hex::encode(bytes))
 }
 

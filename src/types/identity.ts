@@ -149,6 +149,7 @@ export interface IIdentityActions {
     loadMnemonic: (network: 'mainnet' | 'testnet') => Promise<{ seedPhrase: string } | null>;
     loadSettings: () => Promise<any>;
     saveIdentityDataToStore: (network: 'mainnet' | 'testnet', targetId: string, data: any) => Promise<void>;
+    resetStoreState: () => void;
 
     // Auth
     logout: () => Promise<void>;
