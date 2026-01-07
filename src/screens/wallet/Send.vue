@@ -178,7 +178,7 @@ import { useRouter } from 'vue-router'
 
 import { useWallet } from '@/composables/useWallet'
 import { useIdentity } from '@/composables/useIdentity'
-import { getTransferKey } from '@/stores/identity/actions/get_key' // <--- IMPORT NEW HELPER
+import { getTransferKey } from '@/stores/identity/actions/keys'
 
 import {
     getDUSDContractId,
@@ -257,7 +257,7 @@ const handleSend = async () => {
         // SIMPLE FIX: Read Transfer Key directly from file
         // =================================================================
         const wifKey = await getTransferKey(identityId)
-
+alert(`wifKey: ${wifKey} for [${identityId}]`)
         if (!wifKey) {
             throw new Error('Could not find Transfer key (Purpose 3). Please check your identity settings.')
         }
