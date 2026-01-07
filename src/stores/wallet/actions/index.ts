@@ -1,199 +1,191 @@
 // src/stores/wallet/actions/index.ts
+import { invoke } from '@tauri-apps/api/core'
+import { useWalletStore } from '../index'
+import { useIdentityStore } from '@/stores/identity'
+import { useSystemStore } from '@/stores/system'
+import { fetchIdentityTransactions, fetchTokenBalance } from './api'
+import { formatDashAmount } from './utils'
+import type { IAsset, ITransaction } from '@/types'
+import type { IAssetMinimal } from '@/types/assets'
 
-/* Import modules. */
-import { getIdentityBalance } from '@evonext/platform'
-import { useSystemStore } from '../../system'
-import { ErrorBoundary } from '@/utils/errors'
-import { log, isTestnet } from '@/utils/env'
+/**
+ * Orchestrates fetching all balances (Native + Tokens)
+ */
+export async function refreshBalances(this: ReturnType<typeof useWalletStore>) {
+    const identityStore = useIdentityStore()
+    const systemStore = useSystemStore()
 
-// REFACTOR: Import Composables instead of @/libs
-import { usePlatformSdk } from '@/composables/usePlatformSdk'
-import { useWallet } from '@/composables/useWallet'
+    if (!identityStore.isConnected || !identityStore.identity?.id) {
+        console.warn('Cannot refresh balances: Identity not connected')
+        return
+    }
 
-/* Import utilities. */
-import { fetchIdentityTransfers, fetchTokenTransitions } from './api'
-import {
-    createUpdatedAssets,
-    processTokenBalances,
-    transformIdentityTransfer,
-    transformTokenTransitions
-} from './transforms'
+    this.isLoading = true
+    const identityId = identityStore.identity.id
 
-/* Import types. */
-import type { ITransaction, IUser, IAsset } from '@/types'
+    // 1. Initialize Asset List with Native Dash/Credits
+    const newAssets: IAsset[] = []
 
-// Type for the wallet store context
-interface WalletStoreContext {
-    user: IUser | null
-    assets: IAsset[]
-    transactions: ITransaction[]
-    isLoading: boolean
-}
+    // Add Credits (Native)
+    const creditBalance = identityStore.balance ? Number(identityStore.balance) : 0
 
-export async function fetchLiveBalances(this: WalletStoreContext) {
-    return ErrorBoundary.wrap(async () => {
-        // Get address from user (either address or identityId)
-        const identityId = this.user?.address || this.user?.identityId
-        if (!identityId) {
-            log('warn', 'No user identity available for balance fetch')
-            return
-        }
+    newAssets.push({
+        id: 'credits', // <--- FIX: Added ID
+        name: 'Dash Credits',
+        symbol: 'CREDITS',
+        precision: 2,
+        type: 'native',
+        category: 'currency',
+        network: 'mainnet',
+        balance: creditBalance,
+        balanceFormatted: creditBalance.toLocaleString(),
+        verified: true,
+        blocked: false,
+        transferable: true,
+        divisible: true,
+        ownerIdentityId: identityId,
+        isOwned: true,
+        usdValue: 0
+    })
 
-        // REFACTOR: Use composable to get network info
-        const { getSDK } = usePlatformSdk()
-        const sdk = await getSDK()
-        const network = (this.user as any)?.network || (sdk as any).options?.network || 'testnet'
+    // Add DASH (Layer 1 representation via Platform)
+    // Calculating DASH from Credits for display (Approximate)
+    const dashAmount = creditBalance / 100000000
 
-        const system = useSystemStore()
+    newAssets.push({
+        id: 'dash', // <--- FIX: Added ID
+        name: 'Dash',
+        symbol: 'DASH',
+        precision: 8,
+        type: 'native',
+        category: 'currency',
+        network: 'mainnet',
+        balance: dashAmount,
+        balanceFormatted: formatDashAmount(dashAmount, true),
+        verified: true,
+        blocked: false,
+        transferable: true,
+        divisible: true,
+        ownerIdentityId: identityId,
+        isOwned: true,
+        usdValue: dashAmount * (systemStore.currentDashPrice || 0)
+    })
 
-        log('info', 'Fetching live balances for:', identityId, 'on', network)
+    try {
+        // 2. Load Custom Assets from Backend (Rust)
+        const storedAssets = await invoke<IAssetMinimal[]>('load_assets', {
+            network: 'mainnet'
+        })
 
-        // Fetch CREDITS balance using @evonext/platform (DASH shows same)
-        const creditsBalanceSatoshis = await getIdentityBalance(network as any, identityId)
-            .catch(err => {
-                log('error', 'Failed to fetch identity balance:', err)
-                return null
-            })
+        if (storedAssets && Array.isArray(storedAssets)) {
+            for (const assetDef of storedAssets) {
+                let balance = BigInt(0)
+                let balanceFormatted = '0.00'
 
-        const creditsBalance = creditsBalanceSatoshis
-            ? Number(creditsBalanceSatoshis) / 100_000_000_000 // 12 decimals
-            : 0
-        const dashBalance = creditsBalance // DASH and CREDITS show same balance
-        log('info', `Credits/DASH balance: ${creditsBalance}`)
+                // Handle ID mapping: use asset_id from Rust, otherwise symbol/identity combo
+                const contractId = assetDef.asset_id || (assetDef as any).assetId || (assetDef as any).contractId
+                const assetId = contractId || `${assetDef.symbol}-${identityStore.identity?.id}`
 
-        // Get active tokens based on network
-        const { getAllActiveTokens } = await import('@/constants')
-        const activeTokens = getAllActiveTokens()
-
-        // REFACTOR: Fetch balances individually using useWallet composable
-        const wallet = useWallet()
-        const tokenBalances: any[] = []
-
-        if (Array.isArray(activeTokens)) {
-            for (const tokenConfig of activeTokens) {
-                try {
-                    // Assuming tokenConfig has a structure like { id: string, decimals: number, ... }
-                    // We extract the contract ID (id or contractId)
-                    // const contractId = tokenConfig.id || tokenConfig.contractId || tokenConfig
-                    const contractId = tokenConfig
-
-                    const balance = await wallet.getTokenBalance(identityId, contractId)
-
-                    tokenBalances.push({
-                        tokenId: contractId, // Store the ID for reference
-                        balance: balance     // The BigInt balance
-                    })
-                } catch (err) {
-                    log('warn', `Failed to fetch balance for token ${tokenConfig}:`, err)
+                if (contractId) {
+                    try {
+                        balance = await fetchTokenBalance(identityId, contractId)
+                        // TODO: Use actual precision from assetDef
+                        const divisor = BigInt(10 ** (assetDef.precision || 18))
+                        const whole = balance / divisor
+                        balanceFormatted = whole.toString()
+                    } catch (err) {
+                        console.error(`Failed to fetch balance for ${assetDef.symbol}:`, err)
+                    }
                 }
+
+                newAssets.push({
+                    id: assetId, // <--- FIX: Added ID
+                    name: assetDef.name,
+                    symbol: assetDef.symbol,
+                    precision: assetDef.precision || 18,
+                    type: 'token',
+                    category: 'utility',
+                    network: assetDef.network || 'mainnet',
+                    balance: balance.toString(),
+                    balanceFormatted: balanceFormatted,
+                    verified: true,
+                    blocked: false,
+                    transferable: true,
+                    divisible: true,
+                    ownerIdentityId: identityId,
+                    isOwned: true,
+                    contractId: contractId
+                })
             }
         }
+    } catch (err) {
+        console.error('Failed to load stored assets:', err)
+    }
 
-        log('info', 'Token balances:', tokenBalances)
+    this.assets = newAssets
 
-        // Process token balances
-        const { dusdBalance, sansBalance } = processTokenBalances(tokenBalances, isTestnet())
-        log('info', `DUSD balance: ${dusdBalance}, SANS balance: ${sansBalance}`)
-
-        // Update assets array with live data and proper USD values
-        const updatedAssets = createUpdatedAssets(
-            dashBalance,
-            creditsBalance,
-            dusdBalance,
-            sansBalance,
-            system.currentDashPrice
-        )
-        this.assets = updatedAssets.filter(asset => (asset.balance as number) > 0 || asset.symbol === 'DASH')
-
-    }, 'FETCH_LIVE_BALANCES_FAILED')
+    // 3. Fetch Transactions
+    await this.fetchRealTransactions()
+    this.isLoading = false
 }
 
-export async function fetchRealTransactions(this: WalletStoreContext, limit: number = 20) {
-    return ErrorBoundary.wrap(async () => {
-        // Get address from user (either address or identityId)
-        const identityId = this.user?.address || this.user?.identityId
-        if (!identityId) {
-            log('warn', 'No user identity available for transaction fetch')
-            return
-        }
-
-        this.isLoading = true
-        log('info', 'Fetching real transactions for:', identityId)
-
-        try {
-            // Import contract IDs dynamically to ensure correct network
-            const { getDUSDContractId, getSANSContractId } = await import('@/constants')
-
-            // Fetch identity transfers and token transitions concurrently
-            const [identityTransfers, dusdTransitions, sansTransitions] = await Promise.all([
-                fetchIdentityTransfers(identityId, limit),
-                fetchTokenTransitions(getDUSDContractId(), limit),
-                fetchTokenTransitions(getSANSContractId(), limit)
-            ])
-
-            // Transform identity transfers into transaction objects
-            const identityTransactions: ITransaction[] = identityTransfers.map(transfer =>
-                transformIdentityTransfer(transfer, identityId)
-            )
-
-            // Import decimal places
-            const { DUSD_DECIMAL_PLACES, SANS_DECIMAL_PLACES } = await import('@/constants')
-
-            // Transform token transitions
-            const dusdTransactions: ITransaction[] = transformTokenTransitions(
-                dusdTransitions,
-                identityId,
-                'DUSD',
-                DUSD_DECIMAL_PLACES
-            )
-
-            const sansTransactions: ITransaction[] = transformTokenTransitions(
-                sansTransitions,
-                identityId,
-                'SANS',
-                SANS_DECIMAL_PLACES
-            )
-
-            // Combine all transactions and sort by date (most recent first)
-            // FIX: Ensure 'date' is handled correctly.
-            // If transform functions return numbers (timestamps), convert to Date for sorting.
-            this.transactions = [
-                ...identityTransactions,
-                ...dusdTransactions,
-                ...sansTransactions
-            ].sort((a, b) => {
-                const timeA = typeof a.createdAt === 'number' ? a.createdAt : new Date(a.createdAt).getTime()
-                const timeB = typeof b.createdAt === 'number' ? b.createdAt : new Date(b.createdAt).getTime()
-                return timeB - timeA
-            })
-
-            log('info', `Loaded ${this.transactions.length} real transactions`)
-        } catch (error) {
-            log('error', 'Failed to fetch real transactions:', error)
-            this.transactions = []
-            throw error
-        } finally {
-            this.isLoading = false
-        }
-    }, 'FETCH_REAL_TRANSACTIONS_FAILED')
+export async function fetchLiveBalances(this: ReturnType<typeof useWalletStore>) {
+    await this.refreshBalances()
 }
 
-export async function refreshBalances(this: WalletStoreContext) {
-    return ErrorBoundary.wrap(async () => {
-        this.isLoading = true
-        log('info', 'Refreshing balances...')
+/**
+ * Fetches transactions from the Explorer API and maps them to the UI model
+ */
+export async function fetchRealTransactions(this: ReturnType<typeof useWalletStore>, limit: number = 20) {
+    const identityStore = useIdentityStore()
+    if (!identityStore.identity?.id) return
 
-        // Update DASH price first
-        const system = useSystemStore()
-        await system.fetchDashPrice()
+    try {
+        const explorerTxs = await fetchIdentityTransactions(identityStore.identity.id, limit)
 
-        // Fetch live balances (CREDITS, DUSD, SANS)
-        await fetchLiveBalances.call(this)
+        // Map Explorer format to ITransaction UI format
+        this.transactions = explorerTxs.map((tx: any): ITransaction => {
+            const isSender = tx.sender === identityStore.identity?.id
 
-        // Fetch real transactions
-        await fetchRealTransactions.call(this)
+            let title = 'Transaction'
+            let subtitle = new Date(tx.timestamp).toLocaleString()
+            let amountFormatted = '0'
+            let type: any = 'UNKNOWN'
 
-        this.isLoading = false
-        log('info', 'Balances and transactions refreshed.')
-    }, 'REFRESH_BALANCES_FAILED')
+            // Mapping based on Platform Explorer structure
+            if (tx.type === 'IDENTITY_CREDIT_TRANSFER') {
+                type = 'IDENTITY_CREDIT_TRANSFER'
+                title = isSender ? 'Sent Credits' : 'Received Credits'
+                const rawAmount = tx.data?.amount || 0
+                amountFormatted = `${Number(rawAmount).toLocaleString()} Credits`
+            } else if (tx.type === 'IDENTITY_TOP_UP') {
+                title = 'Identity Top Up'
+                amountFormatted = 'N/A'
+            }
+
+            const txHash = tx.hash || tx.txid || ''
+
+            return {
+                id: txHash, // <--- FIX: Map hash to id for UI lookup
+                hash: txHash,
+                confirmations: 1,
+                senderId: tx.sender || 'Unknown',
+                receiverId: tx.recipient || 'Unknown',
+                amount: tx.data?.amount || 0,
+                amountFormatted,
+                assetType: 'COIN',
+                assetSymbol: 'CREDITS',
+                status: 'Completed',
+                type,
+                direction: isSender ? 'OUTGOING' : 'INCOMING',
+                title,
+                subtitle,
+                date: new Date(tx.timestamp).getTime(),
+                createdAt: new Date(tx.timestamp).getTime(),
+                network: 'mainnet'
+            }
+        })
+    } catch (err) {
+        console.error('Failed to fetch real transactions:', err)
+    }
 }

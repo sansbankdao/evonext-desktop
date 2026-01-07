@@ -1,5 +1,4 @@
 // src-tauri/src/models.rs
-
 use serde::{Serialize, Deserialize, Deserializer};
 use serde::de::{Error as DeError, Unexpected};
 use std::collections::HashMap;
@@ -15,11 +14,20 @@ pub struct IAppSettings {
 }
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct IAssets {
+pub struct AssetDefinition {
     pub identity_id: String,
     pub name: String,
     pub symbol: String,
+    // FIXED: Explicit rename to match TypeScript interface IAssetMinimal.asset_id
+    #[serde(default, rename = "asset_id")]
+    pub asset_id: Option<String>,
+    #[serde(default)]
+    pub decimals: Option<u8>,
+    #[serde(default)]
+    pub network: Option<String>,
 }
+// IAssets is now a type alias for a list of assets
+pub type IAssets = Vec<AssetDefinition>;
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ILicense {

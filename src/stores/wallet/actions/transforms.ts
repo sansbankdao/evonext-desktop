@@ -196,7 +196,7 @@ export function transformIdentityTransfer(
     }
 
     return {
-        id: transfer.txHash!,
+        id: transfer.txHash || '',
         type,
         title, // Mapped
         subtitle, // Mapped
