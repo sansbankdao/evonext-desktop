@@ -28,7 +28,9 @@ export const storageActions = () => ({
             publicKeys: data.publicKeys ?? data.public_keys ?? null,
             createdAt: new Date().toISOString(),
             isAuthenticated: true,
-            // NEW: Explicitly pass the active_identity_id to persist it in the same pass
+            // FIX: Explicitly pass active_identity_id to backend so it can persist it
+            // We pass 'targetId' because calling this function usually means we are activating this ID
+            // or updating it, so it should be considered the active one.
             active_identity_id: targetId
         }
         log('debug', `[Storage] saveIdentityDataToStore start id=${targetId} net=${network}`)

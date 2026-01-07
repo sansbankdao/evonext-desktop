@@ -38,8 +38,8 @@ pub struct SaveIdentityPayload {
     #[ts(type = "unknown[]")]
     pub public_keys: Option<Vec<JsonValue>>,    // tolerant; normalized here
     pub created_at: Option<String>,
-    // NEW: Optional field to update the active identity marker in the same pass
-    #[ts(skip)]
+    // We want to allow the frontend to pass this to persist the active choice
+    #[serde(default)]
     pub active_identity_id: Option<String>,
 }
 // =====================================================
@@ -122,6 +122,7 @@ pub async fn save_identity_unified(
         map.insert(payload.identity_id.clone(), identity_value);
         // PERSISTENCE FIX: Handle Active Identity Marker
         // If payload contains active_identity_id, we update the metadata key in the map.
+        // We ensure this is written to disk.
         if let Some(ref active_id) = payload.active_identity_id {
             if !active_id.is_empty() {
                 println!("[Unified] Updating __active_identity_id marker to: {}", active_id);
