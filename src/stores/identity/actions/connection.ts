@@ -33,12 +33,7 @@ export const connectionActions = () => ({
                 if (discovered && discovered.identities && discovered.identities[targetIdentityId]) {
                     targetIdx = discovered.identities[targetIdentityId].identityIdx
                 }
-                await this.connectWithSeed(
-                    mnemonicData.seedPhrase,
-                    network,
-                    targetIdentityId,
-                    targetIdx
-                )
+                await this.connectWithSeed(mnemonicData.seedPhrase, network, targetIdentityId, targetIdx)
                 return { success: true, identityId: targetIdentityId }
             } catch(e: any) {
                 this.connectionError = e.message
@@ -135,13 +130,28 @@ export const connectionActions = () => ({
                     revision: identityData.revision ? Number(identityData.revision) : 0,
                     publicKeys
                 }
+                // Patch state before persistence
                 this.isAuthenticated = true
-                this.isConnected = true
                 this.username = targetId
                 this.identityId = targetId
                 this.identity = activeIdentity
                 this.publicKeys = publicKeys
                 this.balance = activeIdentity.balance
+                this.isConnected = this.isAuthenticated && !!this.identityId
+                // Explicit identity save with detailed logs (unified then legacy)
+                await this.saveIdentityDataToStore(
+                    network,
+                    targetId,
+                    {
+                        identityId: targetId,
+                        identityIdx: identityIndex,
+                        username: this.username,
+                        balance: this.balance,
+                        revision: this.revision ?? activeIdentity.revision ?? 0,
+                        publicKeys: this.publicKeys
+                    }
+                )
+                // Optional: also call saveToStorage (safe no-throw)
                 await this.saveToStorage(network)
                 return { success: true, identityId: targetId, identity: activeIdentity }
             } catch (err: any) {
@@ -212,13 +222,27 @@ export const connectionActions = () => ({
                     revision: identityData.revision ? Number(identityData.revision) : 0,
                     publicKeys
                 }
+                // Patch state before persistence
                 this.isAuthenticated = true
-                this.isConnected = true
                 this.username = trimmedId
                 this.identityId = trimmedId
                 this.identity = activeIdentity
                 this.publicKeys = publicKeys
                 this.balance = activeIdentity.balance
+                this.isConnected = this.isAuthenticated && !!this.identityId
+                // Explicit identity save with detailed logs (unified then legacy)
+                await this.saveIdentityDataToStore(
+                    network,
+                    trimmedId,
+                    {
+                        identityId: trimmedId,
+                        identityIdx: 0,
+                        username: this.username,
+                        balance: this.balance,
+                        revision: this.revision ?? activeIdentity.revision ?? 0,
+                        publicKeys: this.publicKeys
+                    }
+                )
                 await this.saveToStorage(network)
                 return { success: true, identityId: trimmedId, identity: activeIdentity }
             } catch (err: any) {

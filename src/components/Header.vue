@@ -4,18 +4,15 @@
         <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4 sm:mb-0">
             {{ title }}
         </h1>
-
-        <div v-if="Identity.isConnected && Identity.identity" class="flex items-center gap-4 bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <div v-if="Identity.isConnectedComputed && Identity.identity" class="flex items-center gap-4 bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
             <span class="w-[300px]">
                 <span class="block text-sky-900 dark:text-sky-100 text-lg font-mono px-2 tracking-wider">
                     {{ Identity.username || 'User' }}
                 </span>
-
                 <span class="block text-sky-600/70 dark:text-sky-300/70 text-xs font-mono px-2 tracking-tighter">
                     {{ Identity.identity?.identityId || 'Loading...' }}
                 </span>
             </span>
-
             <button
                 class="p-2 rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shadow-sm"
                 @click="copyIdentityId"
@@ -30,7 +27,6 @@
                 </svg>
             </button>
         </div>
-
         <!-- Connect Button when no identity -->
         <div v-else class="flex items-center">
             <router-link
@@ -45,31 +41,23 @@
         </div>
     </header>
 </template>
-
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useIdentityStore } from '@/stores/identity'
-
 interface Props {
     title?: string
 }
-
 const props = withDefaults(defineProps<Props>(), {
     title: 'Unknown Page'
 })
-
 const { title } = props
-
 const Identity = useIdentityStore()
 const isCopied = ref(false)
-
 const copyIdentityId = async () => {
     if (!Identity.identity?.identityId) return
-
     try {
         await navigator.clipboard.writeText(Identity.identity.identityId)
         isCopied.value = true
-
         setTimeout(() => {
             isCopied.value = false
         }, 2000)

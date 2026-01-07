@@ -2,7 +2,8 @@
 import type { IPublicKey, IIdentity, IIdentityState } from '@/types'
 export const useIdentityGetters = {
     getGreeting: (state: IIdentityState) => `Hello, ${state.username || 'Guest'}!`,
-    isConnected: (state: IIdentityState) =>
+    // Avoid name collision with state.isConnected
+    isConnectedComputed: (state: IIdentityState) =>
         state.isAuthenticated && !!state.username,
     hasPublicKeys: (state: IIdentityState) => state.publicKeys.length > 0,
     getAuthPublicKey: (state: IIdentityState) => {
@@ -11,7 +12,7 @@ export const useIdentityGetters = {
     getEncryptionPublicKey: (state: IIdentityState) => {
         return state.publicKeys.find((key: IPublicKey) => key.purpose === 1)
     },
-    // Provide a safe IIdentity snapshot for components
+    // Safe IIdentity snapshot for components
     identity: (state: IIdentityState): IIdentity | null => {
         if (!state.identityId || !state.identity) return null
         const identityData = {
