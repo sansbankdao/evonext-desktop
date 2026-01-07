@@ -16,6 +16,7 @@ interface SendCreditParams {
     identityIdx: number
     receiver: string
     credits: bigint
+    privateKey?: string
 }
 interface SendTokenParams {
     identityId: string
@@ -23,6 +24,7 @@ interface SendTokenParams {
     tokenId: string
     receiver: string
     atomicUnits: bigint
+    privateKey?: string
 }
 interface TransactionResult {
     success: boolean
@@ -77,7 +79,7 @@ export function useTransactions() {
             loading.value = true
             error.value = null
             await platform.getSDK()
-            log('info',`Fetching transfers for ${identityId}`, { limit })
+            log('info', `Fetching transfers for ${identityId}`, { limit })
             try {
                 const response = await fetch(`${EXPLORER_API_URL}/identity/${identityId}/transactions?page=1&limit=${limit}&order=desc`)
                 if (!response.ok) throw new Error(`Explorer API error: ${response.statusText}`)
@@ -97,7 +99,7 @@ export function useTransactions() {
                 console.error('Failed to fetch from explorer:', err)
                 throw err
             }
-            log('debug',`Found ${transactions.value.length} transfers`)
+            log('debug', `Found ${transactions.value.length} transfers`)
             return transactions.value
         }, 'FETCH_IDENTITY_TRANSFERS_FAILED')
     }
@@ -110,7 +112,7 @@ export function useTransactions() {
             loading.value = true
             error.value = null
             await platform.getSDK()
-            log('info',`Fetching token transitions for ${tokenId}`, { identityId, limit })
+            log('info', `Fetching token transitions for ${tokenId}`, { identityId, limit })
             if (!identityId) {
                 console.warn('fetchTokenTransitions: identityId required for Explorer API lookup')
                 tokenTransitions.value = []
@@ -136,7 +138,7 @@ export function useTransactions() {
                 console.error('Failed to fetch token transitions:', err)
                 throw err
             }
-            log('debug',`Found ${tokenTransitions.value.length} transitions`)
+            log('debug', `Found ${tokenTransitions.value.length} transitions`)
             return tokenTransitions.value
         }, 'FETCH_TOKEN_TRANSITIONS_FAILED')
     }
@@ -152,15 +154,21 @@ export function useTransactions() {
                     success: false,
                     error: {
                         code: 400,
-                        message:`Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`,
+                        message: `Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`,
                         suggestions: ['Increase transfer amount to meet minimum requirements']
                     } as ITxError
                 }
             }
             const sdk = await platform.getSDK()
-            const transferWif = await keys.getTransferKey(params.identityIdx)
+            // KEY RETRIEVAL LOGIC: Explicit > Store
+            // Fix 1: Ensure undefined is the fallback, not null, for strict types
+            let transferWif = params.privateKey
             if (!transferWif) {
-                throw new Error('No transfer key found')
+                const keyResult = await keys.getTransferKey(params.identityIdx)
+                transferWif = keyResult !== null ? keyResult : undefined
+            }
+            if (!transferWif) {
+                throw new Error('No transfer key found. Please ensure you are logged in or provide a key.')
             }
             const privKey = PrivateKeyWASM.fromWIF(transferWif)
             const identity = await sdk.identities.getIdentityByIdentifier(params.identityId)
@@ -181,13 +189,13 @@ export function useTransactions() {
                 pubKey = identityPublicKeys[3]
             }
             if (!pubKey) {
-                throw new Error('No transfer public key found in identity')
+                throw new Error('No transfer public key found in identity to match the private key')
             }
             stateTransition.sign(privKey, pubKey)
             await sdk.stateTransitions.broadcast(stateTransition)
             await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
             const hash = stateTransition.hash(false)
-            console.log('info',`Credit transfer successful. Hash: ${hash}`)
+            console.log('info', `Credit transfer successful. Hash: ${hash}`)
             return {
                 success: true,
                 data: { txid: hash } as ITxSuccess
@@ -212,7 +220,13 @@ export function useTransactions() {
         error.value = null
         try {
             const sdk = await platform.getSDK()
-            const transferWif = await keys.getTransferKey(params.identityIdx)
+            // KEY RETRIEVAL LOGIC: Explicit > Store
+            // Fix 2: Ensure undefined is the fallback
+            let transferWif = params.privateKey
+            if (!transferWif) {
+                const keyResult = await keys.getTransferKey(params.identityIdx)
+                transferWif = keyResult !== null ? keyResult : undefined
+            }
             if (!transferWif) {
                 throw new Error('No transfer key found')
             }
@@ -245,7 +259,7 @@ export function useTransactions() {
             await sdk.stateTransitions.broadcast(stateTransition)
             await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
             const hash = stateTransition.hash(false)
-            console.log('info',`Token transfer successful. Hash: ${hash}, Token: ${params.tokenId}`)
+            console.log('info', `Token transfer successful. Hash: ${hash}, Token: ${params.tokenId}`)
             return {
                 success: true,
                 data: { txid: hash } as ITxSuccess
@@ -265,17 +279,22 @@ export function useTransactions() {
             loading.value = false
         }
     }
+    // Wrappers updated to accept optional private key
     const sendCredit = async (
         identityId: string,
         identityIdx: number,
         receiver: string,
-        credits: bigint
+        credits: bigint,
+        privateKey?: string
     ): Promise<TransactionResult> => {
+        // Fix 3: ExactOptionalPropertyTypes compatibility
+        // We conditionally spread the property to avoid setting 'undefined' explicitly if not provided
         const params: SendCreditParams = {
             identityId,
             identityIdx,
             receiver,
-            credits
+            credits,
+            ...(privateKey !== undefined ? { privateKey } : {})
         }
         return await sendCredits(params)
     }
@@ -284,14 +303,17 @@ export function useTransactions() {
         identityIdx: number,
         tokenId: string,
         receiver: string,
-        atomicUnits: bigint
+        atomicUnits: bigint,
+        privateKey?: string
     ): Promise<TransactionResult> => {
+        // Fix 4: ExactOptionalPropertyTypes compatibility
         const params: SendTokenParams = {
             identityId,
             identityIdx,
             tokenId,
             receiver,
-            atomicUnits
+            atomicUnits,
+            ...(privateKey !== undefined ? { privateKey } : {})
         }
         return await sendToken(params)
     }
