@@ -6,6 +6,7 @@ import { storeToRefs } from 'pinia'
 import { getIdentityManager } from '@/services/identity/discovery/IdentityManager'
 import { useNetwork } from '@/composables/useNetwork'
 import { useNotification } from '@/composables/useNotification'
+import { usePlatform } from '@/composables/usePlatform' // <--- Added
 import { invoke } from '@tauri-apps/api/core'
 import { KeyDerivationService } from '@/services/identity/keyDerivation.service'
 import type {
@@ -20,6 +21,7 @@ const { showSuccess, showError } = useNotification()
 export function useConnect() {
     const store = useIdentityStore()
     const { ensure } = useNetwork()
+    const { initialize: initPlatform, reset: resetPlatform } = usePlatform() // <--- Added
     const { isConnecting, connectionError } = storeToRefs(store)
 
     const connectionMethod = ref<'seed' | 'privateKey'>('seed')
@@ -208,6 +210,7 @@ export function useConnect() {
 
         try {
             const runNetwork = await ensure()
+            resetPlatform() // <--- Reset platform SDK before starting
 
             if (connectionMethod.value === 'seed') {
                 const identity = selectedSeedIdentity.value
@@ -228,7 +231,7 @@ export function useConnect() {
                     runNetwork
                 )
 
-                // 2) Deterministic SAFU write
+                // 2) Derive & Save Keys
                 const cleaned = normalizeSeed(seedWords.value)
                 const expectedLen = seedWordCount.value === '24' ? 24 : 12
                 if (cleaned.length !== expectedLen) {
@@ -238,17 +241,10 @@ export function useConnect() {
                 const publicKeys = (identity as any).publicKeys || []
 
                 const purposeMap: Record<string, number> = {
-                    AUTHENTICATION: 0,
-                    ENCRYPTION: 1,
-                    DECRYPTION: 2,
-                    TRANSFER: 3
+                    AUTHENTICATION: 0, ENCRYPTION: 1, DECRYPTION: 2, TRANSFER: 3
                 }
                 const secMap: Record<string, number> = {
-                    MASTER: 0,
-                    CRITICAL: 1,
-                    HIGH: 2,
-                    MEDIUM: 3,
-                    LOW: 4
+                    MASTER: 0, CRITICAL: 1, HIGH: 2, MEDIUM: 3, LOW: 4
                 }
 
                 const now = new Date().toISOString()
@@ -267,7 +263,6 @@ export function useConnect() {
                     const purposeStr = String(pk.purpose || 'AUTHENTICATION').toUpperCase()
                     const secStr = String(pk.securityLevel || 'MASTER').toUpperCase()
 
-                    // Note: Object properties must be camelCase to match Rust struct #[serde(rename_all = "camelCase")]
                     entries.push({
                         identityId: identity.identityId,
                         keyId: keyId,
@@ -283,35 +278,47 @@ export function useConnect() {
                 }
 
                 if (entries.length > 0) {
-                    // FIX: Invoke argument 'identity_id' MUST be passed as 'identityId' in Tauri v2
+                    // FIX: camelCase argument for Tauri v2
                     await invoke<boolean>('save_private_keys', {
-                        identityId: identity.identityId, // <--- CHANGED FROM identity_id
+                        identityId: identity.identityId,
                         keys: entries,
                         network: runNetwork
                     })
                 } else if (publicKeys.length > 0) {
                     throw new Error('Failed to derive private keys for the selected identity.')
                 }
+
+                // 3) Persist Mnemonic & Initialize SDK (Activate Identity)
+                // This ensures the Wallet page works immediately
+                await invoke('save_mnemonic', {
+                    network: runNetwork,
+                    payload: { seedPhrase } // Assuming payload: { seedPhrase: string }
+                }).catch(e => console.warn('Failed to save mnemonic:', e));
+
+                await initPlatform({
+                    network: runNetwork,
+                    wallet: {
+                        mnemonic: seedPhrase,
+                        unsafeOptions: { skipSynchronizationBeforeHeight: 950000 }
+                    }
+                })
+
             } else {
-                const id =
-                    (manualIdentityId.value || discoveredIdentity.value?.identityId || '')
-                        .trim()
+                // SINGLE KEY FLOW
+                const id = (manualIdentityId.value || discoveredIdentity.value?.identityId || '').trim()
                 if (!id) throw new Error('Missing identity id')
 
+                // Snapshot prep (same as before)...
                 const snap = discoveredIdentity.value
                     ? {
                         identityId: discoveredIdentity.value.identityId,
                         identityIdx: (discoveredIdentity.value as any).identityIdx ?? 0,
                         balance: discoveredIdentity.value.balance ?? null,
                         revision: (discoveredIdentity.value as any).revision ?? null,
-                        username:
-                            (discoveredIdentity.value as any).username ??
-                            discoveredIdentity.value.identityId,
-                        dpnsUsername:
-                            (discoveredIdentity.value as any).dpnsUsername ?? null,
+                        username: (discoveredIdentity.value as any).username ?? discoveredIdentity.value.identityId,
+                        dpnsUsername: (discoveredIdentity.value as any).dpnsUsername ?? null,
                         publicKeys: (discoveredIdentity.value as any).publicKeys ?? null,
-                        publicKeyIds:
-                            (discoveredIdentity.value as any).publicKeyIds ?? null
+                        publicKeyIds: (discoveredIdentity.value as any).publicKeyIds ?? null
                     }
                     : {
                         identityId: id,
@@ -335,25 +342,16 @@ export function useConnect() {
                     const secStr = String(first.securityLevel || 'MASTER').toUpperCase()
 
                     const purposeMap: Record<string, number> = {
-                        AUTHENTICATION: 0,
-                        ENCRYPTION: 1,
-                        DECRYPTION: 2,
-                        TRANSFER: 3
+                        AUTHENTICATION: 0, ENCRYPTION: 1, DECRYPTION: 2, TRANSFER: 3
                     }
                     const secMap: Record<string, number> = {
-                        MASTER: 0,
-                        CRITICAL: 1,
-                        HIGH: 2,
-                        MEDIUM: 3,
-                        LOW: 4
+                        MASTER: 0, CRITICAL: 1, HIGH: 2, MEDIUM: 3, LOW: 4
                     }
 
                     const purpose = purposeMap[purposeStr] ?? 0
                     const security_level = secMap[secStr] ?? 0
-
                     const now = new Date().toISOString()
 
-                    // Note: Object properties must be camelCase to match Rust struct #[serde(rename_all = "camelCase")]
                     const entry = {
                         identityId: id,
                         keyId: 0,
@@ -367,16 +365,29 @@ export function useConnect() {
                         lastUsed: now
                     }
 
-                    // FIX: Invoke argument 'identity_id' MUST be passed as 'identityId' in Tauri v2
+                    // FIX: camelCase argument for Tauri v2
                     await invoke<boolean>('save_single_identity_keys', {
-                        identityId: id, // <--- CHANGED FROM identity_id
+                        identityId: id,
                         key: entry,
                         network: runNetwork
+                    })
+
+                    // 3) Initialize SDK (Activate Identity)
+                    // We do not save mnemonic here as it is a single key
+                    await initPlatform({
+                        network: runNetwork,
+                        wallet: {
+                            privateKey: pk,
+                            unsafeOptions: { skipSynchronizationBeforeHeight: 950000 }
+                        }
                     })
                 }
             }
 
-            showSuccess(`Connected to ${store.username || store.identityId || 'identity'}`)
+            // Final check to ensure store is updated
+            if (store.identityId) {
+                showSuccess(`Connected to ${store.username || store.identityId}`)
+            }
         } catch (err: any) {
             const msg = typeof err === 'string' ? err : (err?.message || 'Failed to connect');
             showError(msg)
@@ -389,6 +400,7 @@ export function useConnect() {
         }
     }
 
+    // ... (rest of the file remains unchanged: resetDiscovery, closeResults, etc.)
     const resetDiscovery = () => {
         discoveredIdentity.value = null
         discoveryDetails.value = null
