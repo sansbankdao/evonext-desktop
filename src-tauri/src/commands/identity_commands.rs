@@ -391,21 +391,35 @@ pub async fn save_private_keys(
 ) -> Result<bool, String> {
     println!("[DEBUG Backend 1] save_private_keys called for ID: {}", identity_id);
     println!("[DEBUG Backend 2] Received {} keys to save", keys.len());
+    for (i, k) in keys.iter().enumerate() {
+        println!(
+            "[DEBUG Backend 2.1] key[{}]: id={} purpose={} sec={} type={} priv.len={} derived={} created_at={}",
+            i,
+            k.key_id,
+            k.purpose,
+            k.security_level,
+            k.key_type,
+            k.private_key.len(),
+            k.derived_from_mnemonic.unwrap_or(false),
+            k.created_at
+        );
+    }
     let mut store = load_keystore(&app, &network)?;
     let filename = get_network_file(&network, "safu")?;
     println!("[DEBUG Backend 3] Target filename: {}", filename);
     let entries = store.identities.entry(identity_id.clone()).or_default();
+    println!("[DEBUG Backend 4] Existing entries count: {}", entries.len());
     for k in keys {
         println!("[DEBUG Backend 5] Processing key_id: {}", k.key_id);
-        // Upsert by key_id
         if let Some(existing) = entries.iter_mut().find(|e| e.key_id == k.key_id) {
             *existing = k;
         } else {
             entries.push(k);
         }
     }
+    println!("[DEBUG Backend 6] Final entries count: {}", entries.len());
     save_keystore(&app, &network, &store)?;
-    println!("[DEBUG Backend] save_private_keys complete");
+    println!("[DEBUG Backend 7] save_private_keys complete -> {}", filename);
     Ok(true)
 }
 
@@ -438,6 +452,5 @@ pub async fn save_single_identity_keys(
         "[DEBUG Backend] save_single_identity_keys id={} key_id={} network={}",
         identity_id, key.key_id, network
     );
-    // Reuse save_private_keys path
     save_private_keys(app, identity_id, vec![key], network).await
 }
