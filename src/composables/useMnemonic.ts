@@ -29,7 +29,7 @@ class MnemonicManager {
 
         try {
             console.log('Fetching mnemonic from Tauri backend...')
-            const result = await invoke<string>('get_mnemonic')
+            const result = await invoke<string>('load_mnemonic')
             this.mnemonic = result || null
             console.log('Mnemonic retrieved:', this.mnemonic ? 'Yes (hidden)' : 'No')
             return this.mnemonic

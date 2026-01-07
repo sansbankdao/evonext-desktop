@@ -24,6 +24,7 @@ export class DAPIService {
                 publicKeyHash: publicKeyHash,
                 network: network
             })
+
             if (Array.isArray(response) && response[0]) {
                 const wrapper = response[0]
                 if (wrapper.success === true && Array.isArray(wrapper.result)) {
@@ -40,6 +41,7 @@ export class DAPIService {
                     }
                 }
             }
+
             return {
                 success: false,
                 error: 'No identity found',
@@ -64,12 +66,14 @@ export class DAPIService {
                 identityId: identityId,
                 network: network
             })
+
             if (response?.success && response?.result) {
                 const res = response.result
                 if (typeof res === 'string') return res
                 if (Array.isArray(res) && res[0]) return res[0].username || res[0]
                 if (typeof res === 'object') return res.username || null
             }
+
             return null
         } catch {
             return null
@@ -82,10 +86,12 @@ export class DAPIService {
     ): Promise<DAPIHashSearchResult> {
         try {
             const response = await invoke<any>('get_identity_info', {
+                // FIX: camelCase arguments for Tauri v2
                 identityId: identityId,
                 network: network,
                 withProof: false
             })
+
             if (Array.isArray(response) && response[0]) {
                 const wrapper = response[0]
                 if (wrapper?.success === true && Array.isArray(wrapper.result)) {
@@ -105,6 +111,7 @@ export class DAPIService {
                     }
                 }
             }
+
             return {
                 success: false,
                 error: 'Identity not found or invalid response format',

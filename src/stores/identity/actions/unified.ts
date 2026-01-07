@@ -1,7 +1,9 @@
 // src/stores/identity/actions/unified.ts
 
 import { invoke } from '@tauri-apps/api/core'
+
 type Network = 'mainnet' | 'testnet'
+
 export function unifiedActions() {
     return {
         async connectFromDiscoveryUnified(
@@ -73,7 +75,7 @@ export function unifiedActions() {
             try {
                 const res = (await invoke('query_and_update_identity', {
                     network,
-                    identity_id: this.activeIdentity?.identityId || ''
+                    identityId: this.activeIdentity?.identityId || ''
                 })) as { success: boolean; error?: string; payload?: any }
                 if (res.success && res.payload) {
                     const data = res.payload

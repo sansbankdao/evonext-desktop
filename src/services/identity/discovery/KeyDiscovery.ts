@@ -15,6 +15,7 @@ import type {
     DiscoveryResult,
     DiscoveryOptions,
 } from '../types'
+
 export class KeyDiscovery extends BaseDiscovery {
     async discover(
         input: string,
@@ -22,6 +23,7 @@ export class KeyDiscovery extends BaseDiscovery {
     ): Promise<DiscoveryResult> {
         return this.discoverFromKey(input, options)
     }
+
     async discoverFromKey(
         keyInput: string,
         options: DiscoveryOptions
@@ -175,6 +177,7 @@ export class KeyDiscovery extends BaseDiscovery {
             return this.handleError(error, 'Key Discovery')
         }
     }
+
     private getPrivateKeyInstance(
         keyInput: string,
         network: 'mainnet' | 'testnet'
@@ -195,6 +198,7 @@ export class KeyDiscovery extends BaseDiscovery {
             return null
         }
     }
+
     // Save ONLY the matching key (not every keyId). Multiple keys require the seed path.
     private async saveDiscoveredKeyToStorage(
         network: 'mainnet' | 'testnet',
@@ -240,10 +244,11 @@ export class KeyDiscovery extends BaseDiscovery {
                     lastUsed: now
                 })
             }
+
             await invoke('save_private_keys', {
                 network,
                 identityId,
-                privateKeys: entries
+                keys: entries
             })
             return true
         } catch (err) {
