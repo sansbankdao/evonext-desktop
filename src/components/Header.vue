@@ -6,10 +6,10 @@
         </h1>
         <div v-if="isConnected" class="flex items-center gap-4 bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
             <span class="w-[300px]">
-                <span class="block text-sky-900 dark:text-sky-100 text-lg font-mono px-2 tracking-wider">
+                <span class="block text-sky-900 dark:text-sky-100 text-lg font-mono px-2 tracking-wider truncate">
                     {{ username || 'User' }}
                 </span>
-                <span class="block text-sky-600/70 dark:text-sky-300/70 text-xs font-mono px-2 tracking-tighter">
+                <span class="block truncate text-sky-600/70 dark:text-sky-300/70 text-xs font-mono px-2 tracking-tighter">
                     {{ identityId || 'Loading...' }}
                 </span>
             </span>
