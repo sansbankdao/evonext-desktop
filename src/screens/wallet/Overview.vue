@@ -1,4 +1,125 @@
-<!-- src/screens/wallet/Overview.vue -->
+<script setup lang="ts">
+/* Import modules. */
+import { onMounted, computed, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
+
+import { useWalletStore } from '@/stores/wallet'
+import { useIdentityStore } from '@/stores/identity'
+import { useSystemStore } from '@/stores/system'
+import { useNetwork } from '@/composables/useNetwork'
+
+import Header from '@/components/Header.vue'
+
+const router = useRouter()
+const Wallet = useWalletStore()
+const Identity = useIdentityStore()
+const System = useSystemStore()
+const { ensure } = useNetwork()
+
+const totalBalance = computed(() => {
+    // FIX: Check if Identity has balance, regardless of ID structure
+    if (Identity.isConnected && Identity.balance) {
+        const credits = parseInt(Identity.balance as string, 10)
+        const duffs = credits / 1000
+        const dash = duffs / 100000000
+        const usd = dash * System.currentDashPrice
+
+        return { dash, usd, credits, duffs }
+    }
+    // Fallback to mock data from wallet store
+    return {
+        dash: Number(Wallet.assets.find(a => a.symbol === 'DASH')?.balance) || 0,
+        usd: Wallet.totalUsdValue || 0,
+        credits: Number(Wallet.assets.find(a => a.symbol === 'CREDITS')?.balance) || 0,
+        duffs: 0
+    }
+})
+
+const formatCurrency = (value: number) => {
+    if (typeof value !== 'number') return '$0.00'
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+    }).format(value)
+}
+
+const getStatusClasses = (status: string) => {
+    switch (status) {
+        case 'Completed': return 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 shadow-emerald-200/50 dark:shadow-emerald-500/20'
+        case 'Pending...': return 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 shadow-amber-200/50 dark:shadow-amber-500/20 animate-pulse'
+        case 'Failed': return 'bg-red-500/20 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700 shadow-red-200/50 dark:shadow-red-500/20'
+        default: return 'bg-slate-400/20 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 shadow-slate-200/50 dark:shadow-slate-500/20'
+    }
+}
+
+const getIconSrc = (symbol: string) => {
+    const lower = symbol.toLowerCase()
+
+    if (lower === 'credits') {
+        return '/icons/dash.svg'
+    }
+
+    return `/icons/${lower}.svg`
+}
+
+const assetIconExists = (symbol: string) => {
+    const lower = symbol.toLowerCase()
+    const commonIcons = ['dash', 'sans', 'dusd']
+
+    return commonIcons.includes(lower) || lower === 'credits'
+}
+
+const forceRefresh = async () => {
+    console.log('🔄 Force Refresh triggered')
+    // Ensure we have the latest network config before refreshing
+    const currentNetwork = await ensure()
+    await Wallet.refreshBalances(currentNetwork)
+}
+
+onMounted(async () => {
+    await nextTick()
+
+    /* 1. Ensure Network Settings are Loaded */
+    const currentNetwork = await ensure()
+    console.log(`🌐 Network initialized: ${currentNetwork}`)
+
+    /* 2. Validate market data. */
+    if (!System.currentDashPrice) {
+        await System.fetchDashPrice()
+    }
+
+    /* 3. Validate identity connection. */
+    if (Identity.isConnected) {
+        console.log('✅ Identity connected, using identity data for user:', Identity.username)
+
+        /* FIX: Use .identityId instead of .id */
+        const realIdentityId = Identity.identity?.identityId
+
+        /* Validate real identity ID. */
+        if (realIdentityId) {
+            Wallet.user = {
+                username: Identity.username || 'Unknown',
+                displayName: Identity.username || 'Unknown',
+                name: Identity.username || '',
+                address: realIdentityId,
+                avatar: '',
+                identityId: realIdentityId
+            }
+            console.log('✅ Setting wallet user with real identity ID:', realIdentityId)
+        } else {
+            console.warn('❌ No real identity ID found, falling back to mock data')
+        }
+    } else {
+        console.log('ℹ️ No identity connected; will load mock data')
+    }
+
+    /* 4. Refresh Balances */
+    // CRITICAL FIX: Pass the resolved network to ensure correct endpoints/file lookups
+    console.log('🔄 Refreshing wallet data...')
+    await Wallet.refreshBalances(currentNetwork)
+})
+</script>
+
 <template>
     <main>
         <Header title="Wallet Dashboard" />
@@ -266,6 +387,7 @@
                 <div class="bg-white dark:bg-slate-900 p-4 rounded shadow border border-red-100 dark:border-red-900">
                     <p class="font-bold text-slate-700 dark:text-slate-300 mb-2">Wallet Store State</p>
                     <ul class="space-y-1 text-slate-600 dark:text-slate-400 text-xs">
+                        <li>Active Network: {{ Wallet.network }}</li>
                         <li>Assets Count: {{ Wallet.assets.length }}</li>
                         <li>Is Loading: {{ Wallet.isLoading }}</li>
                         <li>User: {{ Wallet.user ? Wallet.user.username : 'null' }}</li>
@@ -282,115 +404,3 @@
 
     </main>
 </template>
-
-<script setup lang="ts">
-/* Import modules. */
-import { onMounted, computed, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
-
-import { useWalletStore } from '@/stores/wallet'
-import { useIdentityStore } from '@/stores/identity'
-import { useSystemStore } from '@/stores/system'
-
-import Header from '@/components/Header.vue'
-
-const router = useRouter()
-const Wallet = useWalletStore()
-const Identity = useIdentityStore()
-const System = useSystemStore()
-
-const totalBalance = computed(() => {
-    // FIX: Check if Identity has balance, regardless of ID structure
-    if (Identity.isConnected && Identity.balance) {
-        const credits = parseInt(Identity.balance as string, 10)
-        const duffs = credits / 1000
-        const dash = duffs / 100000000
-        const usd = dash * System.currentDashPrice
-
-        return { dash, usd, credits, duffs }
-    }
-    // Fallback to mock data from wallet store
-    return {
-        dash: Number(Wallet.assets.find(a => a.symbol === 'DASH')?.balance) || 0,
-        usd: Wallet.totalUsdValue || 0,
-        credits: Number(Wallet.assets.find(a => a.symbol === 'CREDITS')?.balance) || 0,
-        duffs: 0
-    }
-})
-
-const formatCurrency = (value: number) => {
-    if (typeof value !== 'number') return '$0.00'
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    }).format(value)
-}
-
-const getStatusClasses = (status: string) => {
-    switch (status) {
-        case 'Completed': return 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 shadow-emerald-200/50 dark:shadow-emerald-500/20'
-        case 'Pending...': return 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 shadow-amber-200/50 dark:shadow-amber-500/20 animate-pulse'
-        case 'Failed': return 'bg-red-500/20 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700 shadow-red-200/50 dark:shadow-red-500/20'
-        default: return 'bg-slate-400/20 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 shadow-slate-200/50 dark:shadow-slate-500/20'
-    }
-}
-
-const getIconSrc = (symbol: string) => {
-    const lower = symbol.toLowerCase()
-
-    if (lower === 'credits') {
-        return '/icons/dash.svg'
-    }
-
-    return `/icons/${lower}.svg`
-}
-
-const assetIconExists = (symbol: string) => {
-    const lower = symbol.toLowerCase()
-    const commonIcons = ['dash', 'sans', 'dusd']
-
-    return commonIcons.includes(lower) || lower === 'credits'
-}
-
-const forceRefresh = async () => {
-    console.log('🔄 Force Refresh triggered')
-    await Wallet.refreshBalances()
-}
-
-onMounted(async () => {
-    await nextTick()
-
-    /* Validate market data. */
-    if (!System.currentDashPrice) {
-        await System.fetchDashPrice()
-    }
-
-    /* Validate identity connection. */
-    if (!Identity.isConnected) {
-        console.log('No identity found, loading mock data')
-    } else {
-        console.log('Using identity data for user:', Identity.username)
-
-        /* FIX: Use .identityId instead of .id */
-        const realIdentityId = Identity.identity?.identityId
-
-        /* Validate real identity ID. */
-        if (realIdentityId) {
-            Wallet.user = {
-                username: Identity.username || 'Unknown',
-                displayName: Identity.username || 'Unknown',
-                name: Identity.username || '',
-                address: realIdentityId,
-                avatar: '',
-                identityId: realIdentityId
-            }
-            console.log('✅ Setting wallet user with real identity ID:', realIdentityId)
-
-            // Fetch real balances AND transactions
-            await Wallet.refreshBalances()
-        } else {
-            console.warn('❌ No real identity ID found, falling back to mock data')
-        }
-    }
-})
-</script>

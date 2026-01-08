@@ -2,7 +2,7 @@
 
 /* Import modules. */
 import { ErrorBoundary, NetworkError } from '@/utils/errors'
-import { getPlatformEndpoint, getExplorerEndpoint } from '@/utils/env'
+import { getPlatformEndpoint, PLATFORM_HTTP_API_MAINNET, PLATFORM_HTTP_API_TESTNET } from '@/utils/env'
 
 /* Import types. */
 import type { IdentityTransfer, TokenTransition, ApiResponse } from '@/types/wallet'
@@ -14,10 +14,13 @@ import type { IdentityTransfer, TokenTransition, ApiResponse } from '@/types/wal
 export const fetchIdentityTransactions = async (
     identityId: string,
     limit: number = 20,
+    network: string = 'testnet'
 ): Promise<any[]> => {
     return ErrorBoundary.wrap(async () => {
-        // FIX: Use the dynamic helper to ensure Testnet/Mainnet match
-        const explorerUrl = getExplorerEndpoint()
+        // FIX: Dynamic endpoint selection
+        const explorerUrl = network === 'mainnet'
+            ? PLATFORM_HTTP_API_MAINNET
+            : PLATFORM_HTTP_API_TESTNET
 
         // FIX: Verified working endpoint is /transfers
         const response = await fetch(
@@ -90,9 +93,14 @@ export const fetchTokenTransitions = async (
 export const fetchTokenBalance = async (
     identityId: string,
     contractId: string,
+    network: string = 'testnet'
 ): Promise<bigint> => {
     return ErrorBoundary.wrap(async () => {
-        const apiEndpoint = getPlatformEndpoint()
+        // FIX: Dynamic endpoint selection
+        const apiEndpoint = network === 'mainnet'
+            ? PLATFORM_HTTP_API_MAINNET
+            : PLATFORM_HTTP_API_TESTNET
+
         const response = await fetch(
             `${apiEndpoint}/identity/${identityId}/tokens/${contractId}/balance`
         )

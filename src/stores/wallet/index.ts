@@ -1,7 +1,7 @@
 // src/stores/wallet/index.ts
-
 import { defineStore } from 'pinia'
 import type { IAsset, IUser, ITransaction } from '@/types'
+import type { Network } from '@/composables/useNetwork'
 
 export interface IWalletState {
   user: IUser | null
@@ -9,6 +9,7 @@ export interface IWalletState {
   transactions: ITransaction[]
   balanceChange: number | null
   isLoading: boolean
+  network: Network
 }
 
 export const useWalletStore = defineStore('wallet', {
@@ -18,6 +19,7 @@ export const useWalletStore = defineStore('wallet', {
         transactions: [],
         balanceChange: null,
         isLoading: false,
+        network: 'testnet',
     }),
     getters: {
         totalUsdValue: (state): number => {
@@ -36,9 +38,9 @@ export const useWalletStore = defineStore('wallet', {
             const { fetchRealTransactions } = await import('./actions/index')
             await fetchRealTransactions.call(this, limit)
         },
-        async refreshBalances() {
+        async refreshBalances(network?: Network) {
             const { refreshBalances } = await import('./actions/index')
-            await refreshBalances.call(this)
+            await refreshBalances.call(this, network)
         },
         // FIXED: Delegates to actions/api to break circular dependency
         async getTokenBalance(identityId: string, contractId: string): Promise<bigint> {

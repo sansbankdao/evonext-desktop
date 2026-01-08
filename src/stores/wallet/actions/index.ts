@@ -8,17 +8,23 @@ import { fetchIdentityTransactions, fetchTokenBalance } from './api'
 import { formatDashAmount } from './utils'
 import type { IAsset, ITransaction } from '@/types'
 import type { IAssetMinimal } from '@/types/assets'
+import type { Network } from '@/composables/useNetwork'
 
 /**
  * Orchestrates fetching all balances (Native + Tokens)
  */
-export async function refreshBalances(this: ReturnType<typeof useWalletStore>) {
+export async function refreshBalances(this: ReturnType<typeof useWalletStore>, network?: Network) {
     const identityStore = useIdentityStore()
     const systemStore = useSystemStore()
 
     if (!identityStore.isConnected) {
         console.warn('Cannot refresh balances: Identity not connected')
         return
+    }
+
+    // Update store state if network is provided
+    if (network) {
+        this.network = network
     }
 
     this.isLoading = true
@@ -32,7 +38,7 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>) {
         return
     }
 
-    console.log(`🔄 Refreshing balances for ID: ${identityId}`)
+    console.log(`🔄 Refreshing balances for ID: ${identityId} on ${this.network}`)
 
     // 1. Initialize Asset List with Native Dash/Credits
     const newAssets: IAsset[] = []
@@ -49,7 +55,7 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>) {
         precision: 2,
         type: 'native',
         category: 'currency',
-        network: 'mainnet',
+        network: this.network,
         balance: creditBalance,
         balanceFormatted: creditBalance.toLocaleString(),
         verified: true,
@@ -72,7 +78,7 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>) {
         precision: 8,
         type: 'native',
         category: 'currency',
-        network: 'mainnet',
+        network: this.network,
         balance: dashAmount,
         balanceFormatted: formatDashAmount(dashAmount, true),
         verified: true,
@@ -87,11 +93,11 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>) {
     try {
         // 2. Load Custom Assets from Backend (Rust)
         const storedAssets = await invoke<IAssetMinimal[]>('load_assets', {
-            network: 'mainnet'
+            network: this.network
         })
 
         if (storedAssets && Array.isArray(storedAssets)) {
-            console.log(`📦 Found ${storedAssets.length} stored assets`)
+            console.log(`📦 Found ${storedAssets.length} stored assets on ${this.network}`)
 
             for (const assetDef of storedAssets) {
                 let balance = BigInt(0)
@@ -100,10 +106,9 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>) {
                 const contractId = assetDef.asset_id || (assetDef as any).assetId || (assetDef as any).contractId
                 const assetId = contractId || `${assetDef.symbol}-${identityId}`
 
-                // FIX: Correct if syntax
                 if (contractId) {
                     try {
-                        balance = await fetchTokenBalance(identityId, contractId)
+                        balance = await fetchTokenBalance(identityId, contractId, this.network)
                         const divisor = BigInt(10 ** (assetDef.precision || 18))
                         const whole = balance / divisor
                         balanceFormatted = whole.toString()
@@ -119,7 +124,7 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>) {
                     precision: assetDef.precision || 18,
                     type: 'token',
                     category: 'utility',
-                    network: assetDef.network || 'mainnet',
+                    network: this.network,
                     balance: balance.toString(),
                     balanceFormatted: balanceFormatted,
                     verified: true,
@@ -163,8 +168,8 @@ export async function fetchRealTransactions(this: ReturnType<typeof useWalletSto
     }
 
     try {
-        console.log(`🕵️ Fetching transactions for ${identityId} from Explorer...`)
-        const explorerTxs = await fetchIdentityTransactions(identityId, limit)
+        console.log(`🕵️ Fetching transactions for ${identityId} on ${this.network} from Explorer...`)
+        const explorerTxs = await fetchIdentityTransactions(identityId, limit, this.network)
 
         console.log(`✅ Explorer returned ${explorerTxs.length} transactions`)
 
@@ -221,7 +226,7 @@ export async function fetchRealTransactions(this: ReturnType<typeof useWalletSto
                 subtitle,
                 date: new Date(tx.timestamp).getTime(),
                 createdAt: new Date(tx.timestamp).getTime(),
-                network: 'testnet' // Based on your debug URL
+                network: this.network
             }
         })
 
