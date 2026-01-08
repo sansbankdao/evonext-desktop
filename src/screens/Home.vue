@@ -5,7 +5,7 @@
 
         <!-- Balance Card & Actions -->
         <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
                 <div class="flex justify-between items-start">
                     <div class="flex-1">
                         <p class="text-slate-600 dark:text-slate-400 text-sm">
@@ -46,7 +46,7 @@
                 </div>
             </div>
 
-            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl flex flex-col justify-center items-center text-center border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-xl flex flex-col justify-center items-center text-center border border-slate-200 dark:border-slate-700 shadow-sm">
                 <p class="text-3xl font-semibold text-slate-900 dark:text-slate-100">
                     Collectibles
                 </p>
@@ -61,11 +61,12 @@
             </div>
         </section>
 
-        <!-- Main Content Area (2/3 width on large screens) -->
+        <!-- Assets & Transactions -->
         <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Left Column: Create Post & Feed -->
+            <!-- Main Content Feed (2/3 width on large screens) -->
             <div class="lg:col-span-2 flex flex-col gap-6">
-                <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <!-- Create Post -->
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
                     <div class="flex items-start gap-4">
                         <img
                             :src="identityStore.identity?.avatarUrl || getFallbackAvatar(identityStore.username as string)"
@@ -77,15 +78,15 @@
                             v-model="newPostContent"
                             class="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-3 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-sky-400 dark:focus:ring-sky-400 focus:border-sky-400 dark:focus:border-sky-400 transition"
                             placeholder="What's on your mind?"
-                            @keydown.enter.exact.prevent="handleQuickPost"
-                        />
+                        >
+                        </textarea>
                     </div>
 
                     <div class="flex justify-end items-center mt-4">
                         <button
                             @click="handleQuickPost"
                             :disabled="!isAuthenticated || !newPostContent.trim()"
-                            class="bg-sky-500 hover:bg-sky-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold px-6 py-2 rounded-full transition"
+                            class="bg-sky-500 hover:bg-sky-600 text-white font-semibold px-6 py-2 rounded-full transition"
                         >
                             Post
                         </button>
@@ -103,15 +104,15 @@
                 </div>
 
                 <!-- Post Items -->
-                <div v-if="posts.isLoading.value && !posts.error.value" class="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
+                <div v-if="posts.isLoading" class="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-400 mb-4"></div>
                     <p>Loading posts...</p>
                 </div>
 
-                <div v-else-if="posts.error.value" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm text-red-800 dark:text-red-300">
+                <div v-else-if="posts.error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm text-red-800 dark:text-red-300">
                     <p class="font-semibold mb-2">Error Loading Posts</p>
-                    <p class="mb-4">{{ posts.error.value }}</p>
-                    <button @click="handlePostRefresh" class="underline hover:opacity-80">Retry</button>
+                    <p class="mb-4">{{ posts.error }}</p>
+                    <button @click="handlePostRefresh" class="ml-2 underline hover:opacity-80">Retry</button>
                 </div>
 
                 <div v-else-if="recentPosts.length === 0" class="text-center py-8 text-slate-500 dark:text-slate-400">
@@ -123,7 +124,7 @@
                     <PostItem
                         v-for="post in recentPosts"
                         :key="post.id || post.ownerId + '-' + post.createdAt"
-                        :post="enrichPost(post)"
+                        :post="post"
                         @like="handleLike"
                         @repost="handleRepost"
                         @bookmark="handleBookmark"
@@ -131,7 +132,7 @@
                     />
                 </div>
 
-                <div v-if="hasMore" class="text-center pt-4">
+                <!-- <div v-if="hasMore" class="text-center pt-4">
                     <button
                         @click="fetchMore"
                         :disabled="posts.isLoading.value"
@@ -139,7 +140,7 @@
                     >
                         Load More Posts
                     </button>
-                </div>
+                </div> -->
             </div>
 
             <!-- Sidebar (1/3 width on large screens) -->
@@ -187,46 +188,23 @@ const isAuthenticated = computed(() => identityStore.isAuthenticated)
 
 const totalBalance = computed(() => {
     if (isAuthenticated.value && identityStore.balance) {
+        // The store returns CREDITS
         const rawBalance = parseInt(String(identityStore.balance), 10)
+
         const credits = rawBalance
-        const duffs = credits * 1000
+
+        // 1,000 Credits = 1 Duff
+        const duffs = rawBalance / 1000
+
+        // 100,000,000 Duffs = 1 DASH
         const dash = duffs / 100000000
+
         const usd = dash * systemStore.currentDashPrice
 
         return { dash, usd, credits, duffs }
     }
-
     return { dash: 0.00, usd: 0.00, credits: 0, duffs: 0 }
 })
-
-// Helper to get a fallback avatar (Gravatar) if no avatarUrl is available
-const getFallbackAvatar = (username: string | undefined) => {
-    const name = username || 'You'
-    return `https://www.gravatar.com/avatar/${encodeURIComponent(name)}?s=200&d=404&rating=g`
-}
-
-// Helper to enrich post data with identity info (Username/DPNS)
-// Uses data already attached to the post object by usePosts()
-const enrichPost = (post: any) => {
-    // The usePosts composable attaches 'author' object. If not present, fallback.
-    if (post.author) {
-        return {
-            ...post,
-            author: post.author
-        }
-    }
-
-    // Fallback: We don't have the profile locally yet.
-    return {
-        ...post,
-        author: {
-            username: `@user_${post.ownerId.slice(0, 8)}`,
-            displayName: `User ${post.ownerId.slice(0, 8)}`,
-            avatar: getFallbackAvatar(`User ${post.ownerId.slice(0, 8)}`),
-            verified: false
-        }
-    }
-}
 
 const formatCurrency = (value: number) => {
     if (typeof value !== 'number') return '$0.00'
@@ -237,22 +215,18 @@ const formatCurrency = (value: number) => {
     }).format(value)
 }
 
-const hasMore = computed(() => postsComposable.hasMore.value)
+// Helper to get a fallback avatar (Gravatar) if no avatarUrl is available
+const getFallbackAvatar = (username: string | undefined) => {
+    const name = username || 'Me'
+    // return `https://www.gravatar.com/avatar/${encodeURIComponent(name)}?s=200&d=404&rating=g`
+    return `https://ui-avatars.com/api/?name=Me&background=random`
+}
 
 const handlePostRefresh = async () => {
     try {
         await postsComposable.fetchPosts({ orderBy: 'newest', limit: 10 })
     } catch (err: unknown) {
         console.error('Failed to refresh posts:', err)
-    }
-}
-
-// FIX: Added missing fetchMore function
-const fetchMore = async () => {
-    try {
-        await postsComposable.fetchMorePosts()
-    } catch (err: unknown) {
-        console.error('Failed to fetch more posts:', err)
     }
 }
 
@@ -264,7 +238,7 @@ const handleQuickPost = async () => {
         newPostContent.value = ''
     } catch (err: unknown) {
         console.error('Failed to create post:', err)
-        alert(`Failed to post: ${err instanceof Error ? err.message : 'Unknown error'}`)
+        alert('Failed to post: ' + (err instanceof Error ? err.message : 'Unknown error'))
     }
 }
 

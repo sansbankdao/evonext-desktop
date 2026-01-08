@@ -15,7 +15,7 @@
             <a href="#" class="block hover:bg-slate-50 dark:hover:bg-slate-700 p-2 rounded-lg transition-colors">
                 <div class="w-32 xl:w-48 flex items-center gap-3">
                     <img
-                        src="https://ui-avatars.com/api/?name=Alice&background=random"
+                        src="https://ui-avatars.com/api/?name=Admin&background=random"
                         alt="Admin's Avatar"
                         class="size-8 rounded-full"
                     />
