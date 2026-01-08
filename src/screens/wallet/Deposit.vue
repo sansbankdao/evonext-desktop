@@ -1,136 +1,213 @@
-<!-- src/screens/Deposit.vue -->
+<!-- src/screens/wallet/Deposit.vue -->
 <template>
-    <main class="p-4 max-w-md mx-auto min-h-screen">
-        <!-- Header -->
-        <header class="flex items-center justify-between mb-8 bg-white dark:bg-slate-900 p-4 rounded-xl shadow-lg border-2 border-slate-200 dark:border-slate-700">
-            <div class="flex items-center gap-4">
-                <svg class="w-8 h-8 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
-                </svg>
-                <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100">
-                    Deposit Assets
-                </h1>
-            </div>
+    <main class="min-h-screen w-full flex flex-col items-center bg-slate-50 dark:bg-slate-950">
 
-            <button @click="router.back()" class="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-200 font-semibold p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 shadow-sm hover:shadow-md">
+        <!-- Navigation Header -->
+        <header class="w-full max-w-2xl flex items-center justify-between px-6 py-6">
+            <button
+                @click="router.back()"
+                class="flex items-center gap-2 px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors font-medium"
+            >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
-                Back to Wallet
+                <span>Back to Wallet</span>
             </button>
+
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
+                <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span class="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
+                    {{ Wallet.network || 'testnet' }}
+                </span>
+            </div>
         </header>
 
-        <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl text-center flex flex-col items-center space-y-8 shadow-2xl border-2 border-slate-200 dark:border-slate-700 hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 group">
-            <div class="mb-8">
-                <h2 class="text-2xl font-black text-slate-900 dark:text-slate-100 mb-3 flex items-center justify-center gap-3">
-                    <svg class="w-7 h-7 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                    </svg>
-                    Share this address to receive assets
-                </h2>
-                <p class="text-slate-600 dark:text-slate-400 text-lg leading-relaxed max-w-md">
-                    Supports DASH, DUSD, SANS, and other Dash Platform assets.
-                </p>
+        <!-- Main Content -->
+        <div class="w-full max-w-md px-6 pb-12">
+
+            <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 flex flex-col items-center">
+
+                <!-- Header -->
+                <div class="text-center mb-8">
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 mb-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v16m8-8H4" />
+                        </svg>
+                    </div>
+                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                        Deposit Assets
+                    </h1>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm">
+                        Send Dash Platform supported tokens to your identity.
+                    </p>
+                </div>
+
+                <!-- QR Code Area -->
+                <div class="relative mb-8 group">
+                    <!-- Decorative border -->
+                    <div class="absolute -inset-1 bg-gradient-to-r from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                    <div class="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+                        <qrcode-vue
+                            v-if="Identity.identityId"
+                            :value="Identity.identityId"
+                            :size="220"
+                            level="H"
+                            render-as="svg"
+                            background="#ffffff"
+                            foreground="#0f172a"
+                            class="rounded-lg"
+                        />
+                        <div v-else class="w-[220px] h-[220px] flex items-center justify-center bg-slate-50 dark:bg-slate-950 rounded-lg">
+                            <svg class="w-8 h-8 text-slate-300 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Details Section -->
+                <div class="w-full space-y-6">
+
+                    <!-- Identity ID -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center px-1">
+                            <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                Identity ID
+                            </label>
+                            <span v-if="Identity.identityId" class="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 font-mono">
+                                Active
+                            </span>
+                            <span v-else class="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800 font-mono">
+                                Not Found
+                            </span>
+                        </div>
+                        <div class="relative group/field">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                                </svg>
+                            </div>
+                            <div class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-3 pl-10 pr-2 text-slate-900 dark:text-slate-100 font-mono text-sm truncate transition-colors group-hover/field:border-slate-300 dark:group-hover/field:border-slate-700">
+                                <div class="flex items-center justify-between w-full">
+                                    <span class="truncate">
+                                        {{ Identity.identityId || 'No Identity Connected' }}
+                                    </span>
+                                    <button
+                                        @click="copyIdentityId"
+                                        :disabled="!Identity.identityId"
+                                        class="ml-2 p-1.5 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-white dark:hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                        title="Copy Identity ID"
+                                    >
+                                        <svg v-if="copyButtonText === 'Copied!'" class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Action Button -->
+                <div class="w-full mt-8">
+                    <button
+                        @click="copyIdentityId"
+                        :disabled="!Identity.identityId"
+                        class="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold py-3.5 px-4 rounded-xl hover:bg-slate-800 dark:hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        <svg v-if="copyButtonText === 'Copied!'" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                        </svg>
+                        <span>{{ copyButtonText === 'Copied!' ? 'Copied!' : 'Copy Identity ID' }}</span>
+                    </button>
+                </div>
+
             </div>
 
-            <!-- QR Code -->
-            <div class="bg-white/90 dark:bg-slate-800/90 p-8 rounded-2xl mb-8 border-2 border-slate-200/50 dark:border-slate-700 shadow-xl group-hover:shadow-3xl transition-all duration-300">
-                <qrcode-vue
-                    v-if="Wallet.user?.address"
-                    :value="Wallet.user.address"
-                    :size="280"
-                    level="H"
-                    :background="darkMode ? '#1e293b' : '#ffffff'"
-                    foreground="#059669"
-                />
-                <div v-else class="size-[280px] bg-slate-100 dark:bg-slate-700 flex items-center justify-center rounded-2xl text-slate-400 dark:text-slate-500 shadow-inner">
-                    <svg class="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                    </svg>
+            <!-- Asset Grid -->
+            <div class="mt-6">
+                <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 text-center">
+                    Supported Assets
+                </p>
+                <div class="grid grid-cols-4 gap-3">
+                    <div class="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <div class="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center border border-blue-100 dark:border-blue-800">
+                            <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-600 dark:text-slate-400">DASH</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <div class="w-8 h-8 rounded-full bg-green-50 dark:bg-green-900/20 flex items-center justify-center border border-green-100 dark:border-green-800">$</div>
+                        <span class="text-[10px] font-bold text-slate-600 dark:text-slate-400">DUSD</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <div class="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center border border-purple-100 dark:border-purple-800">
+                            <svg class="w-4 h-4 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-600 dark:text-slate-400">SANS</span>
+                    </div>
+                    <div class="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <div class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                            <svg class="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"/></svg>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-600 dark:text-slate-400">Other</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="w-full space-y-4">
-                <label class="text-lg font-bold text-slate-700 dark:text-slate-300 text-center mb-3 flex items-center justify-center gap-3">
-                    <svg class="w-6 h-6 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    Your Dash Platform Address
-                </label>
-
-                <div class="bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-2xl w-full text-center mb-6 overflow-hidden border-2 border-slate-200/50 dark:border-slate-700 shadow-lg">
-                    <p v-if="Wallet.user?.address" class="text-slate-900 dark:text-slate-100 font-mono text-lg break-all leading-7 font-semibold tracking-wide">
-                        {{ Wallet.user.address }}
-                    </p>
-                    <p v-else class="text-slate-500 dark:text-slate-400 font-mono text-lg font-semibold">
-                        Loading address...
+            <!-- Warning Footer -->
+            <div class="mt-8 flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30">
+                <svg class="w-5 h-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div class="flex flex-col gap-1">
+                    <p class="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase">Attention</p>
+                    <p class="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                        Only send <strong class="text-slate-900 dark:text-slate-200">Dash Platform Assets</strong> (DASH, DUSD, etc.) to this Identity ID. Sending incompatible tokens from other chains may result in permanent loss.
                     </p>
                 </div>
             </div>
 
-            <button
-                @click="copyAddress"
-                :disabled="!Wallet.user?.address"
-                class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black py-6 px-8 rounded-2xl transition-all duration-300 shadow-2xl hover:from-emerald-600 hover:to-emerald-700 hover:shadow-3xl hover:-translate-y-1 disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed disabled:shadow-lg focus:ring-4 focus:ring-emerald-400/40 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900 text-xl tracking-wide"
-            >
-                <svg v-if="copyButtonText === 'Copied!'" class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <svg v-else class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
-                </svg>
-                <span>{{ copyButtonText }}</span>
-            </button>
-
-            <div class="text-sm text-slate-500 dark:text-slate-400 mt-8 text-center space-y-2 max-w-md mx-auto p-4 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border-2 border-slate-200/50 dark:border-slate-700 shadow-sm">
-                <p class="font-bold text-base text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-center gap-2">
-                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>Important:</span>
-                </p>
-                <p>Only share with trusted senders. Deposits are irreversible.</p>
-                <p class="font-semibold">Scan the QR code or copy the address to receive funds instantly.</p>
-            </div>
         </div>
     </main>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWalletStore } from '@/stores/wallet'
-import { useSettingsStore } from '@/stores/settings'
+import { useIdentityStore } from '@/stores/identity'
 import QrcodeVue from 'qrcode.vue'
 
 const router = useRouter()
 const Wallet = useWalletStore()
-const Settings = useSettingsStore()
+const Identity = useIdentityStore()
 
-const darkMode = computed(() => Settings.state.theme === 'dark')
+const copyButtonText = ref('Copy Identity ID')
 
-const copyButtonText = ref('Copy Address')
-
-onMounted(() => {
-    // if (!Wallet.user) {
-    //     Wallet.initializeMockData()
-    // }
-})
-
-const copyAddress = async () => {
-    if (!Wallet.user?.address || copyButtonText.value === 'Copied!') return
+const copyIdentityId = async () => {
+    if (!Identity.identityId || copyButtonText.value === 'Copied!') return
 
     try {
-        await navigator.clipboard.writeText(Wallet.user.address)
+        await navigator.clipboard.writeText(Identity.identityId)
         copyButtonText.value = 'Copied!'
         setTimeout(() => {
-            copyButtonText.value = 'Copy Address'
+            copyButtonText.value = 'Copy Identity ID'
         }, 2000)
     } catch (err) {
         console.error('Failed to copy address: ', err)
-        copyButtonText.value = 'Failed to Copy'
+        copyButtonText.value = 'Failed'
         setTimeout(() => {
-            copyButtonText.value = 'Copy Address'
+            copyButtonText.value = 'Copy Identity ID'
         }, 2000)
     }
 }
