@@ -5,6 +5,7 @@ use serde_json::{Value, json};
 use std::collections::HashMap;
 use crate::dapi::client::{get_dapi_client, MethodParamInfo};
 use crate::dapi::types::Network;
+
 #[command]
 pub async fn dapi_request(
     method: String,
@@ -38,6 +39,7 @@ pub async fn dapi_request(
         }
     }
 }
+
 #[command]
 pub async fn get_posts(
     data_contract_id: String,
@@ -53,7 +55,10 @@ pub async fn get_posts(
     } else {
         Network::Testnet
     };
-    println!("[DEBUG DAPI] get_posts network={}", current_network.as_str());
+
+    // LOGGING: Verify Input
+    println!("[COMMAND] get_posts | Network: {} | Contract ID: {} | Type: {}", current_network.as_str(), data_contract_id, document_type);
+
     match client.get_documents(
         data_contract_id,
         document_type,
@@ -71,6 +76,7 @@ pub async fn get_posts(
         }
     }
 }
+
 #[tauri::command]
 pub async fn get_identity_info(
     identity_id: String,
@@ -98,6 +104,7 @@ pub async fn get_identity_info(
         }
     }
 }
+
 #[command]
 pub async fn get_identity_balance(
     identity_id: String,
@@ -128,6 +135,7 @@ pub async fn get_identity_balance(
         }
     }
 }
+
 #[command]
 pub async fn get_token_balances(
     identity_id: String,
@@ -144,18 +152,14 @@ pub async fn get_token_balances(
     let with_proof = with_proof.unwrap_or(false);
     println!("[DEBUG DAPI] get_token_balances network={}", current_network.as_str());
     match client.get_identity_token_balances(identity_id, token_ids, current_network, with_proof).await {
-        Ok(balances) => {
-            let values: Vec<Value> = balances.into_iter()
-                .map(|b| serde_json::to_value(b).unwrap_or_default())
-                .collect();
-            Ok(values)
-        },
+        Ok(balances) => Ok(balances),
         Err(e) => {
             tracing::error!("Failed to get token balances: {}", e);
             Err(e.to_string())
         }
     }
 }
+
 #[command]
 pub async fn resolve_dpns_name(
     username: String,
@@ -178,6 +182,7 @@ pub async fn resolve_dpns_name(
         }
     }
 }
+
 #[command]
 pub async fn get_dpns_username(
     identity_id: String,
@@ -200,6 +205,7 @@ pub async fn get_dpns_username(
         }
     }
 }
+
 #[command]
 pub async fn get_platform_status(
     network: Option<String>,
@@ -220,6 +226,7 @@ pub async fn get_platform_status(
         }
     }
 }
+
 #[command]
 pub async fn get_identities_balances(
     identity_ids: Vec<String>,
@@ -251,6 +258,7 @@ pub async fn get_identities_balances(
         }
     }
 }
+
 #[command]
 pub async fn get_data_contract_info(
     contract_id: String,
@@ -281,6 +289,7 @@ pub async fn get_data_contract_info(
         }
     }
 }
+
 #[command]
 pub async fn get_token_contract_info(
     contract_id: String,
@@ -311,6 +320,7 @@ pub async fn get_token_contract_info(
         }
     }
 }
+
 #[command]
 pub async fn get_token_statuses(
     token_ids: Vec<String>,
@@ -342,6 +352,7 @@ pub async fn get_token_statuses(
         }
     }
 }
+
 #[command]
 pub async fn get_total_supply(
     token_id: String,
@@ -372,6 +383,7 @@ pub async fn get_total_supply(
         }
     }
 }
+
 #[command]
 pub async fn get_current_epoch(
     with_proof: Option<bool>,
@@ -399,6 +411,7 @@ pub async fn get_current_epoch(
         }
     }
 }
+
 #[command]
 pub async fn get_total_credits_in_platform(
     with_proof: Option<bool>,
@@ -421,6 +434,7 @@ pub async fn get_total_credits_in_platform(
         }
     }
 }
+
 #[tauri::command]
 pub async fn get_identity_by_public_key_hash(
     public_key_hash: String,
@@ -460,6 +474,7 @@ pub async fn get_identity_by_public_key_hash(
         }
     }
 }
+
 #[tauri::command]
 pub async fn get_identity_by_non_unique_public_key_hash(
     public_key_hash: String,
@@ -499,6 +514,7 @@ pub async fn get_identity_by_non_unique_public_key_hash(
         }
     }
 }
+
 #[tauri::command]
 pub async fn get_identity_by_id(
     identity_id: String,
@@ -533,6 +549,7 @@ pub async fn get_identity_by_id(
         }
     }
 }
+
 pub fn params_array_to_object(method: &str, params_array: Vec<Value>) -> Result<HashMap<String, Value>, String> {
     let method_info = MethodParamInfo::for_method(method)
         .map_err(|e| e.to_string())?;
@@ -547,6 +564,7 @@ pub fn params_array_to_object(method: &str, params_array: Vec<Value>) -> Result<
     }
     Ok(params)
 }
+
 #[command]
 pub async fn dapi_request_array(
     method: String,

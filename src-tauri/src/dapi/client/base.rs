@@ -10,11 +10,13 @@ use crate::constants::DAPI_WEB_API_ENDPOINT;
 use super::validation::{validate_dapi_params, MethodParamInfo};
 use super::cache::Cache;
 use crate::dapi::types::{DAPIError, DAPIRequest, DAPIResponse, Network};
+
 pub struct DAPIClient {
     client: reqwest::Client,
     endpoint: String,
     cache: Arc<Mutex<Cache>>,
 }
+
 impl DAPIClient {
     pub fn new(endpoint: String) -> Self {
         Self {
@@ -23,6 +25,7 @@ impl DAPIClient {
             cache: Arc::new(Mutex::new(Cache::new(100))),
         }
     }
+
     pub async fn request<T>(&self, method: String, params: Vec<Value>, network: Network) -> Result<Vec<T>, DAPIError>
     where
         T: for<'de> Deserialize<'de> + Serialize + Clone + Send + Sync + std::fmt::Debug,
@@ -36,11 +39,21 @@ impl DAPIClient {
             }
         }
         validate_dapi_params(&method, &params_map)?;
+
         let request = DAPIRequest {
             method: method.clone(),
             params: Value::Array(params),
             network: Some(network.as_str().to_string()),
         };
+
+        // LOGGING: Log the payload to verify Contract ID
+        info!(
+            "[PAYLOAD] Method: {} | Network: {} | Payload: {}",
+            method,
+            network.as_str(),
+            serde_json::to_string(&request).unwrap_or_else(|_| "Invalid JSON".to_string())
+        );
+
         // CRITICAL: include network in cache key
         let cache_key = format!("{}-{}-{}", method, request.params.to_string(), network.as_str());
         if let Some(cached) = self.cache.lock().await.get(&cache_key) {
@@ -49,7 +62,9 @@ impl DAPIClient {
                 return Ok(result);
             }
         }
+
         info!("Making DAPI request: {} to {} (network={})", method, self.endpoint, network.as_str());
+
         let response = self.client
             .post(&self.endpoint)
             .json(&request)
@@ -59,12 +74,14 @@ impl DAPIClient {
                 error!("DAPI request failed: {}", e);
                 DAPIError::RequestFailed(e.to_string())
             })?;
+
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
             error!("DAPI HTTP error {}: {}", status, error_text);
             return Err(DAPIError::RequestFailed(format!("HTTP {}: {}", status, error_text)));
         }
+
         let api_response: DAPIResponse = response
             .json()
             .await
@@ -72,10 +89,19 @@ impl DAPIClient {
                 error!("Failed to parse DAPI response: {}", e);
                 DAPIError::SerializationError(e.to_string())
             })?;
+
         if !api_response.success {
+            // LOGGING: Print the raw error response from the API
+            println!(
+                "[API ERROR] Method: {} | Network: {} | Details: {:?}",
+                method,
+                network.as_str(),
+                api_response
+            );
             error!("DAPI method {} failed: {:?}", method, api_response);
             return Err(DAPIError::APIFailed(format!("DAPI method {} failed", method)));
         }
+
         let result = api_response.into_result::<T>()?;
         let cache_value = serde_json::to_value(&result)
             .map_err(|e| DAPIError::SerializationError(e.to_string()))?;
@@ -83,13 +109,16 @@ impl DAPIClient {
         info!("DAPI request successful: {} returned {} items (network={})", method, result.len(), network.as_str());
         Ok(result)
     }
+
     pub fn get_endpoint(&self) -> &str {
         &self.endpoint
     }
 }
+
 lazy_static::lazy_static! {
     static ref DAPI_CLIENT: DAPIClient = DAPIClient::new(DAPI_WEB_API_ENDPOINT.to_string());
 }
+
 pub fn get_dapi_client() -> &'static DAPIClient {
     &DAPI_CLIENT
 }

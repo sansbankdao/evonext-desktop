@@ -3,7 +3,7 @@
 import { ref, computed, onBeforeUnmount } from 'vue'
 import { usePostsStore } from '@/stores/posts'
 import { useIdentityStore } from '@/stores/identity'
-import { useSettingsStore } from '@/stores/settings'
+import { useSettingsStore } from '@/stores/settings' // Revert to SettingsStore
 import { useDebounce } from '../useDebounce'
 import * as api from './api'
 import * as transformers from './transformers'
@@ -16,15 +16,6 @@ import type {
     IPostDocument
 } from '@/types/posts'
 import type { FilterOptions } from './filters'
-
-// Types needed for this file
-// interface PostsFetchOptionsWithOffset extends Omit<PostsFetchOptions, 'offset'> {
-//     offset?: number
-// }
-
-// interface OptimisticPostParams extends Omit<ICreatePostParams, 'replyToPostId'> {
-//     replyToPostId?: string[] | string
-// }
 
 export function usePosts() {
     const postsStore = usePostsStore()
@@ -47,7 +38,23 @@ export function usePosts() {
     // Computed values
     const isAuthenticated = computed(() => identityStore.isAuthenticated)
     const currentUserId = computed(() => identityStore.identity?.id || '')
-    const currentNetwork = computed(() => settingsStore.state.network || 'testnet')
+
+    // SAFEGUARD: Explicitly validate the network from settings before using it.
+    // This prevents the use of invalid values or accidental 'testnet' defaults if the store logic fails.
+    const currentNetwork = computed(() => {
+        const net = settingsStore.state.network
+
+        // Strict validation: Only allow 'mainnet' or 'testnet'.
+        // If the store somehow holds 'undefined', 'null', or '', we default to 'testnet' safely.
+        if (net === 'mainnet' || net === 'testnet') {
+            return net
+        }
+
+        // This log is crucial for debugging if the store returns garbage.
+        // If you see this in console, check src/stores/settings.ts
+        console.warn(`[usePosts] Network state is invalid ("${net}"). Defaulting to testnet.`)
+        return 'testnet'
+    })
 
     // Filtered posts
     const filteredPosts = computed(() => {
@@ -79,16 +86,14 @@ export function usePosts() {
         error.value = null
 
         try {
+            // Log the network being used to verify it's 'mainnet' and not 'testnet'
+            console.log(`[usePosts] Fetching posts on network: ${currentNetwork.value}`)
+
             const documents = await api.fetchPostsFromTauri(currentNetwork.value, {
                 ownerId: options?.ownerId || '',
                 orderBy: options?.orderBy as ('newest' | 'oldest'),
                 limit: postsStore.limit || 10
             })
-            // const documents = await api.fetchPostsFromTauri(currentNetwork.value, {
-            //     ...(options?.ownerId ? { ownerId: options.ownerId } : {}),
-            //     orderBy: options?.orderBy,
-            //     limit: postsStore.limit
-            // })
 
             // Reset offset for new fetch
             postsStore.$patch({ offset: 0 })
@@ -459,7 +464,7 @@ export function usePosts() {
 
         isAuthenticated,
         currentUserId,
-        currentNetwork,
+        currentNetwork, // This now relies on the validated computed property
 
         // Actions
         fetchPosts,
