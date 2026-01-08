@@ -5,7 +5,6 @@ import { isTestnet } from '@/utils/env'
 import type { IPost, ICreatePostParams, IUpdatePostParams, PostsFetchResult, IPostDocument } from '@/types/posts'
 import { getContractId } from './utils'
 import { getUserInfo } from './transformers'
-// import { getUserInfo, getAvatarUrl } from './transformers'
 
 const DAPI_ENDPOINT = 'https://dashqt.org/v1/dapi'
 
@@ -47,7 +46,6 @@ interface DPNSDocument {
  * Make a request to the DAPI endpoint (from libs/posts/api.ts)
  */
 async function makeDAPIRequest<T>(method: string, params: any[]): Promise<T[]> {
-    // const contractId = getContractId('evonext')
     const network = isTestnet() ? 'testnet' : 'mainnet'
     const requestBody: DAPIRequest = {
         method,
@@ -77,13 +75,13 @@ async function makeDAPIRequest<T>(method: string, params: any[]): Promise<T[]> {
 }
 
 /**
- * Fetch profile data for a user via Tauri (from your composable)
+ * Fetch profile data for a user via Tauri
  */
 export async function fetchUserProfile(ownerId: string, network?: string): Promise<ProfileDocument | null> {
     try {
         const contractId = getContractId('dashpay', network)
         const currentNetwork = network || (isTestnet() ? 'testnet' : 'mainnet')
-        const profiles = await invoke<ProfileDocument[]>('get_documents', {
+        const profiles = await invoke<ProfileDocument[]>('get_posts', {
             dataContractId: contractId,
             documentType: 'profile',
             whereClause: {
@@ -101,13 +99,13 @@ export async function fetchUserProfile(ownerId: string, network?: string): Promi
 }
 
 /**
- * Fetch DPNS username for a user via Tauri (from your composable)
+ * Fetch DPNS username for a user via Tauri
  */
 export async function fetchDPNSName(ownerId: string, network?: string): Promise<string | null> {
     try {
         const contractId = getContractId('dpns', network)
         const currentNetwork = network || (isTestnet() ? 'testnet' : 'mainnet')
-        const dpnsRecords = await invoke<DPNSDocument[]>('get_documents', {
+        const dpnsRecords = await invoke<DPNSDocument[]>('get_posts', {
             dataContractId: contractId,
             documentType: 'domain',
             whereClause: {
@@ -128,7 +126,7 @@ export async function fetchDPNSName(ownerId: string, network?: string): Promise<
 }
 
 /**
- * Fetch posts from blockchain using DAPI (from libs/posts/api.ts)
+ * Fetch posts from blockchain using DAPI
  */
 export async function fetchPostsFromDAPI(options?: {
     ownerId?: string
@@ -141,7 +139,7 @@ export async function fetchPostsFromDAPI(options?: {
     try {
         console.log('Fetching posts for contract:', getContractId('evonext'))
         const posts = await makeDAPIRequest<IPostDocument>('get_documents', [getContractId('evonext'), 'post'])
-        // Transform documents (simplified - without user info)
+
         const transformedPosts = await Promise.all(
             posts.map(async (doc) => {
                 return {
@@ -165,7 +163,6 @@ export async function fetchPostsFromDAPI(options?: {
             })
         )
 
-        // Apply filters
         let filteredPosts = transformedPosts
 
         if (options) {
@@ -190,6 +187,7 @@ export async function fetchPostsFromDAPI(options?: {
                 filteredPosts = filteredPosts.slice(0, options.limit)
             }
         }
+
         console.log(`Fetched ${filteredPosts.length} posts via DAPI`)
 
         return {
@@ -201,8 +199,9 @@ export async function fetchPostsFromDAPI(options?: {
         throw error
     }
 }
+
 /**
- * Fetch posts for a specific user via DAPI (from libs/posts/api.ts)
+ * Fetch posts for a specific user via DAPI
  */
 export async function fetchUserPostsFromDAPI(userId: string): Promise<IPost[]> {
     const result = await fetchPostsFromDAPI({
@@ -213,7 +212,7 @@ export async function fetchUserPostsFromDAPI(userId: string): Promise<IPost[]> {
 }
 
 /**
- * Fetch posts from blockchain using Tauri (from your composable)
+ * Fetch posts from blockchain using Tauri
  */
 export async function fetchPostsFromTauri(network: string, options?: {
     ownerId?: string
@@ -222,20 +221,18 @@ export async function fetchPostsFromTauri(network: string, options?: {
 }): Promise<IPostDocument[]> {
     try {
         const contractId = getContractId('evonext', network)
-        // Build where clause
         let whereClause = null
         if (options?.ownerId) {
             whereClause = { $ownerId: options.ownerId }
         }
-        // Build orderBy
         let orderBy = null
         if (options?.orderBy === 'newest') {
             orderBy = { $createdAt: 'desc' }
         } else if (options?.orderBy === 'oldest') {
             orderBy = { $createdAt: 'asc' }
         }
-        // Fetch posts from blockchain via Tauri
-        const documents = await invoke<any[]>('get_documents', {
+
+        const documents = await invoke<any[]>('get_posts', {
             dataContractId: contractId,
             documentType: 'post',
             whereClause,
@@ -251,19 +248,16 @@ export async function fetchPostsFromTauri(network: string, options?: {
 }
 
 /**
- * Create a new post (from libs/posts/api.ts - modified)
+ * Create a new post
  */
 export async function createPost(params: ICreatePostParams): Promise<IPost | null> {
     try {
         console.log('Creating post with params:', params)
         const d = new Date()
         const now = d.getTime() / 1000
-
         // TODO: Implement actual post creation using Dash SDK/Tauri
-        // This would involve creating a document and submitting a state transition
         const mockPost: IPost = {
-            id: '1337',
-            ownerId: '', // Should be identity ID
+            ownerId: '',
             author: await getUserInfo(''),
             content: params.content,
             createdAt: now,
@@ -283,13 +277,13 @@ export async function createPost(params: ICreatePostParams): Promise<IPost | nul
 }
 
 /**
- * Update an existing post (from libs/posts/api.ts)
+ * Update an existing post
  */
 export async function updatePost(postId: string, updates: IUpdatePostParams): Promise<boolean> {
     try {
         console.log('Updating post:', postId, updates)
         // TODO: Implement actual post update using Dash SDK/Tauri
-        return true // Mock success
+        return true
     } catch (error: any) {
         console.error('Error updating post:', error)
         throw error
@@ -297,13 +291,13 @@ export async function updatePost(postId: string, updates: IUpdatePostParams): Pr
 }
 
 /**
- * Delete a post (from libs/posts/api.ts)
+ * Delete a post
  */
 export async function deletePost(postId: string): Promise<boolean> {
     try {
         console.log('Deleting post:', postId)
         // TODO: Implement actual post deletion using Dash SDK/Tauri
-        return true // Mock success
+        return true
     } catch (error: any) {
         console.error('Error deleting post:', error)
         throw error
