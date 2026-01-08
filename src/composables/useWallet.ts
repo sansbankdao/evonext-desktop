@@ -22,6 +22,9 @@ interface SendTokenParams {
     atomicUnits: bigint
     privateKey?: string
 }
+interface WalletTransactionResult extends ITransactionResult {
+    debugLog?: string[]
+}
 /**
  * Main wallet composable that orchestrates all wallet operations
  */
@@ -61,11 +64,14 @@ export function useWallet() {
         return BigInt(balance)
     }
     // Transaction operations
-    const sendCredits = async (params: SendCreditParams): Promise<ITransactionResult> => {
-        return await transactions.sendCredits(params)
+    const sendCredits = async (params: SendCreditParams): Promise<WalletTransactionResult> => {
+        const result = await transactions.sendCredits(params)
+        // Pass through logs
+        return result as WalletTransactionResult
     }
-    const sendToken = async (params: SendTokenParams): Promise<ITransactionResult> => {
-        return await transactions.sendToken(params)
+    const sendToken = async (params: SendTokenParams): Promise<WalletTransactionResult> => {
+        const result = await transactions.sendToken(params)
+        return result as WalletTransactionResult
     }
     const sendCredit = async (
         identityId: string,
@@ -73,8 +79,8 @@ export function useWallet() {
         receiver: string,
         credits: bigint,
         privateKey?: string
-    ): Promise<ITransactionResult> => {
-        return await transactions.sendCredit(identityId, identityIdx, receiver, credits, privateKey)
+    ): Promise<WalletTransactionResult> => {
+        return await transactions.sendCredit(identityId, identityIdx, receiver, credits, privateKey) as WalletTransactionResult
     }
     const sendTokenTransfer = async (
         identityId: string,
@@ -83,8 +89,8 @@ export function useWallet() {
         receiver: string,
         atomicUnits: bigint,
         privateKey?: string
-    ): Promise<ITransactionResult> => {
-        return await transactions.sendTokenTransfer(identityId, identityIdx, tokenId, receiver, atomicUnits, privateKey)
+    ): Promise<WalletTransactionResult> => {
+        return await transactions.sendTokenTransfer(identityId, identityIdx, tokenId, receiver, atomicUnits, privateKey) as WalletTransactionResult
     }
     // Store operations
     const refresh = async () => {

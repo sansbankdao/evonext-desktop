@@ -27,9 +27,10 @@ export interface ITxSuccess {
 }
 
 export interface ITxError {
+    code: number
     message: string
-    code?: number
-    details?: any
+    step?: string // <-- Added Step Context (FIXED MISSING PROPERTY)
+    suggestions?: string[]
 }
 
 export type TransactionResult = ITxSuccess | ITxError

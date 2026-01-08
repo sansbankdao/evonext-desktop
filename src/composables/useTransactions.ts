@@ -30,13 +30,16 @@ interface TransactionResult {
     success: boolean
     data?: ITxSuccess
     error?: ITxError
+    debugLog?: string[] // <-- Added Debug Logs
 }
 interface ITxSuccess {
     txid: string
+    message?: string
 }
 interface ITxError {
     code: number
     message: string
+    step?: string // <-- Added Step Context (FIXED MISSING PROPERTY)
     suggestions?: string[]
 }
 const EXPLORER_API_URL = 'https://platform-explorer.pshenmic.dev'
@@ -146,82 +149,169 @@ export function useTransactions() {
      * Send operations
      */
     const sendCredits = async (params: SendCreditParams): Promise<TransactionResult> => {
-        loading.value = true
-        error.value = null
+        const logs: string[] = []
         try {
+            logs.push('[Transactions] Starting sendCredits process...')
+            // Validation
             if (params.credits < MIN_CREDIT_TRANSFER) {
+                logs.push(`[Transactions] Validation Failed: Amount (${params.credits}) below minimum (${MIN_CREDIT_TRANSFER})`)
                 return {
                     success: false,
                     error: {
                         code: 400,
                         message: `Minimum credit transfer amount is ${MIN_CREDIT_TRANSFER.toLocaleString()} credits`,
                         suggestions: ['Increase transfer amount to meet minimum requirements']
-                    } as ITxError
+                    } as ITxError,
+                    debugLog: logs
                 }
             }
+            logs.push('[Transactions] Validating transfer amount... OK')
+            // 1. Get SDK
             const sdk = await platform.getSDK()
-            // KEY RETRIEVAL LOGIC: Explicit > Store
-            // Fix 1: Ensure undefined is the fallback, not null, for strict types
+            logs.push('[Transactions] SDK Instance created')
+            // 2. Retrieve Key
             let transferWif = params.privateKey
             if (!transferWif) {
                 const keyResult = await keys.getTransferKey(params.identityIdx)
                 transferWif = keyResult !== null ? keyResult : undefined
             }
             if (!transferWif) {
-                throw new Error('No transfer key found. Please ensure you are logged in or provide a key.')
+                logs.push('[Transactions] Error: No transfer key found (None passed, and retrieval failed)')
+                return {
+                    success: false,
+                    error: {
+                        code: 401,
+                        message: 'No transfer key found',
+                        suggestions: ['Ensure you are logged in or provide a key']
+                    } as ITxError,
+                    debugLog: logs
+                }
             }
-            const privKey = PrivateKeyWASM.fromWIF(transferWif)
+            logs.push('[Transactions] Private Key retrieved and ready')
+            // 3. Get Identity & Public Keys
+            logs.push(`[Transactions] Fetching Identity details for ${params.identityId}...`)
             const identity = await sdk.identities.getIdentityByIdentifier(params.identityId)
-            const identityNonce = await sdk.identities.getIdentityNonce(params.identityId)
-            const payload = {
-                identityId: params.identityId,
-                amount: params.credits,
-                recipientId: params.receiver,
-                identityNonce: (identityNonce + BigInt(1))
+            logs.push('[Transactions] Identity details retrieved successfully')
+            // 4. Get Identity Nonce
+            let identityNonce
+            try {
+                logs.push('[Transactions] Fetching Identity Nonce...')
+                const currentNonce = await sdk.identities.getIdentityNonce(params.identityId)
+                identityNonce = currentNonce + BigInt(1)
+                logs.push(`[Transactions] Current Nonce: ${currentNonce}. Using: ${identityNonce}`)
+            } catch (err: any) {
+                logs.push(`[Transactions] CRITICAL: Failed to get Nonce. Error: ${err.message}`)
+                return {
+                    success: false,
+                    error: {
+                        code: 500,
+                        message: `Failed to get identity nonce: ${err.message}`,
+                        step: 'GET_NONCE',
+                        suggestions: ['Check Network Connection']
+                    } as ITxError,
+                    debugLog: logs
+                }
             }
-            const stateTransition = sdk.identities.createStateTransition('creditTransfer', payload)
-            const identityPublicKeys = identity.getPublicKeys()
-            let pubKey = identityPublicKeys.find(key => {
-                const purpose = typeof key.purpose === 'string' ? parseInt(key.purpose) : key.purpose
-                return purpose === 1 || purpose === 3
-            })
-            if (!pubKey && identityPublicKeys.length > 3) {
-                pubKey = identityPublicKeys[3]
-            }
-            if (!pubKey) {
-                throw new Error('No transfer public key found in identity to match the private key')
-            }
-            stateTransition.sign(privKey, pubKey)
-            await sdk.stateTransitions.broadcast(stateTransition)
-            await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
-            const hash = stateTransition.hash(false)
-            console.log('info', `Credit transfer successful. Hash: ${hash}`)
-            return {
-                success: true,
-                data: { txid: hash } as ITxSuccess
+            // 5. Create, Sign & Broadcast State Transition
+            try {
+                logs.push('[Transactions] Creating Credit Transfer State Transition...')
+                const payload = {
+                    identityId: params.identityId,
+                    amount: params.credits,
+                    recipientId: params.receiver,
+                    identityNonce: identityNonce
+                }
+                const stateTransition = sdk.identities.createStateTransition('creditTransfer', payload)
+                logs.push('[Transactions] State Transition created')
+                // 6. Sign Transaction
+                logs.push('[Transactions] Signing transaction...')
+                const privKey = PrivateKeyWASM.fromWIF(transferWif)
+                const identityPublicKeys = identity.getPublicKeys()
+                let pubKey = identityPublicKeys.find(key => {
+                    const purpose = typeof key.purpose === 'string' ? parseInt(key.purpose) : key.purpose
+                    return purpose === 1 || purpose === 3
+                })
+                if (!pubKey && identityPublicKeys.length > 3) {
+                    pubKey = identityPublicKeys[3]
+                }
+                if (!pubKey) {
+                    logs.push('[Transactions] Error: No transfer public key found in identity')
+                    return {
+                        success: false,
+                        error: {
+                            code: 500,
+                            message: 'No transfer public key found in identity',
+                            step: 'SIGNING',
+                            suggestions: ['Ensure identity has a transfer key registered']
+                        } as ITxError,
+                        debugLog: logs
+                    }
+                }
+                stateTransition.sign(privKey, pubKey)
+                logs.push('[Transactions] Transaction signed successfully')
+                // 7. Broadcast
+                logs.push('[Transactions] Broadcasting transaction...')
+                await sdk.stateTransitions.broadcast(stateTransition)
+                logs.push('[Transactions] Broadcast accepted. Waiting for confirmation...')
+                await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+                logs.push('[Transactions] Transaction confirmed on chain')
+                const hash = stateTransition.hash(false)
+                console.log('info', `Credit transfer successful. Hash: ${hash}`)
+                return {
+                    success: true,
+                    data: { txid: hash, message: 'Transaction successful' } as ITxSuccess,
+                    debugLog: logs
+                }
+            } catch (err: any) {
+                logs.push(`[Transactions] CRITICAL: Failed during State Transition or Broadcast. Error: ${err.message}`)
+                // Attempt to parse specific protocol errors
+                let msg = err.message
+                if (err.message.includes('Duplicate')) {
+                    msg = 'Duplicate transaction or invalid nonce'
+                }
+                return {
+                    success: false,
+                    error: {
+                        code: 500,
+                        message: msg,
+                        step: 'BROADCAST_OR_SIGN',
+                        suggestions: ['Check logs', 'Verify Nonce', 'Check Network']
+                    } as ITxError,
+                    debugLog: logs
+                }
             }
         } catch (err: any) {
-            error.value = err.message || 'Credit transfer failed'
-            console.error('Credit transfer error:', err)
+            // SAFE ERROR CHECKING FOR WASM CRASHES
+            const errMsg = (err && err.message) ? err.message : 'Unknown WASM/Runtime Error (Check Console)'
+
+            logs.push(`[Transactions] CRITICAL: Failed during State Transition or Broadcast.`)
+            logs.push(`[Transactions] Error Object: ${JSON.stringify(err)}`)
+            logs.push(`[Transactions] Error Message: ${errMsg}`)
+
+            let msg = errMsg
+            if (errMsg && errMsg.includes('Duplicate')) {
+                msg = 'Duplicate transaction or invalid nonce'
+            }
+
             return {
                 success: false,
                 error: {
                     code: 500,
-                    message: error.value!,
-                    suggestions: ['Check your network connection', 'Verify your identity has sufficient balance']
-                } as ITxError
+                    message: msg,
+                    step: 'BROADCAST_OR_SIGN',
+                    suggestions: ['Check logs', 'Verify Nonce', 'Check Network']
+                } as ITxError,
+                debugLog: logs
             }
-        } finally {
-            loading.value = false
         }
     }
     const sendToken = async (params: SendTokenParams): Promise<TransactionResult> => {
         loading.value = true
         error.value = null
+        const logs: string[] = ['Starting Token Transfer...']
         try {
             const sdk = await platform.getSDK()
             // KEY RETRIEVAL LOGIC: Explicit > Store
-            // Fix 2: Ensure undefined is the fallback
             let transferWif = params.privateKey
             if (!transferWif) {
                 const keyResult = await keys.getTransferKey(params.identityIdx)
@@ -230,6 +320,7 @@ export function useTransactions() {
             if (!transferWif) {
                 throw new Error('No transfer key found')
             }
+            logs.push('Key retrieved')
             const tokenBaseTransition = await sdk.tokens
                 .createBaseTransition(params.tokenId, params.identityId)
             const stateTransition = sdk.tokens
@@ -262,9 +353,11 @@ export function useTransactions() {
             console.log('info', `Token transfer successful. Hash: ${hash}, Token: ${params.tokenId}`)
             return {
                 success: true,
-                data: { txid: hash } as ITxSuccess
+                data: { txid: hash } as ITxSuccess,
+                debugLog: logs
             }
         } catch (err: any) {
+            logs.push(`Token Transfer Failed: ${err.message}`)
             error.value = err.message || 'Token transfer failed'
             console.error('Token transfer error:', err)
             return {
@@ -273,7 +366,8 @@ export function useTransactions() {
                     code: 500,
                     message: error.value!,
                     suggestions: ['Check your network connection', 'Verify you have sufficient token balance']
-                } as ITxError
+                } as ITxError,
+                debugLog: logs
             }
         } finally {
             loading.value = false
@@ -287,8 +381,6 @@ export function useTransactions() {
         credits: bigint,
         privateKey?: string
     ): Promise<TransactionResult> => {
-        // Fix 3: ExactOptionalPropertyTypes compatibility
-        // We conditionally spread the property to avoid setting 'undefined' explicitly if not provided
         const params: SendCreditParams = {
             identityId,
             identityIdx,
@@ -306,7 +398,6 @@ export function useTransactions() {
         atomicUnits: bigint,
         privateKey?: string
     ): Promise<TransactionResult> => {
-        // Fix 4: ExactOptionalPropertyTypes compatibility
         const params: SendTokenParams = {
             identityId,
             identityIdx,
