@@ -206,7 +206,7 @@ const handleSend = async () => {
         </header>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <!-- LEFT COLUMN: Send Form -->
-            <form @submit.prevent="handleSend" class="bg-white dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-xl space-y-6 shadow-lg border border-slate-200 dark:border-slate-700">
+            <form @submit.prevent="handleSend" class="bg-white dark:bg-slate-800/80 backdrop-blur-sm p-4 rounded-xl space-y-6 shadow-lg border border-slate-200 dark:border-slate-700">
                 <!-- Currency Selection -->
                 <div>
                     <label for="currency" class="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">

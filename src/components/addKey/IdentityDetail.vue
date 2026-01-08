@@ -1,7 +1,7 @@
 <!-- src/components/addKey/IdentityDetail.vue -->
 <template>
     <div v-if="identity" class="space-y-6">
-        <div class="rounded-xl bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 border border-slate-300 dark:border-slate-700 p-6">
+        <div class="rounded-xl bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 border border-slate-300 dark:border-slate-700 p-4">
             <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
                 Selected Identity Details
             </h3>
@@ -72,7 +72,7 @@
                         </div>
                     </div>
 
-                    <div v-else class="rounded-lg bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-2 border-amber-400/30 p-6">
+                    <div v-else class="rounded-lg bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-2 border-amber-400/30 p-4">
                         <div class="flex items-start gap-4">
                             <div class="flex-shrink-0">
                                 <div class="rounded-full bg-amber-500/20 p-3">

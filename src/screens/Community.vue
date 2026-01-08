@@ -7,7 +7,7 @@
         <section class="bg-white dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen rounded-2xl mx-4">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-2 gap-6">
 
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                     <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
                         Conversations
                     </h2>
@@ -44,7 +44,7 @@
                     <!-- Main Content Area (Left, wider column) -->
                     <main class="flex flex-col gap-8">
                         <!-- Search Section -->
-                        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                             <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
                                 Find New Contacts
                             </h2>
@@ -84,7 +84,7 @@
                         </div>
 
                         <!-- Contact Requests Section -->
-                        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                             <!-- Tabs -->
                             <div class="border-b border-slate-200 dark:border-slate-700">
                                 <nav class="-mb-px flex space-x-8" aria-label="Tabs">

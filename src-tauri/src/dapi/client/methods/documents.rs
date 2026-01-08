@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 
 use crate::dapi::types::{DAPIError, Network};
+use crate::constants; // Import centralized constants
 use super::super::DAPIClient;
 
 impl DAPIClient {
@@ -93,11 +94,8 @@ impl DAPIClient {
         start_after: Option<String>,
         start_at: Option<String>,
     ) -> Result<Vec<Value>, DAPIError> {
-        // Get contract IDs from constants
-        let contract_id = match network {
-            Network::Mainnet => "6fBkKSne1xQ5GCPW9fdwEkH7nk8oYPu48vYiYssWzhX8", // EVONEXT_CONTRACT_ID_MAINNET
-            Network::Testnet => "465jdPpFCZefhb4g2k2FpCcrKpPYhJJskDqbGFsKu6wb", // EVONEXT_CONTRACT_ID_TESTNET
-        };
+        // Use centralized helper to get the correct Contract ID
+        let contract_id = constants::get_evonext_contract_id(network);
 
         self.get_documents(
             contract_id.to_string(),

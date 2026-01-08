@@ -40,7 +40,7 @@
                         <div v-for="identity in identities" :key="identity.identityId"
                             class="bg-white dark:bg-slate-800 rounded-xl border-2 transition-all duration-200 flex flex-col shadow-xl hover:shadow-2xl hover:-translate-y-1 border-slate-200 dark:border-slate-700"
                             :class="identity.identityId === activeIdentityId ? 'ring-4 ring-cyan-400/20 shadow-cyan-500/20 border-cyan-400 bg-gradient-to-br from-cyan-500/5 to-cyan-600/5' : ''">
-                            <div class="p-6 flex items-start gap-4">
+                            <div class="p-4 flex items-start gap-4">
                                 <img :src="getAvatar(identity)" class="size-16 rounded-full flex-shrink-0 ring-2 ring-slate-200 dark:ring-slate-700 shadow-lg" />
 
                                 <div class="flex-1 min-w-0">
@@ -57,7 +57,7 @@
                                 </span>
                             </div>
 
-                            <div class="mt-auto p-6 border-t border-slate-200 dark:border-slate-700 space-y-3">
+                            <div class="mt-auto p-4 border-t border-slate-200 dark:border-slate-700 space-y-3">
                                 <button v-if="identity.identityId !== activeIdentityId"
                                         @click="handleSwitch(identity.identityId)"
                                         class="w-full rounded-xl bg-gradient-to-r from-slate-500 to-slate-600 text-white py-3 px-6 text-sm font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">

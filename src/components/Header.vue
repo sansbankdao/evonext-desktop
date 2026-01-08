@@ -1,6 +1,6 @@
 <!-- src/components/Header.vue -->
 <template>
-    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 bg-gray-50 dark:bg-slate-900 p-6 rounded-xl shadow-lg border-2 border-slate-200 dark:border-slate-700">
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 bg-gray-50 dark:bg-slate-900 p-4 rounded-xl shadow-lg border-2 border-slate-200 dark:border-slate-700">
         <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4 sm:mb-0">
             {{ title }}
         </h1>
@@ -41,27 +41,36 @@
         </div>
     </header>
 </template>
+
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useIdentityStore } from '@/stores/identity'
+
 interface Props {
     title?: string
 }
+
 const props = withDefaults(defineProps<Props>(), {
     title: 'Unknown Page'
 })
 const { title } = props
+
 const Identity = useIdentityStore()
+
 const isCopied = ref(false)
+
 // Explicitly compute these to guarantee reactivity
 // We access store.state directly or use the store's computed refs if exposed
 // Since Pinia stores are reactive, this ensures template dependency tracking
 const isConnected = computed(() => Identity.isAuthenticated && !!Identity.identityId)
 const username = computed(() => Identity.username || 'User')
 const identityId = computed(() => Identity.identity?.identityId || '')
+
 const copyIdentityId = async () => {
     const idToCopy = identityId.value
+
     if (!idToCopy) return
+
     try {
         await navigator.clipboard.writeText(idToCopy)
         isCopied.value = true

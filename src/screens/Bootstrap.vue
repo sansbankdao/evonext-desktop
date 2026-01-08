@@ -49,7 +49,7 @@
                             <p class="mt-2 text-slate-600 dark:text-slate-400">Send Dash to the official bootstrap address below.</p>
 
                             <!-- Sample QR Code -->
-                            <div class="bg-white dark:bg-slate-900 p-6 rounded-2xl mt-6 shadow-lg border border-slate-200 dark:border-slate-700">
+                            <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl mt-6 shadow-lg border border-slate-200 dark:border-slate-700">
                                 <svg class="h-48 w-48 mx-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
                                     <rect width="100" height="100" fill="#F9FAFB" rx="8" ry="8"/>
                                     <rect x="10" y="10" width="20" height="20" fill="#1F2937" rx="4"/><rect x="40" y="10" width="10" height="10" fill="#1F2937" rx="2"/><rect x="60" y="10" width="30" height="10" fill="#1F2937" rx="2"/><rect x="10" y="40" width="10" height="30" fill="#1F2937" rx="2"/><rect x="40" y="40" width="30" height="30" fill="#1F2937" rx="4"/><rect x="80" y="40" width="10" height="20" fill="#1F2937" rx="2"/><rect x="10" y="80" width="30" height="10" fill="#1F2937" rx="2"/><rect x="60" y="70" width="20" height="20" fill="#1F2937" rx="4"/>

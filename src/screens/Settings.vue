@@ -19,7 +19,7 @@
                     </div>
 
                     <!-- Network Section -->
-                    <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-xl">
                         <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">
                             Network
                         </h2>
@@ -51,7 +51,7 @@
                     </div>
 
                     <!-- Appearance Section -->
-                    <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+                    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-xl">
                         <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">
                             Appearance
                         </h2>
@@ -87,7 +87,7 @@
                     <form @submit.prevent="handleSaveChanges">
                         <div class="flex flex-col gap-8">
                             <!-- Profile Section -->
-                            <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+                            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-xl">
                                 <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">
                                     Profile
                                 </h2>
@@ -142,7 +142,7 @@
                             </div>
 
                             <!-- Notifications Section -->
-                            <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+                            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-xl">
                                 <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">
                                     Notifications
                                 </h2>
@@ -162,7 +162,7 @@
                                 </div>
                             </div>
 
-                            <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+                            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-xl">
                                 <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">
                                     Security
                                 </h2>
@@ -190,7 +190,7 @@
                         </div>
 
                         <!-- Action Bar -->
-                        <div class="mt-8 pt-6 border-t-2 border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl p-6">
+                        <div class="mt-8 pt-6 border-t-2 border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl p-4">
                             <div class="flex justify-end items-center gap-4">
                                 <p v-if="showSuccessMessage" class="text-sm text-green-600 dark:text-green-400 bg-green-500/10 dark:bg-green-500/20 px-4 py-2 rounded-lg border border-green-400 dark:border-green-500 transition-all duration-300 shadow-lg">
                                     Changes saved successfully!

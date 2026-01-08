@@ -1,8 +1,8 @@
 <!-- src/screens/Deposit.vue -->
 <template>
-    <main class="p-6 max-w-md mx-auto min-h-screen">
+    <main class="p-4 max-w-md mx-auto min-h-screen">
         <!-- Header -->
-        <header class="flex items-center justify-between mb-8 bg-white dark:bg-slate-900 p-6 rounded-xl shadow-lg border-2 border-slate-200 dark:border-slate-700">
+        <header class="flex items-center justify-between mb-8 bg-white dark:bg-slate-900 p-4 rounded-xl shadow-lg border-2 border-slate-200 dark:border-slate-700">
             <div class="flex items-center gap-4">
                 <svg class="w-8 h-8 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
@@ -58,7 +58,7 @@
                     Your Dash Platform Address
                 </label>
 
-                <div class="bg-slate-50/50 dark:bg-slate-800/50 p-6 rounded-2xl w-full text-center mb-6 overflow-hidden border-2 border-slate-200/50 dark:border-slate-700 shadow-lg">
+                <div class="bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-2xl w-full text-center mb-6 overflow-hidden border-2 border-slate-200/50 dark:border-slate-700 shadow-lg">
                     <p v-if="Wallet.user?.address" class="text-slate-900 dark:text-slate-100 font-mono text-lg break-all leading-7 font-semibold tracking-wide">
                         {{ Wallet.user.address }}
                     </p>
@@ -82,7 +82,7 @@
                 <span>{{ copyButtonText }}</span>
             </button>
 
-            <div class="text-sm text-slate-500 dark:text-slate-400 mt-8 text-center space-y-2 max-w-md mx-auto p-6 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border-2 border-slate-200/50 dark:border-slate-700 shadow-sm">
+            <div class="text-sm text-slate-500 dark:text-slate-400 mt-8 text-center space-y-2 max-w-md mx-auto p-4 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border-2 border-slate-200/50 dark:border-slate-700 shadow-sm">
                 <p class="font-bold text-base text-slate-700 dark:text-slate-300 mb-2 flex items-center justify-center gap-2">
                     <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />

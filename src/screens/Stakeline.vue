@@ -93,7 +93,7 @@
                             To finalize, send exactly <strong class="text-slate-900 dark:text-slate-100 font-bold">500 SANS</strong> to the address below.
                         </p>
 
-                        <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl mt-6 inline-block shadow-xl border border-slate-200 dark:border-slate-700">
+                        <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl mt-6 inline-block shadow-xl border border-slate-200 dark:border-slate-700">
                             <svg class="h-48 w-48 mx-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
                                 <rect width="100" height="100" fill="#F3F4F6" rx="8" ry="8"/>
                                 <rect x="10" y="10" width="20" height="20" fill="#1F2937" rx="4"/><rect x="40" y="10" width="10" height="10" fill="#1F2937" rx="2"/><rect x="60" y="10" width="30" height="10" fill="#1F2937" rx="2"/><rect x="10" y="40" width="10" height="30" fill="#1F2937" rx="2"/><rect x="40" y="40" width="30" height="30" fill="#1F2937" rx="4"/><rect x="80" y="40" width="10" height="20" fill="#1F2937" rx="2"/><rect x="10" y="80" width="30" height="10" fill="#1F2937" rx="2"/><rect x="60" y="70" width="20" height="20" fill="#1F2937" rx="4"/>
@@ -128,7 +128,7 @@
                             Your SANS tokens are securely staked. Enjoy your premium features!
                         </p>
 
-                        <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 p-6 rounded-2xl mb-8 shadow-lg">
+                        <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 p-4 rounded-2xl mb-8 shadow-lg">
                             <div class="flex justify-between mb-4">
                                 <span class="font-medium text-slate-700 dark:text-slate-400">
                                     Amount Staked:

@@ -46,12 +46,13 @@ impl DAPIClient {
             network: Some(network.as_str().to_string()),
         };
 
-        // LOGGING: Log the payload to verify Contract ID
-        info!(
-            "[PAYLOAD] Method: {} | Network: {} | Payload: {}",
+        // LOGGING: Print the exact HTTP Payload sent to the proxy
+        // This will verify if "network": "mainnet" is actually in the body.
+        let payload_str = serde_json::to_string(&request).unwrap_or_else(|_| "Invalid JSON".to_string());
+        println!(
+            "[NETWORK_TRACE] Method: {} | Outbound JSON Payload: {}",
             method,
-            network.as_str(),
-            serde_json::to_string(&request).unwrap_or_else(|_| "Invalid JSON".to_string())
+            payload_str
         );
 
         // CRITICAL: include network in cache key
@@ -91,11 +92,10 @@ impl DAPIClient {
             })?;
 
         if !api_response.success {
-            // LOGGING: Print the raw error response from the API
+            // LOGGING: Print the API error response details
             println!(
-                "[API ERROR] Method: {} | Network: {} | Details: {:?}",
+                "[API_ERROR_RESPONSE] Method: {} | Success: false | Details: {:?}",
                 method,
-                network.as_str(),
                 api_response
             );
             error!("DAPI method {} failed: {:?}", method, api_response);

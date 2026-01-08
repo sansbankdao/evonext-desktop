@@ -12,7 +12,7 @@
             </div>
         </header>
 
-        <div v-if="selectedTx" class="bg-white dark:bg-slate-800/80 backdrop-blur-sm p-6 rounded-xl space-y-6 shadow-lg border border-slate-200 dark:border-slate-700">
+        <div v-if="selectedTx" class="bg-white dark:bg-slate-800/80 backdrop-blur-sm p-4 rounded-xl space-y-6 shadow-lg border border-slate-200 dark:border-slate-700">
             <!-- Transaction Summary -->
             <div class="flex items-start justify-between p-4 bg-slate-50/50 dark:bg-slate-700/50 rounded-lg">
                 <div class="flex items-center gap-4 flex-1">

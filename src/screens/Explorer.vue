@@ -85,7 +85,7 @@
                         </h2>
 
                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                            <div v-for="identity in featuredIdentities" :key="identity.id" class="bg-white dark:bg-slate-800 p-6 rounded-2xl flex flex-col items-center text-center transition hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm">
+                            <div v-for="identity in featuredIdentities" :key="identity.id" class="bg-white dark:bg-slate-800 p-4 rounded-2xl flex flex-col items-center text-center transition hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm">
                                 <img :src="identity.avatarUrl" :alt="identity.displayName" class="size-20 rounded-2xl"/>
 
                                 <h3 class="mt-4 text-lg font-bold text-slate-900 dark:text-slate-100">

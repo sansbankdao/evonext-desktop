@@ -33,7 +33,7 @@
                     <div>
                         <!-- Favorited Posts Tab -->
                         <div v-if="activeTab === 'posts'" class="space-y-6">
-                            <div v-if="favoritedPosts.length > 0" v-for="post in favoritedPosts" :key="post.id" class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <div v-if="favoritedPosts.length > 0" v-for="post in favoritedPosts" :key="post.id" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                                 <div class="flex items-start justify-between">
                                     <div class="flex items-center gap-4">
                                         <img :src="post.authorAvatarUrl" :alt="post.authorName" class="size-12 rounded-2xl"/>

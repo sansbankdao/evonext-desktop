@@ -47,7 +47,7 @@
                     </div>
 
                     <!-- Missing Transfer Key Alert -->
-                    <div v-if="!hasTransferKey" class="rounded-xl bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-2 border-amber-400/30 p-6">
+                    <div v-if="!hasTransferKey" class="rounded-xl bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-2 border-amber-400/30 p-4">
                         <div class="flex items-start gap-4">
                             <div class="flex-shrink-0">
                                 <div class="rounded-full bg-amber-500/20 p-3">
@@ -205,7 +205,7 @@
                         <!-- Key Actions -->
                         <div v-if="keys.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <RouterLink :to="`/identity/${identityId}/keys/add`"
-                                        class="flex items-center justify-center gap-3 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 p-6 text-center hover:border-cyan-500 dark:hover:border-cyan-400 hover:bg-gradient-to-br hover:from-cyan-500/5 hover:to-cyan-600/5 transition-all duration-200 group">
+                                        class="flex items-center justify-center gap-3 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 p-4 text-center hover:border-cyan-500 dark:hover:border-cyan-400 hover:bg-gradient-to-br hover:from-cyan-500/5 hover:to-cyan-600/5 transition-all duration-200 group">
                                 <div class="size-12 rounded-full bg-gradient-to-r from-cyan-500 to-cyan-600 flex items-center justify-center text-white">
                                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -222,7 +222,7 @@
                             </RouterLink>
 
                             <button @click="disableUnusedKeys"
-                                    class="flex items-center justify-center gap-3 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 p-6 text-center hover:border-red-500 dark:hover:border-red-400 hover:bg-gradient-to-br hover:from-red-500/5 hover:to-red-600/5 transition-all duration-200 group">
+                                    class="flex items-center justify-center gap-3 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 p-4 text-center hover:border-red-500 dark:hover:border-red-400 hover:bg-gradient-to-br hover:from-red-500/5 hover:to-red-600/5 transition-all duration-200 group">
                                 <div class="size-12 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center text-white">
                                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -240,7 +240,7 @@
                         </div>
 
                         <!-- Key Generation Info -->
-                        <div class="rounded-xl bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 border border-slate-300 dark:border-slate-700 p-6">
+                        <div class="rounded-xl bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 border border-slate-300 dark:border-slate-700 p-4">
                             <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
                                 About Key Management
                             </h3>

@@ -23,7 +23,7 @@
 
                 <!-- Editor Panes -->
                 <div class="relative flex-grow bg-white dark:bg-slate-800">
-                    <div v-show="activeTab === 'readme'" class="absolute inset-0 p-6 text-slate-700 dark:text-slate-300">
+                    <div v-show="activeTab === 'readme'" class="absolute inset-0 p-4 text-slate-700 dark:text-slate-300">
                         <h2 class="text-xl font-bold mb-4">
                             Welcome to EvoNext Mini App Studio
                         </h2>
@@ -112,7 +112,7 @@
                         </button>
 
                         <div :class="['overflow-hidden transition-all duration-500 ease-in-out', activeAccordion === 'preview' ? 'max-h-[800px]' : 'max-h-0']">
-                            <div class="p-6 flex flex-col items-center">
+                            <div class="p-4 flex flex-col items-center">
                                 <div class="w-full max-w-sm h-[700px] bg-slate-100 dark:bg-slate-900 rounded-[40px] p-4 border-4 border-slate-200 dark:border-slate-700 shadow-2xl">
                                     <div class="w-full h-full bg-white rounded-3xl overflow-hidden">
                                         <iframe title="Preview" sandbox="allow-scripts" class="w-full h-full border-none"></iframe>

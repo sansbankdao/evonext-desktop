@@ -10,7 +10,7 @@
             </button>
         </header>
 
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-xl space-y-2">
+        <div class="bg-white dark:bg-slate-800 p-4 rounded-xl space-y-2">
             <!-- From Asset -->
             <div class="bg-slate-50/50 dark:bg-slate-900/70 p-4 rounded-lg">
                 <div class="flex justify-between items-center mb-1">

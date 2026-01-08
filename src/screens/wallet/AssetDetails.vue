@@ -1,8 +1,8 @@
 <!-- src/screens/wallet/AssetDetails.vue -->
 <template>
-    <main class="p-6 max-w-2xl mx-auto min-h-screen">
+    <main class="p-4 max-w-2xl mx-auto min-h-screen">
         <!-- Header -->
-        <header class="flex items-center justify-between mb-8 bg-white dark:bg-slate-900 p-6 rounded-xl shadow-lg border-2 border-slate-200 dark:border-slate-700">
+        <header class="flex items-center justify-between mb-8 bg-white dark:bg-slate-900 p-4 rounded-xl shadow-lg border-2 border-slate-200 dark:border-slate-700">
             <div class="flex items-center gap-4">
                 <button @click="router.back()" class="p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 shadow-sm hover:shadow-md group">
                     <svg class="w-6 h-6 text-slate-600 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -18,7 +18,7 @@
 
         <div v-if="selectedAsset" class="bg-white dark:bg-slate-800 p-8 rounded-2xl space-y-8 shadow-2xl border-2 border-slate-200 dark:border-slate-700 hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 group">
             <!-- Asset Summary -->
-            <div class="flex items-center justify-between p-6 bg-slate-50/50 dark:bg-slate-700/30 rounded-2xl border-2 border-slate-200/50 dark:border-slate-600">
+            <div class="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-700/30 rounded-2xl border-2 border-slate-200/50 dark:border-slate-600">
                 <div class="flex items-center gap-6">
                     <div class="relative size-20 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-2xl p-4 flex items-center justify-center border-2 border-indigo-200/50 dark:border-indigo-800/50 shadow-xl group-hover:scale-105 transition-all duration-300">
                         <img
@@ -92,7 +92,7 @@
                         tabindex="0"
                         @click="router.push(`/wallet/transaction/${tx.id}`)"
                         @keydown.enter="router.push(`/wallet/transaction/${tx.id}`)"
-                        class="flex items-center justify-between p-6 bg-slate-50/50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-2xl transition-all duration-300 ease-in-out cursor-pointer focus:outline-none focus:ring-4 focus:ring-indigo-400/30 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900 shadow-lg hover:shadow-2xl hover:-translate-y-1 border-2 border-slate-200/50 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 group"
+                        class="flex items-center justify-between p-4 bg-slate-50/50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-2xl transition-all duration-300 ease-in-out cursor-pointer focus:outline-none focus:ring-4 focus:ring-indigo-400/30 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900 shadow-lg hover:shadow-2xl hover:-translate-y-1 border-2 border-slate-200/50 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 group"
                     >
                         <div class="flex items-center gap-4">
                             <div class="p-4 bg-gradient-to-br from-slate-100/50 to-slate-200/50 dark:from-slate-700/50 dark:to-slate-600/50 rounded-2xl flex-shrink-0 group-hover:scale-105 transition-all duration-300 shadow-md border border-slate-200/50 dark:border-slate-600">

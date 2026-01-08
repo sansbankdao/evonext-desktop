@@ -1,5 +1,8 @@
 // src-tauri/src/constants.rs
 
+// -----------------------------------------------------------------------------
+// APPLICATION FILES
+// -----------------------------------------------------------------------------
 #[allow(dead_code)]
 pub const ASSETS_MAINNET_FILE: &str = ".assets-mainnet.json";
 #[allow(dead_code)]
@@ -23,13 +26,9 @@ pub const DISCOVERED_MAINNET_FILE: &str = ".discovered-mainnet.json";
 #[allow(dead_code)]
 pub const DISCOVERED_TESTNET_FILE: &str = ".discovered-testnet.json";
 
-#[allow(dead_code)]
-pub const MIN_CREDIT_TRANSFER: u64 = 100_000;
-#[allow(dead_code)]
-pub const DEFAULT_IDENTITY_SEARCH_LIMIT: u8 = 3;
-#[allow(dead_code)]
-pub const DEFAULT_NETWORK: &str = "testnet";
-
+// -----------------------------------------------------------------------------
+// API ENDPOINTS
+// -----------------------------------------------------------------------------
 #[allow(dead_code)]
 pub const DASHSWAP_ENDPOINT: &str = "https://dashswap.xyz/v1";
 #[allow(dead_code)]
@@ -39,6 +38,23 @@ pub const DAPI_WEB_API_ENDPOINT: &str = "https://dashqt.org/v1/dapi";
 pub const PLATFORM_HTTP_API_MAINNET: &str = "https://platform-explorer.pshenmic.dev";
 #[allow(dead_code)]
 pub const PLATFORM_HTTP_API_TESTNET: &str = "https://testnet.platform-explorer.pshenmic.dev";
+
+#[allow(dead_code)]
+pub const UPDATER_ENDPOINT: &str = "https://releases.evonext.app/{{target}}/{{arch}}/{{current_version}}";
+
+// -----------------------------------------------------------------------------
+// NETWORK & PLATFORM CONFIG
+// -----------------------------------------------------------------------------
+#[allow(dead_code)]
+pub const MIN_CREDIT_TRANSFER: u64 = 100_000;
+#[allow(dead_code)]
+pub const DEFAULT_IDENTITY_SEARCH_LIMIT: u8 = 3;
+#[allow(dead_code)]
+pub const DEFAULT_NETWORK: &str = "testnet";
+#[allow(dead_code)]
+pub const DEFAULT_QUERY_REGISTRY: bool = false;
+#[allow(dead_code)]
+pub const DEFAULT_SECURITY_LEVEL: u32 = 0;
 
 // -----------------------------------------------------------------------------
 // DATA CONTRACTS
@@ -66,17 +82,42 @@ pub const DUSD_DECIMAL_PLACES: u8 = 6;
 #[allow(dead_code)]
 pub const SANS_DECIMAL_PLACES: u8 = 8;
 
-#[allow(dead_code)]
-pub const UPDATER_ENDPOINT: &str = "https://releases.evonext.app/{{target}}/{{arch}}/{{current_version}}";
-
-#[allow(dead_code)]
-pub const DEFAULT_QUERY_REGISTRY: bool = false;
-#[allow(dead_code)]
-pub const DEFAULT_SECURITY_LEVEL: u32 = 0;
-
+// -----------------------------------------------------------------------------
+// MESSAGES
+// -----------------------------------------------------------------------------
 #[allow(dead_code)]
 pub const STORE_LOAD_SUCCESS: &str = "Data loaded successfully.";
 #[allow(dead_code)]
 pub const STORE_LOAD_NOT_FOUND: &str = "No data found.";
 #[allow(dead_code)]
 pub const STORE_SAVE_SUCCESS: &str = "Data saved successfully.";
+
+// -----------------------------------------------------------------------------
+// DYNAMIC HELPERS
+// -----------------------------------------------------------------------------
+use crate::dapi::types::Network;
+
+/// Returns the correct DUSD contract ID for the specified network.
+pub fn get_dusd_contract_id(network: Network) -> &'static str {
+    match network {
+        Network::Mainnet => DUSD_CONTRACT_ID_MAINNET,
+        Network::Testnet => DUSD_CONTRACT_ID_TESTNET,
+    }
+}
+
+/// Returns the correct EvoNext contract ID for the specified network.
+/// This is used by documents::get_posts to ensure we hit the right contract.
+pub fn get_evonext_contract_id(network: Network) -> &'static str {
+    match network {
+        Network::Mainnet => EVONEXT_CONTRACT_ID_MAINNET,
+        Network::Testnet => EVONEXT_CONTRACT_ID_TESTNET,
+    }
+}
+
+/// Returns the correct SANS contract ID for the specified network.
+pub fn get_sans_contract_id(network: Network) -> &'static str {
+    match network {
+        Network::Mainnet => SANS_CONTRACT_ID_MAINNET,
+        Network::Testnet => SANS_CONTRACT_ID_TESTNET,
+    }
+}

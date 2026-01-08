@@ -23,7 +23,7 @@
 
                                 <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
 
-                                <div class="absolute bottom-0 left-0 p-6">
+                                <div class="absolute bottom-0 left-0 p-4">
                                     <h3 class="text-xl font-bold text-white">
                                         {{ app.title }}
                                     </h3>

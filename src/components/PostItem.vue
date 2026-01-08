@@ -2,7 +2,7 @@
 <template>
     <article
         :class="[
-            'bg-white dark:bg-slate-800 p-6 rounded-2xl flex flex-col gap-4 border-2 border-slate-200 dark:border-slate-700 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 group',
+            'bg-white dark:bg-slate-800 p-4 rounded-2xl flex flex-col gap-4 border-2 border-slate-200 dark:border-slate-700 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 group',
             isSensitive ? 'border-orange-500' : ''
         ]"
     >
@@ -157,7 +157,7 @@
         </div>
 
         <!-- Remix Content (if this is a remix) -->
-        <div v-if="post.remix" class="mt-4 border-2 border-slate-200 dark:border-slate-600 rounded-2xl p-6 bg-slate-50 dark:bg-slate-700/50 shadow-inner">
+        <div v-if="post.remix" class="mt-4 border-2 border-slate-200 dark:border-slate-600 rounded-2xl p-4 bg-slate-50 dark:bg-slate-700/50 shadow-inner">
             <div class="flex items-start gap-3 mb-3">
                 <img :src="post.author.avatar" :alt="`${post.author.displayName}'s Avatar`" class="size-10 rounded-full ring-2 ring-slate-200 dark:ring-slate-600" />
                 <div>
