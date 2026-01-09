@@ -1,23 +1,246 @@
 <!-- src/screens/Posts.vue -->
+<script setup lang="ts">
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import Header from '@/components/Header.vue'
+import PostItem from '@/components/PostItem.vue'
+import { usePosts } from '@/composables/usePosts'
+import { useIdentityStore } from '@/stores/identity'
+import { useNetwork } from '@/composables/useNetwork'
+
+const router = useRouter()
+const identityStore = useIdentityStore()
+
+// REFACTOR: Use useNetwork composable
+const { network: currentNetwork } = useNetwork()
+
+// Use new composable
+const postsComposable = usePosts()
+
+// Destructure with renamed methods to avoid conflicts
+const {
+    activeTab,
+    searchQuery,
+    languageFilter,
+    showSensitive,
+    isLoading,
+    error,
+    posts,
+    totalPosts,
+    hasMore,
+    isAuthenticated,
+
+    fetchPosts,
+    fetchMorePosts,
+    createPost,
+    likePost,
+    bookmarkPost,
+    setTab,
+    startAutoRefresh,
+    stopAutoRefresh,
+    getPostById
+} = postsComposable
+
+// Constants for Explorer Links
+const EXPLORER_URLS: Record<string, string> = {
+    testnet: 'https://testnet.platform-explorer.com',
+    mainnet: 'https://platform-explorer.com'
+}
+
+// Compute explorer URL for the current network
+const explorerUrl = computed(() => EXPLORER_URLS[currentNetwork.value] || EXPLORER_URLS.testnet)
+
+// Create computed property for filtered posts
+const filteredPostsData = computed(() => {
+    let filtered = posts.value
+
+    // Apply search filter
+    if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        filtered = filtered.filter(post =>
+            post.content.toLowerCase().includes(query) ||
+            post.author.displayName?.toLowerCase().includes(query) ||
+            post.author.username?.toLowerCase().includes(query) ||
+            (post.hashtag && post.hashtag.toLowerCase().includes(query))
+        )
+    }
+
+    // Apply language filter
+    if (languageFilter.value) {
+        filtered = filtered.filter(post => post.language === languageFilter.value)
+    }
+
+    // Apply sensitive content filter
+    if (!showSensitive.value) {
+        filtered = filtered.filter(post => !post.isSensitive)
+    }
+
+    return filtered
+})
+
+// Local state for compose modal
+const showComposeModal = ref(false)
+const newPostContent = ref('')
+const isSensitive = ref(false)
+const postLanguage = ref('en')
+
+const remainingCharacters = computed(() => 500 - newPostContent.value.length)
+const canPost = computed(() => newPostContent.value.trim().length > 0 && newPostContent.value.length <= 500)
+
+const handleContentInput = () => {
+    if (newPostContent.value.length > 500) {
+        newPostContent.value = newPostContent.value.substring(0, 500)
+    }
+}
+
+const retryFetch = () => {
+    fetchPosts()
+}
+
+const loadMore = () => {
+    fetchMorePosts()
+}
+
+const createPostAction = async () => {
+    if (!canPost.value) return
+
+    try {
+        const post = await createPost(newPostContent.value.trim(), {
+            isSensitive: isSensitive.value,
+            language: postLanguage.value
+        })
+
+        if (post) {
+            showComposeModal.value = false
+            newPostContent.value = ''
+            isSensitive.value = false
+            // Refresh posts list
+            await fetchPosts()
+        }
+    } catch (err: any) {
+        console.error('Failed to create post:', err)
+        // Error is already handled in composable
+    }
+}
+
+const handleLike = async (postId: string) => {
+    await likePost(postId)
+}
+
+const handleRepost = async (postId: string) => {
+    console.log('Reposting:', postId)
+    // TODO: Implement repost functionality
+    alert('Repost functionality coming soon!')
+}
+
+const handleBookmark = async (postId: string) => {
+    await bookmarkPost(postId)
+}
+
+const handleShare = (postId: string) => {
+    const post = getPostById(postId)
+    const shareText = post
+        ? `Check out this post on EvoNext by ${post.author.displayName}: ${post.content.substring(0, 100)}...`
+        : 'Check out this post on EvoNext!'
+
+    if (navigator.share) {
+        navigator.share({
+            title: 'EvoNext Post',
+            text: shareText,
+            url: `https://app.evonext.app/posts/${postId}`
+        }).catch(console.error)
+    } else {
+        navigator.clipboard.writeText(`https://app.evonext.app/posts/${postId}`)
+            .then(() => alert('Post link copied to clipboard!'))
+            .catch(console.error)
+    }
+}
+
+// REFACTOR: Watch for network changes using composable value
+watch(
+    currentNetwork,
+    () => {
+        fetchPosts()
+    }
+)
+
+// Watch for authentication changes
+watch(
+    () => identityStore.isAuthenticated,
+    (isAuth) => {
+        if (isAuth) {
+            // Re-fetch posts when user connects
+            fetchPosts()
+        }
+    }
+)
+
+onMounted(async () => {
+    // Start auto-refresh
+    startAutoRefresh()
+
+    // Initialize posts
+    await fetchPosts()
+})
+
+onUnmounted(() => {
+    // Clean up auto-refresh
+    stopAutoRefresh()
+})
+</script>
+
 <template>
     <main>
         <Header title="Posts | Remixes" />
+
+        <!-- REFACTOR: Widened UI to max-w-7xl -->
         <section class="bg-gray-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl">
-            <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
                 <div class="flex flex-col gap-8">
-                    <!-- Page Header -->
-                    <div class="space-y-2">
-                        <div class="flex items-center justify-between">
-                            <p class="text-xl text-slate-600 dark:text-slate-400">
-                                Discover the latest updates or share your own take on the conversation.
-                            </p>
-                            <div class="flex items-center gap-2">
-                                <div class="px-3 py-1 bg-slate-200 dark:bg-slate-700 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300">
-                                    {{ currentNetwork.toUpperCase() }}
+
+                    <!-- REFACTOR: Network Info Section (Replaces Header Text) -->
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                        <div class="flex items-center gap-4">
+                            <div class="p-3 bg-cyan-50 dark:bg-cyan-900/20 rounded-xl border border-cyan-200 dark:border-cyan-800">
+                                <svg class="w-6 h-6 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-slate-900 dark:text-white">
+                                    Network Info
+                                </h2>
+                                <p class="text-slate-500 dark:text-slate-400 text-sm">
+                                    Viewing content from <span class="font-medium text-cyan-600 dark:text-cyan-400">{{ currentNetwork.toUpperCase() }}</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 w-full sm:w-auto">
+                            <div class="flex flex-col gap-2 text-sm">
+                                <div class="flex items-center justify-between sm:justify-start sm:gap-8">
+                                    <span class="text-slate-500 dark:text-slate-400">Contract ID:</span>
+                                    <a
+                                        :href="`${explorerUrl}/contract/EvO_NEXT_POST_CONTRACT`"
+                                        target="_blank"
+                                        class="text-cyan-600 dark:text-cyan-400 hover:underline font-mono bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded text-xs"
+                                    >
+                                        EvO_NEXT_POST_CONTRACT
+                                    </a>
                                 </div>
-                                <div v-if="identityStore.isAuthenticated && identityStore.username"
-                                     class="px-3 py-1 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-lg text-sm font-medium">
-                                    @{{ identityStore.username }}
+                                <div class="flex items-center justify-between sm:justify-start sm:gap-8">
+                                    <span class="text-slate-500 dark:text-slate-400">Total Posts:</span>
+                                    <span class="font-bold text-slate-900 dark:text-white">{{ totalPosts }}</span>
+                                </div>
+                                <div class="flex items-center justify-between sm:justify-start sm:gap-8">
+                                    <span class="text-slate-500 dark:text-slate-400">Status:</span>
+                                    <span class="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                                        <span class="relative flex h-2 w-2">
+                                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                          <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                        </span>
+                                        Operational
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -86,141 +309,124 @@
                     <div v-if="!isLoading || posts.length > 0">
                         <!-- TAB CONTENT: POSTS -->
                         <div v-if="activeTab === 'posts'" class="flex flex-col gap-6">
-                            <!-- No Posts State -->
-                            <div v-if="posts.length === 0 && !isLoading" class="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-12 text-center">
-                                <svg class="h-16 w-16 mx-auto text-slate-400 dark:text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                </svg>
-                                <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                                    No Posts Yet
-                                </h3>
-                                <p class="text-slate-600 dark:text-slate-400 mb-6">
-                                    Be the first to share something with the {{ currentNetwork.toUpperCase() }} community!
+                            <!-- REFACTOR: Persistent Input Area (If Authenticated) -->
+                            <div v-if="isAuthenticated" class="bg-white dark:bg-slate-800 p-4 rounded-2xl flex flex-col gap-4 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+                                <div class="flex items-start gap-4">
+                                    <img
+                                        :src="identityStore.identity?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(identityStore.username || 'You')}&background=8b5cf6&color=fff`"
+                                        alt="Your Avatar"
+                                        class="size-12 rounded-full ring-2 ring-slate-200 dark:ring-slate-700 shadow-md"
+                                    />
+                                    <div class="flex-1">
+                                        <button
+                                            @click="showComposeModal = true"
+                                            class="w-full text-left bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-2xl px-6 py-4 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 transition-all duration-200"
+                                        >
+                                            Share your thoughts...
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- "Connect Wallet" Card (If NOT Authenticated) -->
+                            <div v-else class="bg-white dark:bg-slate-800 p-6 rounded-2xl text-center border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+                                <p class="text-slate-600 dark:text-slate-400 mb-4">
+                                    Connect your wallet to create posts and interact with the community.
                                 </p>
                                 <button
-                                    @click="showComposeModal = true"
-                                    :disabled="!isAuthenticated"
-                                    :class="[
-                                        'px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl',
-                                        !isAuthenticated ? 'opacity-50 cursor-not-allowed' : 'hover:from-cyan-600 hover:to-cyan-700'
-                                    ]"
+                                    @click="router.push('/connect')"
+                                    class="px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-xl font-medium hover:from-cyan-600 hover:to-cyan-700 transition-all duration-200"
                                 >
-                                    {{ isAuthenticated ? 'Create Your First Post' : 'Connect Wallet to Post' }}
+                                    Connect Wallet
                                 </button>
                             </div>
 
-                            <!-- Posts List -->
-                            <div v-else class="space-y-6">
-                                <!-- Create Post Card -->
-                                <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl flex flex-col gap-4 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
-                                    <div class="flex items-start gap-4">
-                                        <div v-if="isAuthenticated && identityStore.identity" class="flex items-start gap-4 w-full">
-                                            <img
-                                                :src="identityStore.identity?.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(identityStore.username || 'You')}&background=8b5cf6&color=fff`"
-                                                alt="Your Avatar"
-                                                class="size-12 rounded-full ring-2 ring-slate-200 dark:ring-slate-700 shadow-md"
-                                            />
-                                            <div class="flex-1">
-                                                <button
-                                                    @click="showComposeModal = true"
-                                                    class="w-full text-left bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-2xl px-6 py-4 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-300 transition-all duration-200"
-                                                >
-                                                    Share your thoughts...
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div v-else class="w-full text-center py-4">
-                                            <p class="text-slate-600 dark:text-slate-400">
-                                                Connect your wallet to create posts
-                                            </p>
-                                            <button
-                                                @click="router.push('/connect')"
-                                                class="mt-4 px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-xl font-medium hover:from-cyan-600 hover:to-cyan-700 transition-all duration-200"
-                                            >
-                                                Connect Wallet
-                                            </button>
-                                        </div>
-                                    </div>
+                            <!-- Network Indicator & Filters -->
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm text-slate-500 dark:text-slate-400">
+                                        Showing posts from {{ currentNetwork.toUpperCase() }}
+                                    </span>
+                                    <span class="text-xs bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 px-2 py-1 rounded">
+                                        {{ posts.length }} {{ posts.length === 1 ? 'post' : 'posts' }}
+                                    </span>
                                 </div>
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
+                                    <label class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 cursor-pointer">
+                                        <input type="checkbox" v-model="showSensitive" class="rounded border-slate-300 dark:border-slate-600 text-cyan-600 focus:ring-cyan-500" />
+                                        <span>Show sensitive content</span>
+                                    </label>
+                                    <select v-model="languageFilter"
+                                            class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                                        <option value="">All Languages</option>
+                                        <option value="en">English</option>
+                                        <option value="es">Spanish</option>
+                                        <option value="fr">French</option>
+                                        <option value="de">German</option>
+                                        <option value="zh">Chinese</option>
+                                        <option value="ja">Japanese</option>
+                                        <option value="ko">Korean</option>
+                                        <option value="ru">Russian</option>
+                                        <option value="ar">Arabic</option>
+                                    </select>
+                                </div>
+                            </div>
 
-                                <!-- Network Indicator & Filters -->
-                                <div class="flex items-center justify-between px-4">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-sm text-slate-500 dark:text-slate-400">
-                                            Showing posts from {{ currentNetwork.toUpperCase() }}
-                                        </span>
-                                        <span class="text-xs bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400 px-2 py-1 rounded">
-                                            {{ posts.length }} {{ posts.length === 1 ? 'post' : 'posts' }}
-                                        </span>
-                                    </div>
-                                    <div class="flex items-center gap-4">
-                                        <label class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 cursor-pointer">
-                                            <input type="checkbox" v-model="showSensitive" class="rounded border-slate-300 dark:border-slate-600 text-cyan-600 focus:ring-cyan-500" />
-                                            <span>Show sensitive content</span>
-                                        </label>
-                                        <select v-model="languageFilter"
-                                                class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
-                                            <option value="">All Languages</option>
-                                            <option value="en">English</option>
-                                            <option value="es">Spanish</option>
-                                            <option value="fr">French</option>
-                                            <option value="de">German</option>
-                                            <option value="zh">Chinese</option>
-                                            <option value="ja">Japanese</option>
-                                            <option value="ko">Korean</option>
-                                            <option value="ru">Russian</option>
-                                            <option value="ar">Arabic</option>
-                                        </select>
-                                    </div>
+                            <!-- Search Bar -->
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
                                 </div>
+                                <input
+                                    v-model="searchQuery"
+                                    type="text"
+                                    placeholder="Search posts..."
+                                    class="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                                />
+                            </div>
 
-                                <!-- Search Bar -->
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                        </svg>
-                                    </div>
-                                    <input
-                                        v-model="searchQuery"
-                                        type="text"
-                                        placeholder="Search posts..."
-                                        class="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                                    />
-                                </div>
-
-                                <!-- Post Items -->
-                                <div v-if="filteredPostsData.length === 0 && searchQuery" class="text-center py-8">
-                                    <p class="text-slate-500 dark:text-slate-400">
-                                        No posts found for "{{ searchQuery }}"
-                                    </p>
-                                </div>
-                                <div v-else class="space-y-4">
-                                    <PostItem
-                                        v-for="post in filteredPostsData"
-                                        :key="post.id || post.ownerId + '-' + post.createdAt"
-                                        :post="post"
-                                        @like="handleLike"
-                                        @repost="handleRepost"
-                                        @bookmark="handleBookmark"
-                                        @share="handleShare"
-                                    />
-                                </div>
+                            <!-- Post Items -->
+                            <div v-if="filteredPostsData.length === 0 && searchQuery" class="text-center py-8">
+                                <p class="text-slate-500 dark:text-slate-400">
+                                    No posts found for "{{ searchQuery }}"
+                                </p>
+                            </div>
+                            <div v-else class="space-y-4">
+                                <PostItem
+                                    v-for="post in filteredPostsData"
+                                    :key="post.id || post.ownerId + '-' + post.createdAt"
+                                    :post="post"
+                                    @like="handleLike"
+                                    @repost="handleRepost"
+                                    @bookmark="handleBookmark"
+                                    @share="handleShare"
+                                />
                             </div>
                         </div>
 
                         <!-- TAB CONTENT: REMIX -->
                         <div v-if="activeTab === 'remix'" class="flex flex-col gap-6">
-                            <div class="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-12 text-center">
+                            <div class="bg-white dark:bg-slate-800 p-12 rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-sm text-center">
                                 <svg class="h-16 w-16 mx-auto text-slate-400 dark:text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                                 </svg>
                                 <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">
                                     Remix Feature Coming Soon
                                 </h3>
-                                <p class="text-slate-600 dark:text-slate-400">
+                                <p class="text-slate-600 dark:text-slate-400 mb-6">
                                     The remix feature is under development. Check back soon!
                                 </p>
+                                <!-- REFACTOR: Added Docs Link -->
+                                <a
+                                    href="https://docs.evonext.app/remix"
+                                    target="_blank"
+                                    class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-xl font-medium hover:from-cyan-600 hover:to-cyan-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                                >
+                                    Learn more about Remix
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -349,184 +555,3 @@
         </div>
     </main>
 </template>
-
-<script setup lang="ts">
-import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
-import Header from '@/components/Header.vue'
-import PostItem from '@/components/PostItem.vue'
-import { usePosts } from '@/composables/usePosts'
-import { useIdentityStore } from '@/stores/identity'
-import { useNetwork } from '@/composables/useNetwork'
-
-const router = useRouter()
-const identityStore = useIdentityStore()
-
-// REFACTOR: Use useNetwork composable
-const { network: currentNetwork } = useNetwork()
-
-// Use new composable
-const postsComposable = usePosts()
-
-// Destructure with renamed methods to avoid conflicts
-const {
-    activeTab,
-    searchQuery,
-    languageFilter,
-    showSensitive,
-    isLoading,
-    error,
-    posts,
-    totalPosts,
-    hasMore,
-    isAuthenticated,
-
-    fetchPosts,
-    fetchMorePosts,
-    createPost,
-    likePost,
-    bookmarkPost,
-    setTab,
-    startAutoRefresh,
-    stopAutoRefresh,
-    getPostById
-} = postsComposable
-
-// Create computed property for filtered posts
-const filteredPostsData = computed(() => {
-    let filtered = posts.value
-
-    // Apply search filter
-    if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase()
-        filtered = filtered.filter(post =>
-            post.content.toLowerCase().includes(query) ||
-            post.author.displayName?.toLowerCase().includes(query) ||
-            post.author.username?.toLowerCase().includes(query) ||
-            (post.hashtag && post.hashtag.toLowerCase().includes(query))
-        )
-    }
-
-    // Apply language filter
-    if (languageFilter.value) {
-        filtered = filtered.filter(post => post.language === languageFilter.value)
-    }
-
-    // Apply sensitive content filter
-    if (!showSensitive.value) {
-        filtered = filtered.filter(post => !post.isSensitive)
-    }
-
-    return filtered
-})
-
-// Local state for compose modal
-const showComposeModal = ref(false)
-const newPostContent = ref('')
-const isSensitive = ref(false)
-const postLanguage = ref('en')
-
-const remainingCharacters = computed(() => 500 - newPostContent.value.length)
-const canPost = computed(() => newPostContent.value.trim().length > 0 && newPostContent.value.length <= 500)
-
-const handleContentInput = () => {
-    if (newPostContent.value.length > 500) {
-        newPostContent.value = newPostContent.value.substring(0, 500)
-    }
-}
-
-const retryFetch = () => {
-    fetchPosts()
-}
-
-const loadMore = () => {
-    fetchMorePosts()
-}
-
-const createPostAction = async () => {
-    if (!canPost.value) return
-
-    try {
-        const post = await createPost(newPostContent.value.trim(), {
-            isSensitive: isSensitive.value,
-            language: postLanguage.value
-        })
-
-        if (post) {
-            showComposeModal.value = false
-            newPostContent.value = ''
-            isSensitive.value = false
-            // Refresh posts list
-            await fetchPosts()
-        }
-    } catch (err: any) {
-        console.error('Failed to create post:', err)
-        // Error is already handled in composable
-    }
-}
-
-const handleLike = async (postId: string) => {
-    await likePost(postId)
-}
-
-const handleRepost = async (postId: string) => {
-    console.log('Reposting:', postId)
-    // TODO: Implement repost functionality
-    alert('Repost functionality coming soon!')
-}
-
-const handleBookmark = async (postId: string) => {
-    await bookmarkPost(postId)
-}
-
-const handleShare = (postId: string) => {
-    const post = getPostById(postId)
-    const shareText = post
-        ? `Check out this post on EvoNext by ${post.author.displayName}: ${post.content.substring(0, 100)}...`
-        : 'Check out this post on EvoNext!'
-
-    if (navigator.share) {
-        navigator.share({
-            title: 'EvoNext Post',
-            text: shareText,
-            url: `https://app.evonext.app/posts/${postId}`
-        }).catch(console.error)
-    } else {
-        navigator.clipboard.writeText(`https://app.evonext.app/posts/${postId}`)
-            .then(() => alert('Post link copied to clipboard!'))
-            .catch(console.error)
-    }
-}
-
-// REFACTOR: Watch for network changes using the composable value
-watch(
-    currentNetwork,
-    () => {
-        fetchPosts()
-    }
-)
-
-// Watch for authentication changes
-watch(
-    () => identityStore.isAuthenticated,
-    (isAuth) => {
-        if (isAuth) {
-            // Re-fetch posts when user connects
-            fetchPosts()
-        }
-    }
-)
-
-onMounted(async () => {
-    // Start auto-refresh
-    startAutoRefresh()
-
-    // Initialize posts
-    await fetchPosts()
-})
-
-onUnmounted(() => {
-    // Clean up auto-refresh
-    stopAutoRefresh()
-})
-</script>
