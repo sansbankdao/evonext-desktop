@@ -5,7 +5,7 @@ export interface IAsset {
     id: string;                    // Unique identifier (e.g., contract tokenId or 'DASH' for native)
     name: string;                  // Human-readable name (e.g., "Dash", "USD Coin")
     symbol: string;                // Ticker symbol (e.g., "DASH", "USDC", "USD")
-    precision: number;             // Decimal places (e.g., 8 for DASH, 2 for USD, 18 for most ERC20)
+    decimals: number;              // CHANGED: Replaced 'precision' with 'decimals' (Decimal places e.g., 8 for DASH)
 
     // Asset Classification
     type: 'native' | 'token' | 'stablecoin' | 'nft' | 'governance' | 'utility';
@@ -83,12 +83,12 @@ export interface IAsset {
             contractAddress: string;
             chainId: number;
             abi?: any;
-            decimals: number;
+            decimals: number;     // CHANGED: EVm also uses decimals now
         };
         // Other chains
         solana?: {
             mintAddress: string;
-            decimals: number;
+            decimals: number;     // CHANGED: Solana also uses decimals now
         };
     };
 }
@@ -233,7 +233,8 @@ export interface IAssetMinimal {
     // Optional fields that might be useful
     asset_id?: string;
     balance?: number;
-    precision?: number;
+    precision?: number; // <-- REMOVED PREFERRING DECIMALS
+    decimals?: number;  // <-- Added this explicitly
     network?: string;
 }
 

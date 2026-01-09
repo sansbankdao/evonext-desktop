@@ -5,7 +5,7 @@ import { useWalletStore } from '../index'
 import { useIdentityStore } from '@/stores/identity'
 import { useSystemStore } from '@/stores/system'
 import { fetchIdentityTransactions, fetchTokenBalance } from './api'
-import { formatDashAmount } from './utils'
+import { formatDashAmount, formatTokenAmount } from './utils'
 import type { IAsset, ITransaction } from '@/types'
 import type { IAssetMinimal } from '@/types/assets'
 import type { Network } from '@/composables/useNetwork'
@@ -52,7 +52,7 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
         id: 'credits',
         name: 'Dash Credits',
         symbol: 'CREDITS',
-        precision: 2,
+        decimals: 2,
         type: 'native',
         category: 'currency',
         network: this.network,
@@ -75,7 +75,7 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
         id: 'dash',
         name: 'Dash',
         symbol: 'DASH',
-        precision: 8,
+        decimals: 8,
         type: 'native',
         category: 'currency',
         network: this.network,
@@ -91,25 +91,43 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
     })
 
     try {
-        // 2. Load Custom Assets from Backend (Rust)
-        const storedAssets = await invoke<IAssetMinimal[]>('load_assets', {
+        // 2. Load Custom Assets via Discovery (Rust Command)
+        const storedAssets = await invoke<IAssetMinimal[]>('discover_assets', {
             network: this.network
         })
 
         if (storedAssets && Array.isArray(storedAssets)) {
-            console.log(`📦 Found ${storedAssets.length} stored assets on ${this.network}`)
+            console.log(`📦 Discovered ${storedAssets.length} assets on ${this.network}`)
 
             for (const assetDef of storedAssets) {
                 let balance = BigInt(0)
                 let balanceFormatted = '0.00'
+                let contractId = ''
 
-                const contractId = assetDef.asset_id || (assetDef as any).assetId || (assetDef as any).contractId
-                const assetId = contractId || `${assetDef.symbol}-${identityId}`
+                // EXTRACT CONTRACT ID from Discovery Result
+                // The Rust command returns 'asset_id' which holds the Contract ID
+                // IAssetMinimal maps to this via asset_id?: string
+                const rawContractId = assetDef.asset_id || ''
 
-                if (contractId) {
+                if (rawContractId) {
+                    contractId = rawContractId
+                } else {
+                    // Fallback if missing ID
+                    contractId = `${assetDef.symbol}-${identityId}`
+                }
+
+                // Verify we found an ID before trying to fetch balance
+                if (contractId && contractId.length > 10) {
                     try {
                         balance = await fetchTokenBalance(identityId, contractId, this.network)
-                        const divisor = BigInt(10 ** (assetDef.precision || 18))
+
+                        // Extract decimals
+                        // Rust struct AssetDefinition uses snake_case 'decimals: Option<u8>'
+                        // IAssetMinimal maps to 'decimals?: number'
+
+                        const decimalPlaces = assetDef.decimals || 18
+
+                        const divisor = BigInt(10 ** decimalPlaces)
                         const whole = balance / divisor
                         balanceFormatted = whole.toString()
                     } catch (err) {
@@ -118,10 +136,10 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
                 }
 
                 newAssets.push({
-                    id: assetId,
+                    id: contractId,
                     name: assetDef.name,
                     symbol: assetDef.symbol,
-                    precision: assetDef.precision || 18,
+                    decimals: assetDef.decimals || 18,
                     type: 'token',
                     category: 'utility',
                     network: this.network,
@@ -138,7 +156,7 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
             }
         }
     } catch (err) {
-        console.error('Failed to load stored assets:', err)
+        console.error('Failed to discover assets:', err)
     }
 
     this.assets = newAssets
@@ -189,6 +207,20 @@ export async function fetchRealTransactions(this: ReturnType<typeof useWalletSto
             if (isSender && !isRecipient) direction = 'OUTGOING'
             if (!isSender && isRecipient) direction = 'INCOMING'
 
+            // FIX: Initialize assetSymbol based on the transaction data
+            let assetSymbol = 'CREDITS'
+            let assetType: 'COIN' | 'TOKEN' = 'COIN'
+
+            // If the transaction payload contains symbol info (like from the token list)
+            if (tx.token && tx.token.symbol) {
+                assetSymbol = tx.token.symbol
+                assetType = 'TOKEN'
+            } else if (tx.symbol) {
+                 // Or if it's just a flat property
+                assetSymbol = tx.symbol
+                assetType = 'TOKEN'
+            }
+
             // FIX: Correct if syntax
             if (tx.type === 'IDENTITY_CREDIT_TRANSFER') {
                 type = 'IDENTITY_CREDIT_TRANSFER'
@@ -204,6 +236,15 @@ export async function fetchRealTransactions(this: ReturnType<typeof useWalletSto
                 type = 'IDENTITY_CREATE'
                 title = 'Identity Created'
                 amountFormatted = 'N/A'
+            } else if (tx.type === 'DATA_CONTRACT_TRANSFER') {
+                // Generic Token Transfer
+                type = 'DATA_CONTRACT_TRANSFER'
+                title = isSender ? `Sent ${assetSymbol}` : `Received ${assetSymbol}`
+
+                const rawAmount = tx.amount || tx.value || 0
+                // Use formatTokenAmount for tokens
+                const decimals = tx.decimals || 8 // Fallback if not in tx
+                amountFormatted = formatTokenAmount(rawAmount, assetSymbol, decimals, false)
             }
 
             // FIX: Explorer API uses 'txHash'
@@ -217,8 +258,8 @@ export async function fetchRealTransactions(this: ReturnType<typeof useWalletSto
                 receiverId: tx.recipient || 'Unknown',
                 amount: tx.amount || 0,
                 amountFormatted,
-                assetType: 'COIN',
-                assetSymbol: 'CREDITS',
+                assetType,
+                assetSymbol, // FIX: Explicitly assigned
                 status,
                 type,
                 direction,
