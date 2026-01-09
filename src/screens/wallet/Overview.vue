@@ -18,6 +18,32 @@ const { ensure } = useNetwork()
 // --- Debug Toggle State ---
 const isDebugOpen = ref(false)
 
+// --- Pagination State (Recent Activity) ---
+const currentPage = ref(1)
+const txPageSize = 5
+
+const totalPages = computed(() => {
+    return Math.ceil(Wallet.transactions.length / txPageSize)
+})
+
+const displayedTransactions = computed(() => {
+    const start = (currentPage.value - 1) * txPageSize
+    const end = start + txPageSize
+    return Wallet.transactions.slice(start, end)
+})
+
+const nextPage = () => {
+    if (currentPage.value < totalPages.value) {
+        currentPage.value++
+    }
+}
+
+const previousPage = () => {
+    if (currentPage.value > 1) {
+        currentPage.value--
+    }
+}
+
 // Helper to format CREDITS to DASH equivalent
 const formatDashFromCredits = (creditsString: string | number) => {
     const credits = parseInt(String(creditsString), 10)
@@ -75,6 +101,7 @@ const assetIconExists = (symbol: string) => {
 }
 
 const forceRefresh = async () => {
+    currentPage.value = 1 // Reset to page 1 on refresh
     await Wallet.refreshBalances()
 }
 
@@ -285,18 +312,28 @@ onMounted(async () => {
                     </div>
                 </div>
 
-                <!-- Recent Transactions -->
-                <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 flex flex-col h-full">
-                    <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Recent Activity
-                    </h2>
+                <!-- Recent Transactions (Paginated) -->
+                <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-0 flex flex-col h-full">
 
-                    <div class="space-y-3 flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                    <!-- Header -->
+                    <div class="p-8 pb-4 border-b border-slate-100 dark:border-slate-800">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Recent Activity
+                            </h2>
+                            <div class="text-xs font-bold text-slate-500 dark:text-slate-400">
+                                Page <span class="text-indigo-600 dark:text-indigo-400">{{ currentPage }}</span> of {{ totalPages }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Transactions List -->
+                    <div class="flex-1 overflow-y-auto custom-scrollbar p-8 pt-4 space-y-3">
                         <div
-                            v-for="tx in Wallet.transactions"
+                            v-for="tx in displayedTransactions"
                             :key="tx.id"
                             role="button"
                             @click="router.push(`/wallet/transaction/${tx.id}`)"
@@ -327,12 +364,37 @@ onMounted(async () => {
                             </div>
                         </div>
 
-                        <div v-if="Wallet.transactions.length === 0" class="flex flex-col items-center justify-center py-12 text-slate-400">
+                        <div v-if="displayedTransactions.length === 0 && !Wallet.isLoading" class="flex flex-col items-center justify-center h-full min-h-[200px] text-slate-400">
                             <svg class="w-12 h-12 mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             <p class="text-sm font-medium">No recent activity</p>
                         </div>
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <div v-if="totalPages > 1" class="p-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                        <button
+                            @click="previousPage"
+                            :disabled="currentPage === 1"
+                            class="flex-1 py-2 px-4 mr-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-white border border-slate-200 dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all flex items-center justify-center gap-2"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                            Previous
+                        </button>
+
+                        <span class="text-xs font-bold text-slate-500 dark:text-slate-400 mx-2">
+                            {{ displayedTransactions.length }} / {{ Wallet.transactions.length }}
+                        </span>
+
+                        <button
+                            @click="nextPage"
+                            :disabled="currentPage === totalPages"
+                            class="flex-1 py-2 px-4 ml-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all flex items-center justify-center gap-2"
+                        >
+                            Next
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -366,7 +428,8 @@ onMounted(async () => {
                             <li class="flex justify-between"><span class="opacity-70">Active Network:</span> <span class="text-white">{{ Wallet.network }}</span></li>
                             <li class="flex justify-between"><span class="opacity-70">Assets Count:</span> <span class="text-white">{{ Wallet.assets.length }}</span></li>
                             <li class="flex justify-between"><span class="opacity-70">Is Loading:</span> <span class="text-amber-400">{{ Wallet.isLoading }}</span></li>
-                            <li class="flex justify-between"><span class="opacity-70">Tx Count:</span> <span class="text-white">{{ Wallet.transactions.length }}</span></li>
+                            <li class="flex justify-between"><span class="opacity-70">Total Tx Count:</span> <span class="text-white">{{ Wallet.transactions.length }}</span></li>
+                            <li class="flex justify-between"><span class="opacity-70">Current Page:</span> <span class="text-emerald-400">{{ currentPage }}</span></li>
                         </ul>
                     </div>
 
