@@ -2,20 +2,20 @@
 
 export interface IAsset {
     // Core Asset Metadata
-    id: string;                    // Unique identifier (e.g., contract tokenId or 'DASH' for native)
-    name: string;                  // Human-readable name (e.g., "Dash", "USD Coin")
-    symbol: string;                // Ticker symbol (e.g., "DASH", "USDC", "USD")
+    id: string;                    // Unique identifier (e.g. contract tokenId or 'DASH' for native)
+    name: string;                  // Human-readable name (e.g. "Dash", "USD Coin")
+    symbol: string;                // Ticker symbol (e.g. "DASH", "USDC", "USD")
     decimals: number;              // CHANGED: Replaced 'precision' with 'decimals' (Decimal places e.g., 8 for DASH)
 
     // Asset Classification
     type: 'native' | 'token' | 'stablecoin' | 'nft' | 'governance' | 'utility';
     category: 'currency' | 'stablecoin' | 'defi' | 'nft' | 'governance' | 'utility';
     network: 'mainnet' | 'testnet' | 'devnet' | string; // Allow custom networks
-    protocol?: string;             // e.g., 'DPP', 'ERC-20', 'BEP-20'
+    protocol?: string;             // e.g. 'DPP', 'ERC-20', 'BEP-20'
 
     // Balance Information
-    balance: number | string | null | undefined; // Raw amount (in smallest unit, e.g., satoshis, wei)
-    balanceFormatted: string;     // User-friendly formatted string (e.g., "1.23456789 DASH")
+    balance: number | string | null | undefined; // Raw amount (in smallest unit, e.g. satoshis, wei)
+    balanceFormatted: string;     // User-friendly formatted string (e.g. "1.23456789 DASH")
     availableBalance?: number;     // Amount available for transfers (excluding locked/staked)
     lockedBalance?: number;        // Amount locked/staked
     pendingBalance?: number;       // Pending/unconfirmed balance
@@ -68,7 +68,7 @@ export interface IAsset {
     createdAt?: Date;
     updatedAt?: Date;
     lastPriceUpdate?: Date;
-    tags?: string[];              // For filtering/categorization (e.g., ['defi', 'governance'])
+    tags?: string[];              // For filtering/categorization (e.g. ['defi', 'governance'])
 
     // Platform-specific
     platformSpecific?: {
@@ -206,7 +206,7 @@ export interface IAssetStats {
     symbol: string;
     timestamp: Date;
     priceUsd: number;
-    volume24h: number;
+    volume24h?: number;
     marketCap?: number;
 }
 
@@ -233,8 +233,7 @@ export interface IAssetMinimal {
     // Optional fields that might be useful
     asset_id?: string;
     balance?: number;
-    precision?: number; // <-- REMOVED PREFERRING DECIMALS
-    decimals?: number;  // <-- Added this explicitly
+    decimals?: number;  // <-- EXPLICITLY using decimals from Rust output
     network?: string;
 }
 

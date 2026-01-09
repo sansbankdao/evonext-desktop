@@ -52,7 +52,7 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
         id: 'credits',
         name: 'Dash Credits',
         symbol: 'CREDITS',
-        decimals: 2,
+        decimals: 2, // Fixed for Credits
         type: 'native',
         category: 'currency',
         network: this.network,
@@ -75,7 +75,7 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
         id: 'dash',
         name: 'Dash',
         symbol: 'DASH',
-        decimals: 8,
+        decimals: 8, // Fixed for DASH
         type: 'native',
         category: 'currency',
         network: this.network,
@@ -121,15 +121,25 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
                     try {
                         balance = await fetchTokenBalance(identityId, contractId, this.network)
 
-                        // Extract decimals
+                        // FIX: Extract decimals
                         // Rust struct AssetDefinition uses snake_case 'decimals: Option<u8>'
                         // IAssetMinimal maps to 'decimals?: number'
 
+                        // Safe access to decimals, default to 18 if missing
                         const decimalPlaces = assetDef.decimals || 18
 
-                        const divisor = BigInt(10 ** decimalPlaces)
+                        // Safety: Ensure decimalPlaces is finite number
+                        const validDecimals = Number.isFinite(decimalPlaces) && decimalPlaces > 0 ? decimalPlaces : 18
+
+                        const divisor = BigInt(10 ** validDecimals)
                         const whole = balance / divisor
-                        balanceFormatted = whole.toString()
+
+                        // Format as number for balanceFormatted to avoid weird scientific notation
+                        const numVal = Number(whole)
+                        balanceFormatted = numVal.toLocaleString(undefined, {
+                            minimumFractionDigits: validDecimals > 2 ? 2 : validDecimals,
+                            maximumFractionDigits: validDecimals
+                        })
                     } catch (err) {
                         console.error(`Failed to fetch balance for ${assetDef.symbol}:`, err)
                     }
@@ -139,11 +149,11 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
                     id: contractId,
                     name: assetDef.name,
                     symbol: assetDef.symbol,
-                    decimals: assetDef.decimals || 18,
+                    decimals: assetDef.decimals || 18, // Ensure consistent usage
                     type: 'token',
                     category: 'utility',
                     network: this.network,
-                    balance: balance.toString(),
+                    balance: balance.toString(), // Keep balance as string or number
                     balanceFormatted: balanceFormatted,
                     verified: true,
                     blocked: false,
@@ -242,8 +252,13 @@ export async function fetchRealTransactions(this: ReturnType<typeof useWalletSto
                 title = isSender ? `Sent ${assetSymbol}` : `Received ${assetSymbol}`
 
                 const rawAmount = tx.amount || tx.value || 0
-                // Use formatTokenAmount for tokens
-                const decimals = tx.decimals || 8 // Fallback if not in tx
+
+                // Determine decimals for formatting.
+                // 1. Check if token exists in our discovered list.
+                // 2. Use decimals from discovery result.
+                const discoveredAsset = this.assets.find(a => a.symbol === assetSymbol)
+                const decimals = discoveredAsset?.decimals || 8 // Fallback to 8 (DASH) if unknown
+
                 amountFormatted = formatTokenAmount(rawAmount, assetSymbol, decimals, false)
             }
 
