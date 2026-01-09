@@ -5,7 +5,7 @@ export interface IAsset {
     id: string;                    // Unique identifier (e.g. contract tokenId or 'DASH' for native)
     name: string;                  // Human-readable name (e.g. "Dash", "USD Coin")
     symbol: string;                // Ticker symbol (e.g. "DASH", "USDC", "USD")
-    decimals: number;              // CHANGED: Replaced 'precision' with 'decimals' (Decimal places e.g., 8 for DASH)
+    decimals: number;              // Decimal places (e.g., 8 for DASH)
 
     // Asset Classification
     type: 'native' | 'token' | 'stablecoin' | 'nft' | 'governance' | 'utility';

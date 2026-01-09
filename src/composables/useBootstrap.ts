@@ -1,5 +1,5 @@
 // src/composables/useBootstrap.ts
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
 

@@ -5,7 +5,7 @@ import { ErrorBoundary, NetworkError } from '@/utils/errors'
 import { getPlatformEndpoint, PLATFORM_HTTP_API_MAINNET, PLATFORM_HTTP_API_TESTNET } from '@/utils/env'
 
 /* Import types. */
-import type { IdentityTransfer, TokenTransition, ApiResponse } from '@/types/wallet'
+import type { IdentityTransfer, TokenTransition, ApiResponse } from '@/types'
 
 /**
  * Fetches identity transactions (history) from the 3rd party Explorer API

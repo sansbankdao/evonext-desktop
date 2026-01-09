@@ -65,7 +65,7 @@ const displayBalance = computed(() => {
         const numericBalance = Number(asset.balance)
         const fullDashBalance = numericBalance / 100_000_000_000
 
-        // Format with up to 8 decimal places to ensure precision is visible (like Dash)
+        // Format with up to 8 decimal places to ensure decimals is visible (like Dash)
         return fullDashBalance.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 8

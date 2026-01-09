@@ -155,7 +155,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+// import { useRouter } from 'vue-router'
 import { useIdentityStore } from '@/stores/identity'
 import { useSystemStore } from '@/stores/system'
 import { usePosts } from '@/composables/usePosts'
@@ -169,7 +169,7 @@ import PendingMessages from '@/components/home/PendingMessages.vue'
 
 const identityStore = useIdentityStore()
 const systemStore = useSystemStore()
-const router = useRouter()
+// const router = useRouter()
 
 // Initialize Posts Composable
 const postsComposable = usePosts()
@@ -219,7 +219,7 @@ const formatCurrency = (value: number) => {
 const getFallbackAvatar = (username: string | undefined) => {
     const name = username || 'Me'
     // return `https://www.gravatar.com/avatar/${encodeURIComponent(name)}?s=200&d=404&rating=g`
-    return `https://ui-avatars.com/api/?name=Me&background=random`
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
 }
 
 const handlePostRefresh = async () => {

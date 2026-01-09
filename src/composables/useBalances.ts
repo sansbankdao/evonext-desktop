@@ -23,7 +23,7 @@ export function useBalances() {
             // This satisfies the type system without needing a non-existent SDK method
             const tokenBalances: TokenBalance[] = assets.map(asset => {
                 // Convert decimal balance to atomic (bigint) for internal processing
-                const factor = BigInt(10 ** (asset.precision || 8))
+                const factor = BigInt(10 ** (asset.decimals || 8))
                 const atomicBalance = BigInt(Math.floor(asset.balance as number)) * factor
 
                 return {
@@ -31,7 +31,7 @@ export function useBalances() {
                     balance: atomicBalance.toString(),
                     amount: Number(atomicBalance), // FIXME
                     symbol: asset.symbol,
-                    decimals: asset.precision
+                    decimals: asset.decimals
                 }
             })
 
