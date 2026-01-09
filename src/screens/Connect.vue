@@ -24,21 +24,21 @@
         <SecurityWarning />
 
         <!-- Form Container -->
-        <!-- IMPORTANT: Removed @submit.prevent here to let the form bubble up from Components -->
         <form class="space-y-6" @submit.prevent="handleGlobalSubmit">
 
           <!-- Seed Phrase Form -->
           <div v-if="connectionMethod === 'seed'">
-            <!-- UPDATED: Added @submit and @validate listeners -->
             <ConnectSeedForm
               v-model:wordCount="seedWordCount"
               v-model:seedWords="seedWords"
               v-model:manual-identity-id="manualIdentityId"
               @paste="handlePaste"
+              @discover-identity="startSeedDiscovery"
               @submit="handleConnect"
               @validate="handleValidationStatus"
             />
-            <!-- ... existing progress/error views ... -->
+
+             <!-- Seed Discovery Status (Loading) -->
              <div v-if="isSearchingSeed" class="text-center py-4">
                 <div class="inline-flex items-center gap-2 text-cyan-600 dark:text-cyan-400">
                     <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -48,6 +48,7 @@
                     <span class="text-sm">{{ discoveryStatus }}</span>
                 </div>
             </div>
+
              <!-- PROGRESS DISPLAY -->
              <div v-if="discoveryProgress" class="mt-6 p-4 bg-gradient-to-r from-slate-50 to-cyan-50 dark:from-slate-800 dark:to-cyan-900/10 rounded-xl border border-slate-200 dark:border-slate-700">
                  <div class="flex items-center justify-between mb-4">
@@ -98,6 +99,7 @@
                     </div>
                 </div>
             </div>
+
             <!-- Seed Discovery Results -->
             <div v-if="seedDiscoveryResults.length > 0" class="mt-4 space-y-3">
                 <div class="flex items-center justify-between mb-2">
@@ -139,6 +141,7 @@
                     </div>
                 </div>
             </div>
+
             <!-- Seed Discovery Error -->
             <div v-if="seedDiscoveryError" class="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                 <p class="text-sm text-red-600 dark:text-red-400">{{ seedDiscoveryError }}</p>
@@ -259,25 +262,17 @@ const {
     useManualIdentity,
     handleConnect,
     initialize,
-    cleanup
+    cleanup,
+    // Exposed specifically to be called on 'discover-identity' event
+    startSeedDiscovery
 } = useConnect()
 
-// NEW: Handle the validation event from the form
 const handleValidationStatus = (valid: boolean) => {
-    // We can override or augment isFormValid logic here if needed
-    // But primarily, useConnect already manages the logic.
-    // This is useful if you want to update local UI state or logs.
     console.log('Validation status update:', valid)
 }
 
-// NEW: Handle global form submission
 const handleGlobalSubmit = () => {
-    // The Connect button submits the <form>.
-    // This handler is a safety net or if the form itself is submitted.
     if (!isFormValid.value) return
-
-    // If it's a seed form, usually Enter key triggers 'submit' directly from ConnectSeedForm
-    // This ensures the button click also works.
     handleConnect()
 }
 

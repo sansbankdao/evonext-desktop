@@ -325,6 +325,8 @@ export function useConnect() {
         handleConnect,
         initialize,
         cleanup,
-        switchIdentity
+        switchIdentity,
+        // ADDED: Explicitly return startSeedDiscovery
+        startSeedDiscovery
     }
 }
