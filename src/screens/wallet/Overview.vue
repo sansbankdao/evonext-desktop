@@ -88,16 +88,20 @@ const getStatusClasses = (status: string) => {
 
 const getIconSrc = (symbol: string) => {
     const lower = symbol.toLowerCase()
-    if (lower === 'credits') {
+    // Handle testnet prefixes
+    const cleanSymbol = lower.startsWith('t') ? lower.substring(1) : lower
+    if (cleanSymbol === 'credits') {
         return '/icons/dash.svg'
     }
-    return `/icons/${lower}.svg`
+    return `/icons/${cleanSymbol}.svg`
 }
 
 const assetIconExists = (symbol: string) => {
     const lower = symbol.toLowerCase()
+    // Handle testnet prefixes (tSANS -> sans, tDUSD -> dusd)
+    const cleanSymbol = lower.startsWith('t') ? lower.substring(1) : lower
     const commonIcons = ['dash', 'sans', 'dusd']
-    return commonIcons.includes(lower) || lower === 'credits'
+    return commonIcons.includes(cleanSymbol) || lower === 'credits'
 }
 
 const forceRefresh = async () => {

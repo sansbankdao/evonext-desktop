@@ -355,8 +355,8 @@ pub fn fetch_identity_tokens(app_handle: AppHandle<Wry>, identity_id: String, ne
     }
 
     // Save to cache
-    let filename = get_network_file(&network, "tokens")?;
-    match manager.save(filename, "tokens", &new_assets) {
+    let filename = get_network_file(&network, "assets")?;
+    match manager.save(filename, "assets", &new_assets) {
         Ok(_) => println!("✅ [fetch_identity_tokens] Saved {} tokens to local cache.", new_assets.len()),
         Err(e) => println!("⚠️  [fetch_identity_tokens] Failed to save cache: {}", e),
     }

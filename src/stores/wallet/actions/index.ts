@@ -98,13 +98,27 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
         }
         if (storedAssets && Array.isArray(storedAssets)) {
             console.log(`📦 [wallet] Retrieved ${storedAssets.length} assets from Explorer`)
+
             for (const assetDef of storedAssets) {
                 console.log(`📦 [wallet] Processing asset:`, JSON.stringify(assetDef, null, 2))
+
                 let balance = BigInt(0)
                 let balanceFormatted = '0.00'
-                // EXTRACT: Contract ID and Decimals
+
+                // Keep the symbol exactly as returned from Rust (could be tSANS, tDUSD, SANS, DUSD)
+                const symbol = assetDef.symbol || ''
                 const rawContractId = assetDef.asset_id || ''
-                const decimalPlaces = assetDef.decimals || 8 // Default to 8, not 18
+
+                // Determine decimals based on symbol (testnet vs mainnet)
+                let decimalPlaces = assetDef.decimals || 8 // Default 8
+
+                // Check for DUSD/DASH USD (6 decimals) or tDUSD (6 decimals)
+                if (symbol.toUpperCase() === 'DUSD' || symbol.toUpperCase() === 'TDUSD') {
+                    decimalPlaces = 6
+                } else if (symbol.toUpperCase() === 'SANS' || symbol.toUpperCase() === 'TSANS') {
+                    decimalPlaces = 8
+                }
+
                 // EXTRACT: Balance from Rust
                 if (assetDef.balance !== undefined && assetDef.balance !== null) {
                     try {
@@ -113,26 +127,30 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
                         const divisor = BigInt(10 ** decimalPlaces)
                         const whole = balance / divisor
                         const remainder = balance % divisor
+
                         // Convert to Number for formatting
                         const wholeNum = Number(whole)
                         const remainderStr = remainder.toString().padStart(decimalPlaces, '0')
                         const trimmedRemainder = remainderStr.replace(/0+$/, '')
+
                         if (trimmedRemainder === '') {
-                            balanceFormatted = `${wholeNum.toLocaleString()}`
+                            balanceFormatted =`${wholeNum.toLocaleString()}`
                         } else {
-                            balanceFormatted = `${wholeNum.toLocaleString()}.${trimmedRemainder}`
+                            balanceFormatted =`${wholeNum.toLocaleString()}.${trimmedRemainder}`
                         }
                     } catch (err) {
-                        console.error(`[wallet] Failed to parse balance for ${assetDef.symbol}:`, err)
+                        console.error(`[wallet] Failed to parse balance for ${symbol}:`, err)
                         console.error(`[wallet] Balance value was:`, assetDef.balance)
                         balanceFormatted = '0.00'
                     }
                 } else {
-                    console.warn(`[wallet] Asset ${assetDef.symbol} has no balance field`)
+                    console.warn(`[wallet] Asset ${symbol} has no balance field`)
                 }
-                // Calculate USD value based on symbol
+
+                // Calculate USD value based on symbol (case-insensitive)
                 let usdValue = 0
-                const symbolUpper = (assetDef.symbol || '').toUpperCase()
+                const symbolUpper = symbol.toUpperCase()
+
                 if (symbolUpper === 'DUSD' || symbolUpper === 'TDUSD') {
                     // DUSD is $1.00 stablecoin
                     const balanceNum = Number(balance) / (10 ** decimalPlaces)
@@ -142,12 +160,17 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
                     const balanceNum = Number(balance) / (10 ** decimalPlaces)
                     usdValue = balanceNum * 0.16
                 }
+
+                // Format a nice display name (remove 't' prefix for display if present)
+                let displayName = assetDef.name || symbol
+
                 // Ensure we have an asset_id for the id field
-                const assetId = rawContractId || `token-${(assetDef.symbol || '').toLowerCase()}`
+                const assetId = rawContractId || `token-${symbol.toLowerCase()}`
+
                 newAssets.push({
                     id: assetId,
-                    name: assetDef.name || 'Unknown Token',
-                    symbol: assetDef.symbol || 'UNKNOWN',
+                    name: displayName,
+                    symbol: symbol, // Keep original symbol (tSANS or SANS)
                     decimals: decimalPlaces,
                     type: 'token',
                     category: 'utility',
@@ -164,8 +187,6 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
                     usdValue: usdValue
                 })
             }
-        } else {
-            console.warn(`⚠️ [wallet:refreshBalances] fetch_identity_tokens returned non-array or null:`, storedAssets)
         }
     } catch (err) {
         console.error('🚨 [wallet:refreshBalances] Failed to discover assets:', err)
