@@ -16,6 +16,8 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
             // Assets
+            commands::asset_commands::discover_assets,
+            commands::asset_commands::fetch_identity_tokens,
             commands::asset_commands::load_assets,
             commands::asset_commands::save_assets,
             commands::asset_commands::delete_assets,

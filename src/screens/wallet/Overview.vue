@@ -102,7 +102,17 @@ const assetIconExists = (symbol: string) => {
 
 const forceRefresh = async () => {
     currentPage.value = 1 // Reset to page 1 on refresh
+    // Clear debug status
+    const debugEl = document.getElementById('asset-fetch-status')
+    if (debugEl) debugEl.textContent = 'Refreshing...'
     await Wallet.refreshBalances()
+    // Update debug panel with results
+    const assetCount = Wallet.assets.length
+    const hasDUSD = Wallet.assets.filter(a => a.symbol === 'DUSD' || a.symbol === 'tDUSD').length > 0
+    const hasSANS = Wallet.assets.filter(a => a.symbol === 'SANS' || a.symbol === 'tSANS').length > 0
+    if (debugEl) {
+        debugEl.textContent = `Complete: ${assetCount} assets, DUSD: ${hasDUSD ? 'YES' : 'NO'}, SANS: ${hasSANS ? 'YES' : 'NO'}`
+    }
 }
 
 onMounted(async () => {
@@ -410,7 +420,6 @@ onMounted(async () => {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
                 </div>
-
                 <div v-if="isDebugOpen" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 text-xs font-mono">
                     <div class="bg-black/50 p-4 rounded border border-slate-700">
                         <p class="font-bold text-slate-300 mb-2 border-b border-slate-700 pb-1">Identity Store State</p>
@@ -421,7 +430,6 @@ onMounted(async () => {
                             <li class="flex justify-between"><span class="opacity-70">Balance (Raw):</span> <span class="text-white">{{ Identity.balance }}</span></li>
                         </ul>
                     </div>
-
                     <div class="bg-black/50 p-4 rounded border border-slate-700">
                         <p class="font-bold text-slate-300 mb-2 border-b border-slate-700 pb-1">Wallet Store State</p>
                         <ul class="space-y-1 text-slate-400">
@@ -432,30 +440,46 @@ onMounted(async () => {
                             <li class="flex justify-between"><span class="opacity-70">Current Page:</span> <span class="text-emerald-400">{{ currentPage }}</span></li>
                         </ul>
                     </div>
-
-                    <div class="col-span-1 md:col-span-2 bg-black/50 p-4 rounded border border-slate-700 overflow-x-auto">
-                        <p class="font-bold text-slate-300 mb-2 border-b border-slate-700 pb-1">First Asset (Raw JSON)</p>
-                        <pre class="text-slate-400">{{ JSON.stringify(Wallet.assets[0], null, 2) }}</pre>
-                    </div>
-
                     <div class="bg-black/50 p-4 rounded border border-slate-700">
-                        <p class="font-bold text-slate-300 mb-2 border-b border-slate-700 pb-1">Asset Fetch Status</p>
+                        <p class="font-bold text-slate-300 mb-2 border-b border-slate-700 pb-1">Token Fetch Debug</p>
                         <ul class="space-y-1 text-slate-400">
                             <li class="flex justify-between">
-                                <span class="opacity-70">Assets Count:</span>
+                                <span class="opacity-70">Total Assets:</span>
                                 <span class="text-white">{{ Wallet.assets.length }}</span>
                             </li>
                             <li class="flex justify-between">
-                                <span class="opacity-70">Has DUSD/SANS:</span>
-                                <span class="text-white">{{
-                                    Wallet.assets.filter(a => a.symbol === 'DUSD' || a.symbol === 'SANS').length > 0 ? 'YES' : 'NO'
-                                }}</span>
+                                <span class="opacity-70">Has DUSD:</span>
+                                <span :class="Wallet.assets.filter(a => a.symbol.toUpperCase() === 'DUSD' || a.symbol.toUpperCase() === 'TDUSD').length > 0 ? 'text-emerald-400' : 'text-red-400'">
+                                    {{ Wallet.assets.filter(a => a.symbol.toUpperCase() === 'DUSD' || a.symbol.toUpperCase() === 'TDUSD').length > 0 ? 'YES' : 'NO' }}
+                                </span>
                             </li>
                             <li class="flex justify-between">
-                                <span class="opacity-70">Last Asset Fetch:</span>
-                                <span class="text-white" id="asset-fetch-status">Not Attempted</span>
+                                <span class="opacity-70">Has SANS:</span>
+                                <span :class="Wallet.assets.filter(a => a.symbol.toUpperCase() === 'SANS' || a.symbol.toUpperCase() === 'TSANS').length > 0 ? 'text-emerald-400' : 'text-red-400'">
+                                    {{ Wallet.assets.filter(a => a.symbol.toUpperCase() === 'SANS' || a.symbol.toUpperCase() === 'TSANS').length > 0 ? 'YES' : 'NO' }}
+                                </span>
+                            </li>
+                            <li class="flex justify-between">
+                                <span class="opacity-70">Asset Symbols:</span>
+                                <span class="text-white">{{ Wallet.assets.map(a => a.symbol).join(', ') || 'None' }}</span>
+                            </li>
+                            <li class="flex justify-between">
+                                <span class="opacity-70">Asset IDs:</span>
+                                <span class="text-white text-xs">{{ Wallet.assets.map(a => a.id).slice(0, 3).join(', ') || 'None' }}</span>
+                            </li>
+                            <li class="flex justify-between">
+                                <span class="opacity-70">Token Assets:</span>
+                                <span class="text-white">{{ Wallet.assets.filter(a => a.type === 'token').length }}</span>
+                            </li>
+                            <li class="flex justify-between">
+                                <span class="opacity-70">Native Assets:</span>
+                                <span class="text-white">{{ Wallet.assets.filter(a => a.type === 'native').length }}</span>
                             </li>
                         </ul>
+                    </div>
+                    <div class="col-span-1 md:col-span-2 bg-black/50 p-4 rounded border border-slate-700 overflow-x-auto">
+                        <p class="font-bold text-slate-300 mb-2 border-b border-slate-700 pb-1">All Assets (Raw JSON)</p>
+                        <pre class="text-slate-400 text-xs max-h-64 overflow-auto">{{ JSON.stringify(Wallet.assets, null, 2) }}</pre>
                     </div>
                 </div>
             </div>
