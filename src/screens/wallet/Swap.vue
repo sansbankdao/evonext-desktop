@@ -12,9 +12,18 @@ const rates: Record<string, number> = {
     'DASH_DUSD': 24.50, 'DUSD_DASH': 1 / 24.50,
     'DASH_SANS': 95.80, 'SANS_DASH': 1 / 95.80,
     'DUSD_SANS': 3.91, 'SANS_DUSD': 1 / 3.91,
+
+    // Bitcoin Cash Rates (Added)
+    'DASH_BCH': 0.02, 'BCH_DASH': 50.00,
+    'DUSD_BCH': 0.0008, 'BCH_DUSD': 1250.00,
+    'SANS_BCH': 0.0002, 'BCH_SANS': 5000.00,
+
+    // Swap to/from BCH rates are symmetric for this mock
+    // If the logic required distinct rates, entries like 'BCH_DASH' vs 'DASH_BCH' are provided above
 }
 
 // --- Component State ---
+// Safe initialization checks to prevent undefined crashes
 const fromAssetTicker = ref(Wallet.assets[0]?.symbol ?? 'DASH')
 const toAssetTicker = ref(Wallet.assets[1]?.symbol ?? 'DUSD')
 const fromAmount = ref<number | null>(null)
@@ -48,7 +57,9 @@ const rateDisplay = computed(() => {
 watch(fromAssetTicker, (newTicker) => {
     // Ensure we don't have same assets selected
     if (newTicker === toAssetTicker.value) {
-        toAssetTicker.value = availableToAssets.value[0]?.symbol ?? ''
+        // Handle case where filter results in empty array gracefully
+        const firstAvailable = availableToAssets.value[0]?.symbol
+        toAssetTicker.value = firstAvailable ?? ''
     }
     calculateToAmount()
 })
@@ -79,10 +90,14 @@ const calculateFromAmount = () => {
 }
 
 const validateBalance = () => {
-    if (fromAsset.value && fromAmount.value && fromAmount.value > (fromAsset.value.balance as number)) {
-        error.value = `Insufficient ${fromAsset.value.symbol} balance.`
-    } else {
-        error.value = null
+    // Fix: balance is now string | number, so we cast to number for math
+    if (fromAsset.value && fromAmount.value) {
+        const balance = Number(fromAsset.value.balance)
+        if (fromAmount.value > balance) {
+            error.value = `Insufficient ${fromAsset.value.symbol} balance.`
+        } else {
+            error.value = null
+        }
     }
 }
 
@@ -177,7 +192,7 @@ onMounted(async () => {
                                     You Pay
                                 </label>
                                 <span class="text-xs font-medium text-slate-500 dark:text-slate-400">
-                                    Bal: {{ fromAsset?.balance?.toLocaleString(undefined, {maximumFractionDigits: 4}) ?? 0 }}
+                                    Bal: {{ fromAsset ? Number(fromAsset.balance).toLocaleString(undefined, {maximumFractionDigits: 6}) : '0' }}
                                 </span>
                             </div>
                             <div class="flex items-center justify-between gap-4">
@@ -193,6 +208,7 @@ onMounted(async () => {
                                         v-model="fromAssetTicker"
                                         class="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-xl pl-3 pr-8 py-2 font-bold text-slate-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                                     >
+                                        <option value="BCH">BCH</option>
                                         <option v-for="asset in Wallet.assets" :key="asset.symbol" :value="asset.symbol">
                                             {{ asset.symbol }}
                                         </option>
@@ -211,7 +227,7 @@ onMounted(async () => {
                                 @click="flipAssets"
                                 class="relative z-10 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-sm hover:shadow-md hover:scale-110 active:scale-95 transition-all duration-200 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
                             >
-                                <svg class="w-5 h-5 transition-transform duration-300" :class="{ 'rotate-180': false }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-5 h-5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 12l-4-4m4 4l4-4m6 8v-12m0 12l-4-4m4 4l4-4" />
                                 </svg>
                             </button>
@@ -224,7 +240,7 @@ onMounted(async () => {
                                     You Receive
                                 </label>
                                 <span class="text-xs font-medium text-slate-500 dark:text-slate-400">
-                                    Bal: {{ toAsset?.balance?.toLocaleString(undefined, {maximumFractionDigits: 4}) ?? 0 }}
+                                    Bal: {{ toAsset ? Number(toAsset.balance).toLocaleString(undefined, {maximumFractionDigits: 6}) : '0' }}
                                 </span>
                             </div>
                             <div class="flex items-center justify-between gap-4">
@@ -240,6 +256,7 @@ onMounted(async () => {
                                         v-model="toAssetTicker"
                                         class="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-xl pl-3 pr-8 py-2 font-bold text-slate-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                                     >
+                                        <option value="BCH" :disabled="fromAssetTicker === 'BCH'">BCH</option>
                                         <option v-for="asset in availableToAssets" :key="asset.symbol" :value="asset.symbol">
                                             {{ asset.symbol }}
                                         </option>
