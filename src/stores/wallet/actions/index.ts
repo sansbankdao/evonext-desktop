@@ -1,53 +1,42 @@
-// src/stores/wallet/actions/index.ts
 /* Import modules. */
 import { invoke } from '@tauri-apps/api/core'
 import { useWalletStore } from '../index'
 import { useIdentityStore } from '@/stores/identity'
 import { useSystemStore } from '@/stores/system'
-import { fetchIdentityTransactions, fetchTokenBalance } from './api'
-import { formatDashAmount, formatTokenAmount } from './utils'
+import { fetchIdentityTransactions } from './api'
+import { formatDashAmount } from './utils'
 import type { IAsset, ITransaction } from '@/types'
 import type { IAssetMinimal } from '@/types/assets'
 import type { Network } from '@/composables/useNetwork'
-
 /**
  * Orchestrates fetching all balances (Native + Tokens)
  */
 export async function refreshBalances(this: ReturnType<typeof useWalletStore>, network?: Network) {
     const identityStore = useIdentityStore()
     const systemStore = useSystemStore()
-
     if (!identityStore.isConnected) {
         console.warn('Cannot refresh balances: Identity not connected')
         return
     }
-
     // Update store state if network is provided
     if (network) {
         this.network = network
     }
-
     this.isLoading = true
-
     // FIX: Use .identityId instead of .id
     const identityId = identityStore.identity?.identityId || identityStore.identityId
-
     if (!identityId) {
         console.error('Cannot refresh balances: No Identity ID found in store.')
         this.isLoading = false
         return
     }
-
     console.log(`🔄 Refreshing balances for ID: ${identityId} on ${this.network}`)
-
     // 1. Initialize Asset List with Native Dash/Credits
     const newAssets: IAsset[] = []
-
     // Add Credits (Native)
     const creditBalance = identityStore.balance && !isNaN(Number(identityStore.balance))
         ? Number(identityStore.balance)
         : 0
-
     newAssets.push({
         id: 'credits',
         name: 'Dash Credits',
@@ -66,11 +55,9 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
         isOwned: true,
         usdValue: 0
     })
-
     // Add DASH (Layer 1 representation)
     // 1 Dash = 100,000,000 duffs = 100,000,000,000 credits
     const dashAmount = creditBalance / 100000000000
-
     newAssets.push({
         id: 'dash',
         name: 'Dash',
@@ -89,71 +76,48 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
         isOwned: true,
         usdValue: dashAmount * (systemStore.currentDashPrice || 0)
     })
-
     try {
-        // 2. Load Custom Assets via Discovery (Rust Command)
-        const storedAssets = await invoke<IAssetMinimal[]>('discover_assets', {
+        // 2. Load Custom Assets via NEW Rust Command (fetch_identity_tokens)
+        // This command fetches from Explorer API and returns balance strings & decimals
+        const storedAssets = await invoke<IAssetMinimal[]>('fetch_identity_tokens', {
+            identityId,
             network: this.network
         })
-
         if (storedAssets && Array.isArray(storedAssets)) {
-            console.log(`📦 Discovered ${storedAssets.length} assets on ${this.network}`)
-
+            console.log(`📦 Retrieved ${storedAssets.length} assets from Explorer`)
             for (const assetDef of storedAssets) {
                 let balance = BigInt(0)
                 let balanceFormatted = '0.00'
-                let contractId = ''
-
-                // EXTRACT CONTRACT ID from Discovery Result
-                // The Rust command returns 'asset_id' which holds the Contract ID
-                // IAssetMinimal maps to this via asset_id?: string
+                // EXTRACT: Contract ID and Decimals
                 const rawContractId = assetDef.asset_id || ''
-
-                if (rawContractId) {
-                    contractId = rawContractId
-                } else {
-                    // Fallback if missing ID
-                    contractId = `${assetDef.symbol}-${identityId}`
-                }
-
-                // Verify we found an ID before trying to fetch balance
-                if (contractId && contractId.length > 10) {
+                const decimalPlaces = assetDef.decimals || 18
+                // EXTRACT: Balance from Rust
+                // The command now returns `balance: Option<u64>` in the struct
+                if (assetDef.balance) {
                     try {
-                        balance = await fetchTokenBalance(identityId, contractId, this.network)
-
-                        // FIX: Extract decimals
-                        // Rust struct AssetDefinition uses snake_case 'decimals: Option<u8>'
-                        // IAssetMinimal maps to 'decimals?: number'
-
-                        // Safe access to decimals, default to 18 if missing
-                        const decimalPlaces = assetDef.decimals || 18
-
-                        // Safety: Ensure decimalPlaces is finite number
-                        const validDecimals = Number.isFinite(decimalPlaces) && decimalPlaces > 0 ? decimalPlaces : 18
-
-                        const divisor = BigInt(10 ** validDecimals)
+                        balance = BigInt(assetDef.balance)
+                        // Format using the correct decimals
+                        const divisor = BigInt(10 ** decimalPlaces)
                         const whole = balance / divisor
-
-                        // Format as number for balanceFormatted to avoid weird scientific notation
+                        // Convert to Number for formatting to avoid weird scientific notation
                         const numVal = Number(whole)
                         balanceFormatted = numVal.toLocaleString(undefined, {
-                            minimumFractionDigits: validDecimals > 2 ? 2 : validDecimals,
-                            maximumFractionDigits: validDecimals
+                            minimumFractionDigits: decimalPlaces > 2 ? 2 : decimalPlaces,
+                            maximumFractionDigits: decimalPlaces
                         })
                     } catch (err) {
-                        console.error(`Failed to fetch balance for ${assetDef.symbol}:`, err)
+                        console.error(`Failed to parse balance for ${assetDef.symbol}:`, err)
                     }
                 }
-
                 newAssets.push({
-                    id: contractId,
+                    id: assetDef.asset_id!,
                     name: assetDef.name,
                     symbol: assetDef.symbol,
-                    decimals: assetDef.decimals || 18, // Ensure consistent usage
+                    decimals: decimalPlaces, // Explicitly use decimals
                     type: 'token',
                     category: 'utility',
                     network: this.network,
-                    balance: balance.toString(), // Keep balance as string or number
+                    balance: balance.toString(),
                     balanceFormatted: balanceFormatted,
                     verified: true,
                     blocked: false,
@@ -161,76 +125,62 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
                     divisible: true,
                     ownerIdentityId: identityId,
                     isOwned: true,
-                    contractId: contractId
+                    contractId: rawContractId,
+                    usdValue: 0 // Calculate later if needed
                 })
             }
         }
     } catch (err) {
         console.error('Failed to discover assets:', err)
     }
-
     this.assets = newAssets
     console.log(`✅ Assets updated. Total: ${newAssets.length}`)
-
     // 3. Fetch Transactions
     await this.fetchRealTransactions()
     this.isLoading = false
 }
-
 export async function fetchLiveBalances(this: ReturnType<typeof useWalletStore>) {
     await this.refreshBalances()
 }
-
 /**
  * Fetches transactions from the Explorer API
  */
 export async function fetchRealTransactions(this: ReturnType<typeof useWalletStore>, limit: number = 20) {
     const identityStore = useIdentityStore()
-
     // FIX: Use .identityId instead of .id
     const identityId = identityStore.identity?.identityId || identityStore.identityId
-
     if (!identityId) {
         console.warn('Cannot fetch transactions: No Identity ID')
         return
     }
-
     try {
-        console.log(`🕵️ Fetching transactions for ${identityId} on ${this.network} from Explorer...`)
+        console.log(`🕵️  Fetching transactions for ${identityId} on ${this.network} from Explorer...`)
         const explorerTxs = await fetchIdentityTransactions(identityId, limit, this.network)
-
         console.log(`✅ Explorer returned ${explorerTxs.length} transactions`)
-
         // Map Explorer format to ITransaction UI format
         this.transactions = explorerTxs.map((tx: any): ITransaction => {
             const isSender = tx.sender === identityId
             const isRecipient = tx.recipient === identityId
-
             let title = 'Transaction'
             let subtitle = new Date(tx.timestamp).toLocaleString()
             let amountFormatted = '0'
             let type: any = 'UNKNOWN'
             let status: 'Completed' | 'Pending...' | 'Failed' = 'Completed'
-
             // Calculate Direction
             let direction: 'INCOMING' | 'OUTGOING' | 'SELF' = 'SELF'
             if (isSender && !isRecipient) direction = 'OUTGOING'
             if (!isSender && isRecipient) direction = 'INCOMING'
-
-            // FIX: Initialize assetSymbol based on the transaction data
+            // Initialize assetSymbol based on transaction data
             let assetSymbol = 'CREDITS'
             let assetType: 'COIN' | 'TOKEN' = 'COIN'
-
-            // If the transaction payload contains symbol info (like from the token list)
+            // If transaction payload contains symbol info
             if (tx.token && tx.token.symbol) {
                 assetSymbol = tx.token.symbol
                 assetType = 'TOKEN'
             } else if (tx.symbol) {
-                 // Or if it's just a flat property
                 assetSymbol = tx.symbol
                 assetType = 'TOKEN'
             }
-
             // FIX: Correct if syntax
             if (tx.type === 'IDENTITY_CREDIT_TRANSFER') {
                 type = 'IDENTITY_CREDIT_TRANSFER'
@@ -250,21 +200,19 @@ export async function fetchRealTransactions(this: ReturnType<typeof useWalletSto
                 // Generic Token Transfer
                 type = 'DATA_CONTRACT_TRANSFER'
                 title = isSender ? `Sent ${assetSymbol}` : `Received ${assetSymbol}`
-
                 const rawAmount = tx.amount || tx.value || 0
-
-                // Determine decimals for formatting.
+                // Determine decimals for formatting
                 // 1. Check if token exists in our discovered list.
                 // 2. Use decimals from discovery result.
                 const discoveredAsset = this.assets.find(a => a.symbol === assetSymbol)
                 const decimals = discoveredAsset?.decimals || 8 // Fallback to 8 (DASH) if unknown
-
-                amountFormatted = formatTokenAmount(rawAmount, assetSymbol, decimals, false)
+                amountFormatted = `${Number(rawAmount).toLocaleString(undefined, {
+                    minimumFractionDigits: decimals > 2 ? 2 : decimals,
+                    maximumFractionDigits: decimals
+                })} ${assetSymbol}`
             }
-
-            // FIX: Explorer API uses 'txHash'
+            // FIX: Explorer API uses 'txHash' or 'hash'
             const txHash = tx.txHash || tx.hash || ''
-
             return {
                 id: txHash,
                 hash: txHash,
@@ -285,7 +233,6 @@ export async function fetchRealTransactions(this: ReturnType<typeof useWalletSto
                 network: this.network
             }
         })
-
         console.log(`✅ Mapped ${this.transactions.length} transactions for UI`)
     } catch (err) {
         console.error('Failed to fetch real transactions:', err)

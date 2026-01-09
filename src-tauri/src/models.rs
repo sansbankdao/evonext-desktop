@@ -18,7 +18,7 @@ pub struct AssetDefinition {
     pub identity_id: String,
     pub name: String,
     pub symbol: String,
-    // FIXED: Explicit rename to match TypeScript interface IAssetMinimal.asset_id
+    pub balance: Option<u64>,
     #[serde(default, rename = "asset_id")]
     pub asset_id: Option<String>,
     #[serde(default)]
