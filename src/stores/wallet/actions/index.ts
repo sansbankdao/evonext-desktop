@@ -77,12 +77,22 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
         usdValue: dashAmount * (systemStore.currentDashPrice || 0)
     })
     try {
+        console.log(`📡 [debug] Calling fetch_identity_tokens with REQUIRED identityId: ${identityId}, network: ${this.network}`)
+
         // 2. Load Custom Assets via NEW Rust Command (fetch_identity_tokens)
         // This command fetches from Explorer API and returns balance strings & decimals
         const storedAssets = await invoke<IAssetMinimal[]>('fetch_identity_tokens', {
-            identityId,
+            identityId: identityId, // Explicitly pass as string
             network: this.network
+        }).catch(err => {
+            console.error('❌ [debug] Tauri invoke ERROR:', err)
+            console.error('❌ [debug] Error details:', JSON.stringify(err, null, 2))
+            return []
         })
+
+        console.log(`📦 [debug] fetch_identity_tokens success! Returned:`, storedAssets)
+        console.log(`📦 [debug] Number of assets: ${storedAssets?.length || 0}`)
+
         if (storedAssets && Array.isArray(storedAssets)) {
             console.log(`📦 Retrieved ${storedAssets.length} assets from Explorer`)
             for (const assetDef of storedAssets) {

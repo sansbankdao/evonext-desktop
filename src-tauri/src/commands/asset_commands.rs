@@ -1,71 +1,101 @@
 use tauri::{AppHandle, Wry};
-use crate::models::{AssetDefinition, IAssets};
+use crate::models::AssetDefinition;
 use crate::utils::{StoreManager, network_file::get_network_file};
 use serde_json::Value;
 
+pub type IAssets = Vec<AssetDefinition>;
+
 #[tauri::command]
-pub fn discover_assets(app_handle: AppHandle<Wry>, network: String) -> Result<IAssets, String> {
-    println!("🕵 [discover_assets] Starting discovery for network: {}", network);
+pub fn discover_assets(app_handle: AppHandle<Wry>, identity_id: Option<String>, network: String) -> Result<IAssets, String> {
+    println!("🕵️♂️ [discover_assets] =========================================");
+    println!("🔍 [discover_assets] ARGUMENTS: network='{}', identity_id={:?}", network, identity_id);
+
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
     let mut new_assets: IAssets = Vec::new();
 
-    // TODO: Ideally, pass identity_id from the frontend
-    let identity_id = "v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5";
+    // Use provided identity_id, or if none provided, we cannot proceed
+    let identity_to_use = match identity_id {
+        Some(id) => id,
+        None => {
+            println!("❌ [discover_assets] No Identity ID provided, cannot fetch tokens.");
+            return Ok(Vec::new());
+        }
+    };
+
+    println!("📍 [discover_assets] Using Identity ID: {}", identity_to_use);
 
     // Construct Explorer URL
-    let base_url = if network == "mainnet" {
+    let base_url = if network.to_lowercase() == "mainnet" {
         "https://platform-explorer.com"
     } else {
         "https://testnet.platform-explorer.com"
     };
 
-    let explorer_url = format!("{}/identity/{}/tokens?page=1&limit=10", base_url, identity_id);
-    println!("🌐 Fetching from: {}", explorer_url);
+    let explorer_url = format!("{}/identity/{}/tokens?page=1&limit=10", base_url, identity_to_use);
+    println!("📡 [discover_assets] GET Request: {}", explorer_url);
 
     // Fetch Data (Blocking)
     let response_body = match reqwest::blocking::get(&explorer_url) {
         Ok(resp) => {
+            println!("📡 [discover_assets] HTTP Status: {}", resp.status());
             if resp.status().is_success() {
                 match resp.text() {
                     Ok(body) => body,
                     Err(e) => {
-                        println!("❌ Failed to read response body: {}", e);
+                        println!("❌ [discover_assets] Failed to read response body: {}", e);
                         return Err(format!("Network read error: {}", e));
                     }
                 }
             } else {
-                println!("❌ API Request failed with status: {}", resp.status());
+                println!("❌ [discover_assets] API Request failed with status: {}", resp.status());
                 return Err(format!("API error: {}", resp.status()));
             }
         }
         Err(e) => {
-            println!("❌ Request failed: {}", e);
+            println!("❌ [discover_assets] Request failed: {}", e);
             return Err(e.to_string());
         }
     };
 
+    // Debug: Print length of response
+    println!("📨 [discover_assets] Response Body Size: {} bytes", response_body.len());
+
+    // Early return if we got an "OK" but empty response
+    if response_body.is_empty() {
+        println!("📭 [discover_assets] Empty response body from explorer.");
+        // Save empty array to cache to avoid repeated calls
+        let _ = manager.save(filename, "assets", &new_assets);
+        return Ok(new_assets);
+    }
+
     // Parse JSON Response
     let data: Value = match serde_json::from_str(&response_body) {
-        Ok(d) => d,
+        Ok(d) => {
+            println!("✅ [discover_assets] JSON Parsed successfully.");
+            d
+        }
         Err(e) => {
-            println!("❌ JSON Parse Error: {}", e);
+            println!("❌ [discover_assets] JSON Parse Error: {}", e);
             return Err(format!("JSON parse error: {}", e));
         }
     };
 
     // Extract "resultSet"
-    if let Value::Object(map) = data {
-        if let Some(Value::Array(items)) = map.get("resultSet") {
-            println!("✅ Found {} tokens in resultSet.", items.len());
+    match data.get("resultSet") {
+        Some(Value::Array(items)) => {
+            println!("✅ [discover_assets] Found 'resultSet' with {} items.", items.len());
 
-            for item in items {
+            for (idx, item) in items.iter().enumerate() {
+                println!("🧩 [discover_assets] Processing Item #{}", idx);
+
                 // Helper for safe extraction
                 let get_str = |key: &str| -> Option<String> {
                     item.get(key)
                         .and_then(|v| v.as_str())
                         .map(|s| s.to_string())
                 };
+
                 let get_str_from_inner = |key: &str, inner_key: &str| -> Option<String> {
                     item.get(key)
                         .and_then(|v| v.as_object())
@@ -75,103 +105,150 @@ pub fn discover_assets(app_handle: AppHandle<Wry>, network: String) -> Result<IA
                 };
 
                 let name = get_str("name").unwrap_or_else(|| "".to_string());
-                let mut symbol = get_str_from_inner("localizations", "singularForm").unwrap_or_else(|| "".to_string());
-
-                if symbol.is_empty() {
-                    symbol = get_str("name").unwrap_or_else(|| "UNK".to_string()).to_uppercase();
+                if name.is_empty() {
+                    continue; // Skip unknown tokens
                 }
 
+                let symbol = get_str_from_inner("localizations", "singularForm")
+                    .or_else(|| get_str_from_inner("localizations", "en"))
+                    .unwrap_or_else(|| name.to_uppercase());
+
                 let contract_id = get_str("dataContractIdentifier").unwrap_or_else(|| "".to_string());
+                if contract_id.is_empty() {
+                    continue; // Skip tokens without contract ID
+                }
 
-                let decimals: Option<u8> = item.get("decimals")
+                let decimals = item.get("decimals")
                     .and_then(|v| v.as_u64())
-                    .map(|val| val as u8);
+                    .map(|val| val as u8)
+                    .unwrap_or(18);
 
-                let precision = decimals.unwrap_or(18);
+                let balance = get_str("balance")
+                    .and_then(|s| s.parse::<u64>().ok())
+                    .unwrap_or(0);
 
-                println!("📦 Token: {} ({}) | Contract: {} | Decimals: {}", name, symbol, contract_id, precision);
+                println!("   [debug] -> Name: {}", name);
+                println!("   [debug] -> Symbol: {}", symbol);
+                println!("   [debug] -> Contract Id: {}", contract_id);
+                println!("   [debug] -> Decimals: {}", decimals);
+                println!("   [debug] -> Balance: {}", balance);
 
                 new_assets.push(AssetDefinition {
-                    identity_id: identity_id.to_string(),
+                    identity_id: identity_to_use.clone(),
                     name,
                     symbol,
                     asset_id: Some(contract_id),
-                    decimals: Some(precision),
+                    decimals: Some(decimals),
+                    balance: Some(balance),
                     network: Some(network.clone()),
-                    balance: None, // Individual item fetch doesn't have balance in this legacy flow
                 });
             }
-        } else {
-            println!("⚠️ No 'resultSet' found in response body.");
+        }
+        _ => {
+            println!("⚠️  [discover_assets] No 'resultSet' key found in response or not an array.");
         }
     }
 
+    println!("💾 [discover_assets] Created {} AssetDefinitions to return.", new_assets.len());
+
+    // Save to Local Store
     match manager.save(filename, "assets", &new_assets) {
         Ok(_) => {
-            println!("✅ Saved {} assets to local cache.", new_assets.len());
-            Ok(new_assets)
+            println!("✅ [discover_assets] Saved {} assets to local cache.", new_assets.len());
         }
         Err(e) => {
-            println!("❌ Failed to save assets to cache: {}. Returning discovered list anyway.", e);
-            Ok(new_assets)
+            println!("❌ [discover_assets] Failed to save assets to cache: {}. Returning discovered list anyway.", e);
         }
     }
+
+    println!("🏁 [discover_assets] Returning ============================================");
+    Ok(new_assets)
 }
 
 #[tauri::command]
-pub fn fetch_identity_tokens(app_handle: AppHandle<Wry>, identity_id: String, network: String) -> Result<IAssets, String> {
-    println!("🔍 [fetch_identity_tokens] Starting fetch for {} on {}", identity_id, network);
+pub fn fetch_identity_tokens(app_handle: AppHandle<Wry>, identity_id: Option<String>, network: String) -> Result<IAssets, String> {
+    println!("🔍 [fetch_identity_tokens] =========================================");
+    println!("🔍 [fetch_identity_tokens] ARGUMENTS: identity_id={:?}, network='{}'", identity_id, network);
+
     let manager = StoreManager::new(&app_handle);
     let mut new_assets: IAssets = Vec::new();
 
-    let base_url = if network == "mainnet" {
+    // Use provided identity_id, or if none provided, we cannot proceed
+    let identity_to_use = match identity_id {
+        Some(ref id) => id.clone(),
+        None => {
+            println!("❌ [fetch_identity_tokens] No Identity ID provided, cannot fetch tokens.");
+            return Ok(Vec::new());
+        }
+    };
+
+    // Construct Explorer URL
+    let base_url = if network.to_lowercase() == "mainnet" {
         "https://platform-explorer.com"
     } else {
         "https://testnet.platform-explorer.com"
     };
 
-    let explorer_url = format!("{}/identity/{}/tokens?page=1&limit=10&order=asc", base_url, identity_id);
-    println!("🌐 Fetching from: {}", explorer_url);
+    let explorer_url = format!("{}/identity/{}/tokens?page=1&limit=10&order=asc", base_url, identity_to_use);
+    println!("📡 [fetch_identity_tokens] GET Request: {}", explorer_url);
 
+    // Fetch Data (Blocking)
     let response_body = match reqwest::blocking::get(&explorer_url) {
         Ok(resp) => {
+            println!("📡 [fetch_identity_tokens] HTTP Status: {}", resp.status());
             if resp.status().is_success() {
                 match resp.text() {
                     Ok(body) => body,
                     Err(e) => {
-                        println!("❌ Failed to read response body: {}", e);
+                        println!("❌ [fetch_identity_tokens] Failed to read response body: {}", e);
                         return Err(format!("Network read error: {}", e));
                     }
                 }
             } else {
-                println!("❌ API Request failed with status: {}", resp.status());
+                println!("❌ [fetch_identity_tokens] API Request failed with status: {}", resp.status());
                 return Err(format!("API error: {}", resp.status()));
             }
         }
         Err(e) => {
-            println!("❌ Request failed: {}", e);
+            println!("❌ [fetch_identity_tokens] Request failed: {}", e);
             return Err(e.to_string());
         }
     };
 
+    println!("📨 [fetch_identity_tokens] Response Body Size: {} bytes", response_body.len());
+
+    // Early return if empty
+    if response_body.is_empty() {
+        println!("📭 [fetch_identity_tokens] Empty response body from explorer.");
+        return Ok(Vec::new());
+    }
+
+    // Parse JSON
     let data: Value = match serde_json::from_str(&response_body) {
-        Ok(d) => d,
+        Ok(d) => {
+            println!("✅ [fetch_identity_tokens] JSON Parsed successfully.");
+            d
+        }
         Err(e) => {
-            println!("❌ JSON Parse Error: {}", e);
+            println!("❌ [fetch_identity_tokens] JSON Parse Error: {}", e);
             return Err(format!("JSON parse error: {}", e));
         }
     };
 
-    if let Value::Object(map) = data {
-        if let Some(Value::Array(items)) = map.get("resultSet") {
-            println!("✅ Found {} tokens in resultSet.", items.len());
+    // Extract "resultSet"
+    match data.get("resultSet") {
+        Some(Value::Array(items)) => {
+            println!("✅ [fetch_identity_tokens] Found 'resultSet' with {} items.", items.len());
 
-            for item in items {
+            for (idx, item) in items.iter().enumerate() {
+                println!("🧩 [fetch_identity_tokens] Processing Item #{}", idx);
+
                 let get_str = |key: &str| -> Option<String> {
                     item.get(key)
                         .and_then(|v| v.as_str())
                         .map(|s| s.to_string())
                 };
+
                 let get_str_from_inner = |key: &str, inner_key: &str| -> Option<String> {
                     item.get(key)
                         .and_then(|v| v.as_object())
@@ -181,68 +258,64 @@ pub fn fetch_identity_tokens(app_handle: AppHandle<Wry>, identity_id: String, ne
                 };
 
                 let name = get_str("name").unwrap_or_else(|| "".to_string());
-                let mut symbol = get_str_from_inner("localizations", "singularForm").unwrap_or_else(|| "".to_string());
-
-                if symbol.is_empty() {
-                    symbol = get_str("name").unwrap_or_else(|| "UNK".to_string()).to_uppercase();
+                if name.is_empty() {
+                    continue;
                 }
 
+                let symbol = get_str_from_inner("localizations", "singularForm")
+                    .or_else(|| get_str_from_inner("localizations", "pluralForm"))
+                    .or_else(|| get_str_from_inner("localizations", "en"))
+                    .unwrap_or_else(|| name.to_uppercase());
+
                 let contract_id = get_str("dataContractIdentifier").unwrap_or_else(|| "".to_string());
+                if contract_id.is_empty() {
+                    continue;
+                }
 
-                let decimals: Option<u8> = item.get("decimals")
+                let decimals = item.get("decimals")
                     .and_then(|v| v.as_u64())
-                    .map(|val| val as u8);
+                    .map(|val| val as u8)
+                    .unwrap_or(18);
 
-                let precision = decimals.unwrap_or(18);
-                let balance_str = get_str("balance");
-
-                println!("📦 Token: {} ({}) | Contract: {} | Decimals: {} | Bal: {}", name, symbol, contract_id, precision, balance_str.as_ref().unwrap_or(&"0".to_string()));
-
-                let parsed_balance = if let Some(bal_str) = balance_str {
-                    bal_str.parse::<u64>().ok()
-                } else {
-                    None
-                };
+                let balance = get_str("balance")
+                    .and_then(|s| s.parse::<u64>().ok())
+                    .unwrap_or(0);
 
                 new_assets.push(AssetDefinition {
-                    identity_id: identity_id.clone(),
+                    identity_id: identity_to_use.clone(),
                     name,
                     symbol,
                     asset_id: Some(contract_id),
-                    decimals: Some(precision),
-                    balance: parsed_balance,
+                    decimals: Some(decimals),
+                    balance: Some(balance),
                     network: Some(network.clone()),
                 });
             }
-        } else {
-            println!("⚠️ No 'resultSet' found in response body.");
+        }
+        _ => {
+            println!("⚠️  [fetch_identity_tokens] No 'resultSet' key found or not an array.");
         }
     }
 
+    // Save to cache
     let filename = get_network_file(&network, "tokens")?;
     match manager.save(filename, "tokens", &new_assets) {
-        Ok(_) => {
-            println!("✅ Saved {} tokens to local cache.", new_assets.len());
-            Ok(new_assets)
-        }
-        Err(e) => {
-            println!("❌ Failed to save cache (continuing anyway): {}", e);
-            Ok(new_assets)
-        }
+        Ok(_) => println!("✅ [fetch_identity_tokens] Saved {} tokens to local cache.", new_assets.len()),
+        Err(e) => println!("⚠️  [fetch_identity_tokens] Failed to save cache: {}", e),
     }
+
+    println!("🏁 [fetch_identity_tokens] Returning {} token(s).", new_assets.len());
+    Ok(new_assets)
 }
 
 #[tauri::command]
 pub fn load_assets(app_handle: AppHandle<Wry>, network: String) -> Result<IAssets, String> {
+    println!("📂 [load_assets] ===========================================");
+    println!("🔍 [load_assets] Network Requested: {}", network);
+
+    // We just load from cache; discovery happens elsewhere
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
-
-    // NOTE: We do not include hardcoded defaults in load_assets anymore since we fetch live data.
-    // If you want defaults, you could return them here if manager.load returns None/Err.
-    // However, relying on the live fetch is cleaner for tokens like SANS/DUSD.
-
-    // FIX: Ensure identity_id is a String
-    let fallback_id = String::from("v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5");
 
     match manager.load::<IAssets>(filename, "assets") {
         Ok(data) => {
@@ -250,32 +323,13 @@ pub fn load_assets(app_handle: AppHandle<Wry>, network: String) -> Result<IAsset
                 println!("✅ [load_assets] Loaded {} assets from cache.", assets.len());
                 Ok(assets)
             } else {
-                println!("⚠️ [load_assets] Cache empty. Attempting discovery.");
-                // Attempt discovery on cache miss
-                match fetch_identity_tokens(app_handle, fallback_id, network.clone()) {
-                    Ok(disc) => {
-                        println!("✅ [load_assets] Discovery successful.");
-                        Ok(disc)
-                    }
-                    Err(e) => {
-                        println!("❌ [load_assets] Discovery failed: {}", e);
-                        Err(e)
-                    }
-                }
+                println!("⚠️  [load_assets] Cache empty. Returning empty.");
+                Ok(Vec::new())
             }
         }
         Err(e) => {
-            println!("❌ [load_assets] Failed to load assets: {}. Attempting discovery", e);
-            match fetch_identity_tokens(app_handle, fallback_id, network.clone()) {
-                Ok(disc) => {
-                    println!("✅ [load_assets] Discovery successful.");
-                    Ok(disc)
-                }
-                Err(e) => {
-                    println!("❌ [load_assets] Discovery failed: {}", e);
-                    Err(e)
-                }
-            }
+            println!("❌ [load_assets] Failed to load assets: {}. Returning empty.", e);
+            Ok(Vec::new())
         }
     }
 }
@@ -300,7 +354,7 @@ pub fn save_assets(app_handle: AppHandle<Wry>, network: String, payload: IAssets
 
 #[tauri::command]
 pub fn delete_assets(app_handle: AppHandle<Wry>, network: String) -> Result<(), String> {
-    println!("🗑 [delete_assets] Deleting assets for network: {}", network);
+    println!("🗑️  [delete_assets] Deleting assets for network: {}", network);
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
 

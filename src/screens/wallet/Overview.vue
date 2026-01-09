@@ -437,6 +437,26 @@ onMounted(async () => {
                         <p class="font-bold text-slate-300 mb-2 border-b border-slate-700 pb-1">First Asset (Raw JSON)</p>
                         <pre class="text-slate-400">{{ JSON.stringify(Wallet.assets[0], null, 2) }}</pre>
                     </div>
+
+                    <div class="bg-black/50 p-4 rounded border border-slate-700">
+                        <p class="font-bold text-slate-300 mb-2 border-b border-slate-700 pb-1">Asset Fetch Status</p>
+                        <ul class="space-y-1 text-slate-400">
+                            <li class="flex justify-between">
+                                <span class="opacity-70">Assets Count:</span>
+                                <span class="text-white">{{ Wallet.assets.length }}</span>
+                            </li>
+                            <li class="flex justify-between">
+                                <span class="opacity-70">Has DUSD/SANS:</span>
+                                <span class="text-white">{{
+                                    Wallet.assets.filter(a => a.symbol === 'DUSD' || a.symbol === 'SANS').length > 0 ? 'YES' : 'NO'
+                                }}</span>
+                            </li>
+                            <li class="flex justify-between">
+                                <span class="opacity-70">Last Asset Fetch:</span>
+                                <span class="text-white" id="asset-fetch-status">Not Attempted</span>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
