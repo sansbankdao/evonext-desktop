@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 import { usePlatform } from './usePlatform'
 import { useKeyManagement } from './useKeyManagement'
+import { useNetwork } from './useNetwork' // <--- 1. IMPORT USENETWORK
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
 import { MIN_CREDIT_TRANSFER } from '@/constants'
@@ -46,6 +47,7 @@ const EXPLORER_API_URL = 'https://platform-explorer.pshenmic.dev'
 export function useTransactions() {
     const platform = usePlatform()
     const keys = useKeyManagement()
+    const { network } = useNetwork() // <--- 2. INITIALIZE NETWORK HOOK
     const loading = ref(false)
     const error = ref<string | null>(null)
     const transactions = ref<ITransaction[]>([])
@@ -81,7 +83,8 @@ export function useTransactions() {
         return ErrorBoundary.wrap(async () => {
             loading.value = true
             error.value = null
-            await platform.getSDK()
+            // <--- 3. PASS NETWORK TO SDK FETCH FOR CONSISTENCY --->
+            await platform.getSDK(network.value)
             log('info', `Fetching transfers for ${identityId}`, { limit })
             try {
                 const response = await fetch(`${EXPLORER_API_URL}/identity/${identityId}/transactions?page=1&limit=${limit}&order=desc`)
@@ -114,7 +117,8 @@ export function useTransactions() {
         return ErrorBoundary.wrap(async () => {
             loading.value = true
             error.value = null
-            await platform.getSDK()
+            // <--- 4. PASS NETWORK TO SDK FETCH --->
+            await platform.getSDK(network.value)
             log('info', `Fetching token transitions for ${tokenId}`, { identityId, limit })
             if (!identityId) {
                 console.warn('fetchTokenTransitions: identityId required for Explorer API lookup')
@@ -166,8 +170,9 @@ export function useTransactions() {
                 }
             }
             logs.push('[Transactions] Validating transfer amount... OK')
-            // 1. Get SDK
-            const sdk = await platform.getSDK()
+            // <--- 5. CRITICAL FIX: PASS CURRENT NETWORK TO SDK --->
+            logs.push(`[Transactions] Requesting SDK for network: ${network.value}`)
+            const sdk = await platform.getSDK(network.value)
             logs.push('[Transactions] SDK Instance created')
             // 2. Retrieve Key
             let transferWif = params.privateKey
@@ -345,7 +350,10 @@ export function useTransactions() {
         error.value = null
         const logs: string[] = ['Starting Token Transfer...']
         try {
-            const sdk = await platform.getSDK()
+            // <--- 6. CRITICAL FIX: PASS CURRENT NETWORK TO SDK --->
+            logs.push(`[Token] Requesting SDK for network: ${network.value}`)
+            const sdk = await platform.getSDK(network.value)
+            logs.push('[Token] SDK created')
             // KEY RETRIEVAL LOGIC: Explicit > Store
             let transferWif = params.privateKey
             if (!transferWif) {
