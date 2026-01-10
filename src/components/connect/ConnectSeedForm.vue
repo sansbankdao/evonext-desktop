@@ -16,15 +16,15 @@
                         :class="localWordCount === '12'
                             ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 border-cyan-400 text-white shadow-cyan-500/25 ring-2 ring-cyan-400/30'
                             : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 hover:text-slate-900 dark:hover:text-slate-100 bg-white dark:bg-slate-800'">
-                        <input type="radio" value="12" v-model="localWordCount" class="sr-only">
-                        <span class="font-bold text-base relative z-10">12 Words</span>
+                        <input type="radio" value="12" v-model="localWordCount" :disabled="isSearching" class="sr-only disabled:cursor-not-allowed">
+                        <span class="font-bold text-base relative z-10" :class="{'opacity-50': isSearching}">12 Words</span>
                     </label>
                     <label class="flex items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 group relative overflow-hidden"
                         :class="localWordCount === '24'
                             ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 border-cyan-400 text-white shadow-cyan-500/25 ring-2 ring-cyan-400/30'
                             : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 hover:text-slate-900 dark:hover:text-slate-100 bg-white dark:bg-slate-800'">
-                        <input type="radio" value="24" v-model="localWordCount" class="sr-only">
-                        <span class="font-bold text-base relative z-10">24 Words</span>
+                        <input type="radio" value="24" v-model="localWordCount" :disabled="isSearching" class="sr-only disabled:cursor-not-allowed">
+                        <span class="font-bold text-base relative z-10" :class="{'opacity-50': isSearching}">24 Words</span>
                     </label>
                 </fieldset>
             </div>
@@ -56,7 +56,8 @@
                 <button
                     type="button"
                     @click="showWords = !showWords"
-                    class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors shadow-sm h-[46px] sm:h-[52px]"
+                    :disabled="isSearching"
+                    class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors shadow-sm h-[46px] sm:h-[52px] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <svg v-if="!showWords" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -92,8 +93,9 @@
                         :type="showWords ? 'text' : 'password'"
                         autocomplete="off"
                         spellcheck="false"
+                        :disabled="isSearching || shakeClasses[index]"
                         :placeholder="showWords ? '' : (index + 1).toString()"
-                        class="w-full bg-white dark:bg-slate-800 border-2 rounded-xl pt-10 pb-3 px-4 text-center text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all duration-200 font-mono text-sm tracking-wide shadow-sm peer z-10 relative"
+                        class="w-full bg-white dark:bg-slate-800 border-2 rounded-xl pt-10 pb-3 px-4 text-center text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all duration-200 font-mono text-sm tracking-wide shadow-sm peer z-10 relative disabled:opacity-60 disabled:cursor-not-allowed"
                         :class="[
                             getInputBorderClass(index),
                             'focus:ring-4 focus:ring-opacity-50 focus:shadow-md',
@@ -275,8 +277,6 @@
     </div>
 </template>
 
-// src/components/connect/ConnectSeedForm.vue (Script Setup Only)
-
 <script setup lang="ts">
 import { ref, watch, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useDebounce } from '@/composables/useDebounce'
@@ -290,6 +290,7 @@ interface Props {
     discoveredIdentity?: DiscoveredIdentity | null
     manualIdentityId: string
     network?: 'mainnet' | 'testnet'
+    isSearching?: boolean
 }
 
 interface Emits {
@@ -303,7 +304,11 @@ interface Emits {
     (e: 'validate', valid: boolean): void
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+    network: 'testnet',
+    isSearching: false
+})
+
 const emit = defineEmits<Emits>()
 
 const localWordCount = ref<'12' | '24'>(props.wordCount)
@@ -455,7 +460,6 @@ const onInputBlur = (index: number) => {
 
     // Trigger validation with visual feedback
     const currentWord = seedWords.value[index]
-
     if (!isValidWord(currentWord) && (currentWord?.trim().length ?? 0) > 0) {
         shakeClasses.value[index] = true
     } else {
@@ -470,13 +474,14 @@ const onInputBlur = (index: number) => {
         }, 250)
     }
 
-    // CHANGED: Trigger discovery if form is valid
-    // We use setTimeout to allow the watcher to settle first
-    if (isReady.value) {
-        setTimeout(() => {
-            emit('discover-identity')
-        }, 0)
-    }
+    // ADDED: Small delay to allow focus transition (auto-advance) to settle
+    // This fixes the issue where blurring the last word immediately focuses another,
+    // cancelling the blur event effect before the check runs.
+    setTimeout(() => {
+        if (isReady.value) {
+            emit('paste', seedWords.value)
+        }
+    }, 250)
 }
 
 const onInputFocus = (index: number) => {
