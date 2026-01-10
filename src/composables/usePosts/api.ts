@@ -1,7 +1,7 @@
 // src/composables/usePosts/api.ts
 
 import { invoke } from '@tauri-apps/api/core'
-import { isTestnet } from '@/utils/env'
+import { useNetwork } from '@/composables/useNetwork'
 import type { IPost, ICreatePostParams, IUpdatePostParams, PostsFetchResult, IPostDocument } from '@/types/posts'
 import { getContractId } from './utils'
 import { getUserInfo } from './transformers'
@@ -45,14 +45,12 @@ interface DPNSDocument {
 /**
  * Make a request to the DAPI endpoint (from libs/posts/api.ts)
  */
-async function makeDAPIRequest<T>(method: string, params: any[]): Promise<T[]> {
-    const network = isTestnet() ? 'testnet' : 'mainnet'
+async function makeDAPIRequest<T>(method: string, params: any[], targetNetwork: string): Promise<T[]> {
     const requestBody: DAPIRequest = {
         method,
         params,
-        network
+        network: targetNetwork
     }
-
     const response = await fetch(DAPI_ENDPOINT, {
         method: 'POST',
         headers: {
@@ -60,27 +58,24 @@ async function makeDAPIRequest<T>(method: string, params: any[]): Promise<T[]> {
         },
         body: JSON.stringify(requestBody)
     })
-
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
     }
-
     const data: DAPIResponse<T> = await response.json()
-
     if (!data.success) {
         throw new Error('Failed to fetch data from blockchain')
     }
-
     return data.result
 }
 
 /**
  * Fetch profile data for a user via Tauri
  */
-export async function fetchUserProfile(ownerId: string, network?: string): Promise<ProfileDocument | null> {
+export async function fetchUserProfile(ownerId: string, networkOverride?: string): Promise<ProfileDocument | null> {
     try {
-        const contractId = getContractId('dashpay', network)
-        const currentNetwork = network || (isTestnet() ? 'testnet' : 'mainnet')
+        const { network } = useNetwork()
+        const targetNetwork = networkOverride || network.value
+        const contractId = getContractId('dashpay', targetNetwork)
         const profiles = await invoke<ProfileDocument[]>('get_posts', {
             dataContractId: contractId,
             documentType: 'profile',
@@ -89,7 +84,7 @@ export async function fetchUserProfile(ownerId: string, network?: string): Promi
             },
             orderBy: { $updatedAt: 'desc' },
             limit: 1,
-            network: currentNetwork
+            network: targetNetwork
         })
         return profiles.length > 0 ? profiles[0]! : null
     } catch (error) {
@@ -101,10 +96,11 @@ export async function fetchUserProfile(ownerId: string, network?: string): Promi
 /**
  * Fetch DPNS username for a user via Tauri
  */
-export async function fetchDPNSName(ownerId: string, network?: string): Promise<string | null> {
+export async function fetchDPNSName(ownerId: string, networkOverride?: string): Promise<string | null> {
     try {
-        const contractId = getContractId('dpns', network)
-        const currentNetwork = network || (isTestnet() ? 'testnet' : 'mainnet')
+        const { network } = useNetwork()
+        const targetNetwork = networkOverride || network.value
+        const contractId = getContractId('dpns', targetNetwork)
         const dpnsRecords = await invoke<DPNSDocument[]>('get_posts', {
             dataContractId: contractId,
             documentType: 'domain',
@@ -113,7 +109,7 @@ export async function fetchDPNSName(ownerId: string, network?: string): Promise<
             },
             orderBy: { $updatedAt: 'desc' },
             limit: 1,
-            network: currentNetwork
+            network: targetNetwork
         })
         if (dpnsRecords.length > 0) {
             return dpnsRecords[0]?.label || dpnsRecords[0]?.normalizedLabel || null
@@ -137,9 +133,12 @@ export async function fetchPostsFromDAPI(options?: {
     limit?: number
 }): Promise<PostsFetchResult> {
     try {
-        console.log('Fetching posts for contract:', getContractId('evonext'))
-        const posts = await makeDAPIRequest<IPostDocument>('get_documents', [getContractId('evonext'), 'post'])
-
+        const { network } = useNetwork()
+        const targetNetwork = network.value
+        // Helper to get contract ID for current network
+        const getContractIdForNetwork = (type: string) => getContractId(type as any, targetNetwork)
+        console.log('Fetching posts for contract:', getContractIdForNetwork('evonext'))
+        const posts = await makeDAPIRequest<IPostDocument>('get_documents', [getContractIdForNetwork('evonext'), 'post'], targetNetwork)
         const transformedPosts = await Promise.all(
             posts.map(async (doc) => {
                 return {
@@ -213,6 +212,7 @@ export async function fetchUserPostsFromDAPI(userId: string): Promise<IPost[]> {
 
 /**
  * Fetch posts from blockchain using Tauri
+ * network is REQUIRED here
  */
 export async function fetchPostsFromTauri(network: string, options?: {
     ownerId?: string
@@ -231,7 +231,6 @@ export async function fetchPostsFromTauri(network: string, options?: {
         } else if (options?.orderBy === 'oldest') {
             orderBy = { $createdAt: 'asc' }
         }
-
         const documents = await invoke<any[]>('get_posts', {
             dataContractId: contractId,
             documentType: 'post',

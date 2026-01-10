@@ -1,6 +1,5 @@
 // src/composables/usePosts/utils.ts
 
-import { isTestnet } from '@/utils/env'
 import {
     EVONEXT_CONTRACT_ID_TESTNET,
     EVONEXT_CONTRACT_ID_MAINNET,
@@ -13,9 +12,8 @@ import {
 /**
  * Get the current data contract ID based on network and type
  */
-export function getContractId(type: 'evonext' | 'dashpay' | 'dpns' = 'evonext', network?: string): string {
-    const isTest = network ? network === 'testnet' : isTestnet()
-
+export function getContractId(type: 'evonext' | 'dashpay' | 'dpns' = 'evonext', network: string): string {
+    const isTest = network.toLowerCase() === 'testnet'
     switch (type) {
         case 'evonext':
             return isTest ? EVONEXT_CONTRACT_ID_TESTNET : EVONEXT_CONTRACT_ID_MAINNET
@@ -51,12 +49,10 @@ export function formatTimeAgo(timestamp: number): string {
     const diffMins = Math.floor(diffMs / 60000)
     const diffHours = Math.floor(diffMs / 3600000)
     const diffDays = Math.floor(diffMs / 86400000)
-
     if (diffMins < 1) return 'Just now'
     if (diffMins < 60) return `${diffMins}m ago`
     if (diffHours < 24) return `${diffHours}h ago`
     if (diffDays < 7) return `${diffDays}d ago`
-
     return new Date(timestamp).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric'
@@ -112,36 +108,28 @@ export function applyFilters(
     }
 ): any[] {
     let filtered = [...posts]
-
     if (!options) return filtered
-
     if (options.ownerId) {
         filtered = filtered.filter((post: any) => post.ownerId === options.ownerId)
     }
-
     if (options.language) {
         filtered = filtered.filter((post: any) => post.language === options.language)
     }
-
     if (options.fromDate) {
         filtered = filtered.filter((post: any) => post.createdAt >= options.fromDate!)
     }
-
     if (options.toDate) {
         filtered = filtered.filter((post: any) => post.createdAt <= options.toDate!)
     }
-
     // Sort
     if (options.orderBy === 'newest') {
         filtered.sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime())
     } else if (options.orderBy === 'oldest') {
         filtered.sort((a: any, b: any) => a.createdAt.getTime() - b.createdAt.getTime())
     }
-
     // Limit
     if (options.limit && filtered.length > options.limit) {
         filtered = filtered.slice(0, options.limit)
     }
-
     return filtered
 }

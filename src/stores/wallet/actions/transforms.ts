@@ -33,11 +33,11 @@ export function createUpdatedAssets(
     return [
         // DASH (same as credits)
         {
+            id: 'DASH',
             symbol: 'DASH',
             name: 'Dash Coins',
             balance: dashBalance,
             usdValue: dashBalance * dashPrice,
-            id: 'DASH',
             decimals: 8,
             type: 'native',
             balanceFormatted: '$0.00',
@@ -52,11 +52,11 @@ export function createUpdatedAssets(
         },
         // CREDITS (same as DASH balance, uses DASH price)
         {
+            id: 'CREDITS',
             symbol: 'CREDITS',
             name: 'Dash Credits',
             balance: creditsBalance,
             usdValue: creditsBalance * dashPrice,
-            id: 'DASH',
             decimals: 12,
             type: 'native',
             balanceFormatted: '$0.00',
@@ -71,11 +71,11 @@ export function createUpdatedAssets(
         },
         // DUSD ($1.00 hardcoded as stablecoin)
         {
+            id: 'DUSD',
             symbol: 'DUSD',
             name: 'Dash USD',
             balance: dusdBalance,
             usdValue: dusdBalance * TOKEN_PRICES.DUSD,
-            id: 'DUSD',
             decimals: 6,
             type: 'native',
             balanceFormatted: '$0.00',
@@ -90,11 +90,11 @@ export function createUpdatedAssets(
         },
         // SANS ($0.16 hardcoded - updated per requirement)
         {
+            id: 'SANS',
             symbol: 'SANS',
             name: 'Sansnote',
             balance: sansBalance,
             usdValue: sansBalance * TOKEN_PRICES.SANS,
-            id: 'SANS',
             decimals: 8,
             type: 'native',
             balanceFormatted: '$0.00',
@@ -112,14 +112,15 @@ export function createUpdatedAssets(
 
 /**
  * Process token balances from API response
+ * Updated to accept explicit `network` string instead of boolean isTestnet
  */
 export function processTokenBalances(
     tokenBalances: any[],
-    isTestnet: boolean
+    network: string
 ): { dusdBalance: number, sansBalance: number } {
+    const isTestnet = network.toLowerCase() === 'testnet'
     const dusdContractId = isTestnet ? DUSD_CONTRACT_ID_TESTNET : DUSD_CONTRACT_ID_MAINNET
     const sansContractId = isTestnet ? SANS_CONTRACT_ID_TESTNET : SANS_CONTRACT_ID_MAINNET
-
     // Handle different tokenId structures (object vs string)
     const dusdBalanceAtomic = tokenBalances.find(token => {
         const tokenIdStr = typeof token.tokenId === 'string'
@@ -127,14 +128,12 @@ export function processTokenBalances(
             : (token.tokenId?.base58 ? token.tokenId.base58() : '')
         return tokenIdStr === dusdContractId
     })?.balance || BigInt(0)
-
     const sansBalanceAtomic = tokenBalances.find(token => {
         const tokenIdStr = typeof token.tokenId === 'string'
             ? token.tokenId
             : (token.tokenId?.base58 ? token.tokenId.base58() : '')
         return tokenIdStr === sansContractId
     })?.balance || BigInt(0)
-
     return {
         dusdBalance: Number(dusdBalanceAtomic) / (10 ** DUSD_DECIMAL_PLACES),
         sansBalance: Number(sansBalanceAtomic) / (10 ** SANS_DECIMAL_PLACES)
@@ -150,17 +149,14 @@ export function transformIdentityTransfer(
 ): ITransaction {
     const isSent = transfer.sender === identityId
     const isReceived = transfer.recipient === identityId
-
     let type: 'IDENTITY_CREATE' | 'IDENTITY_CREDIT_TRANSFER' | 'UNKNOWN'
     let title: string
     let subtitle: string
     let amountStr: string
-
     // Convert string amount to number for atomicToDash
     const transferAmount = typeof transfer.amount === 'string'
         ? parseFloat(transfer.amount)
         : Number(transfer.amount)
-
     if (transfer.type === 'IDENTITY_CREATE') {
         type = 'IDENTITY_CREATE'
         title = 'New Identity Registered'
@@ -213,7 +209,7 @@ export function transformIdentityTransfer(
         assetType: 'COIN',
         assetSymbol: '',
         direction: isSent ? 'OUTGOING' : 'INCOMING',
-        network: 'testnet',
+        network: 'testnet', // Note: Should this be dynamic? Or is this data from history?
     }
 }
 
@@ -227,27 +223,22 @@ export function transformTokenTransitions(
     decimalPlaces: number
 ): ITransaction[] {
     const result: ITransaction[] = []
-
     for (const transition of transitions) {
         // FIX: Safe property access based on typical Dash Platform types
         // We use 'identityId' and 'recipientId' which are strings in types
         const isOwner = transition.identityId === identityId
         const isRecipient = transition.recipientId === identityId
-
         if (!isOwner && !isRecipient) {
             continue
         }
-
         let type: 'sent' | 'received' = 'received'
         let title = ''
         let subtitle = ''
         let amountStr = ''
-
         // Convert string amount to number for formatTokenAmount
         const transitionAmount = typeof transition.amount === 'string'
             ? parseFloat(transition.amount)
             : Number(transition.amount)
-
         switch (transition.type) { // Changed from action to type
             case 'TOKEN_MINT':
                 type = 'received'
@@ -255,7 +246,6 @@ export function transformTokenTransitions(
                 subtitle = 'Token Mint'
                 amountStr = formatTokenAmount(transitionAmount, tokenTicker, decimalPlaces, true)
                 break
-
             case 'IDENTITY_TOKEN_TRANSFER': // Adjusted case to likely enum value
                 if (isOwner) {
                     type = 'sent'
@@ -269,11 +259,9 @@ export function transformTokenTransitions(
                     amountStr = formatTokenAmount(transitionAmount, tokenTicker, decimalPlaces, true)
                 }
                 break
-
             default:
                 continue
         }
-
         if (title && amountStr) {
             result.push({
                 id: transition.txHash || '',
@@ -285,7 +273,6 @@ export function transformTokenTransitions(
                 // FIX: Convert Date to number for 'date' property
                 date: typeof transition.createdAt === 'number' ? transition.createdAt : new Date(transition.createdAt).getTime(),
                 createdAt: typeof transition.createdAt === 'number' ? transition.createdAt : new Date(transition.createdAt).getTime(),
-
                 // Required properties from ITransaction
                 hash: transition.txHash || '',
                 confirmations: 0,

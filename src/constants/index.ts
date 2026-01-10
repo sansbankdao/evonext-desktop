@@ -34,19 +34,28 @@ export const DEFAULT_IDENTITY_SEARCH_LIMIT = 3
 export const DEFAULT_SECURITY_LEVEL = 0
 export const DEFAULT_QUERY_REGISTRY = false
 
-// Helper functions for network-specific values
-import { isTestnet } from '@/utils/env'
-
-export function getDUSDContractId(): string {
-  return isTestnet() ? DUSD_CONTRACT_ID_TESTNET : DUSD_CONTRACT_ID_MAINNET
+// =========================================================================
+// DYNAMIC NETWORK HELPERS
+// =========================================================================
+/**
+ * Returns the DUSD Contract ID for the specified network
+ */
+export function getDUSDContractId(network: string): string {
+    return network.toLowerCase() === 'testnet' ? DUSD_CONTRACT_ID_TESTNET : DUSD_CONTRACT_ID_MAINNET
 }
 
-export function getSANSContractId(): string {
-  return isTestnet() ? SANS_CONTRACT_ID_TESTNET : SANS_CONTRACT_ID_MAINNET
+/**
+ * Returns the SANS Contract ID for the specified network
+ */
+export function getSANSContractId(network: string): string {
+    return network.toLowerCase() === 'testnet' ? SANS_CONTRACT_ID_TESTNET : SANS_CONTRACT_ID_MAINNET
 }
 
-export function getAllActiveTokens(): string[] {
-  return isTestnet()
-    ? [DUSD_CONTRACT_ID_TESTNET, SANS_CONTRACT_ID_TESTNET]
-    : [DUSD_CONTRACT_ID_MAINNET, SANS_CONTRACT_ID_MAINNET]
+/**
+ * Returns an array of active token contract IDs for the specified network
+ */
+export function getAllActiveTokens(network: string): string[] {
+    return network.toLowerCase() === 'testnet'
+        ? [DUSD_CONTRACT_ID_TESTNET, SANS_CONTRACT_ID_TESTNET]
+        : [DUSD_CONTRACT_ID_MAINNET, SANS_CONTRACT_ID_MAINNET]
 }

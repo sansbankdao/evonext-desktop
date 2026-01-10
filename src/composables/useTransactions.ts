@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 import { usePlatform } from './usePlatform'
 import { useKeyManagement } from './useKeyManagement'
-import { useNetwork } from './useNetwork' // <--- 1. IMPORT USENETWORK
+import { useNetwork } from './useNetwork'
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
 import { MIN_CREDIT_TRANSFER } from '@/constants'
@@ -47,7 +47,7 @@ const EXPLORER_API_URL = 'https://platform-explorer.pshenmic.dev'
 export function useTransactions() {
     const platform = usePlatform()
     const keys = useKeyManagement()
-    const { network } = useNetwork() // <--- 2. INITIALIZE NETWORK HOOK
+    const { network } = useNetwork()
     const loading = ref(false)
     const error = ref<string | null>(null)
     const transactions = ref<ITransaction[]>([])
@@ -83,7 +83,6 @@ export function useTransactions() {
         return ErrorBoundary.wrap(async () => {
             loading.value = true
             error.value = null
-            // <--- 3. PASS NETWORK TO SDK FETCH FOR CONSISTENCY --->
             await platform.getSDK(network.value)
             log('info', `Fetching transfers for ${identityId}`, { limit })
             try {
@@ -117,7 +116,6 @@ export function useTransactions() {
         return ErrorBoundary.wrap(async () => {
             loading.value = true
             error.value = null
-            // <--- 4. PASS NETWORK TO SDK FETCH --->
             await platform.getSDK(network.value)
             log('info', `Fetching token transitions for ${tokenId}`, { identityId, limit })
             if (!identityId) {
@@ -170,11 +168,28 @@ export function useTransactions() {
                 }
             }
             logs.push('[Transactions] Validating transfer amount... OK')
-            // <--- 5. CRITICAL FIX: PASS CURRENT NETWORK TO SDK --->
+            // 1. Get SDK
             logs.push(`[Transactions] Requesting SDK for network: ${network.value}`)
             const sdk = await platform.getSDK(network.value)
             logs.push('[Transactions] SDK Instance created')
-            // 2. Retrieve Key
+            // 2. DEBUG: Read Internal SDK Info
+            const sdkDebugInfo = (sdk as any)._debugInfo
+            if (sdkDebugInfo) {
+                logs.push(`[DEBUG] SDK Input Network: ${sdkDebugInfo.targetInput}`)
+                if (sdkDebugInfo.internalNetwork) {
+                    logs.push(`[DEBUG] SDK Internal Network: ${sdkDebugInfo.internalNetwork}`)
+                }
+                if (sdkDebugInfo.isMainnet !== undefined) {
+                    logs.push(`[DEBUG] SDK Is Mainnet: ${sdkDebugInfo.isMainnet ? 'YES' : 'NO'}`)
+                }
+                if (sdkDebugInfo.warning) {
+                    logs.push(`[DEBUG] SDK Warning: ${sdkDebugInfo.warning}`)
+                }
+            } else {
+                logs.push('[DEBUG] No SDK Debug Info found (Fallback)')
+            }
+            // END DEBUG
+            // 3. Retrieve Key
             let transferWif = params.privateKey
             if (!transferWif) {
                 const keyResult = await keys.getTransferKey(params.identityIdx)
@@ -193,11 +208,11 @@ export function useTransactions() {
                 }
             }
             logs.push('[Transactions] Private Key retrieved and ready')
-            // 3. Get Identity & Public Keys
+            // 4. Get Identity & Public Keys
             logs.push(`[Transactions] Fetching Identity details for ${params.identityId}...`)
             const identity = await sdk.identities.getIdentityByIdentifier(params.identityId)
             logs.push('[Transactions] Identity details retrieved successfully')
-            // 4. Get Identity Nonce
+            // 5. Get Identity Nonce
             let identityNonce
             try {
                 logs.push('[Transactions] Fetching Identity Nonce...')
@@ -217,7 +232,7 @@ export function useTransactions() {
                     debugLog: logs
                 }
             }
-            // 5. Create, Sign & Broadcast State Transition
+            // 6. Create, Sign & Broadcast State Transition
             try {
                 logs.push('[Transactions] Creating Credit Transfer State Transition...')
                 const payload = {
@@ -228,9 +243,14 @@ export function useTransactions() {
                 }
                 const stateTransition = sdk.identities.createStateTransition('creditTransfer', payload)
                 logs.push('[Transactions] State Transition created')
-                // 6. Sign Transaction
+                // 7. Sign Transaction
                 logs.push('[Transactions] Signing transaction...')
                 const privKey = PrivateKeyWASM.fromWIF(transferWif)
+                // DEBUG: Check Private Key Network
+                const keyNet = (privKey as any).network || (privKey as any).protocolVersion
+                if (keyNet) {
+                    logs.push(`[DEBUG] Private Key Network Property: ${keyNet}`)
+                }
                 const identityPublicKeys = identity.getPublicKeys()
                 let pubKey = identityPublicKeys.find(key => {
                     const purpose = typeof key.purpose === 'string' ? parseInt(key.purpose) : key.purpose
@@ -254,7 +274,7 @@ export function useTransactions() {
                 }
                 stateTransition.sign(privKey, pubKey)
                 logs.push('[Transactions] Transaction signed successfully')
-                // 7a. Broadcast (separate try for pinpoint)
+                // 8a. Broadcast (separate try for pinpoint)
                 logs.push('[Transactions] Broadcasting transaction...')
                 try {
                     await sdk.stateTransitions.broadcast(stateTransition)
@@ -274,7 +294,7 @@ export function useTransactions() {
                         debugLog: logs
                     }
                 }
-                // 7b. Wait Confirmation (separate try)
+                // 8b. Wait Confirmation (separate try)
                 logs.push('[Transactions] Waiting for confirmation...')
                 try {
                     await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
@@ -350,10 +370,17 @@ export function useTransactions() {
         error.value = null
         const logs: string[] = ['Starting Token Transfer...']
         try {
-            // <--- 6. CRITICAL FIX: PASS CURRENT NETWORK TO SDK --->
-            logs.push(`[Token] Requesting SDK for network: ${network.value}`)
+            // Pass network explicitly to ensure SDK matches context
             const sdk = await platform.getSDK(network.value)
             logs.push('[Token] SDK created')
+            // DEBUG: Read Internal SDK Info
+            const sdkDebugInfo = (sdk as any)._debugInfo
+            if (sdkDebugInfo) {
+                logs.push(`[DEBUG] SDK Input Network: ${sdkDebugInfo.targetInput}`)
+                if (sdkDebugInfo.internalNetwork) {
+                    logs.push(`[DEBUG] SDK Internal Network: ${sdkDebugInfo.internalNetwork}`)
+                }
+            }
             // KEY RETRIEVAL LOGIC: Explicit > Store
             let transferWif = params.privateKey
             if (!transferWif) {
