@@ -3,9 +3,9 @@
 <div align="center">
   <img src="src/assets/icon.svg" alt="EvoNext Logo" width="150"/>
   <h1>EvoNext</h1>
-  <p><strong>Free Your Inhibitions ⛓️‍💥
+  <p><strong>Free and Fearless ⛓️‍💥
   <br />Discover safe and enjoyable spaces to Explore. Curate. Share YOUR Truth Fearlessly ✊</strong></p>
-  <p>A decentralized social platform secured by Dash Platform v2 🛡️</p>
+  <p>A decentralized social platform secured by Dash Evolution Platform 🛡️</p>
 
   <p>
     <a href="https://github.com/your-username/evonext-desktop/releases/latest">

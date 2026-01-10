@@ -60,7 +60,7 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
     const dashAmount = creditBalance / 100000000000
     newAssets.push({
         id: 'dash',
-        name: 'Dash',
+        name: 'Dash Coins',
         symbol: 'DASH',
         decimals: 8, // Fixed for DASH
         type: 'native',
