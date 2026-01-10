@@ -2,7 +2,7 @@
 
 // Static application constants (never change)
 export const APP_NAME = 'EvoNext'
-export const APP_VERSION = '25.12.3'
+export const APP_VERSION = '26.1.1'
 export const APP_DESCRIPTION = 'Free and Fearless — Discover safe spaces to Explore. Curate. Share YOUR Truth — secured by Dash Platform.'
 
 // Contract IDs

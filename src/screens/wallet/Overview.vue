@@ -46,6 +46,7 @@ const previousPage = () => {
 }
 
 // Helper to normalize an asset's balance for display
+// Helper to normalize an asset's balance for display
 const getNormalizedBalance = (asset: any, symbol: string) => {
     const rawBalance = Number(asset.balance)
     if (!rawBalance) return '0.00'
@@ -54,8 +55,10 @@ const getNormalizedBalance = (asset: any, symbol: string) => {
 
     // --- CREDITS ---
     if (normalizedSymbol === 'credits' || symbol.toLowerCase() === 'credits') {
-        const dash = rawBalance / 100_000_000_000
-        return dash.toLocaleString(undefined, {
+        // Logic: 1 Credit = 0.00000000001 Dash (100 billion credits = 1 Dash)
+        // Example: 31337000000 credits / 100000000000 = 0.31337000 Dash
+        const creditsToDash = rawBalance / 100_000_000_000
+        return creditsToDash.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 8
         })
@@ -80,7 +83,6 @@ const getNormalizedBalance = (asset: any, symbol: string) => {
 
     // --- DASH COINS ---
     if (normalizedSymbol === 'dash') {
-        // Heuristic: if < 1M, assume normalized; else satoshis
         const isNormalized = rawBalance < 1_000_000
         const normalized = isNormalized ? rawBalance : rawBalance / 100_000_000
         return normalized.toLocaleString(undefined, {
@@ -91,6 +93,27 @@ const getNormalizedBalance = (asset: any, symbol: string) => {
 
     // Default: Return raw
     return rawBalance.toLocaleString()
+}
+
+const getTransactionAmount = (tx: any) => {
+    // Fallback to raw amount if asset info is missing
+    if (!tx || (!tx.assetSymbol && !tx.type)) return '0.00'
+
+    const symbol = tx.assetSymbol || 'CREDITS'
+    const amount = Number(tx.amount) || 0
+
+    if (symbol.toLowerCase().includes('credit') || tx.type === 'IDENTITY_CREDIT_TRANSFER') {
+        // Raw Credits -> Dash
+        const dashVal = amount / 100_000_000_000
+        return dashVal.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 8
+        })
+    }
+
+    // Tokens/T Dash handled similarly to assets if needed
+    // For now, return formatted if exists, else raw
+    return tx.amountFormatted || amount.toLocaleString()
 }
 
 // Helper to format CREDITS to DASH equivalent (for Total Balance)
@@ -407,11 +430,14 @@ onMounted(async () => {
                                     <svg v-if="tx.type === 'sent'" class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
                                     </svg>
-                                    <svg v-if="tx.type === 'received'" class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg v-else-if="tx.type === 'received'" class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                                     </svg>
-                                    <svg v-if="tx.type === 'swap'" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg v-else-if="tx.type === 'swap'" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                    </svg>
+                                    <svg v-else class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                                     </svg>
                                 </div>
                                 <div class="min-w-0">
@@ -420,7 +446,10 @@ onMounted(async () => {
                                 </div>
                             </div>
                             <div class="flex flex-col items-end gap-1">
-                                <span class="font-bold text-slate-900 dark:text-white">{{ tx.amount }}</span>
+                                <!-- CHANGED: Use amountFormatted if available, else raw -->
+                                <span class="font-bold text-slate-900 dark:text-white">
+                                    {{ getTransactionAmount(tx) }}
+                                </span>
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold" :class="getStatusClasses(tx.status)">
                                     {{ tx.status }}
                                 </span>
