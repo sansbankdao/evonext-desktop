@@ -72,7 +72,7 @@ pub const EVONEXT_CONTRACT_ID_TESTNET: &str = "465jdPpFCZefhb4g2k2FpCcrKpPYhJJsk
 #[allow(dead_code)]
 pub const SANS_CONTRACT_ID_MAINNET: &str = "AxAYWyXV6mrm8Sq7vc7wEM18wtL8a8rgj64SM3SDmzsB";
 #[allow(dead_code)]
-pub const SANS_CONTRACT_ID_TESTNET: &str = "A36eJF2kyYXwxCtJGsgbR3CTAscUFaNxZN199V7dLZ";
+pub const SANS_CONTRACT_ID_TESTNET: &str = "A36eJF2kyYXwxCtJGsgbR3CTAscUFaNxZN19UqUfM1kw";
 
 // -----------------------------------------------------------------------------
 // TOKEN DETAILS + METADATA

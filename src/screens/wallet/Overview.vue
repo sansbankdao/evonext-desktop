@@ -8,6 +8,7 @@ import { useWalletStore } from '@/stores/wallet'
 import { useIdentityStore } from '@/stores/identity'
 import { useSystemStore } from '@/stores/system'
 import { useNetwork } from '@/composables/useNetwork'
+import { DUSD_DECIMAL_PLACES, SANS_DECIMAL_PLACES } from '@/constants'
 
 const router = useRouter()
 const Wallet = useWalletStore()
@@ -44,7 +45,55 @@ const previousPage = () => {
     }
 }
 
-// Helper to format CREDITS to DASH equivalent
+// Helper to normalize an asset's balance for display
+const getNormalizedBalance = (asset: any, symbol: string) => {
+    const rawBalance = Number(asset.balance)
+    if (!rawBalance) return '0.00'
+
+    const normalizedSymbol = symbol.replace(/^t/i, '').toLowerCase()
+
+    // --- CREDITS ---
+    if (normalizedSymbol === 'credits' || symbol.toLowerCase() === 'credits') {
+        const dash = rawBalance / 100_000_000_000
+        return dash.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 8
+        })
+    }
+
+    // --- TOKENS (DUSD/SANS) ---
+    if (normalizedSymbol === 'dusd') {
+        const normalized = rawBalance / (10 ** DUSD_DECIMAL_PLACES)
+        return normalized.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        })
+    }
+
+    if (normalizedSymbol === 'sans') {
+        const normalized = rawBalance / (10 ** SANS_DECIMAL_PLACES)
+        return normalized.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 8
+        })
+    }
+
+    // --- DASH COINS ---
+    if (normalizedSymbol === 'dash') {
+        // Heuristic: if < 1M, assume normalized; else satoshis
+        const isNormalized = rawBalance < 1_000_000
+        const normalized = isNormalized ? rawBalance : rawBalance / 100_000_000
+        return normalized.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 8
+        })
+    }
+
+    // Default: Return raw
+    return rawBalance.toLocaleString()
+}
+
+// Helper to format CREDITS to DASH equivalent (for Total Balance)
 const formatDashFromCredits = (creditsString: string | number) => {
     const credits = parseInt(String(creditsString), 10)
     // 1 Credit = 100,000,000,000 Duffs (Dash Satoshis)
@@ -228,7 +277,7 @@ onMounted(async () => {
                         </div>
 
                         <p class="text-xl font-medium text-slate-500 dark:text-slate-400 mb-8">
-                            {{ totalBalance.dash.toLocaleString(undefined, { maximumFractionDigits: 6 }) }} DASH
+                            {{ totalBalance.dash.toLocaleString(undefined, { maximumFractionDigits: 6 }) }} Dash Coins
                         </p>
 
                         <!-- Action Buttons -->
@@ -312,7 +361,7 @@ onMounted(async () => {
                                 </div>
                             </div>
                             <div class="text-right">
-                                <p class="font-bold text-slate-900 dark:text-white">{{ asset.balance?.toLocaleString() }}</p>
+                                <p class="font-bold text-slate-900 dark:text-white">{{ getNormalizedBalance(asset, asset.symbol) }}</p>
                                 <p class="text-xs text-slate-500 dark:text-slate-400">{{ formatCurrency(asset.usdValue as number) }}</p>
                             </div>
                         </div>
@@ -417,7 +466,7 @@ onMounted(async () => {
             <div class="bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden">
                 <div class="p-4 border-b border-slate-700 flex justify-between items-center cursor-pointer hover:bg-slate-800 transition-colors" @click="isDebugOpen = !isDebugOpen">
                     <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3, 1.732 3z"/></svg>
                         <h3 class="text-sm font-bold text-red-400 uppercase tracking-widest">Debug Information</h3>
                     </div>
                     <svg class="w-4 h-4 text-slate-400 transition-transform duration-300" :class="{ 'rotate-180': isDebugOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
