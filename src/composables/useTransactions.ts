@@ -249,12 +249,46 @@ export function useTransactions() {
                 }
                 stateTransition.sign(privKey, pubKey)
                 logs.push('[Transactions] Transaction signed successfully')
-                // 7. Broadcast
+                // 7a. Broadcast (separate try for pinpoint)
                 logs.push('[Transactions] Broadcasting transaction...')
-                await sdk.stateTransitions.broadcast(stateTransition)
-                logs.push('[Transactions] Broadcast accepted. Waiting for confirmation...')
-                await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
-                logs.push('[Transactions] Transaction confirmed on chain')
+                try {
+                    await sdk.stateTransitions.broadcast(stateTransition)
+                    logs.push('[Transactions] Broadcast accepted')
+                } catch (broadcastErr: any) {
+                    const bMsg = broadcastErr?.message ?? 'Broadcast failed (WASM error?)'
+                    logs.push(`[Transactions] BROADCAST FAILED: ${bMsg}`)
+                    logs.push(`[Transactions] Broadcast Error: ${JSON.stringify(broadcastErr ?? {}, null, 2)}`)
+                    return {
+                        success: false,
+                        error: {
+                            code: 500,
+                            message: `Broadcast failed: ${bMsg}`,
+                            step: 'BROADCAST',
+                            suggestions: ['Check DASH balance for fees', 'Verify network']
+                        } as ITxError,
+                        debugLog: logs
+                    }
+                }
+                // 7b. Wait Confirmation (separate try)
+                logs.push('[Transactions] Waiting for confirmation...')
+                try {
+                    await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+                    logs.push('[Transactions] Transaction confirmed on chain')
+                } catch (waitErr: any) {
+                    const wMsg = waitErr?.message ?? 'Confirmation timeout/rejected'
+                    logs.push(`[Transactions] CONFIRM WAIT FAILED: ${wMsg}`)
+                    logs.push(`[Transactions] Wait Error: ${JSON.stringify(waitErr ?? {}, null, 2)}`)
+                    return {
+                        success: false,
+                        error: {
+                            code: 500,
+                            message: `Confirmation failed: ${wMsg}`,
+                            step: 'WAIT_CONFIRMATION',
+                            suggestions: ['Tx may be pending; check explorer']
+                        } as ITxError,
+                        debugLog: logs
+                    }
+                }
                 const hash = stateTransition.hash(false)
                 console.log('info', `Credit transfer successful. Hash: ${hash}`)
                 return {
@@ -263,10 +297,12 @@ export function useTransactions() {
                     debugLog: logs
                 }
             } catch (err: any) {
-                logs.push(`[Transactions] CRITICAL: Failed during State Transition or Broadcast. Error: ${err.message}`)
-                // Attempt to parse specific protocol errors
-                let msg = err.message
-                if (err.message.includes('Duplicate')) {
+                const errMsg = err?.message ?? 'Unknown state transition error'
+                logs.push(`[Transactions] STATE TRANSITION FAILED: ${errMsg}`)
+                logs.push(`[Transactions] Error Object: ${JSON.stringify(err ?? {}, null, 2)}`)
+                // SAFE: No .includes() on undefined
+                let msg = errMsg
+                if (typeof msg === 'string' && msg.includes('Duplicate')) {
                     msg = 'Duplicate transaction or invalid nonce'
                 }
                 return {
@@ -274,32 +310,31 @@ export function useTransactions() {
                     error: {
                         code: 500,
                         message: msg,
-                        step: 'BROADCAST_OR_SIGN',
-                        suggestions: ['Check logs', 'Verify Nonce', 'Check Network']
+                        step: 'STATE_TRANSITION',
+                        suggestions: ['Check nonce', 'Verify recipient']
                     } as ITxError,
                     debugLog: logs
                 }
             }
         } catch (err: any) {
-            // SAFE ERROR CHECKING FOR WASM CRASHES
-            const errMsg = (err && err.message) ? err.message : 'Unknown WASM/Runtime Error (Check Console)'
-
-            logs.push(`[Transactions] CRITICAL: Failed during State Transition or Broadcast.`)
-            logs.push(`[Transactions] Error Object: ${JSON.stringify(err)}`)
+            // SAFE ERROR EXTRACTION (no crash on undefined)
+            const errObj = err ?? {}
+            const errMsg = errObj.message ?? errObj.toString?.() ?? 'Unknown WASM/Runtime Error'
+            logs.push(`[Transactions] CRITICAL: Outer failure.`)
+            logs.push(`[Transactions] Full Error: ${JSON.stringify(errObj, null, 2)}`)
             logs.push(`[Transactions] Error Message: ${errMsg}`)
-
+            // SAFE duplicate check
             let msg = errMsg
-            if (errMsg && errMsg.includes('Duplicate')) {
-                msg = 'Duplicate transaction or invalid nonce'
+            if (typeof msg === 'string' && msg.includes('Duplicate')) {
+                msg = 'Duplicate transaction or invalid nonce - retry later'
             }
-
             return {
                 success: false,
                 error: {
                     code: 500,
                     message: msg,
-                    step: 'BROADCAST_OR_SIGN',
-                    suggestions: ['Check logs', 'Verify Nonce', 'Check Network']
+                    step: 'GENERAL',
+                    suggestions: ['Check console', 'Verify balances/network']
                 } as ITxError,
                 debugLog: logs
             }
@@ -347,8 +382,25 @@ export function useTransactions() {
                 throw new Error('No transfer public key found in identity')
             }
             stateTransition.sign(privKey, pubKey)
-            await sdk.stateTransitions.broadcast(stateTransition)
-            await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+            // Separate Broadcast & Wait to pinpoint failures
+            logs.push('[Token] Broadcasting...')
+            try {
+                await sdk.stateTransitions.broadcast(stateTransition)
+                logs.push('[Token] Broadcast OK')
+            } catch (bErr: any) {
+                const bMsg = bErr?.message ?? 'Token broadcast failed'
+                logs.push(`[Token] BROADCAST FAIL: ${bMsg}`)
+                throw new Error(`Broadcast: ${bMsg}`)
+            }
+            logs.push('[Token] Waiting confirmation...')
+            try {
+                await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+                logs.push('[Token] Confirmed!')
+            } catch (wErr: any) {
+                const wMsg = wErr?.message ?? 'Token confirmation failed'
+                logs.push(`[Token] WAIT FAIL: ${wMsg}`)
+                throw new Error(`Wait: ${wMsg}`)
+            }
             const hash = stateTransition.hash(false)
             console.log('info', `Token transfer successful. Hash: ${hash}, Token: ${params.tokenId}`)
             return {
@@ -357,15 +409,17 @@ export function useTransactions() {
                 debugLog: logs
             }
         } catch (err: any) {
-            logs.push(`Token Transfer Failed: ${err.message}`)
-            error.value = err.message || 'Token transfer failed'
-            console.error('Token transfer error:', err)
+            const errObj = err ?? {}
+            const errMsg = errObj.message ?? errObj.toString?.() ?? 'Token transfer failed (WASM?)'
+            logs.push(`Token Transfer Failed: ${errMsg}`)
+            logs.push(`Full Token Error: ${JSON.stringify(errObj, null, 2)}`)
             return {
                 success: false,
                 error: {
                     code: 500,
-                    message: error.value!,
-                    suggestions: ['Check your network connection', 'Verify you have sufficient token balance']
+                    message: errMsg,
+                    step: 'TOKEN_TRANSFER',
+                    suggestions: ['Check token approval', 'Verify recipient', 'DASH for fees']
                 } as ITxError,
                 debugLog: logs
             }

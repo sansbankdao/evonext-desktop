@@ -18,6 +18,8 @@ export const SANS_CONTRACT_ID_MAINNET = 'AxAYWyXV6mrm8Sq7vc7wEM18wtL8a8rgj64SM3S
 export const SANS_CONTRACT_ID_TESTNET = 'A36eJF2kyYXwxCtJGsgbR3CTAscUFaNxZN199V7dLZ'
 export const WALLET_UTILS_CONTRACT_ID_MAINNET = '7CSFGeF4WNzgDmx94zwvHkYaG3Dx4XEe5LFsFgJswLbm'
 export const WALLET_UTILS_CONTRACT_ID_TESTNET = '7CSFGeF4WNzgDmx94zwvHkYaG3Dx4XEe5LFsFgJswLbm'
+export const YAPPR_CONTRACT_ID_MAINNET = 'TBD'
+export const YAPPR_CONTRACT_ID_TESTNET = 'AyWK6nDVfb8d1ZmkM5MmZZrThbUyWyso1aMeGuuVSfxf'
 
 // Token Decimals (static token properties)
 export const DUSD_DECIMAL_PLACES = 6

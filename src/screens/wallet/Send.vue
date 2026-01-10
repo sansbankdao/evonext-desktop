@@ -12,23 +12,19 @@ import {
     DUSD_DECIMAL_PLACES,
     SANS_DECIMAL_PLACES,
 } from '@/constants'
-
 const router = useRouter()
 // Initialize composables
 const wallet = useWallet()
 const identity = useIdentity()
 const keyMgr = useKeyManagement()
-
 const recipient = ref('')
 const amount = ref<number | null>(null)
 const selectedCurrency = ref('dash-coins')
 const isSending = ref(false)
 const error = ref<string | null>(null)
-
 // Debugging State
 const isDebugOpen = ref(false)
 const debugLogs = ref<string[]>([])
-
 const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString()
     debugLogs.value.push(`[${timestamp}] ${message}`)
@@ -38,8 +34,13 @@ const addLog = (message: string) => {
         if (el) el.scrollTop = el.scrollHeight
     }, 10)
 }
-
-// REFACTORED: Use composable's findAsset helper
+// Helper to determine search symbols based on network/currency
+const getSearchSymbols = (currency: string): string[] => {
+    if (currency === 'dusd') return ['tDUSD', 'DUSD']
+    if (currency === 'sans') return ['tSANS', 'SANS']
+    return []
+}
+// REFACTORED: Handle Testnet Prefixes (tDUSD, tSANS)
 const selectedAsset = computed(() => {
     const tickerMap: Record<string, string> = {
         'dash-coins': 'DASH',
@@ -47,85 +48,106 @@ const selectedAsset = computed(() => {
         'dusd': 'DUSD',
         'sans': 'SANS'
     }
-    const ticker = tickerMap[selectedCurrency.value] || ''
-    // Use wallet.findAsset from composable
-    return wallet.findAsset(ticker)
+    const baseTicker = tickerMap[selectedCurrency.value] || ''
+    // Handle Token Search (do not use wallet.findAsset strictly to allow fallback)
+    if (['dusd', 'sans'].includes(selectedCurrency.value)) {
+        const searchSymbols = getSearchSymbols(selectedCurrency.value)
+        const asset = wallet.assets.value.find((a: any) =>
+            searchSymbols.includes(a.symbol)
+        )
+        return asset || null
+    }
+    // Handle Native Search (DASH or CREDITS)
+    // Use the store getter, or fallback to manual find for safety
+    return wallet.findAsset(baseTicker)
 })
-
 // REFACTORED: Normalized balance logic for UI display
 const displayBalance = computed(() => {
     const asset = selectedAsset.value
     if (!asset || asset.balance === undefined || asset.balance === null) {
         return '0.00'
     }
-
     // If the selected currency is Credits, divide by 100 billion to show full Dash value
     if (selectedCurrency.value === 'dash-credits') {
         // Convert balance to number, divide by 100 billion, and format
         const numericBalance = Number(asset.balance)
         const fullDashBalance = numericBalance / 100_000_000_000
-
         // Format with up to 8 decimal places to ensure decimals is visible (like Dash)
         return fullDashBalance.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 8
         })
     }
-
     // For other assets, just use the existing balance value and formatting
     // Remove commas if they exist in the raw string, parse as float, then re-format
     const numericBalance = typeof asset.balance === 'string'
         ? parseFloat(asset.balance.replace(/,/g, ''))
         : Number(asset.balance)
-
     return numericBalance.toLocaleString(undefined, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 8
     })
 })
-
 // REFACTORED: Normalized label logic for UI display
 const displayLabel = computed(() => {
     const asset = selectedAsset.value
     if (!asset) return '---'
-
     if (selectedCurrency.value === 'dash-credits') {
         return 'DASH CREDITS'
     }
-
-    return asset.symbol
+    // Strip testnet 't' prefix for cleaner UI
+    return asset.symbol.replace(/^t/i, '')
 })
-
 const isFormValid = computed(() => {
-    return !!selectedAsset.value && recipient.value.trim() !== '' && amount.value && amount.value > 0
+    const asset = selectedAsset.value
+    return !!asset &&
+           !!asset.balance &&
+           Number(asset.balance) > 0 &&
+           recipient.value.trim() !== '' &&
+           amount.value && amount.value > 0
 })
-
+// REFACTORED: Correctly normalize logic for "Use Max"
 const setMaxAmount = () => {
-    if (selectedAsset.value && selectedAsset.value.balance) {
-        amount.value = selectedAsset.value.balance as number
+    const asset = selectedAsset.value
+    if (!asset || asset.balance === undefined || asset.balance === null || Number(asset.balance) <= 0) {
+        return
+    }
+    const rawBalance = Number(asset.balance)
+    if (selectedCurrency.value === 'dash-credits') {
+        // Normalize raw credits to Dash equiv (1e11)
+        amount.value = rawBalance / 100_000_000_000
+    } else {
+        // Others (Dash/tokens) are presumed already normalized in store for display
+        amount.value = rawBalance
     }
 }
-
 onMounted(async () => {
-    // Ensure wallet is initialized and data is fresh
+    // Ensure wallet is initialized
     await wallet.initialize()
+    // FORCE REFRESH: Ensure we have the latest data when landing on this screen
+    // This helps if the store was emptied or updated elsewhere
+    try {
+        addLog('INIT: Refreshing balances on Send Screen mount...')
+        await wallet.refresh()
+        addLog(`INIT: Refreshed. Assets: ${wallet.assets.value.length}`)
+    } catch (e) {
+        addLog(`INIT WARNING: Refresh failed - ${(e as Error)?.message || 'unknown'}`)
+    }
 })
-
 const handleSend = async () => {
     if (!isFormValid.value || !selectedAsset.value) {
         error.value = 'Please complete the form with valid details.'
         return
     }
-
+    // Normalize symbol (strip testnet 't' for internal logic checks)
+    const normSymbol = selectedAsset.value.symbol.replace(/^t/i, '')
     // TEMPORARY FIX FOR USER INPUT:
     // If CREDITS are selected, the user likely expects to input the normalized amount (e.g. 1.54 DASH)
     // but the logic expects raw credits. We multiply the user input by 100 billion if Credits are selected.
     let finalAmount = amount.value
-
     if (selectedCurrency.value === 'dash-credits' && amount.value) {
         finalAmount = amount.value * 100_000_000_000
     }
-
     if (finalAmount! > (selectedAsset.value.balance as number)) {
         error.value = 'Insufficient balance for this transaction.'
         return
@@ -156,11 +178,10 @@ const handleSend = async () => {
         // Assuming we need to pass the raw identity index (idx)
         // For a single identity file, index is usually 0.
         const identityIdx = 0
-
         // =================================================================
         // LOGIC: Send Credits
         // =================================================================
-        if (selectedAsset.value.symbol === 'CREDITS' && amount.value) {
+        if (normSymbol === 'CREDITS' && amount.value) {
             addLog('TYPE: Processing CREDIT Transfer...')
             /* Calculate credits. */
             const credits = BigInt(Math.floor(finalAmount || 0))
@@ -194,12 +215,12 @@ const handleSend = async () => {
         // =================================================================
         // LOGIC: Send Tokens (DUSD/SANS)
         // =================================================================
-        else if (['SANS', 'DUSD'].includes(selectedAsset.value.symbol) && amount.value) {
-            addLog(`TYPE: Processing ${selectedAsset.value.symbol} Token Transfer...`)
+        else if (['SANS', 'DUSD'].includes(normSymbol) && amount.value) {
+            addLog(`TYPE: Processing ${normSymbol} Token Transfer...`)
             /* Get token contract ID based on network and ticker. */
             let tokenId: string
             let decimalPlaces: number
-            if (selectedAsset.value.symbol === 'DUSD') {
+            if (normSymbol === 'DUSD') {
                 tokenId = getDUSDContractId()
                 decimalPlaces = DUSD_DECIMAL_PLACES
             } else {
@@ -220,6 +241,8 @@ const handleSend = async () => {
                 wifKey
             )
             console.log('Send Token Result:', result)
+            console.log('FULL Token Result:', JSON.stringify(result, null, 2))  // ADD FULL LOG
+            addLog(`FULL RESULT JSON: ${JSON.stringify(result, null, 2)}`)     // ADD FULL LOG
             addLog('RESULT: Received response from Wallet Composable')
             // Append detailed logs
             if (result.debugLog && result.debugLog.length > 0) {
@@ -238,8 +261,7 @@ const handleSend = async () => {
             }
         } else {
             // Logic for other currencies (e.g. DASH native coins) goes here
-            console.log(`${selectedAsset.value.symbol} sending logic pending implementation.`)
-            await new Promise(resolve => setTimeout(resolve, 2000))
+            throw new Error(`Sending logic for ${normSymbol} is pending implementation.`)
         }
     } catch (e: any) {
         console.error('Failed to send transaction:', e)
@@ -252,10 +274,8 @@ const handleSend = async () => {
     }
 }
 </script>
-
 <template>
     <main class="min-h-screen w-full flex flex-col items-center bg-slate-50 dark:bg-slate-950 pb-24">
-
         <!-- Navigation Header -->
         <header class="w-full max-w-5xl flex items-center justify-between px-6 py-6">
             <button
@@ -267,7 +287,6 @@ const handleSend = async () => {
                 </svg>
                 <span>Back to Wallet</span>
             </button>
-
             <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                     <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -277,12 +296,9 @@ const handleSend = async () => {
                 </div>
             </div>
         </header>
-
         <!-- Main Content (Wider Layout) -->
         <div class="w-full max-w-5xl px-6">
-
             <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-
                 <div class="p-8 pb-6 border-b border-slate-200 dark:border-slate-800">
                     <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-1">
                         Send Assets
@@ -291,12 +307,9 @@ const handleSend = async () => {
                         Transfer Dash Platform assets to any Identity ID.
                     </p>
                 </div>
-
                 <form @submit.prevent="handleSend" class="p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
-
                     <!-- LEFT COLUMN: Form Controls (Span 7) -->
                     <div class="lg:col-span-7 space-y-6">
-
                         <!-- Asset Selection -->
                         <div class="space-y-3">
                             <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">
@@ -318,7 +331,6 @@ const handleSend = async () => {
                                     </div>
                                     <span class="text-xs font-bold text-slate-600 dark:text-slate-400">DASH</span>
                                 </button>
-
                                 <button
                                     type="button"
                                     @click="selectedCurrency = 'dash-credits'"
@@ -334,7 +346,6 @@ const handleSend = async () => {
                                     </div>
                                     <span class="text-xs font-bold text-slate-600 dark:text-slate-400">CREDITS</span>
                                 </button>
-
                                 <button
                                     type="button"
                                     @click="selectedCurrency = 'dusd'"
@@ -348,7 +359,6 @@ const handleSend = async () => {
                                     <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center border border-green-200 dark:border-green-800">$</div>
                                     <span class="text-xs font-bold text-slate-600 dark:text-slate-400">DUSD</span>
                                 </button>
-
                                 <button
                                     type="button"
                                     @click="selectedCurrency = 'sans'"
@@ -366,7 +376,6 @@ const handleSend = async () => {
                                 </button>
                             </div>
                         </div>
-
                         <!-- Recipient -->
                         <div class="space-y-2">
                             <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">
@@ -386,7 +395,6 @@ const handleSend = async () => {
                                 />
                             </div>
                         </div>
-
                         <!-- Amount -->
                         <div class="space-y-2">
                             <div class="flex justify-between items-center px-1">
@@ -395,7 +403,7 @@ const handleSend = async () => {
                                 </label>
                                 <button
                                     @click="setMaxAmount"
-                                    :disabled="!selectedAsset || (selectedAsset.balance as number) <= 0"
+                                    :disabled="!selectedAsset?.balance || Number(selectedAsset.balance) <= 0"
                                     class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                                 >
                                     Use Max
@@ -421,7 +429,6 @@ const handleSend = async () => {
                                 </div>
                             </div>
                         </div>
-
                         <!-- Error Display -->
                         <div v-if="error" class="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 text-sm p-3 rounded-xl flex items-start gap-3">
                             <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -429,12 +436,9 @@ const handleSend = async () => {
                             </svg>
                             {{ error }}
                         </div>
-
                     </div>
-
                     <!-- RIGHT COLUMN: Summary & Action (Span 5) -->
                     <div class="lg:col-span-5 flex flex-col h-full space-y-6">
-
                         <!-- Balance Card -->
                         <div class="p-6 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                             <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
@@ -449,7 +453,6 @@ const handleSend = async () => {
                                 </span>
                             </div>
                         </div>
-
                         <!-- Preview Card -->
                         <div v-if="isFormValid && selectedAsset && amount" class="p-5 rounded-2xl bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 space-y-4">
                             <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
@@ -480,10 +483,8 @@ const handleSend = async () => {
                                 </div>
                             </div>
                         </div>
-
                         <!-- Spacer for flex layout -->
                         <div class="flex-1"></div>
-
                         <!-- Submit Button -->
                         <button
                             type="submit"
@@ -496,7 +497,6 @@ const handleSend = async () => {
                             </svg>
                             <span>{{ isSending ? 'Processing...' : 'Send Assets' }}</span>
                         </button>
-
                         <!-- Toggle Debug Button -->
                         <button
                             type="button"
@@ -508,10 +508,8 @@ const handleSend = async () => {
                             </svg>
                             {{ isDebugOpen ? 'Close Debug Terminal' : 'Open Debug Terminal' }}
                         </button>
-
                     </div>
                 </form>
-
                 <!-- Collapsible Debug Terminal -->
                 <div
                     v-if="isDebugOpen"
@@ -540,9 +538,7 @@ const handleSend = async () => {
                         </div>
                     </div>
                 </div>
-
             </div>
-
         </div>
     </main>
 </template>
