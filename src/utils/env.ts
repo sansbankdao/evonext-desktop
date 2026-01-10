@@ -84,6 +84,8 @@ export function validateEnvironment() {
   }
 
   // Validate network
+  // Note: We validate the string exists, but we do NOT enforce DEFAULT_NETWORK === 'testnet'
+  // because the app can be built to support switching.
   if (!['testnet', 'mainnet'].includes(DEFAULT_NETWORK)) {
     throw new AppError(
       `Invalid DEFAULT_NETWORK: ${DEFAULT_NETWORK}. Must be 'testnet' or 'mainnet'.`,
@@ -107,23 +109,52 @@ export function validateEnvironment() {
   }
 }
 
-// Network-specific helpers
+// =========================================================================
+// DEPRECATED STATIC HELPERS
+// =========================================================================
+
+/**
+ * @deprecated Use `useNetwork().network` to get the runtime network state.
+ * Using this static variable will cause race conditions in multi-network apps.
+ */
 export function isTestnet(): boolean {
-  return DEFAULT_NETWORK === 'testnet'
+  throw new AppError(
+    'Runtime Error: isTestnet() deprecated. Use useNetwork() composable.',
+    9001
+  )
 }
 
+/**
+ * @deprecated Use `useNetwork().network` to get the runtime network state.
+ */
 export function isMainnet(): boolean {
-  return DEFAULT_NETWORK === 'mainnet'
+  throw new AppError(
+    'Runtime Error: isMainnet() deprecated. Use useNetwork() composable.',
+    9001
+  )
 }
 
-export function getPlatformEndpoint(): string {
-  return isTestnet() ? PLATFORM_HTTP_API_TESTNET : PLATFORM_HTTP_API_MAINNET
+// =========================================================================
+// DYNAMIC HELPERS
+// =========================================================================
+
+/**
+ * Returns the Platform API endpoint for a specific network.
+ * Use this instead of the static helpers.
+ */
+export function getPlatformEndpoint(network: string): string {
+  return network.toLowerCase() === 'testnet'
+    ? PLATFORM_HTTP_API_TESTNET
+    : PLATFORM_HTTP_API_MAINNET
 }
 
-// FIX: Explicit helper for Explorer URL
-export function getExplorerEndpoint(): string {
-  // Use the testnet endpoint if configured for testnet
-  return isTestnet() ? PLATFORM_HTTP_API_TESTNET : PLATFORM_HTTP_API_MAINNET
+/**
+ * Returns the Explorer endpoint for a specific network.
+ */
+export function getExplorerEndpoint(network: string): string {
+  return network.toLowerCase() === 'testnet'
+    ? PLATFORM_HTTP_API_TESTNET
+    : PLATFORM_HTTP_API_MAINNET
 }
 
 // Logging helper
@@ -132,7 +163,6 @@ export function log(level: 'debug' | 'info' | 'warn' | 'error', ...args: any[]) 
   const currentLevelIndex = levels.indexOf(LOG_LEVEL)
   const messageLevelIndex = levels.indexOf(level)
 
-  // FIX: Correct syntax if (...) { }
   if (messageLevelIndex >= currentLevelIndex) {
     const logger = console[level] || console.log
     logger(`[${level.toUpperCase()}]`, ...args)

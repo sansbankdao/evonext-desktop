@@ -9,13 +9,14 @@ import { hash160 } from '@evonext/crypto'
 import { binToHex } from '@evonext/utils'
 import { useNetwork } from './useNetwork'
 import { useIdentityStore } from '@/stores/identity'
-import { log, isTestnet } from '@/utils/env'
+import { log } from '@/utils/env'
 import type {
     IPublicKey,
     PurposeType,
     SecurityLevelType,
 } from '@/types'
 import type { PrivateKeyEntry } from '@/types/identity'
+
 // Define Types Locally to avoid import errors
 interface DerivedKey {
     keyIndex: number
@@ -50,15 +51,18 @@ interface KeychainEntry {
 }
 type ParsedPurpose = 0 | 1 | 2 | 3
 type ParsedSecurityLevel = 0 | 1 | 2 | 3 | 4
+
 export function useKeyManagement() {
     const { network, ensure } = useNetwork()
     const identityStore = useIdentityStore()
+
     // State
     const sdk = ref<DashPlatformSDK | null>(null)
     const mnemonic = ref<string>('')
     const isInitialized = ref(false)
     const loading = ref(false)
     const error = ref<string | null>(null)
+
     // Constants
     const DEFAULT_KEYCHAIN = {
         0: { // AUTHENTICATION (purpose 0)
@@ -73,6 +77,7 @@ export function useKeyManagement() {
             3: { keyIdx: 4, keyType: 'ECDSA_SECP256K1', securityLevel: 3 }, // MEDIUM
         }
     } as const
+
     // Helper to parse purpose/security level
     const parsePurpose = (purpose: string | number): ParsedPurpose => {
         if (typeof purpose === 'string') {
@@ -94,6 +99,7 @@ export function useKeyManagement() {
         }
         return level as ParsedSecurityLevel
     }
+
     // Initialization
     const initialize = async (): Promise<void> => {
         if (isInitialized.value) return
@@ -119,6 +125,7 @@ export function useKeyManagement() {
             loading.value = false
         }
     }
+
     // =========================================================================
     //  FILE BASED KEY MANAGEMENT (Rust Integration)
     // =========================================================================
@@ -128,49 +135,65 @@ export function useKeyManagement() {
      */
     const getTransferKeyFromFile = async (identityId: string): Promise<string | null> => {
         try {
-            // 1. Derive Network
-            const networkName = isTestnet() ? 'testnet' : 'mainnet'
-            // 2. Load the raw keystore JSON file
+            // 1. ENSURE NETWORK: Await the confirmed network state from the store.
+            // This guarantees we have the latest user preference/default before asking Rust for the file.
+            const currentNetwork = await ensure()
+
+            // 2. Pass the confirmed network string to the Rust backend.
+            // We no longer rely on isTestnet() to guess the string.
+            const networkName = currentNetwork.toLowerCase() === 'mainnet' ? 'mainnet' : 'testnet'
+
+            log('info', `[KeyManagement] Fetching key for identity ${identityId} on network: ${networkName}`)
+
+            // 3. Load the raw keystore JSON file
             const keystoreData: any = await invoke('load_private_keys', {
                 network: networkName
             })
+
             if (!keystoreData || !keystoreData.identities) {
                 console.warn(`[KeyManagement] No keystore found for network ${networkName}`)
                 return null
             }
-            // 3. Access the identities map
+
+            // 4. Access the identities map
             const identitiesMap = keystoreData.identities
             if (!identitiesMap || !identitiesMap[identityId]) {
                 console.warn(`[KeyManagement] Identity ${identityId} not found in file`)
                 return null
             }
-            // 4. Get keys for the specific identity
+
+            // 5. Get keys for the specific identity
             const identityKeys: PrivateKeyEntry[] = identitiesMap[identityId]
             if (!identityKeys || identityKeys.length === 0) {
                 console.warn(`[KeyManagement] No keys found for ${identityId}`)
                 return null
             }
-            // 5. Filter for TRANSFER keys (Purpose 3)
+
+            // 6. Filter for TRANSFER keys (Purpose 3)
             const transferKeys = identityKeys.filter((k: PrivateKeyEntry) => k.purpose === 3)
             if (transferKeys.length === 0) {
                 console.error(`[KeyManagement] No Transfer keys (purpose: 3) found for identity ${identityId}`)
                 return null
             }
-            // 6. Select the best Transfer key (Highest Security > Higher ID)
+
+            // 7. Select the best Transfer key (Highest Security > Higher ID)
             const bestKey = transferKeys.sort((a, b) => {
                 if (b.securityLevel !== a.securityLevel) {
                     return b.securityLevel - a.securityLevel
                 }
                 return a.keyId - b.keyId
             })[0]
+
             console.log(`[KeyManagement] Found File Transfer Key for ${identityId}: ID ${bestKey?.keyId}`)
-            // 7. Return the Private Key
+
+            // 8. Return the Private Key
             return bestKey?.privateKey || null
         } catch (err) {
             console.error('[KeyManagement] Failed to retrieve transfer key from file:', err)
             return null
         }
     }
+
     // =========================================================================
     //  MNEMONIC / WASM KEY MANAGEMENT
     // =========================================================================
@@ -195,6 +218,7 @@ export function useKeyManagement() {
         )
         return PrivateKeyWASM.fromHex(binToHex(hdKey.privateKey), network.value)
     }
+
     // Get all private keys for an identity (Mnemonic based)
     const getPrivateKeys = async (
         identityIdx: number,
@@ -258,6 +282,7 @@ export function useKeyManagement() {
             loading.value = false
         }
     }
+
     // Get specific key by purpose and security level (Mnemonic based)
     const getKeyByPurpose = async (
         identityIdx: number,
@@ -292,6 +317,7 @@ export function useKeyManagement() {
             return null
         }
     }
+
     // Get auth key (MASTER AUTHENTICATION - purpose 0, securityLevel 0)
     const getAuthKey = async (identityIdx: number): Promise<string | null> => {
         try {
@@ -303,6 +329,7 @@ export function useKeyManagement() {
             return null
         }
     }
+
     /**
      * Get Transfer Key
      * Consolidated Strategy:
@@ -333,6 +360,7 @@ export function useKeyManagement() {
             return null
         }
     }
+
     // Get encryption key (ENCRYPTION - purpose 2, securityLevel 3)
     const getEncryptionKey = async (identityIdx: number): Promise<string | null> => {
         try {
@@ -343,6 +371,7 @@ export function useKeyManagement() {
             return null
         }
     }
+
     // Keychain management
     const loadKeychain = async (
         identityId: string,
@@ -358,6 +387,7 @@ export function useKeyManagement() {
             return null
         }
     }
+
     const saveKeychain = async (
         identityId: string,
         identityIdx: number,
@@ -424,6 +454,7 @@ export function useKeyManagement() {
             log('error', 'Failed to save keychain:', error)
         }
     }
+
     const getMissingKeys = async (identityId: string): Promise<{
         purpose: ParsedPurpose,
         securityLevel: ParsedSecurityLevel,
@@ -452,6 +483,7 @@ export function useKeyManagement() {
         }
         return missing
     }
+
     // Helper
     const findBestMatch = (key: IPublicKey): number => {
         const purpose = parsePurpose(key.purpose)
@@ -467,6 +499,7 @@ export function useKeyManagement() {
         }
         return -1
     }
+
     // Transfer key addition specific methods
     const addTransferKey = async (
         identityId: string,
@@ -487,6 +520,7 @@ export function useKeyManagement() {
             const newRevision = BigInt(currentRevision) + BigInt(1)
             const currentIdentityNonce = await sdkInstance.identities.getIdentityNonce(identityId)
             const identityNonce = currentIdentityNonce + BigInt(1)
+
             // 2. Get master key
             const keyDerivation = await getPrivateKeys(identityIdx)
             const masterKeyEntry = keyDerivation.keys?.find(key =>
@@ -496,18 +530,22 @@ export function useKeyManagement() {
             if (!masterPrivateKey) {
                 throw new Error('Master authentication key not found')
             }
+
             // 3. Determine next key ID
             const validIds = publicKeys.map(k => k.id).filter(id => id !== undefined)
             const sortedIds = validIds.sort((a: number, b: number) => a - b)
             const nextKeyId = sortedIds.length > 0 ? Math.max(...sortedIds) + 1 : 0
+
             // 4. Derive transfer key
             const transferPrivateKey = await deriveKey(identityIdx, 3)
             const transferPublicKey = transferPrivateKey.getPublicKey()
+
             // 5. Create public key object
             const transferPublicKeyBytes = transferPublicKey.bytes()
             const publicKeyData = keyType === 'ECDSA_HASH160'
                 ? hash160(transferPublicKeyBytes)
                 : transferPublicKeyBytes
+
             const identityPublicKeyInCreation: any = {
                 purpose: 3 as PurposeType, // TRANSFER
                 securityLevel: securityLevel as SecurityLevelType,
@@ -515,6 +553,7 @@ export function useKeyManagement() {
                 readOnly: false,publicKeyData,
                 signature: new Uint8Array()
             }
+
             // 6. Two-phase signing
             let identityUpdateTransition = sdkInstance.identities.createStateTransition('update', {
                 identityId,
@@ -537,6 +576,7 @@ export function useKeyManagement() {
             })
             const masterKeyId = masterKey ? masterKey.id : 0
             identityUpdateTransition.signByPrivateKey(masterPrivateKey, masterKeyId, keyType)
+
             // 7. Broadcast
             const result = await sdkInstance.stateTransitions.broadcast(identityUpdateTransition)
             return {
@@ -560,6 +600,7 @@ export function useKeyManagement() {
             }
         }
     }
+
     return {
         // State
         loading: computed(() => loading.value),
@@ -593,5 +634,6 @@ export function useKeyManagement() {
         }
     }
 }
+
 // Type export
 export type UseKeyManagementReturn = ReturnType<typeof useKeyManagement>

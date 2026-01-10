@@ -12,12 +12,22 @@ import {
     DUSD_DECIMAL_PLACES,
     SANS_DECIMAL_PLACES,
 } from '@/constants'
+import { useWalletStore } from '@/stores/wallet'
+import { useIdentityStore } from '@/stores/identity'
+import { useSystemStore } from '@/stores/system'
+import { useNetwork } from '@/composables/useNetwork'
 
 const router = useRouter()
 // Initialize composables
 const wallet = useWallet()
 const identity = useIdentity()
 const keyMgr = useKeyManagement()
+
+// Initialize Stores (mirroring Overview)
+const WalletStore = useWalletStore()
+const IdentityStore = useIdentityStore()
+const SystemStore = useSystemStore()
+const { ensure } = useNetwork()
 
 const recipient = ref('')
 const amount = ref<number | null>(null)
@@ -50,6 +60,14 @@ const txDetails = ref<{
     recipient: string
     explorerUrl: string
 } | null>(null)
+
+// Dynamic Explorer URL based on Network
+const explorerBase = computed(() => {
+    const net = WalletStore.network?.toLowerCase() || 'testnet'
+    return net === 'mainnet'
+        ? 'https://explorer.platform.dash.org'
+        : 'https://testnet.platform-explorer.com'
+})
 
 // Helper to determine search symbols based on network/currency
 const getSearchSymbols = (currency: string): string[] => {
@@ -178,14 +196,29 @@ const setMaxAmount = () => {
 }
 
 onMounted(async () => {
-    // Ensure wallet is initialized
+    /* 1. Ensure Network Settings are Loaded (COPIED FROM OVERVIEW) */
+    const currentNetwork = await ensure()
+    console.log(`🌐 Network initialized: ${currentNetwork}`)
+
+    /* 2. Validate market data (COPIED FROM OVERVIEW) */
+    if (!SystemStore.currentDashPrice) {
+        await SystemStore.fetchDashPrice()
+    }
+
+    /* 3. Validate identity connection (COPIED/ADAPTED FROM OVERVIEW) */
+    if (IdentityStore.isConnected) {
+        console.log('✅ Identity connected, using identity data for user:', IdentityStore.username)
+    }
+
+    /* 4. Ensure wallet is initialized & refreshed */
     await wallet.initialize()
+
     // FORCE REFRESH: Ensure we have the latest data when landing on this screen
     // This helps if the store was emptied or updated elsewhere
     try {
         addLog('INIT: Refreshing balances on Send Screen mount...')
         await wallet.refresh()
-        addLog(`INIT: Refreshed. Assets: ${wallet.assets.value.length}`)
+        addLog(`INIT: Refreshed. Assets: ${wallet.assets.value.length}, Network: ${WalletStore.network}`)
     } catch (e) {
         addLog(`INIT WARNING: Refresh failed - ${(e as Error)?.message || 'unknown'}`)
     }
@@ -271,7 +304,7 @@ const handleSend = async () => {
                     asset: 'DASH CREDITS',
                     amount: amount.value!.toLocaleString(),
                     recipient: recipient.value,
-                    explorerUrl: `https://testnet.platform-explorer.com/transaction/${txid}`
+                    explorerUrl: `${explorerBase.value}/transaction/${txid}`
                 }
                 showTxModal.value = true
             } else {
@@ -326,7 +359,7 @@ const handleSend = async () => {
                     asset: displayLabel.value,
                     amount: amount.value!.toLocaleString(),
                     recipient: recipient.value,
-                    explorerUrl: `https://testnet.platform-explorer.com/transaction/${txid}`
+                    explorerUrl: `${explorerBase.value}/transaction/${txid}`
                 }
                 showTxModal.value = true
             } else {
@@ -366,10 +399,10 @@ const handleSend = async () => {
             </button>
 
             <div class="flex items-center gap-4">
-                <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
                     <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                    <span class="text-xs font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wide">
-                        Testnet
+                    <span class="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
+                        {{ WalletStore.network || 'testnet' }}
                     </span>
                 </div>
             </div>
@@ -634,6 +667,18 @@ const handleSend = async () => {
                         </div>
                         <div v-for="(log, index) in debugLogs" :key="index" class="break-words">
                             > {{ log }}
+                        </div>
+
+                        <!-- Dynamic Network Debug Info -->
+                        <div v-if="WalletStore.network" class="mt-4 pt-4 border-t border-slate-800">
+                             <div class="flex justify-between text-emerald-400">
+                                <span>Active Network:</span>
+                                <span class="font-bold">{{ WalletStore.network.toUpperCase() }}</span>
+                            </div>
+                            <div class="flex justify-between text-slate-400">
+                                <span>Explorer Base:</span>
+                                <span class="text-white">{{ explorerBase }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
