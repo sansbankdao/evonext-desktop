@@ -12,19 +12,25 @@ import {
     DUSD_DECIMAL_PLACES,
     SANS_DECIMAL_PLACES,
 } from '@/constants'
+
 const router = useRouter()
 // Initialize composables
 const wallet = useWallet()
 const identity = useIdentity()
 const keyMgr = useKeyManagement()
+
 const recipient = ref('')
 const amount = ref<number | null>(null)
 const selectedCurrency = ref('dash-coins')
 const isSending = ref(false)
 const error = ref<string | null>(null)
+
+const clipboard = navigator.clipboard!
+
 // Debugging State
 const isDebugOpen = ref(false)
 const debugLogs = ref<string[]>([])
+
 const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString()
     debugLogs.value.push(`[${timestamp}] ${message}`)
@@ -34,12 +40,24 @@ const addLog = (message: string) => {
         if (el) el.scrollTop = el.scrollHeight
     }, 10)
 }
+
+// TX Success Modal State
+const showTxModal = ref(false)
+const txDetails = ref<{
+    txid: string
+    asset: string
+    amount: string
+    recipient: string
+    explorerUrl: string
+} | null>(null)
+
 // Helper to determine search symbols based on network/currency
 const getSearchSymbols = (currency: string): string[] => {
     if (currency === 'dusd') return ['tDUSD', 'DUSD']
     if (currency === 'sans') return ['tSANS', 'SANS']
     return []
 }
+
 // REFACTORED: Handle Testnet Prefixes (tDUSD, tSANS)
 const selectedAsset = computed(() => {
     const tickerMap: Record<string, string> = {
@@ -49,6 +67,7 @@ const selectedAsset = computed(() => {
         'sans': 'SANS'
     }
     const baseTicker = tickerMap[selectedCurrency.value] || ''
+
     // Handle Token Search (do not use wallet.findAsset strictly to allow fallback)
     if (['dusd', 'sans'].includes(selectedCurrency.value)) {
         const searchSymbols = getSearchSymbols(selectedCurrency.value)
@@ -57,47 +76,73 @@ const selectedAsset = computed(() => {
         )
         return asset || null
     }
+
     // Handle Native Search (DASH or CREDITS)
     // Use the store getter, or fallback to manual find for safety
     return wallet.findAsset(baseTicker)
 })
+
 // REFACTORED: Normalized balance logic for UI display
 const displayBalance = computed(() => {
     const asset = selectedAsset.value
     if (!asset || asset.balance === undefined || asset.balance === null) {
         return '0.00'
     }
-    // If the selected currency is Credits, divide by 100 billion to show full Dash value
+
+    const numericBalance = Number(asset.balance)
+
+    // --- CREDITS: Special Logic (Raw -> Dash) ---
     if (selectedCurrency.value === 'dash-credits') {
-        // Convert balance to number, divide by 100 billion, and format
-        const numericBalance = Number(asset.balance)
-        const fullDashBalance = numericBalance / 100_000_000_000
-        // Format with up to 8 decimal places to ensure decimals is visible (like Dash)
-        return fullDashBalance.toLocaleString(undefined, {
+        // Assumes credits are raw units. 100 billion = 1 Dash
+        const dash = numericBalance / 100_000_000_000
+        return dash.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 8
         })
     }
-    // For other assets, just use the existing balance value and formatting
-    // Remove commas if they exist in the raw string, parse as float, then re-format
-    const numericBalance = typeof asset.balance === 'string'
-        ? parseFloat(asset.balance.replace(/,/g, ''))
-        : Number(asset.balance)
-    return numericBalance.toLocaleString(undefined, {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 8
-    })
+
+    // --- TOKENS: Atomic -> Normalized (DUSD/SANS) ---
+    if (['dusd', 'sans'].includes(selectedCurrency.value)) {
+        const decimalsMap: Record<string, number> = {
+            'dusd': DUSD_DECIMAL_PLACES,   // 6
+            'sans': SANS_DECIMAL_PLACES     // 8
+        }
+        const decimals = decimalsMap[selectedCurrency.value] || 8
+        const normalized = numericBalance / (10 ** decimals)
+        return normalized.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 8
+        })
+    }
+
+    // --- DASH COINS: Heuristic (Atomic vs Normalized) ---
+    if (selectedCurrency.value === 'dash-coins') {
+        // If value is extremely small (< 1,000,000), assume it's already normalized DASH (e.g. 0.54).
+        // Otherwise assume Satoshis (need / 100,000,000).
+        const isNormalizedDASH = numericBalance < 1_000_000
+        const normalized = isNormalizedDASH ? numericBalance : numericBalance / 100_000_000
+        return normalized.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 8
+        })
+    }
+
+    return '0.00'
 })
+
 // REFACTORED: Normalized label logic for UI display
 const displayLabel = computed(() => {
     const asset = selectedAsset.value
     if (!asset) return '---'
+
     if (selectedCurrency.value === 'dash-credits') {
         return 'DASH CREDITS'
     }
+
     // Strip testnet 't' prefix for cleaner UI
     return asset.symbol.replace(/^t/i, '')
 })
+
 const isFormValid = computed(() => {
     const asset = selectedAsset.value
     return !!asset &&
@@ -106,21 +151,32 @@ const isFormValid = computed(() => {
            recipient.value.trim() !== '' &&
            amount.value && amount.value > 0
 })
+
 // REFACTORED: Correctly normalize logic for "Use Max"
 const setMaxAmount = () => {
     const asset = selectedAsset.value
     if (!asset || asset.balance === undefined || asset.balance === null || Number(asset.balance) <= 0) {
         return
     }
+
     const rawBalance = Number(asset.balance)
+
     if (selectedCurrency.value === 'dash-credits') {
         // Normalize raw credits to Dash equiv (1e11)
         amount.value = rawBalance / 100_000_000_000
     } else {
-        // Others (Dash/tokens) are presumed already normalized in store for display
-        amount.value = rawBalance
+        // Normalize tokens/DASH from raw balance using decimals
+        const decimalsMap: Record<string, number> = {
+            'dash-coins': 8,      // DASH
+            'dash-credits': 0,    // Handled above
+            'dusd': DUSD_DECIMAL_PLACES,   // 6
+            'sans': SANS_DECIMAL_PLACES     // 8
+        }
+        const decimals = decimalsMap[selectedCurrency.value] || 8
+        amount.value = rawBalance / (10 ** decimals)
     }
 }
+
 onMounted(async () => {
     // Ensure wallet is initialized
     await wallet.initialize()
@@ -134,20 +190,25 @@ onMounted(async () => {
         addLog(`INIT WARNING: Refresh failed - ${(e as Error)?.message || 'unknown'}`)
     }
 })
+
 const handleSend = async () => {
     if (!isFormValid.value || !selectedAsset.value) {
         error.value = 'Please complete the form with valid details.'
         return
     }
+
     // Normalize symbol (strip testnet 't' for internal logic checks)
     const normSymbol = selectedAsset.value.symbol.replace(/^t/i, '')
+
     // TEMPORARY FIX FOR USER INPUT:
     // If CREDITS are selected, the user likely expects to input the normalized amount (e.g. 1.54 DASH)
     // but the logic expects raw credits. We multiply the user input by 100 billion if Credits are selected.
     let finalAmount = amount.value
+
     if (selectedCurrency.value === 'dash-credits' && amount.value) {
         finalAmount = amount.value * 100_000_000_000
     }
+
     if (finalAmount! > (selectedAsset.value.balance as number)) {
         error.value = 'Insufficient balance for this transaction.'
         return
@@ -204,8 +265,15 @@ const handleSend = async () => {
             if (result.success) {
                 const txid = result.data?.txid || 'UNKNOWN'
                 addLog(`SUCCESS: Transaction Broadcasted. TXID: ${txid}`)
-                alert('Transaction Successful -- Your TXID is:\n' + txid)
-                router.push('/wallet') // Go to wallet history
+                // MODAL: Show success (no alert/redirect)
+                txDetails.value = {
+                    txid,
+                    asset: 'DASH CREDITS',
+                    amount: amount.value!.toLocaleString(),
+                    recipient: recipient.value,
+                    explorerUrl: `https://testnet.platform-explorer.com/transaction/${txid}`
+                }
+                showTxModal.value = true
             } else {
                 addLog(`FAILURE: Transaction failed. Code: ${result.error?.code}, Msg: ${result.error?.message}`)
                 addLog(`STEP FAILURE AT: ${result.error?.step}`)
@@ -252,8 +320,15 @@ const handleSend = async () => {
             if (result.success) {
                 const txid = result.data?.txid || 'UNKNOWN'
                 addLog(`SUCCESS: Transaction Broadcasted. TXID: ${txid}`)
-                alert('Transaction Successful -- Your TXID is:\n' + txid)
-                router.push('/wallet')
+                // MODAL: Show success (no alert/redirect)
+                txDetails.value = {
+                    txid,
+                    asset: displayLabel.value,
+                    amount: amount.value!.toLocaleString(),
+                    recipient: recipient.value,
+                    explorerUrl: `https://testnet.platform-explorer.com/transaction/${txid}`
+                }
+                showTxModal.value = true
             } else {
                 addLog(`FAILURE: Transaction failed. Code: ${result.error?.code}, Msg: ${result.error?.message}`)
                 addLog(`STEP FAILURE AT: ${result.error?.step}`)
@@ -274,8 +349,10 @@ const handleSend = async () => {
     }
 }
 </script>
+
 <template>
     <main class="min-h-screen w-full flex flex-col items-center bg-slate-50 dark:bg-slate-950 pb-24">
+
         <!-- Navigation Header -->
         <header class="w-full max-w-5xl flex items-center justify-between px-6 py-6">
             <button
@@ -287,6 +364,7 @@ const handleSend = async () => {
                 </svg>
                 <span>Back to Wallet</span>
             </button>
+
             <div class="flex items-center gap-4">
                 <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                     <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -296,9 +374,12 @@ const handleSend = async () => {
                 </div>
             </div>
         </header>
+
         <!-- Main Content (Wider Layout) -->
         <div class="w-full max-w-5xl px-6">
+
             <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+
                 <div class="p-8 pb-6 border-b border-slate-200 dark:border-slate-800">
                     <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-1">
                         Send Assets
@@ -307,9 +388,12 @@ const handleSend = async () => {
                         Transfer Dash Platform assets to any Identity ID.
                     </p>
                 </div>
+
                 <form @submit.prevent="handleSend" class="p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+
                     <!-- LEFT COLUMN: Form Controls (Span 7) -->
                     <div class="lg:col-span-7 space-y-6">
+
                         <!-- Asset Selection -->
                         <div class="space-y-3">
                             <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">
@@ -331,6 +415,7 @@ const handleSend = async () => {
                                     </div>
                                     <span class="text-xs font-bold text-slate-600 dark:text-slate-400">DASH</span>
                                 </button>
+
                                 <button
                                     type="button"
                                     @click="selectedCurrency = 'dash-credits'"
@@ -346,6 +431,7 @@ const handleSend = async () => {
                                     </div>
                                     <span class="text-xs font-bold text-slate-600 dark:text-slate-400">CREDITS</span>
                                 </button>
+
                                 <button
                                     type="button"
                                     @click="selectedCurrency = 'dusd'"
@@ -359,6 +445,7 @@ const handleSend = async () => {
                                     <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center border border-green-200 dark:border-green-800">$</div>
                                     <span class="text-xs font-bold text-slate-600 dark:text-slate-400">DUSD</span>
                                 </button>
+
                                 <button
                                     type="button"
                                     @click="selectedCurrency = 'sans'"
@@ -376,6 +463,7 @@ const handleSend = async () => {
                                 </button>
                             </div>
                         </div>
+
                         <!-- Recipient -->
                         <div class="space-y-2">
                             <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">
@@ -395,6 +483,7 @@ const handleSend = async () => {
                                 />
                             </div>
                         </div>
+
                         <!-- Amount -->
                         <div class="space-y-2">
                             <div class="flex justify-between items-center px-1">
@@ -403,7 +492,7 @@ const handleSend = async () => {
                                 </label>
                                 <button
                                     @click="setMaxAmount"
-                                    :disabled="!selectedAsset?.balance || Number(selectedAsset.balance) <= 0"
+                                    :disabled="!selectedAsset?.balance || Number(selectedAsset?.balance || 0) <= 0"
                                     class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                                 >
                                     Use Max
@@ -429,6 +518,7 @@ const handleSend = async () => {
                                 </div>
                             </div>
                         </div>
+
                         <!-- Error Display -->
                         <div v-if="error" class="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 text-sm p-3 rounded-xl flex items-start gap-3">
                             <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -436,9 +526,12 @@ const handleSend = async () => {
                             </svg>
                             {{ error }}
                         </div>
+
                     </div>
+
                     <!-- RIGHT COLUMN: Summary & Action (Span 5) -->
                     <div class="lg:col-span-5 flex flex-col h-full space-y-6">
+
                         <!-- Balance Card -->
                         <div class="p-6 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                             <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
@@ -453,6 +546,7 @@ const handleSend = async () => {
                                 </span>
                             </div>
                         </div>
+
                         <!-- Preview Card -->
                         <div v-if="isFormValid && selectedAsset && amount" class="p-5 rounded-2xl bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 space-y-4">
                             <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
@@ -483,8 +577,10 @@ const handleSend = async () => {
                                 </div>
                             </div>
                         </div>
+
                         <!-- Spacer for flex layout -->
                         <div class="flex-1"></div>
+
                         <!-- Submit Button -->
                         <button
                             type="submit"
@@ -497,6 +593,7 @@ const handleSend = async () => {
                             </svg>
                             <span>{{ isSending ? 'Processing...' : 'Send Assets' }}</span>
                         </button>
+
                         <!-- Toggle Debug Button -->
                         <button
                             type="button"
@@ -508,8 +605,10 @@ const handleSend = async () => {
                             </svg>
                             {{ isDebugOpen ? 'Close Debug Terminal' : 'Open Debug Terminal' }}
                         </button>
+
                     </div>
                 </form>
+
                 <!-- Collapsible Debug Terminal -->
                 <div
                     v-if="isDebugOpen"
@@ -538,7 +637,72 @@ const handleSend = async () => {
                         </div>
                     </div>
                 </div>
+
+            </div>
+
+        </div>
+
+        <!-- TX Success Modal -->
+        <div v-if="showTxModal && txDetails"
+             class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+             @click.self="showTxModal = false"
+        >
+            <div class="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-800 shadow-2xl">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 rounded-2xl flex items-center justify-center border-2 border-emerald-200 dark:border-emerald-800">
+                            <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Transaction Sent!</h2>
+                            <p class="text-emerald-600 dark:text-emerald-400 font-medium">{{ txDetails.amount }} {{ txDetails.asset }}</p>
+                        </div>
+                    </div>
+                    <button @click="showTxModal = false" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="space-y-4 mb-6">
+                    <!-- TXID -->
+                    <div>
+                        <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 block">Transaction ID</label>
+                        <div class="relative group">
+                            <input readonly :value="txDetails.txid" class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 font-mono text-sm text-slate-900 dark:text-slate-100 truncate pr-24" />
+                            <button @click="clipboard.writeText(txDetails.txid || '')"
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 bg-indigo-500 text-white text-xs font-bold rounded-lg hover:bg-indigo-600 transition-colors"
+                            >
+                                Copy
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Recipient -->
+                    <div>
+                        <label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 block">Recipient</label>
+                        <div class="font-mono text-sm text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-950 rounded-xl px-4 py-3 truncate">
+                            {{ txDetails.recipient }}
+                        </div>
+                    </div>
+                </div>
+                <!-- Explorer Link -->
+                <a :href="txDetails.explorerUrl" target="_blank" rel="noopener noreferrer"
+                   class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-6 rounded-2xl text-center block transition-all flex items-center justify-center gap-2 shadow-lg"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    View on Explorer
+                </a>
+                <button @click="showTxModal = false; /* Reset form */ amount = null; recipient = ''; selectedCurrency = 'dash-coins'"
+                        class="w-full mt-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold py-3 px-4 rounded-xl hover:bg-slate-800 dark:hover:bg-slate-50 transition-colors"
+                >
+                    Send Another
+                </button>
             </div>
         </div>
+
     </main>
 </template>
