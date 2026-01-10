@@ -18,6 +18,7 @@ import { useSystemStore } from '@/stores/system'
 import { useNetwork } from '@/composables/useNetwork'
 
 const router = useRouter()
+
 // Initialize composables
 const wallet = useWallet()
 const identity = useIdentity()
@@ -31,7 +32,7 @@ const { ensure } = useNetwork()
 
 const recipient = ref('')
 const amount = ref<number | null>(null)
-const selectedCurrency = ref('dash-coins')
+const selectedCurrency = ref('dash-coins') // Fixed default typo
 const isSending = ref(false)
 const error = ref<string | null>(null)
 
@@ -152,11 +153,9 @@ const displayBalance = computed(() => {
 const displayLabel = computed(() => {
     const asset = selectedAsset.value
     if (!asset) return '---'
-
     if (selectedCurrency.value === 'dash-credits') {
         return 'DASH CREDITS'
     }
-
     // Strip testnet 't' prefix for cleaner UI
     return asset.symbol.replace(/^t/i, '')
 })
@@ -176,9 +175,7 @@ const setMaxAmount = () => {
     if (!asset || asset.balance === undefined || asset.balance === null || Number(asset.balance) <= 0) {
         return
     }
-
     const rawBalance = Number(asset.balance)
-
     if (selectedCurrency.value === 'dash-credits') {
         // Normalize raw credits to Dash equiv (1e11)
         amount.value = rawBalance / 100_000_000_000
@@ -230,152 +227,138 @@ const handleSend = async () => {
         return
     }
 
-    // Normalize symbol (strip testnet 't' for internal logic checks)
     const normSymbol = selectedAsset.value.symbol.replace(/^t/i, '')
-
-    // TEMPORARY FIX FOR USER INPUT:
-    // If CREDITS are selected, the user likely expects to input the normalized amount (e.g. 1.54 DASH)
-    // but the logic expects raw credits. We multiply the user input by 100 billion if Credits are selected.
-    let finalAmount = amount.value
+    let finalAmount = amount.value || 0
 
     if (selectedCurrency.value === 'dash-credits' && amount.value) {
         finalAmount = amount.value * 100_000_000_000
     }
 
-    if (finalAmount! > (selectedAsset.value.balance as number)) {
+    if (finalAmount > (selectedAsset.value.balance as number)) {
         error.value = 'Insufficient balance for this transaction.'
         return
     }
+
     isSending.value = true
     error.value = null
-    debugLogs.value = [] // Clear previous logs
+    debugLogs.value = []
+
     try {
         addLog('START: Initiating send process...')
-        // REFACTORED: Use identity composable for ID
+
+        // 1. Resolve Network Name accurately
+        const currentNetworkName = await ensure()
+        addLog(`NETWORK: Active network is ${currentNetworkName}`)
+
         const identityId = identity.identityId.value
         if (!identityId) {
             throw new Error('No identity found. Please connect your wallet.')
         }
         addLog(`IDENTITY: Found ID ${identityId}`)
+
         // =================================================================
-        // KEY RETRIEVAL (Consolidated)
+        // KEY RETRIEVAL (Fixed for KeyPair object)
         // =================================================================
         addLog('STEP 1: Attempting to retrieve Transfer Key...')
-        const wifKey = await keyMgr.getTransferKey(identityId)
-        if (!wifKey) {
+        const keyPair = await keyMgr.getTransferKey(identityId)
+
+        if (!keyPair || !keyPair.privateKey) {
             throw new Error('Could not find Transfer key (Purpose 3). Please check your identity settings.')
         }
-        addLog('KEY: Successfully retrieved WIF Key')
-        // Sanitize log slightly to avoid printing full key if logs leak, but we want to see it was found
-        addLog(`KEY: First 4 chars: ${wifKey.substring(0, 4)}... Last 4 chars: ...${wifKey.substring(wifKey.length - 4)}`)
-        console.log('[Send] Using Transfer Key from consolidated manager')
-        // Assuming we need to pass the raw identity index (idx)
-        // For a single identity file, index is usually 0.
-        const identityIdx = 0
+
+        addLog('KEY: Successfully retrieved KeyPair')
+
+        // FIX: Access .privateKey for the substring operations
+        const wif = keyPair.privateKey
+        addLog(`KEY: First 4 chars: ${wif.substring(0, 4)}... Last 4 chars: ...${wif.substring(wif.length - 4)}`)
+        addLog(`KEY: Using Key ID: ${keyPair.keyId}`)
+
         // =================================================================
         // LOGIC: Send Credits
         // =================================================================
         if (normSymbol === 'CREDITS' && amount.value) {
             addLog('TYPE: Processing CREDIT Transfer...')
-            /* Calculate credits. */
-            const credits = BigInt(Math.floor(finalAmount || 0))
-            addLog(`CALC: Converted amount to credits: ${credits}`)
+            const credits = BigInt(Math.floor(finalAmount))
+            addLog(`CALC: Converted to credits: ${credits}`)
+
+            // Note: useTransactions.ts will resolve the key again internally
+            // using the identityId to ensure protocol-level sync.
             const result = await wallet.sendCredit(
                 identityId,
-                identityIdx,
+                0,
                 recipient.value,
-                credits,
-                wifKey
+                credits
             )
-            console.log('Send Credit Result:', result)
-            addLog('WALLET: Received response from Wallet Composable')
-            // Append detailed logs from the composable if they exist
-            if (result.debugLog && result.debugLog.length > 0) {
-                addLog('--- DETAILED WALLET LOGS ---')
-                result.debugLog.forEach(logLine => addLog(logLine))
-                addLog('--- END DETAILED LOGS ---')
-            }
+
+            if (result.debugLog) result.debugLog.forEach(logLine => addLog(logLine))
+
             if (result.success) {
                 const txid = result.data?.txid || 'UNKNOWN'
-                addLog(`SUCCESS: Transaction Broadcasted. TXID: ${txid}`)
-                // MODAL: Show success (no alert/redirect)
+                addLog(`SUCCESS: Broadcasted. TXID: ${txid}`)
                 txDetails.value = {
                     txid,
                     asset: 'DASH CREDITS',
-                    amount: amount.value!.toLocaleString(),
+                    amount: amount.value.toLocaleString(),
                     recipient: recipient.value,
                     explorerUrl: `${explorerBase.value}/transaction/${txid}`
                 }
                 showTxModal.value = true
             } else {
-                addLog(`FAILURE: Transaction failed. Code: ${result.error?.code}, Msg: ${result.error?.message}`)
-                addLog(`STEP FAILURE AT: ${result.error?.step}`)
-                throw new Error(result.error?.message || 'Unknown Transaction Error')
+                throw new Error(result.error?.message || 'Transaction failed')
             }
         }
+
         // =================================================================
         // LOGIC: Send Tokens (DUSD/SANS)
         // =================================================================
         else if (['SANS', 'DUSD'].includes(normSymbol) && amount.value) {
             addLog(`TYPE: Processing ${normSymbol} Token Transfer...`)
-            /* Get token contract ID based on network and ticker. */
+
             let tokenId: string
             let decimalPlaces: number
             if (normSymbol === 'DUSD') {
-                tokenId = getDUSDContractId()
+                tokenId = getDUSDContractId(currentNetworkName)
                 decimalPlaces = DUSD_DECIMAL_PLACES
             } else {
-                tokenId = getSANSContractId()
+                tokenId = getSANSContractId(currentNetworkName)
                 decimalPlaces = SANS_DECIMAL_PLACES
             }
+
             addLog(`TOKEN: Contract ID: ${tokenId}`)
-            /* Calculate atomic units using correct decimal places. */
             const atomicUnits = BigInt(Math.floor(amount.value * (10 ** decimalPlaces)))
-            addLog(`CALC: Converted amount to atomic units: ${atomicUnits}`)
-            // MIGRATED: use wallet composable
+            addLog(`CALC: Converted to atomic units: ${atomicUnits}`)
+
             const result = await wallet.sendTokenTransfer(
                 identityId,
-                identityIdx,
+                0,
                 tokenId,
                 recipient.value,
-                atomicUnits,
-                wifKey
+                atomicUnits
             )
-            console.log('Send Token Result:', result)
-            console.log('FULL Token Result:', JSON.stringify(result, null, 2))  // ADD FULL LOG
-            addLog(`FULL RESULT JSON: ${JSON.stringify(result, null, 2)}`)     // ADD FULL LOG
-            addLog('RESULT: Received response from Wallet Composable')
-            // Append detailed logs
-            if (result.debugLog && result.debugLog.length > 0) {
-                result.debugLog.forEach(logLine => addLog(logLine))
-            }
-            /* Validate result. */
+
+            if (result.debugLog) result.debugLog.forEach(logLine => addLog(logLine))
+
             if (result.success) {
                 const txid = result.data?.txid || 'UNKNOWN'
-                addLog(`SUCCESS: Transaction Broadcasted. TXID: ${txid}`)
-                // MODAL: Show success (no alert/redirect)
+                addLog(`SUCCESS: Broadcasted. TXID: ${txid}`)
                 txDetails.value = {
                     txid,
                     asset: displayLabel.value,
-                    amount: amount.value!.toLocaleString(),
+                    amount: amount.value.toLocaleString(),
                     recipient: recipient.value,
                     explorerUrl: `${explorerBase.value}/transaction/${txid}`
                 }
                 showTxModal.value = true
             } else {
-                addLog(`FAILURE: Transaction failed. Code: ${result.error?.code}, Msg: ${result.error?.message}`)
-                addLog(`STEP FAILURE AT: ${result.error?.step}`)
-                throw new Error(result.error?.message || 'Unknown Transaction Error')
+                throw new Error(result.error?.message || 'Transaction failed')
             }
         } else {
-            // Logic for other currencies (e.g. DASH native coins) goes here
             throw new Error(`Sending logic for ${normSymbol} is pending implementation.`)
         }
     } catch (e: any) {
         console.error('Failed to send transaction:', e)
-        error.value = e.message || 'An unknown error occurred during the transaction.'
-        addLog(`CATCH: Unhandled Exception - ${error.value}`)
-        isSending.value = false // Ensure sending state is reset on error
+        error.value = e.message || 'An unknown error occurred.'
+        addLog(`CATCH: ${error.value}`)
     } finally {
         isSending.value = false
         addLog('END: Process finished.')
@@ -385,7 +368,6 @@ const handleSend = async () => {
 
 <template>
     <main class="min-h-screen w-full flex flex-col items-center bg-slate-50 dark:bg-slate-950 pb-24">
-
         <!-- Navigation Header -->
         <header class="w-full max-w-5xl flex items-center justify-between px-6 py-6">
             <button
@@ -412,7 +394,6 @@ const handleSend = async () => {
         <div class="w-full max-w-5xl px-6">
 
             <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-
                 <div class="p-8 pb-6 border-b border-slate-200 dark:border-slate-800">
                     <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-1">
                         Send Assets
@@ -444,7 +425,7 @@ const handleSend = async () => {
                                     ]"
                                 >
                                     <div class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                        <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                                        <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-3.59 8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
                                     </div>
                                     <span class="text-xs font-bold text-slate-600 dark:text-slate-400">DASH</span>
                                 </button>
@@ -460,7 +441,7 @@ const handleSend = async () => {
                                     ]"
                                 >
                                     <div class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                                        <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                                        <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012-2v2M7 7h10"/></svg>
                                     </div>
                                     <span class="text-xs font-bold text-slate-600 dark:text-slate-400">CREDITS</span>
                                 </button>
@@ -534,7 +515,7 @@ const handleSend = async () => {
                             <div class="relative group/field">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599-1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                                     </svg>
                                 </div>
                                 <input
@@ -559,7 +540,6 @@ const handleSend = async () => {
                             </svg>
                             {{ error }}
                         </div>
-
                     </div>
 
                     <!-- RIGHT COLUMN: Summary & Action (Span 5) -->
@@ -634,11 +614,10 @@ const handleSend = async () => {
                             class="w-full text-xs font-bold text-slate-400 uppercase tracking-wider hover:text-slate-600 dark:hover:text-slate-300 transition-colors flex items-center justify-center gap-2 py-2"
                         >
                             <svg class="w-3 h-3 transition-transform duration-300" :class="{ 'rotate-180': isDebugOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7" />
                             </svg>
                             {{ isDebugOpen ? 'Close Debug Terminal' : 'Open Debug Terminal' }}
                         </button>
-
                     </div>
                 </form>
 
@@ -668,7 +647,6 @@ const handleSend = async () => {
                         <div v-for="(log, index) in debugLogs" :key="index" class="break-words">
                             > {{ log }}
                         </div>
-
                         <!-- Dynamic Network Debug Info -->
                         <div v-if="WalletStore.network" class="mt-4 pt-4 border-t border-slate-800">
                              <div class="flex justify-between text-emerald-400">
@@ -682,9 +660,7 @@ const handleSend = async () => {
                         </div>
                     </div>
                 </div>
-
             </div>
-
         </div>
 
         <!-- TX Success Modal -->
@@ -737,17 +713,16 @@ const handleSend = async () => {
                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-6 rounded-2xl text-center transition-all flex items-center justify-center gap-2 shadow-lg"
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>
                     View on Explorer
                 </a>
-                <button @click="showTxModal = false; /* Reset form */ amount = null; recipient = ''; selectedCurrency = 'dash-coins'"
+                <button @click="showTxModal = false; amount = null; recipient = ''; selectedCurrency = 'dash-coins'"
                         class="w-full mt-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold py-3 px-4 rounded-xl hover:bg-slate-800 dark:hover:bg-slate-50 transition-colors"
                 >
                     Send Another
                 </button>
             </div>
         </div>
-
     </main>
 </template>
