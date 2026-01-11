@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@dashevo/evo-sdk':
+        specifier: 3.0.0-dev.11
+        version: 3.0.0-dev.11
       '@evonext/crypto':
         specifier: 25.11.25
         version: 25.11.25
@@ -208,6 +211,14 @@ packages:
   '@csstools/css-tokenizer@3.0.4':
     resolution: {integrity: sha512-Vd/9EVDiu6PPJt9yAh6roZP6El1xHrdvIVGjyBsHR0RYwNHgL7FJPyIIW4fANJNG6FtyZfvlRPpFI4ZM/lubvw==}
     engines: {node: '>=18'}
+
+  '@dashevo/evo-sdk@3.0.0-dev.11':
+    resolution: {integrity: sha512-73jEG5hJ5Ae8fVKZNOyAFX4j4bwgbGm49oWoWILVFMZ3wB4Y5pxxOyZmQQwoEfpj5AHixHlifeP9EKbf2WDc8w==}
+    engines: {node: '>=18.18'}
+
+  '@dashevo/wasm-sdk@3.0.0-dev.11':
+    resolution: {integrity: sha512-yrBCWKf8Fjo9nEHu3PMdyxLEydsjUF0n6lSGxygauBME3lTxmKaVrzQUE15vrJ2j4kze5HXZHM1H8WvAvjzZBA==}
+    engines: {node: '>=18.18'}
 
   '@esbuild/aix-ppc64@0.25.12':
     resolution: {integrity: sha512-Hhmwd6CInZ3dwpuGTF8fJG6yoWmsToE+vYgD4nytZVxcu1ulHpUQRAB1UJ8+N1Am3Mz4+xOByoQoSZf4D+CpkA==}
@@ -1995,6 +2006,12 @@ snapshots:
   '@csstools/css-syntax-patches-for-csstree@1.0.21': {}
 
   '@csstools/css-tokenizer@3.0.4': {}
+
+  '@dashevo/evo-sdk@3.0.0-dev.11':
+    dependencies:
+      '@dashevo/wasm-sdk': 3.0.0-dev.11
+
+  '@dashevo/wasm-sdk@3.0.0-dev.11': {}
 
   '@esbuild/aix-ppc64@0.25.12':
     optional: true

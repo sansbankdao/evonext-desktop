@@ -11,6 +11,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@dashevo/evo-sdk": "3.0.0-dev.11",
     "@evonext/crypto": "25.11.25",
     "@evonext/platform": "25.11.23",
     "@evonext/utils": "25.11.25",
