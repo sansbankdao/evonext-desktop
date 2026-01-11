@@ -66,7 +66,7 @@ const txDetails = ref<{
 const explorerBase = computed(() => {
     const net = WalletStore.network?.toLowerCase() || 'testnet'
     return net === 'mainnet'
-        ? 'https://explorer.platform.dash.org'
+        ? 'https://platform-explorer.com'
         : 'https://testnet.platform-explorer.com'
 })
 
