@@ -72,7 +72,7 @@ const routes = [
                 path: 'wallet/swap', component: WalletSwap,
                 meta: { requiresPremium: true }
             },
-            { path: 'wallet/asset/:ticker', component: WalletAssetDetails },
+            { path: 'wallet/asset/:symbol', component: WalletAssetDetails },
             { path: 'wallet/transaction/:id', component: WalletTransactionDetails },
             { path: 'connect', component: Connect },
             { path: 'disconnect', component: Disconnect },
@@ -89,9 +89,10 @@ const router = createRouter({
 // Add RouteMeta type augmentation
 declare module 'vue-router' {
     interface RouteMeta {
-        requiresPremium?: boolean
-        requiresAuth?: boolean
-        // Add other meta properties as needed
+        requiresPremium?: boolean;
+        requiresAuth?: boolean;
+        // For the asset details page
+        symbol?: string;
     }
 }
 
