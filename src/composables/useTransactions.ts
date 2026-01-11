@@ -11,7 +11,6 @@ import type {
     ITransaction,
     TokenTransition
 } from '@/types'
-
 interface SendCreditParams {
     identityId: string
     identityIdx: number // Kept for interface compatibility, but logic ignores it
@@ -19,7 +18,6 @@ interface SendCreditParams {
     credits: bigint
     privateKey?: string
 }
-
 interface SendTokenParams {
     identityId: string
     identityIdx: number // Kept for interface compatibility
@@ -28,28 +26,23 @@ interface SendTokenParams {
     atomicUnits: bigint
     privateKey?: string
 }
-
 interface TransactionResult {
     success: boolean
     data?: ITxSuccess
     error?: ITxError
     debugLog?: string[]
 }
-
 interface ITxSuccess {
     txid: string
     message?: string
 }
-
 interface ITxError {
     code: number
     message: string
     step?: string
     suggestions?: string[]
 }
-
 const EXPLORER_API_URL = 'https://platform-explorer.pshenmic.dev'
-
 export function useTransactions() {
     const platform = usePlatform()
     const keys = useKeyManagement()
@@ -58,15 +51,13 @@ export function useTransactions() {
     const error = ref<string | null>(null)
     const transactions = ref<ITransaction[]>([])
     const tokenTransitions = ref<TokenTransition[]>([])
-
-    /**
-     * Formatting utils
-     */
+    // =========================================================================
+    // 1. Formatting Helpers
+    // =========================================================================
     const atomicToDash = (atomic: bigint | number): number => {
         const val = typeof atomic === 'bigint' ? Number(atomic) : atomic
         return val / 100000000
     }
-
     const formatDashAmount = (atomic: bigint | number, decimals: number = 8): string => {
         const dash = atomicToDash(atomic)
         return dash.toLocaleString(undefined, {
@@ -74,19 +65,16 @@ export function useTransactions() {
             maximumFractionDigits: decimals
         })
     }
-
     const formatDate = (timestamp: number): string => {
         return new Date(timestamp).toLocaleString()
     }
-
     const shortTxid = (txid: string, length: number = 16): string => {
         if (!txid) return ''
         return txid.slice(0, length / 2) + '...' + txid.slice(-length / 2)
     }
-
-    /**
-     * Transaction fetching
-     */
+    // =========================================================================
+    // 2. Fetching Logic
+    // =========================================================================
     const fetchIdentityTransfers = async (
         identityId: string,
         limit: number = 50
@@ -119,7 +107,6 @@ export function useTransactions() {
             return transactions.value
         }, 'FETCH_IDENTITY_TRANSFERS_FAILED')
     }
-
     const fetchTokenTransitions = async (
         tokenId: string,
         identityId?: string,
@@ -159,10 +146,9 @@ export function useTransactions() {
             return tokenTransitions.value
         }, 'FETCH_TOKEN_TRANSITIONS_FAILED')
     }
-
-    /**
-     * Send operations
-     */
+    // =========================================================================
+    // 3. Sending Logic (Credit Transfer)
+    // =========================================================================
     const sendCredits = async (params: SendCreditParams): Promise<TransactionResult> => {
         const logs: string[] = []
         try {
@@ -181,12 +167,10 @@ export function useTransactions() {
                 }
             }
             logs.push('[Transactions] Validating transfer amount... OK')
-
             // 1. Get SDK
             logs.push(`[Transactions] Requesting SDK for network: ${network.value}`)
             const sdk = await platform.getSDK(network.value)
             logs.push('[Transactions] SDK Instance created')
-
             // 2. DEBUG: Read Internal SDK Info
             const sdkDebugInfo = (sdk as any)._debugInfo
             if (sdkDebugInfo) {
@@ -203,10 +187,8 @@ export function useTransactions() {
             } else {
                 logs.push('[DEBUG] No SDK Debug Info found')
             }
-
             // 3. Retrieve Key
             let signingKey: { privateKey: string, keyId: number } | undefined;
-
             if (params.privateKey) {
                 // If raw WIF passed, we assume Key ID 3 (standard Transfer)
                 signingKey = { privateKey: params.privateKey, keyId: 3 };
@@ -216,7 +198,6 @@ export function useTransactions() {
                 const keyResult = await keys.getTransferKey(params.identityId)
                 if (keyResult) signingKey = keyResult;
             }
-
             if (!signingKey) {
                 logs.push('[Transactions] Error: No transfer key found')
                 return {
@@ -230,12 +211,10 @@ export function useTransactions() {
                 }
             }
             logs.push(`[Transactions] Transfer Key found. Key ID: ${signingKey.keyId}`)
-
             // 4. Get Identity & Public Keys
             logs.push(`[Transactions] Fetching Identity details for ${params.identityId}...`)
             const identity = await sdk.identities.getIdentityByIdentifier(params.identityId)
             logs.push('[Transactions] Identity details retrieved successfully')
-
             // 5. Get Identity Nonce
             let identityNonce
             try {
@@ -256,7 +235,6 @@ export function useTransactions() {
                     debugLog: logs
                 }
             }
-
             // 6. Create, Sign & Broadcast State Transition
             try {
                 logs.push('[Transactions] Creating Credit Transfer State Transition...')
@@ -268,20 +246,35 @@ export function useTransactions() {
                 }
                 const stateTransition = sdk.identities.createStateTransition('creditTransfer', payload)
                 logs.push('[Transactions] State Transition created')
-
                 // 7. Sign Transaction
                 logs.push('[Transactions] Signing transaction...')
                 const privKey = PrivateKeyWASM.fromWIF(signingKey.privateKey)
-
                 // DEBUG: Check Private Key Network
                 const keyNet = (privKey as any).network || (privKey as any).protocolVersion
                 if (keyNet) {
                     logs.push(`[DEBUG] Private Key Network Property: ${keyNet}`)
                 }
-
-                // CRITICAL FIX: Match logic from useIdentity.ts (Line 204).
-                // Your working code uses direct property access: key.id
-                const pubKey = identity.getPublicKeys().find((k: any) => k.id === signingKey!.keyId)
+                // =====================================================================
+                // CRITICAL FIX: WASM Key Lookup
+                // =====================================================================
+                // We cannot rely on .find() directly on WASM objects if the properties
+                // are getters. We iterate manually and access the property explicitly.
+                // We use 'keyId' (from docs) or 'keyIdNumber' (standard) for comparison.
+                // =====================================================================
+                const identityPublicKeys = identity.getPublicKeys()
+                let pubKey: any | undefined
+                logs.push(`[DEBUG] Iterating through ${identityPublicKeys.length} Public Keys to find ID ${signingKey.keyId}...`)
+                for (const key of identityPublicKeys) {
+                    // Attempt to get the ID from the WASM object
+                    // Using 'keyId' (method) or 'keyIdNumber' (property)
+                    const currentKeyId = (key as any).keyIdNumber ?? (key as any).keyId
+                    logs.push(`[DEBUG] Checking Key: ID=${currentKeyId} vs Target=${signingKey.keyId}`)
+                    if (currentKeyId === signingKey!.keyId) {
+                        pubKey = key
+                        logs.push(`[DEBUG] MATCH FOUND: Key ID ${currentKeyId}`)
+                        break
+                    }
+                }
                 if (!pubKey) {
                     logs.push(`[Transactions] Error: Public Key ID ${signingKey.keyId} not found in Identity.`)
                     return {
@@ -290,15 +283,14 @@ export function useTransactions() {
                             code: 500,
                             message: `Public Key ID ${signingKey.keyId} missing from identity`,
                             step: 'SIGNING',
-                            suggestions: ['Sync identity data from blockchain']
+                            suggestions: ['Sync identity data from blockchain', 'Verify Key ID in wallet file']
                         } as ITxError,
                         debugLog: logs
                     }
                 }
-
+                stateTransition.signaturePublicKeyId = signingKey.keyId
                 stateTransition.sign(privKey, pubKey)
                 logs.push('[Transactions] Transaction signed successfully')
-
                 // 8a. Broadcast (separate try for pinpoint)
                 logs.push('[Transactions] Broadcasting transaction...')
                 try {
@@ -319,7 +311,6 @@ export function useTransactions() {
                         debugLog: logs
                     }
                 }
-
                 // 8b. Wait Confirmation (separate try)
                 logs.push('[Transactions] Waiting for confirmation...')
                 try {
@@ -340,7 +331,6 @@ export function useTransactions() {
                         debugLog: logs
                     }
                 }
-
                 const hash = stateTransition.hash(false)
                 console.log('info', `Credit transfer successful. Hash: ${hash}`)
                 return {
@@ -392,7 +382,9 @@ export function useTransactions() {
             }
         }
     }
-
+    // =========================================================================
+    // 4. Sending Logic (Token Transfer)
+    // =========================================================================
     const sendToken = async (params: SendTokenParams): Promise<TransactionResult> => {
         loading.value = true
         error.value = null
@@ -401,7 +393,6 @@ export function useTransactions() {
             // Pass network explicitly to ensure SDK matches context
             const sdk = await platform.getSDK(network.value)
             logs.push('[Token] SDK created')
-
             // DEBUG: Read Internal SDK Info
             const sdkDebugInfo = (sdk as any)._debugInfo
             if (sdkDebugInfo) {
@@ -410,10 +401,8 @@ export function useTransactions() {
                     logs.push(`[DEBUG] SDK Internal Network: ${sdkDebugInfo.internalNetwork}`)
                 }
             }
-
             // KEY RETRIEVAL LOGIC: Explicit > Store
             let signingKey: { privateKey: string, keyId: number } | undefined;
-
             if (params.privateKey) {
                 signingKey = { privateKey: params.privateKey, keyId: 3 };
             } else {
@@ -421,15 +410,12 @@ export function useTransactions() {
                 const keyResult = await keys.getTransferKey(params.identityId)
                 if (keyResult) signingKey = keyResult;
             }
-
             if (!signingKey) {
                 throw new Error('No transfer key found')
             }
             logs.push('[Token] Key retrieved')
-
             const tokenBaseTransition = await sdk.tokens
                 .createBaseTransition(params.tokenId, params.identityId)
-
             const stateTransition = sdk.tokens
                 .createStateTransition(
                     tokenBaseTransition,
@@ -440,20 +426,26 @@ export function useTransactions() {
                         amount: params.atomicUnits,
                     },
                 )
-
             const privKey = PrivateKeyWASM.fromWIF(signingKey.privateKey)
             const identity = await sdk.identities.getIdentityByIdentifier(params.identityId)
-
-            // CRITICAL FIX: Match logic from useIdentity.ts
-            const pubKey = identity.getPublicKeys().find((k: any) => k.id === signingKey!.keyId)
-
+            // =====================================================================
+            // CRITICAL FIX: WASM Key Lookup (Same as sendCredits)
+            // =====================================================================
+            const identityPublicKeys = identity.getPublicKeys()
+            let pubKey: any | undefined
+            for (const key of identityPublicKeys) {
+                // Attempt to get the ID from the WASM object
+                const currentKeyId = (key as any).keyIdNumber ?? (key as any).keyId
+                if (currentKeyId === signingKey!.keyId) {
+                    pubKey = key
+                    break
+                }
+            }
             if (!pubKey) {
                 logs.push(`[Token] Error: Public Key ID ${signingKey!.keyId} missing`)
                 throw new Error(`Public Key ID ${signingKey!.keyId} missing from identity`)
             }
-
             stateTransition.sign(privKey, pubKey)
-
             // Optimistic: Success on BROADCAST (testnet reliable), short wait optional
             logs.push('[Token] Broadcasting...')
             const stateTransitionHash = await (async () => {
@@ -468,7 +460,6 @@ export function useTransactions() {
                     throw new Error(`Broadcast failed: ${bMsg}`)
                 }
             })()
-
             // Optional SHORT wait (20s timeout, don't block UI)
             logs.push('[Token] Optional confirmation wait (20s)...')
             let confirmed = false
@@ -483,7 +474,6 @@ export function useTransactions() {
                 const wMsg = wErr?.message ?? 'Timeout (normal on testnet)'
                 logs.push(`[Token] Wait: ${wMsg} (check explorer)`)
             }
-
             // Optimistic SUCCESS with TXID
             console.log('info', `Token transfer broadcast OK. Hash: ${stateTransitionHash}. Confirmed: ${confirmed}`)
             return {
@@ -513,8 +503,9 @@ export function useTransactions() {
             loading.value = false
         }
     }
-
-    // Wrappers updated to accept optional private key
+    // =========================================================================
+    // 5. Wrappers
+    // =========================================================================
     const sendCredit = async (
         identityId: string,
         identityIdx: number,
@@ -531,7 +522,6 @@ export function useTransactions() {
         }
         return await sendCredits(params)
     }
-
     const sendTokenTransfer = async (
         identityId: string,
         identityIdx: number,
@@ -550,7 +540,9 @@ export function useTransactions() {
         }
         return await sendToken(params)
     }
-
+    // =========================================================================
+    // 6. Public API
+    // =========================================================================
     return {
         loading: computed(() => loading.value),
         error: computed(() => error.value),
