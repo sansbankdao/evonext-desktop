@@ -27,6 +27,14 @@ export default defineConfig(async () => ({
     },
     build: {
         sourcemap: false,
+        // Limits to help avoid OOM on constrained runners
+        chunkSizeWarningLimit: 1000,
+        rollupOptions: {
+            // Drastically reduce parallel file operations (default is 20)
+            // This prevents memory spikes on macOS/CI environments
+            maxParallelFileOps: 2,
+            cache: false,
+        },
     },
     clearScreen: false,
 
