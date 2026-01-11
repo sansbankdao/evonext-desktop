@@ -1,6 +1,6 @@
 // src/composables/useTransactions.ts
 import { computed, ref } from 'vue'
-import { PrivateKeyWASM, IdentityPublicKeyWASM, DataContractWASM } from 'pshenmic-dpp'
+import { PrivateKeyWASM } from 'pshenmic-dpp'
 import { usePlatform } from './usePlatform'
 import { useKeyManagement } from './useKeyManagement'
 import { useNetwork } from './useNetwork'

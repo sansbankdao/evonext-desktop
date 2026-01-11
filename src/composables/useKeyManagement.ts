@@ -7,7 +7,7 @@ import { hash160 } from '@evonext/crypto'
 // @ts-ignore
 import { binToHex } from '@evonext/utils'
 import { useNetwork } from './useNetwork'
-import { useIdentityStore } from '@/stores/identity'
+// import { useIdentityStore } from '@/stores/identity'
 import { log } from '@/utils/env'
 import type {
     IPublicKey,
@@ -56,7 +56,7 @@ type ParsedPurpose = 0 | 1 | 2 | 3
 type ParsedSecurityLevel = 0 | 1 | 2 | 3 | 4
 export function useKeyManagement() {
     const { network, ensure } = useNetwork()
-    const identityStore = useIdentityStore()
+    // const identityStore = useIdentityStore()
     // State
     const sdk = ref<DashPlatformSDK | null>(null)
     const mnemonic = ref<string>('')

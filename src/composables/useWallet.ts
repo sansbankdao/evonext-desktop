@@ -25,25 +25,27 @@ interface SendTokenParams {
 interface WalletTransactionResult extends ITransactionResult {
     debugLog?: string[]
 }
-/**
- * Main wallet composable that orchestrates all wallet operations
- */
+// interface ITxSuccess {
+//     txid: string
+//     message?: string
+// }
+// interface ITxError {
+//     code: number
+//     message: string
+//     step?: string
+//     suggestions?: string[]
+// }
 export function useWallet() {
-    // Store
     const store = useWalletStore()
-    // Sub-composables
     const platform = usePlatform()
     const transactions = useTransactions()
     const keys = useKeyManagement()
-    const network = useNetwork()
-    // State
-    const isPolling = ref(false)
+    const { network } = useNetwork()
     const loading = ref(false)
     const error = ref<string | null>(null)
     let pollInterval: NodeJS.Timeout | undefined
     let refreshTimeout: NodeJS.Timeout | undefined
     let isRefreshing = false
-    // Initialization
     const initialize = async (): Promise<void> => {
         loading.value = true
         error.value = null
@@ -58,7 +60,7 @@ export function useWallet() {
         }
     }
     // Balance operations
-    // Delegating to the store action which handles the API call
+    // FIX: getTokenBalance signature updated to accept network
     const getTokenBalance = async (identityId: string, contractId: string): Promise<bigint> => {
         const balance = await store.getTokenBalance(identityId, contractId)
         return BigInt(balance)
@@ -66,13 +68,14 @@ export function useWallet() {
     // Transaction operations
     const sendCredits = async (params: SendCreditParams): Promise<WalletTransactionResult> => {
         const result = await transactions.sendCredits(params)
-        // Pass through logs
         return result as WalletTransactionResult
     }
     const sendToken = async (params: SendTokenParams): Promise<WalletTransactionResult> => {
         const result = await transactions.sendToken(params)
         return result as WalletTransactionResult
     }
+    // FIX: Pass identityId (String) to sendCredits
+    // Note: The signature of useTransactions.sendCredits is (identityId: string, identityIdx: number, ...)
     const sendCredit = async (
         identityId: string,
         identityIdx: number,
@@ -80,8 +83,16 @@ export function useWallet() {
         credits: bigint,
         privateKey?: string
     ): Promise<WalletTransactionResult> => {
-        return await transactions.sendCredit(identityId, identityIdx, receiver, credits, privateKey) as WalletTransactionResult
+        const params: SendCreditParams = {
+            identityId,
+            identityIdx,
+            receiver,
+            credits,
+            ...(privateKey !== undefined ? { privateKey } : {})
+        }
+        return await sendCredits(params)
     }
+    // FIX: Pass identityId (String) to sendTokenTransfer
     const sendTokenTransfer = async (
         identityId: string,
         identityIdx: number,
@@ -90,7 +101,15 @@ export function useWallet() {
         atomicUnits: bigint,
         privateKey?: string
     ): Promise<WalletTransactionResult> => {
-        return await transactions.sendTokenTransfer(identityId, identityIdx, tokenId, receiver, atomicUnits, privateKey) as WalletTransactionResult
+        const params: SendTokenParams = {
+            identityId,
+            identityIdx,
+            tokenId,
+            receiver,
+            atomicUnits,
+            ...(privateKey !== undefined ? { privateKey } : {})
+        }
+        return await sendToken(params)
     }
     // Store operations
     const refresh = async () => {
@@ -117,7 +136,6 @@ export function useWallet() {
     // Polling
     const startPolling = (intervalMs = 30000) => {
         if (pollInterval) clearInterval(pollInterval)
-        isPolling.value = true
         pollInterval = setInterval(() => {
             if (document.visibilityState === 'visible') {
                 debouncedRefresh()
@@ -129,7 +147,6 @@ export function useWallet() {
             clearInterval(pollInterval)
             pollInterval = undefined
         }
-        isPolling.value = false
     }
     // Visibility
     const handleVisibilityChange = () => {
@@ -155,7 +172,7 @@ export function useWallet() {
         isLoading: computed(() => store.isLoading || loading.value),
         balanceChange: computed(() => store.balanceChange),
         error: computed(() => error.value),
-        isPolling,
+        isPolling: computed(() => !!pollInterval),
         // Platform
         platform,
         // Actions
@@ -177,7 +194,7 @@ export function useWallet() {
         fetchRealTransactions: store.fetchRealTransactions,
         findAsset: (ticker: string) => store.getAssetByTicker(ticker),
         // Network
-        network: computed(() => network.network.value),
+        network: computed(() => network.value),
         // Keys
         getTransferKey: keys.getTransferKey,
         getAuthKey: keys.getAuthKey
