@@ -1,23 +1,18 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### 100% Re-engineered for Auto-discovery & Management of Multiple Identities
+### A Buttery Smooth Wallet Experience
 
-This latest version of EvoNext introduces support for multiple Identities across both Mainnet and Testnet.
+This latest version of EvoNext smooths out the rough edges in the wallet, for an effortless User Experience (UX).
 
 # Changelog
 
 ## Latest Features:
 
-- Identity: The NEW Identity Manager lets you easily switch between ALL of your Connected Identities.
-- Connect: Automatic Identity discovery when seed phrase.
-- Connect: Seed phrase (mnemonic) verification.
-- UI/UX: Complete redesign of ALL screens.
-- UI/UX: Replaced alerts with modal/popup windows.
+- Wallet: All UI/UX issues have been resolved for basic CREDITS and TOKENS transactions.
 
 ## Bugfixes:
 
-- Fixed testnet posts.
-- Fixed network selection across ALL services.
+- Fixed balance updates.
 
 ## Notes:
 

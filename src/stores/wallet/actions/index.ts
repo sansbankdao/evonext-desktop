@@ -8,21 +8,26 @@ import { formatDashAmount } from './utils'
 import type { IAsset, ITransaction } from '@/types'
 import type { IAssetMinimal } from '@/types/assets'
 import type { Network } from '@/composables/useNetwork'
+
 /**
  * Orchestrates fetching all balances (Native + Tokens)
  */
 export async function refreshBalances(this: ReturnType<typeof useWalletStore>, network?: Network) {
     const identityStore = useIdentityStore()
     const systemStore = useSystemStore()
+
     if (!identityStore.isConnected) {
         console.warn('Cannot refresh balances: Identity not connected')
         return
     }
+
     // Update store state if network is provided
     if (network) {
         this.network = network
     }
+
     this.isLoading = true
+
     // FIX: Use .identityId instead of .id
     const identityId = identityStore.identity?.identityId || identityStore.identityId
     if (!identityId) {
@@ -30,13 +35,41 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
         this.isLoading = false
         return
     }
+
     console.log(`🔄 [wallet:refreshBalances] Starting refresh for ID: ${identityId} on ${this.network}`)
+
+    // 🔥 CRITICAL FIX: Refresh Identity balance FIRST
+    try {
+        console.log('📡 [wallet:refreshBalances] Fetching fresh identity balance...')
+        await identityStore.fetchBalance()
+        console.log(`✅ [wallet:refreshBalances] Identity balance refreshed: ${identityStore.balance}`)
+    } catch (err) {
+        console.error('❌ [wallet:refreshBalances] Failed to refresh identity balance:', err)
+        // Continue anyway with existing balance
+    }
+
+    // 🔥 FIX: Ensure System Store price is updated
+    if (!systemStore.currentDashPrice) {
+        try {
+            console.log('📡 [wallet:refreshBalances] Fetching DASH price...')
+            await systemStore.fetchDashPrice()
+            console.log(`✅ [wallet:refreshBalances] DASH price: $${systemStore.currentDashPrice}`)
+        } catch (err) {
+            console.error('❌ [wallet:refreshBalances] Failed to fetch DASH price:', err)
+        }
+    }
+
     // 1. Initialize Asset List with Native Dash/Credits
     const newAssets: IAsset[] = []
-    // Add Credits (Native)
+
+    // Use the FRESHLY UPDATED identity balance
     const creditBalance = identityStore.balance && !isNaN(Number(identityStore.balance))
         ? Number(identityStore.balance)
         : 0
+
+    console.log(`💰 [wallet:refreshBalances] Using credit balance: ${creditBalance.toLocaleString()}`)
+
+    // Add Credits (Native)
     newAssets.push({
         id: 'credits',
         name: 'Dash Credits',
@@ -53,11 +86,15 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
         divisible: true,
         ownerIdentityId: identityId,
         isOwned: true,
-        usdValue: 0
+        usdValue: 0 // Credits have no USD value directly
     })
+
     // Add DASH (Layer 1 representation)
     // 1 Dash = 100,000,000 duffs = 100,000,000,000 credits
     const dashAmount = creditBalance / 100000000000
+    const currentDashPrice = systemStore.currentDashPrice || 0
+    const dashUsdValue = dashAmount * currentDashPrice
+
     newAssets.push({
         id: 'dash',
         name: 'Dash Coins',
@@ -74,8 +111,11 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
         divisible: true,
         ownerIdentityId: identityId,
         isOwned: true,
-        usdValue: dashAmount * (systemStore.currentDashPrice || 0)
+        usdValue: dashUsdValue
     })
+
+    console.log(`💰 [wallet:refreshBalances] Dash Calculation: ${dashAmount} DASH x $${currentDashPrice} = $${dashUsdValue}`)
+
     try {
         // 2. Load Custom Assets via NEW Rust Command (fetch_identity_tokens)
         console.log(`📡 [wallet:refreshBalances] Calling fetch_identity_tokens with identityId: "${identityId}", network: "${this.network}"`)
@@ -96,6 +136,7 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
             console.error('❌ [wallet] Error details:', invokeError)
             storedAssets = []
         }
+
         if (storedAssets && Array.isArray(storedAssets)) {
             console.log(`📦 [wallet] Retrieved ${storedAssets.length} assets from Explorer`)
 
@@ -184,23 +225,47 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
                     ownerIdentityId: identityId,
                     isOwned: true,
                     contractId: rawContractId,
-                    usdValue: usdValue
+                    usdValue: usdValue,
+                    // lastUpdated: Date.now() // 🔥 ADD: Track when this was last updated
                 })
             }
         }
     } catch (err) {
         console.error('🚨 [wallet:refreshBalances] Failed to discover assets:', err)
     }
+
+    // 🔥 ADD: Sort assets by USD value (highest first)
+    newAssets.sort((a, b) => {
+        const valA = a.usdValue || 0
+        const valB = b.usdValue || 0
+        return valB - valA
+    })
+
     this.assets = newAssets
     console.log(`✅ [wallet:refreshBalances] Assets updated. Total: ${newAssets.length}`)
-    console.log(`✅ [wallet] Asset symbols:`, newAssets.map(a => `${a.symbol} (${a.balance})`))
+    console.log(`✅ [wallet] Asset symbols:`, newAssets.map(a => `${a.symbol} ($${(a.usdValue || 0).toFixed(2)})`))
+
     // 3. Fetch Transactions
     await this.fetchRealTransactions()
+
     this.isLoading = false
+
+    // 🔥 ADD: Emit event for UI updates
+    const event = new CustomEvent('wallet:balances-refreshed', {
+        detail: {
+            timestamp: Date.now(),
+            assetCount: newAssets.length,
+            creditBalance,
+            dashBalance: dashAmount
+        }
+    })
+    window.dispatchEvent(event)
 }
+
 export async function fetchLiveBalances(this: ReturnType<typeof useWalletStore>) {
     await this.refreshBalances()
 }
+
 /**
  * Fetches transactions from the Explorer API
  */
@@ -208,14 +273,17 @@ export async function fetchRealTransactions(this: ReturnType<typeof useWalletSto
     const identityStore = useIdentityStore()
     // FIX: Use .identityId instead of .id
     const identityId = identityStore.identity?.identityId || identityStore.identityId
+
     if (!identityId) {
         console.warn('Cannot fetch transactions: No Identity ID')
         return
     }
+
     try {
         console.log(`🕵️  Fetching transactions for ${identityId} on ${this.network} from Explorer...`)
         const explorerTxs = await fetchIdentityTransactions(identityId, limit, this.network)
         console.log(`✅ Explorer returned ${explorerTxs.length} transactions`)
+
         // Map Explorer format to ITransaction UI format
         this.transactions = explorerTxs.map((tx: any): ITransaction => {
             const isSender = tx.sender === identityId
@@ -225,13 +293,16 @@ export async function fetchRealTransactions(this: ReturnType<typeof useWalletSto
             let amountFormatted = '0'
             let type: any = 'UNKNOWN'
             let status: 'Completed' | 'Pending...' | 'Failed' = 'Completed'
+
             // Calculate Direction
             let direction: 'INCOMING' | 'OUTGOING' | 'SELF' = 'SELF'
             if (isSender && !isRecipient) direction = 'OUTGOING'
             if (!isSender && isRecipient) direction = 'INCOMING'
+
             // Initialize assetSymbol based on transaction data
             let assetSymbol = 'CREDITS'
             let assetType: 'COIN' | 'TOKEN' = 'COIN'
+
             // If transaction payload contains symbol info
             if (tx.token && tx.token.symbol) {
                 assetSymbol = tx.token.symbol
@@ -240,6 +311,7 @@ export async function fetchRealTransactions(this: ReturnType<typeof useWalletSto
                 assetSymbol = tx.symbol
                 assetType = 'TOKEN'
             }
+
             // FIX: Correct if syntax
             if (tx.type === 'IDENTITY_CREDIT_TRANSFER') {
                 type = 'IDENTITY_CREDIT_TRANSFER'
@@ -263,13 +335,16 @@ export async function fetchRealTransactions(this: ReturnType<typeof useWalletSto
                 // Determine decimals for formatting
                 const discoveredAsset = this.assets.find(a => a.symbol === assetSymbol)
                 const decimals = discoveredAsset?.decimals || 8 // Fallback to 8 (DASH) if unknown
+
                 amountFormatted = `${Number(rawAmount).toLocaleString(undefined, {
                     minimumFractionDigits: decimals > 2 ? 2 : decimals,
                     maximumFractionDigits: decimals
                 })} ${assetSymbol}`
             }
+
             // FIX: Explorer API uses 'txHash' or 'hash'
             const txHash = tx.txHash || tx.hash || ''
+
             return {
                 id: txHash,
                 hash: txHash,
@@ -290,7 +365,18 @@ export async function fetchRealTransactions(this: ReturnType<typeof useWalletSto
                 network: this.network
             }
         })
+
         console.log(`✅ Mapped ${this.transactions.length} transactions for UI`)
+
+        // 🔥 ADD: Emit event for UI updates
+        const event = new CustomEvent('wallet:transactions-updated', {
+            detail: {
+                timestamp: Date.now(),
+                transactionCount: this.transactions.length
+            }
+        })
+        window.dispatchEvent(event)
+
     } catch (err) {
         console.error('Failed to fetch real transactions:', err)
     }

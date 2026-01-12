@@ -11,7 +11,7 @@
 
             <!-- Network Indicator -->
             <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
-                <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
                 <span class="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
                     {{ WalletStore.network || 'testnet' }}
                 </span>
@@ -47,26 +47,26 @@
                                 {{ displayBalance }}
                             </p>
                             <p class="text-2xl font-bold text-slate-500 dark:text-slate-400 font-mono">
-                                ≈ {{ formatCurrency(selectedAsset.usdValue || 0) }}
+                                ≈ {{ formatCurrency(usdValue) }}
                             </p>
                         </div>
                     </div>
 
                     <!-- Action Buttons -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto">
-                        <button @click="router.push(`/wallet/send?asset=${selectedAsset.symbol}`)"
+                        <button @click="goToSend(selectedAsset.symbol)"
                                 class="flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                             </svg>
-                            Send {{ selectedAsset.symbol }}
+                            <span>Send {{ selectedAsset.symbol }}</span>
                         </button>
 
                         <button class="flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 01-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
-                            Receive
+                            <span>Receive</span>
                         </button>
 
                         <!-- SWAP BUTTON - Only for tokens (not CREDITS) -->
@@ -76,7 +76,7 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                             </svg>
-                            Swap {{ selectedAsset.symbol }}
+                            <span>Swap {{ selectedAsset.symbol }}</span>
                         </button>
                     </div>
                 </div>
@@ -85,7 +85,7 @@
                 <div v-else class="text-center py-16">
                     <div class="w-32 h-32 mx-auto mb-8 flex items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20 border-4 border-red-200 dark:border-red-800">
                         <svg class="w-20 h-20 text-red-500 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3, 1.732 3z" />
                         </svg>
                     </div>
                     <h2 class="text-3xl font-bold text-slate-900 dark:text-white mb-2">Asset Not Found</h2>
@@ -248,17 +248,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useWalletStore } from '@/stores/wallet'
-import { useNetwork } from '@/composables/useNetwork'
+import { useWallet } from '@/composables/useWallet'
 import { DUSD_DECIMAL_PLACES, SANS_DECIMAL_PLACES } from '@/constants'
 import type { IAsset, ITransaction } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const WalletStore = useWalletStore()
-const { ensure } = useNetwork()
+const wallet = useWallet()
 
 const isLoadingTransactions = ref(false)
 
@@ -286,16 +286,10 @@ const getAssetType = (asset: IAsset) => {
     if (normalized === 'DASH') return 'COIN'
     if (normalized.includes('DUSD')) return 'TOKEN'
     if (normalized.includes('SANS')) return 'TOKEN'
-
-    // Use asset.type if it exists, fallback to symbol detection
     return (asset.type || 'ASSET').toUpperCase()
 }
 
-// Get normalized balance (COPY from Overview page)
-const getNormalizedSymbol = (symbol: string) => {
-    return symbol.replace(/^t/i, '').toLowerCase()
-}
-
+// Get normalized balance display
 const displayBalance = computed(() => {
     const asset = selectedAsset.value
     if (!asset || asset.balance === undefined || asset.balance === null) {
@@ -303,7 +297,7 @@ const displayBalance = computed(() => {
     }
 
     const numericBalance = Number(asset.balance)
-    const normalizedSymbol = getNormalizedSymbol(asset.symbol)
+    const normalizedSymbol = asset.symbol.replace(/^t/i, '').toLowerCase()
 
     // CREDITS: Raw credits → Dash conversion
     if (normalizedSymbol === 'credits') {
@@ -333,13 +327,32 @@ const displayBalance = computed(() => {
     return numericBalance.toLocaleString()
 })
 
+// Calculate USD value
+const usdValue = computed(() => {
+    const asset = selectedAsset.value
+    if (!asset) return 0
+
+    // For DASH/CREDITS, use system price
+    const symbol = asset.symbol.toUpperCase()
+    if (symbol === 'DASH' || symbol === 'CREDITS') {
+        const dashPrice = WalletStore.totalUsdValue > 0
+            ? WalletStore.totalUsdValue / Number(WalletStore.assets.find(a => a.symbol.toUpperCase() === 'DASH')?.balance || 1)
+            : 25 // Fallback price
+
+        const balance = Number(asset.balance) / (symbol === 'DASH' ? 1 : 100_000_000_000)
+        return balance * dashPrice
+    }
+
+    // For other assets, use stored USD value
+    return asset.usdValue || 0
+})
+
 // Filter transactions for this specific asset
 const filteredTransactions = computed(() => {
     if (!selectedAsset.value) return []
 
     const symbol = selectedAsset.value.symbol.toUpperCase()
 
-    // Filter transactions by asset symbol with robust matching
     return WalletStore.transactions.filter(tx => {
         // Use assetSymbol property from Transaction type
         const txSymbol = (tx.assetSymbol || '').toUpperCase()
@@ -347,13 +360,11 @@ const filteredTransactions = computed(() => {
         // Match exact symbol
         return txSymbol === symbol
     })
-    // Sort by timestamp (newest first)
     .sort((a, b) => {
         const timeA = a.timestamp || a.createdAt || 0
         const timeB = b.timestamp || b.createdAt || 0
         return Number(timeB) - Number(timeA)
     })
-    // Limit to 10 most recent
     .slice(0, 10)
 })
 
@@ -450,15 +461,15 @@ const getTransactionAmount = (tx: ITransaction) => {
     return `${prefix}${amount.toLocaleString()} ${assetSymbol}`
 }
 
-const formatLastUpdated = (timestamp?: string | number | Date) => {
-    if (!timestamp) return 'Just now'
-    try {
-        const date = typeof timestamp === 'number' ? new Date(timestamp) : new Date(timestamp)
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    } catch {
-        return 'Just now'
-    }
-}
+// const formatLastUpdated = (timestamp?: string | number | Date) => {
+//     if (!timestamp) return 'Just now'
+//     try {
+//         const date = typeof timestamp === 'number' ? new Date(timestamp) : new Date(timestamp)
+//         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+//     } catch {
+//         return 'Just now'
+//     }
+// }
 
 const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -489,17 +500,28 @@ const getIconSrc = (symbol: string) => {
     return cleanSymbol === 'credits' ? '/icons/dash.svg' : `/icons/${cleanSymbol}.svg`
 }
 
-// Navigation to swap page with asset pre-selected
+// Navigation handlers
 const goToSwap = (symbol: string) => {
     router.push(`/wallet/swap?from=${encodeURIComponent(symbol)}`)
 }
 
+const goToSend = (symbol: string) => {
+    router.push(`/wallet/send?asset=${encodeURIComponent(symbol)}`)
+}
+
 // Navigate to transaction details
 const viewTransaction = (tx: ITransaction) => {
-    // Use tx.id (required per ITransaction interface)
     if (tx.id) {
         router.push(`/wallet/transaction/${tx.id}`)
     }
+}
+
+// Handle transaction success events
+const handleTransactionSuccess = () => {
+    console.log('💰 Transaction detected, refreshing wallet...')
+    setTimeout(() => {
+        wallet.refresh()
+    }, 1500) // Wait for transaction to confirm
 }
 
 // Load initial data
@@ -507,14 +529,8 @@ onMounted(async () => {
     try {
         isLoadingTransactions.value = true
 
-        // Ensure network is ready
-        const currentNetwork = await ensure()
-        console.log(`🌐 Network initialized: ${currentNetwork}`)
-
-        // Refresh balances if store is empty
-        if (WalletStore.assets.length === 0) {
-            await WalletStore.refreshBalances(currentNetwork)
-        }
+        // Force immediate refresh when navigating to this page
+        await wallet.refresh()
 
         // Verify asset exists
         if (!selectedAsset.value) {
@@ -526,10 +542,16 @@ onMounted(async () => {
     } finally {
         isLoadingTransactions.value = false
     }
+
+    // Start polling on this page
+    wallet.startPolling(60000) // Refresh every 60 seconds on details page
+
+    // Listen for transaction success events
+    window.addEventListener('transaction:success', handleTransactionSuccess)
 })
 
-// Cleanup
-onBeforeUnmount(() => {
-    // Any cleanup if needed
+onUnmounted(() => {
+    wallet.stopPolling()
+    window.removeEventListener('transaction:success', handleTransactionSuccess)
 })
 </script>
