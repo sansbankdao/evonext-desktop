@@ -1,27 +1,27 @@
 <!-- src/screens/Identity/AddKey.vue -->
 <template>
     <main>
-        <Header title="Add Transfer Key" />
+        <Header title="Add Identity Key" />
         <section class="bg-gray-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
                 <div class="space-y-8">
                     <!-- Back Navigation -->
                     <div class="flex items-center gap-4">
-                        <RouterLink to="/identity" class="inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors duration-200">
+                        <RouterLink :to="`/identity/${route.params.id}/keys`" class="inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors duration-200">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                             </svg>
-                            <span class="font-medium">Back to Identities</span>
+                            <span class="font-medium">Back to Manage Keys</span>
                         </RouterLink>
                     </div>
 
                     <!-- Page Header -->
                     <div class="space-y-4">
                         <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
-                            Add Transfer Key
+                            Add New Key
                         </h1>
                         <p class="text-lg text-slate-600 dark:text-slate-400">
-                            Select an identity and add a TRANSFER key to enable sending transactions.
+                            Add a new public key to your identity for specific purposes or security levels.
                         </p>
                     </div>
 
@@ -29,53 +29,166 @@
                     <div v-if="loading" class="text-center py-12">
                         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
                         <p class="mt-4 text-slate-600 dark:text-slate-400">
-                            Loading identities...
+                            Loading identity details...
                         </p>
                     </div>
 
-                    <!-- No Identities -->
+                    <!-- No Identities Fallback (Should not happen via Manage Keys, but good safety) -->
+                    <div v-else-if="!currentIdentity" class="rounded-xl bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-2 border-amber-400/30 p-8 text-center">
+                        <h3 class="text-xl font-semibold text-amber-800 dark:text-amber-300 mb-2">
+                            Identity Not Found
+                        </h3>
+                        <RouterLink to="/identity" class="text-cyan-600 dark:text-cyan-400 underline">
+                            Return to Identity List
+                        </RouterLink>
+                    </div>
+
+                    <!-- Identity & Key Configuration -->
                     <template v-else>
-                        <div v-if="identities.length === 0" class="rounded-xl bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-2 border-amber-400/30 p-8 text-center">
-                            <div class="mx-auto w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mb-6">
-                                <svg class="h-8 w-8 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
+                        <!-- Selected Identity Details (Simplified for this view) -->
+                        <div class="bg-white dark:bg-slate-800 rounded-xl border-2 border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-4">
+                                    <div class="size-16 rounded-full bg-gradient-to-r from-slate-400 to-slate-500 flex items-center justify-center text-white text-xl font-bold">
+                                        {{ (currentIdentity.username || currentIdentity.identityId).charAt(0).toUpperCase() }}
+                                    </div>
+                                    <div>
+                                        <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">
+                                            {{ currentIdentity.username || 'Unnamed Identity' }}
+                                        </h2>
+                                        <p class="text-sm text-slate-500 dark:text-slate-400 font-mono">
+                                            {{ currentIdentity.identityId.slice(0, 8) }}...{{ currentIdentity.identityId.slice(-8) }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm font-medium text-slate-500 dark:text-slate-400">Revision</div>
+                                    <div class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ currentIdentity.revision }}</div>
+                                </div>
                             </div>
-                            <h3 class="text-xl font-semibold text-amber-800 dark:text-amber-300 mb-2">
-                                No Identities Found
-                            </h3>
-                            <p class="text-amber-700 dark:text-amber-400 mb-6">
-                                You need to have at least one identity before adding keys.
-                            </p>
-                            <RouterLink to="/identity/register" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white py-3 px-6 font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
-                                Register New Identity
-                            </RouterLink>
                         </div>
 
-                        <!-- Identity Selection & Form -->
-                        <template v-else>
-                            <!-- Identity Selection -->
-                            <AddKeyIdentityList
-                                :identities="identities as IIdentity[]"
-                                :selectedIdentity="selectedIdentity as IIdentity | null"
-                                @select-identity="setSelectedIdentity"
-                            />
+                        <!-- Key Configuration Form -->
+                        <div class="bg-white dark:bg-slate-800 rounded-xl border-2 border-slate-200 dark:border-slate-700 p-8 shadow-lg">
+                            <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6 border-b border-slate-200 dark:border-slate-700 pb-4">
+                                Key Configuration
+                            </h3>
 
-                            <!-- Selected Identity Details -->
-                            <AddKeyIdentityDetail
-                                v-if="selectedIdentity"
-                                :identity="selectedIdentity as IIdentity"
-                                :has-transfer-key="hasTransferKey(selectedIdentity)"
-                            />
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <!-- Purpose Selection -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                                        Purpose
+                                    </label>
+                                    <select
+                                        v-model="selectedPurpose"
+                                        class="w-full rounded-lg bg-slate-50 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-600 px-4 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
+                                    >
+                                        <option v-for="p in PURPOSES" :key="p.value" :value="p.value">
+                                            {{ p.label }}
+                                        </option>
+                                    </select>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                                        {{ getPurposeDescription(selectedPurpose) }}
+                                    </p>
+                                </div>
 
-                            <!-- Add Key Form -->
-                            <AddKeyKeyForm
-                                v-if="selectedIdentity && !hasTransferKey(selectedIdentity)"
-                                v-model="formState"
-                                :is-adding="isAdding"
-                                @add-transfer-key="addTransferKey"
-                            />
-                        </template>
+                                <!-- Security Level Selection -->
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                                        Security Level
+                                    </label>
+                                    <select
+                                        v-model="selectedSecurityLevel"
+                                        class="w-full rounded-lg bg-slate-50 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-600 px-4 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
+                                    >
+                                        <option v-for="l in SECURITY_LEVELS" :key="l.value" :value="l.value">
+                                            {{ l.label }}
+                                        </option>
+                                    </select>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                                        {{ getSecurityLevelDescription(selectedSecurityLevel) }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Key Type Selection -->
+                            <div class="mb-8 space-y-2">
+                                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                                    Key Type
+                                </label>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <button
+                                        type="button"
+                                        @click="keyType = 'ECDSA_HASH160'"
+                                        :class="[
+                                            'p-4 rounded-xl border-2 text-left transition-all',
+                                            keyType === 'ECDSA_HASH160'
+                                                ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 ring-1 ring-cyan-500'
+                                                : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                                        ]"
+                                    >
+                                        <div class="font-bold text-slate-900 dark:text-slate-100">ECDSA HASH160</div>
+                                        <div class="text-xs text-slate-500 dark:text-slate-400">Standard for Dash identities</div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="keyType = 'ECDSA_SECP256K1'"
+                                        :class="[
+                                            'p-4 rounded-xl border-2 text-left transition-all',
+                                            keyType === 'ECDSA_SECP256K1'
+                                                ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 ring-1 ring-cyan-500'
+                                                : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                                        ]"
+                                    >
+                                        <div class="font-bold text-slate-900 dark:text-slate-100">ECDSA SECP256K1</div>
+                                        <div class="text-xs text-slate-500 dark:text-slate-400">Used for Encryption</div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Validation Status -->
+                            <div v-if="keyExists" class="mb-6 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 p-4 flex items-start gap-3">
+                                <svg class="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div>
+                                    <h4 class="font-bold text-red-800 dark:text-red-300">Key Already Exists</h4>
+                                    <p class="text-sm text-red-700 dark:text-red-400 mt-1">
+                                        This identity already has a <span class="font-semibold">{{ getPurposeLabel(selectedPurpose) }}</span> key with <span class="font-semibold">{{ getSecurityLevelLabel(selectedSecurityLevel) }}</span> security level.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Action -->
+                            <div class="flex items-center gap-4">
+                                <button
+                                    @click="addKey"
+                                    :disabled="isAdding || keyExists || !isValidSelection"
+                                    class="flex-1 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white py-3 px-6 text-sm font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    <svg v-if="isAdding" class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span v-if="!isAdding">Add {{ getPurposeLabel(selectedPurpose) }} Key</span>
+                                    <span v-else>Adding Key...</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Info Section -->
+                        <div class="rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6">
+                            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100 mb-2 uppercase tracking-wider">
+                                About Adding Keys
+                            </h3>
+                            <ul class="space-y-2 text-sm text-slate-600 dark:text-slate-400 list-disc list-inside">
+                                <li>Adding a key requires a small fee in credits.</li>
+                                <li>You cannot add a MASTER key if one already exists.</li>
+                                <li>Keys must be signed by the new key itself (to prove ownership) and an existing MASTER or high-security AUTHENTICATION key.</li>
+                                <li><strong>Supported Keys:</strong> We currently support adding standard HD-derived keys (Indices 0-5).</li>
+                            </ul>
+                        </div>
                     </template>
                 </div>
             </div>
@@ -85,172 +198,242 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { invoke } from '@tauri-apps/api/core'
+import { DashPlatformSDK } from 'dash-platform-sdk'
+// import { PrivateKeyWASM } from 'pshenmic-dpp'
+// @ts-ignore
+import { hash160 } from '@evonext/crypto'
 import Header from '@/components/Header.vue'
-import AddKeyIdentityList from '@/components/addKey/IdentityList.vue'
-import AddKeyIdentityDetail from '@/components/addKey/IdentityDetail.vue'
-import AddKeyKeyForm from '@/components/addKey/KeyForm.vue'
-import { useKeyUtils } from '@/composables/useKeyUtils'
+import { useIdentityStore } from '@/stores/identity'
 import { useKeyManagement } from '@/composables/useKeyManagement'
-import { mnemonicManager } from '@/composables/useMnemonic'
-import { identityDiscovery } from '@/composables/useIdentityDiscovery'
-import type { IIdentity, IPublicKey } from '@/types'
+import { useNetwork } from '@/composables/useNetwork'
+import type { IIdentity } from '@/types'
+import type { PurposeType, SecurityLevelType } from '@/types'
 
+const route = useRoute()
 const router = useRouter()
-const { hasTransferKey: checkTransferKey } = useKeyUtils()
-const { addTransferKey: addKeyToIdentity } = useKeyManagement()
+const identityStore = useIdentityStore()
+const { ensure } = useNetwork()
+const { deriveKey } = useKeyManagement()
 
-// FIXED: Use IIdentity directly (no LocalIdentity); convert revision to number
+// State
 const loading = ref(true)
-const identities = ref<IIdentity[]>([])
-const selectedIdentity = ref<IIdentity | null>(null)
-
-const keyType = ref<'ECDSA_SECP256K1' | 'ECDSA_HASH160'>('ECDSA_SECP256K1')
-const securityLevel = ref<'MASTER' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'>('CRITICAL')
-const confirmed = ref(false)
 const isAdding = ref(false)
+const currentIdentity = ref<IIdentity | null>(null)
 
-// Computed form state
-const formState = computed({
-    get: () => ({
-        keyType: keyType.value,
-        securityLevel: securityLevel.value,
-        confirmed: confirmed.value
-    }),
-    set: (value: any) => {
-        keyType.value = value.keyType
-        securityLevel.value = value.securityLevel
-        confirmed.value = value.confirmed
-    }
-})
+// Form State
+const selectedPurpose = ref<PurposeType>(3) // Default to Transfer
+const selectedSecurityLevel = ref<SecurityLevelType>(1) // Default to Critical
+const keyType = ref<'ECDSA_HASH160' | 'ECDSA_SECP256K1'>('ECDSA_HASH160')
 
-// Parse security level to number
-const parseSecurityLevel = (level: string): 0 | 1 | 2 | 3 | 4 => {
-    switch(level) {
-        case 'MASTER': return 0
-        case 'CRITICAL': return 1
-        case 'HIGH': return 2
-        case 'MEDIUM': return 3
-        case 'LOW': return 4
-        default: return 1
-    }
+// Constants for Dropdowns
+const PURPOSES = [
+    { value: 0 as PurposeType, label: 'AUTHENTICATION (0)' },
+    { value: 1 as PurposeType, label: 'ENCRYPTION (1)' },
+    { value: 2 as PurposeType, label: 'DECRYPTION (2)' },
+    { value: 3 as PurposeType, label: 'TRANSFER (3)' }
+]
+
+const SECURITY_LEVELS = [
+    { value: 0 as SecurityLevelType, label: 'MASTER (0)' },
+    { value: 1 as SecurityLevelType, label: 'CRITICAL (1)' },
+    { value: 2 as SecurityLevelType, label: 'HIGH (2)' },
+    { value: 3 as SecurityLevelType, label: 'MEDIUM (3)' },
+    { value: 4 as SecurityLevelType, label: 'LOW (4)' }
+]
+
+// --- Logic ---
+
+// Helper to map Purpose+SecurityLevel to Key Index
+const getKeyIndex = (purpose: PurposeType, level: SecurityLevelType): number => {
+    if (purpose === 0 && level === 0) return 0
+    if (purpose === 0 && level === 1) return 1
+    if (purpose === 0 && level === 2) return 2
+    if (purpose === 3 && level === 1) return 3
+    if (purpose === 1 && level === 3) return 4
+    if (purpose === 2 && level === 3) return 5
+    return -1
 }
 
-// Load identities
-const loadIdentities = async () => {
+// Check if selected key config already exists
+const keyExists = computed(() => {
+    if (!currentIdentity.value) return false
+    return currentIdentity.value.publicKeys.some(pk =>
+        pk.purpose === selectedPurpose.value &&
+        pk.securityLevel === selectedSecurityLevel.value
+    )
+})
+
+// Check if the combination is valid/derivable
+const isValidSelection = computed(() => {
+    return getKeyIndex(selectedPurpose.value, selectedSecurityLevel.value) !== -1
+})
+
+// Fetch Identity from Route Param
+const fetchIdentity = async () => {
     try {
         loading.value = true
-        const mnemonic = await mnemonicManager.getMnemonic()
+        const identityId = String(route.params.id)
 
-        if (!mnemonic) {
-            identities.value = []
-            showNotification('warning', 'No mnemonic found.')
-            return
-        }
+        // Try loading from local map first for speed/details
+        const settings = await invoke<any>('load_settings').catch(() => null)
+        const network = settings?.network === 'testnet' ? 'testnet' : 'mainnet'
 
-        const result = await identityDiscovery.getIdentitiesFromSeed(mnemonic, {
-            minIndexSearch: 5,
-            queryRegistry: true
-        })
+        const identityMap = await invoke<Record<string, any>>('load_identities_map', { network })
 
-        if (result && Array.isArray(result) && result.length > 0) {
-            // FIXED: Map to *exact* IIdentity shape: revision → Number(), no extra props (e.g., no 'id'), publicKeys array
-            identities.value = result.map((identity: any): IIdentity => {
-                const rawKeys = identity.publicKeys
-                const safePublicKeys: IPublicKey[] = Array.isArray(rawKeys) ? rawKeys : []
-
-                // Convert revision to number (safe for evo revisions; preserves API fidelity)
-                let rev: number
-                if (typeof identity.revision === 'bigint') {
-                    rev = Number(identity.revision)
-                } else if (typeof identity.revision === 'number') {
-                    rev = identity.revision
-                } else {
-                    rev = 0
-                }
-
-                const id = identity.identityId || identity.id || ''
-
-                return {
-                    identityId: id,
-                    identityIdx: identity.identityIdx || 0,
-                    revision: rev,
-                    username: identity.username || identity.dpnsUsername || '',
-                    displayName: identity.displayName || identity.dpnsUsername || '',
-                    publicKeys: safePublicKeys,
-                    balance: identity.balance || '0',
-                    avatarUrl: identity.avatarUrl,
-                    avatarHash: identity.avatarHash,
-                    avatarFingerprint: identity.avatarFingerprint,
-                    publicMessage: identity.publicMessage
-                    // FIXED: Omit extras like 'id', 'publicKeyIds' (not in IIdentity)
-                }
-            })
-
-            const missingTransfer = identities.value.find(i => !checkTransferKey(i.publicKeys))
-            selectedIdentity.value = missingTransfer || identities.value[0] || null
+        if (identityMap && identityMap[identityId]) {
+            const data = identityMap[identityId]
+            // Normalize to IIdentity
+            currentIdentity.value = {
+                identityId: data.identityId,
+                identityIdx: data.identityIdx,
+                revision: data.revision,
+                username: data.username,
+                publicKeys: data.publicKeys || [],
+                balance: data.balance
+            }
         } else {
-            identities.value = []
+            // Fallback to store
+            if (identityStore.identity?.identityId === identityId) {
+                currentIdentity.value = identityStore.identity
+            }
         }
-    } catch (error) {
-        console.error('Failed to load identities:', error)
-        showNotification('error', 'Failed to load identities')
-        identities.value = []
+    } catch (e) {
+        console.error('Failed to load identity', e)
     } finally {
         loading.value = false
     }
 }
 
-// FIXED: No cast needed (types match)
-const setSelectedIdentity = (identity: IIdentity) => {
-    selectedIdentity.value = identity
-}
+const addKey = async () => {
+    if (!currentIdentity.value || !isValidSelection.value) return
 
-const hasTransferKey = (identity: IIdentity): boolean => {
-    return checkTransferKey(identity.publicKeys)
-}
+    const identity = currentIdentity.value
+    const idx = getKeyIndex(selectedPurpose.value, selectedSecurityLevel.value)
 
-const showNotification = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
-    const event = new CustomEvent('notification', { detail: { type, message, duration: 3000 } })
-    window.dispatchEvent(event)
-}
-
-const addTransferKey = async () => {
-    if (!selectedIdentity.value || !confirmed.value) {
-        showNotification('error', 'Please select an identity and confirm')
+    if (idx === -1) {
+        showNotification('error', 'This key combination is not supported by the wallet yet.')
         return
     }
 
     try {
         isAdding.value = true
-        const identity = selectedIdentity.value
+        const network = await ensure()
+        const sdk = new DashPlatformSDK({ network })
 
-        const identityId = identity.identityId || ''
-        // revision now number; addKeyToIdentity should handle (or BigInt(identity.revision) if needed)
+        // 1. Derive the NEW Private Key
+        const newPrivateKey = await deriveKey(identity.identityIdx, idx)
+        const newPublicKey = newPrivateKey.getPublicKey()
 
-        const result = await addKeyToIdentity(
-            identityId,
-            identity.identityIdx,
-            identity.revision as number,
-            (identity.publicKeys || []),
-            keyType.value,
-            parseSecurityLevel(securityLevel.value)
+        // FIX: Handle hash160 conversion safely
+        // Ensure we are working with standard Uint8Arrays
+        const pubKeyBytes = new Uint8Array(newPublicKey.bytes())
+
+        // Calculate public key data (Hash160 or Raw)
+        const newPublicKeyData = keyType.value === 'ECDSA_HASH160'
+            ? hash160(pubKeyBytes)
+            : pubKeyBytes
+
+        // 2. Get Nonce
+        const identityNonce = await sdk.identities.getIdentityNonce(identity.identityId)
+        const newRevision = BigInt(identity.revision || 0) + BigInt(1)
+
+        // 3. Create Key Object
+        const identityPublicKeyInCreation: any = {
+            purpose: selectedPurpose.value,
+            securityLevel: selectedSecurityLevel.value,
+            keyType: keyType.value,
+            readOnly: false,
+            publicKeyData: newPublicKeyData,
+            signature: new Uint8Array()
+        }
+
+        // 4. Create State Transition
+        let identityUpdateTransition = sdk.identities.createStateTransition('update', {
+            identityId: identity.identityId,
+            revision: newRevision,
+            identityNonce: identityNonce + BigInt(1),
+            addPublicKeys: [identityPublicKeyInCreation]
+        })
+
+        // 5. Sign with NEW Key (proof of possession)
+        // We need to estimate the key ID. Usually max ID + 1 or 0 if empty.
+        const validIds = identity.publicKeys.map((k: any) => k.id).filter((id: any) => id !== undefined)
+        const nextKeyId = validIds.length > 0 ? Math.max(...validIds) + 1 : 0
+
+        identityUpdateTransition.signByPrivateKey(newPrivateKey, nextKeyId, keyType.value)
+        identityPublicKeyInCreation.signature = new Uint8Array(identityUpdateTransition.signature)
+
+        // Re-create transition with signature included
+        identityUpdateTransition = sdk.identities.createStateTransition('update', {
+            identityId: identity.identityId,
+            revision: newRevision,
+            identityNonce: identityNonce + BigInt(1),
+            addPublicKeys: [identityPublicKeyInCreation]
+        })
+
+        // 6. Sign with MASTER/CRITICAL Auth Key (Authorization)
+        const authKey = identity.publicKeys.find((k: any) =>
+            k.purpose === 0 && (k.securityLevel === 0 || k.securityLevel === 3)
         )
 
-        if (result.success) {
-            showNotification('success', 'TRANSFER key added!')
-            await loadIdentities()
-            setTimeout(() => router.push('/identity'), 1500)
-        } else {
-            showNotification('error', result.error || 'Failed')
+        if (!authKey) {
+            throw new Error("No suitable Authentication key found to authorize the update.")
         }
+
+        // Derive Auth Key
+        const authKeyIndex = getKeyIndex(0, authKey.securityLevel)
+        const authPrivateKey = await deriveKey(identity.identityIdx, authKeyIndex)
+
+        identityUpdateTransition.signByPrivateKey(authPrivateKey, authKey.id, authKey.keyType || 'ECDSA_HASH160')
+
+        // 7. Broadcast
+        // FIX: broadcast returns void (or a promise that resolves to void), check the result directly
+        await sdk.stateTransitions.broadcast(identityUpdateTransition)
+
+        showNotification('success', 'Key added successfully!')
+        setTimeout(() => router.push(`/identity/${identity.identityId}/keys`), 2000)
+
     } catch (error: any) {
         console.error(error)
-        showNotification('error', error.message || 'Failed')
+        showNotification('error', error.message || 'Failed to add key')
     } finally {
         isAdding.value = false
     }
 }
 
-onMounted(loadIdentities)
+// Helpers
+const getPurposeLabel = (p: number) => PURPOSES.find(x => x.value === p)?.label || `Purpose ${p}`
+const getSecurityLevelLabel = (l: number) => SECURITY_LEVELS.find(x => x.value === l)?.label || `Level ${l}`
+
+const getPurposeDescription = (p: number) => {
+    switch(p) {
+        case 0: return 'Used to sign identity updates and profile changes.'
+        case 1: return 'Used to encrypt data sent to you.'
+        case 2: return 'Used to decrypt data sent to you.'
+        case 3: return 'Used to sign credit and token transfers.'
+        default: return ''
+    }
+}
+
+const getSecurityLevelDescription = (l: number) => {
+    switch(l) {
+        case 0: return 'Full control over the identity. Only one allowed.'
+        case 1: return 'High security. Can perform sensitive operations.'
+        case 2: return 'Standard security for important operations.'
+        case 3: return 'Regular operations.'
+        case 4: return 'Basic operations with limited permissions.'
+        default: return ''
+    }
+}
+
+const showNotification = (type: 'success' | 'error' | 'info' | 'warning', message: string) => {
+    const event = new CustomEvent('notification', {
+        detail: { type, message, duration: 3000 }
+    })
+    window.dispatchEvent(event)
+}
+
+onMounted(fetchIdentity)
 </script>
