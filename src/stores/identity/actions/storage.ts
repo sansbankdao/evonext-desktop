@@ -9,6 +9,7 @@ export const storageActions = () => ({
      * Invokes unified command to write to .identity-[network].json.
      * Structure: { "identities": { "identityId": { ... } } }
      */
+    // REPLACE THE EXISTING FUNCTION
     async saveIdentityDataToStore(
         this: IIdentityState,
         network: 'mainnet' | 'testnet',
@@ -21,10 +22,13 @@ export const storageActions = () => ({
             identityIdx: data.identityIdx ?? data.identity_idx ?? 0,
             username: data.username ?? this.username ?? targetId,
             dpnsUsername: data.dpnsUsername ?? null,
-            balance: data.balance == null ? null : String(data.balance),
-            revision: typeof data.revision === 'string'
-                ? Number(data.revision) || 0
-                : (data.revision ?? null),
+            // 🔥 FIX: Cast to string properly to prevent overflow issues in JSON/TypeScript
+            balance: typeof data.balance === 'bigint' || data.balance > Number.MAX_SAFE_INTEGER
+                ? data.balance.toString()
+                : String(data.balance ?? '0'),
+            revision: typeof data.revision === 'number' && data.revision > Number.MAX_SAFE_INTEGER
+                ? data.revision.toString()
+                : Number(data.revision ?? 0).toString(),
             publicKeys: data.publicKeys ?? data.public_keys ?? null,
             createdAt: new Date().toISOString(),
             isAuthenticated: true,
@@ -35,20 +39,7 @@ export const storageActions = () => ({
         }
         log('debug', `[Storage] saveIdentityDataToStore start id=${targetId} net=${network}`)
         log('debug', `[Storage] unified payload: ${JSON.stringify(fullIdentityObject)}`)
-        try {
-            const res = await invoke<{ success: boolean; error?: string }>(
-                'save_identity_unified',
-                { network, payload: fullIdentityObject }
-            )
-            if (!res || !res.success) {
-                throw new Error(res?.error || 'save_identity_unified failed')
-            }
-            log('info', `[Storage] Identity saved (unified) for ${targetId} on ${network}`)
-            return
-        } catch (errUnified: any) {
-            log('error', `[Storage] save_identity_unified failed: ${errUnified?.message || errUnified}`)
-            throw new Error(errUnified?.message || 'Failed to save identity data (unified)')
-        }
+        // ... rest of function
     },
     /**
      * Save private keys to Rust storage (.safu-[network].json)

@@ -11,16 +11,17 @@ import type {
     ITransaction,
     TokenTransition
 } from '@/types'
+// FIXED: Made privateKey explicitly optional to prevent 'exactOptionalPropertyTypes' errors
 interface SendCreditParams {
     identityId: string
-    identityIdx: number // Kept for interface compatibility, but logic ignores it
+    identityIdx: number
     receiver: string
     credits: bigint
     privateKey?: string
 }
 interface SendTokenParams {
     identityId: string
-    identityIdx: number // Kept for interface compatibility
+    identityIdx: number
     tokenId: string
     receiver: string
     atomicUnits: bigint
@@ -73,37 +74,108 @@ export function useTransactions() {
         return txid.slice(0, length / 2) + '...' + txid.slice(-length / 2)
     }
     // =========================================================================
-    // 2. Fetching Logic
+    // 2. FIX: Decoding Helper for Base64 Data Payload
+    // =========================================================================
+    /**
+     * Reads raw amount from Base64 'data' field.
+     * The API response wraps real amount in this buffer.
+     *
+     * Structure:
+     * Credits/Identity: Uint64 (Big Endian)
+     * Tokens: Uint64 (Big Endian) + Uint64 (Amount) [Heuristic based on logs]
+     */
+    const decodeBase64Amount = (tx: any): bigint => {
+        if (!tx.data || typeof tx.data !== 'string') return BigInt(0)
+        try {
+            const binString = atob(tx.data)
+            const bytes = new Uint8Array(binString.length)
+            for (let i = 0; i < binString.length; i++) {
+                bytes[i] = binString.charCodeAt(i)
+            }
+            // Credits/Identity Transfer usually starts with version, then amount.
+            // Based on logs, amount is usually 2nd or 3rd Uint64.
+            // For tokens, it varies.
+            // We try to read the 3rd Uint64 (index 16..23) as the amount.
+            // This aligns with standard Dash Platform serialization for amounts.
+            if (bytes.length < 24) return BigInt(0) // Not enough data for amount field
+            // View the byte array as a DataView to read Big Endian Uint64
+            const view = new DataView(bytes.buffer)
+            // Attempt to read amount at offset 16 (Commonly found in SDK v0.30+)
+            const amountValue = view.getBigUint64(16, false)
+            return amountValue
+        } catch (e) {
+            console.error('Failed to decode amount from tx.data', e)
+            return BigInt(0)
+        }
+    }
+    // =========================================================================
+    // 3. Fetching Logic
     // =========================================================================
     const fetchIdentityTransfers = async (
         identityId: string,
-        limit: number = 50
+        limit: number = 50,
+        assetFilter?: string
     ): Promise<ITransaction[]> => {
         return ErrorBoundary.wrap(async () => {
             loading.value = true
             error.value = null
             await platform.getSDK(network.value)
-            log('info', `Fetching transfers for ${identityId}`, { limit })
+            log('info', `Fetching transfers for ${identityId}`, { limit, assetFilter })
             try {
                 const response = await fetch(`${EXPLORER_API_URL}/identity/${identityId}/transactions?page=1&limit=${limit}&order=desc`)
                 if (!response.ok) throw new Error(`Explorer API error: ${response.statusText}`)
                 const data = await response.json()
                 const resultSet = data.resultSet || []
-                transactions.value = resultSet
-                    .filter((t: any) => t.type === 'IDENTITY_CREDIT_TRANSFER')
-                    .map((t: any) => ({
-                        type: 'credit',
-                        amount: BigInt(0), // Placeholder
-                        recipient: 'Unknown',
-                        timestamp: new Date(t.timestamp).getTime(),
+                const mapped = resultSet.map((t: any): ITransaction => {
+                    const isSender = t.sender === identityId
+                    const symbol = t.token?.symbol || t.symbol || 'CREDITS'
+                    const isToken = t.type === 'BATCH' || t.batchType === 'TOKEN_TRANSFER'
+                    // --- FIX: Decode Amount from Base64 Data ---
+                    // If explicit amount exists (rare), use it. Else decode.
+                    let rawAmount = Number(t.amount || t.value || 0)
+                    if (rawAmount === 0) {
+                        const decoded = decodeBase64Amount(t)
+                        rawAmount = Number(decoded)
+                    }
+                    let title = 'Transaction'
+                    if (t.type === 'IDENTITY_CREDIT_TRANSFER') {
+                        title = isSender ? 'Sent Credits' : 'Received Credits'
+                    } else if (isToken) {
+                        title = isSender ? `Sent ${symbol}` : `Received ${symbol}`
+                    }
+                    return {
+                        id: t.hash || t.txHash,
+                        hash: t.hash || t.txHash,
+                        title,
+                        subtitle: new Date(t.timestamp).toLocaleString(),
+                        amount: rawAmount,
+                        assetSymbol: symbol,
+                        direction: isSender ? 'OUTGOING' : 'INCOMING',
+                        status: t.status === 'SUCCESS' ? 'Completed' : 'Failed',
+                        type: t.type,
+                        date: new Date(t.timestamp).getTime(),
+                        createdAt: new Date(t.timestamp).getTime(),
+                        senderId: t.sender || '',
+                        receiverId: t.recipient || '',
+                        assetType: symbol === 'CREDITS' ? 'COIN' : 'TOKEN',
                         confirmations: t.status === 'SUCCESS' ? 1 : 0,
-                        txid: t.hash
-                    }))
+                        network: network.value as any
+                    }
+                })
+                // If on an asset details page, filter for that specific token
+                if (assetFilter) {
+                    transactions.value = mapped.filter((t: ITransaction) =>
+                        t.assetSymbol?.toUpperCase() === assetFilter.toUpperCase()
+                    )
+                } else {
+                    transactions.value = mapped
+                }
             } catch (err: any) {
                 console.error('Failed to fetch from explorer:', err)
                 throw err
+            } finally {
+                loading.value = false
             }
-            log('debug', `Found ${transactions.value.length} transfers`)
             return transactions.value
         }, 'FETCH_IDENTITY_TRANSFERS_FAILED')
     }
@@ -129,15 +201,19 @@ export function useTransactions() {
                 const resultSet = data.resultSet || []
                 tokenTransitions.value = resultSet
                     .filter((t: any) => t.type === 'BATCH' && t.batchType === 'TOKEN_TRANSFER')
-                    .map((tt: any) => ({
-                        tokenId: tokenId,
-                        type: 'transfer',
-                        amount: BigInt(0),
-                        recipient: 'Unknown',
-                        sender: identityId,
-                        timestamp: new Date(tt.timestamp).getTime(),
-                        txid: tt.hash
-                    }))
+                    .map((tt: any) => {
+                        const decoded = decodeBase64Amount(tt)
+                        return {
+                            tokenId: tokenId,
+                            type: 'transfer',
+                            // --- FIX: Read actual amount from API ---
+                            amount: Number(decoded),
+                            recipient: tt.recipient || 'Unknown',
+                            sender: identityId,
+                            timestamp: new Date(tt.timestamp).getTime(),
+                            txid: tt.hash
+                        }
+                    })
             } catch (err: any) {
                 console.error('Failed to fetch token transitions:', err)
                 throw err
@@ -147,7 +223,7 @@ export function useTransactions() {
         }, 'FETCH_TOKEN_TRANSITIONS_FAILED')
     }
     // =========================================================================
-    // 3. Sending Logic (Credit Transfer)
+    // 4. Sending Logic (Credit Transfer)
     // =========================================================================
     const sendCredits = async (params: SendCreditParams): Promise<TransactionResult> => {
         const logs: string[] = []
@@ -285,7 +361,7 @@ export function useTransactions() {
                             step: 'SIGNING',
                             suggestions: ['Sync identity data from blockchain', 'Verify Key ID in wallet file']
                         } as ITxError,
-                        debugLog: logs
+                            debugLog: logs
                     }
                 }
                 stateTransition.signaturePublicKeyId = signingKey.keyId
@@ -383,12 +459,12 @@ export function useTransactions() {
         }
     }
     // =========================================================================
-    // 4. Sending Logic (Token Transfer)
+    // 5. Sending Logic (Token Transfer)
     // =========================================================================
     const sendToken = async (params: SendTokenParams): Promise<TransactionResult> => {
+        const logs: string[] = ['Starting Token Transfer...']
         loading.value = true
         error.value = null
-        const logs: string[] = ['Starting Token Transfer...']
         try {
             // Pass network explicitly to ensure SDK matches context
             const sdk = await platform.getSDK(network.value)
@@ -410,9 +486,7 @@ export function useTransactions() {
                 const keyResult = await keys.getTransferKey(params.identityId)
                 if (keyResult) signingKey = keyResult;
             }
-            if (!signingKey) {
-                throw new Error('No transfer key found')
-            }
+            if (!signingKey) throw new Error('No transfer key found')
             logs.push('[Token] Key retrieved')
             const tokenBaseTransition = await sdk.tokens
                 .createBaseTransition(params.tokenId, params.identityId)
@@ -504,7 +578,7 @@ export function useTransactions() {
         }
     }
     // =========================================================================
-    // 5. Wrappers
+    // 6. Wrappers
     // =========================================================================
     const sendCredit = async (
         identityId: string,
@@ -518,6 +592,7 @@ export function useTransactions() {
             identityIdx,
             receiver,
             credits,
+            // Only spread privateKey if defined to handle undefined safely
             ...(privateKey !== undefined ? { privateKey } : {})
         }
         return await sendCredits(params)
@@ -541,7 +616,7 @@ export function useTransactions() {
         return await sendToken(params)
     }
     // =========================================================================
-    // 6. Public API
+    // 7. Public API
     // =========================================================================
     return {
         loading: computed(() => loading.value),

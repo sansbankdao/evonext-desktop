@@ -1,5 +1,3 @@
-// src/stores/identity/actions/balance.ts
-
 import { getIdentityBalance } from '@evonext/platform'
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
@@ -9,7 +7,6 @@ export const balanceActions = () => ({
     async fetchBalance(this: any) {
         const store = this
         const { ensure } = useNetwork()
-
         return ErrorBoundary.wrap(async () => {
             log('info', 'fetchBalance called, identity:', store.identity?.id)
 
@@ -27,10 +24,24 @@ export const balanceActions = () => ({
                 const balanceString = await getIdentityBalance(network, identityId)
 
                 if (balanceString) {
+                    // 1. UPDATE RAM
                     store.balance = balanceString
+
+                    // 2. CALCULATE DERIVED VALUES
+                    const balanceNum = parseInt(balanceString, 10)
                     store.balanceBigInt = BigInt(balanceString)
                     store.dashBigInt = store.balanceBigInt / BigInt(100_000_000_000)
-                    log('info', 'Balance fetched successfully:', balanceString)
+
+                    // 3. 🔥 CRITICAL FIX: IMMEDIATELY PERSIST TO DISK
+                    // This ensures that after app restart, we load this NEW value, not the old one.
+                    if (typeof store.saveToStorage === 'function') {
+                        try {
+                            await store.saveToStorage()
+                            log('info', '💾 [balance] Saved new balance to storage:', balanceString)
+                        } catch (storageErr) {
+                            log('error', '[balance] Failed to save to storage:', storageErr)
+                        }
+                    }
                 } else {
                     log('warn', 'No balance found for identity')
                     store.balance = null
@@ -52,7 +63,6 @@ export const balanceActions = () => ({
      */
     async updateBalance(this: any, newBalance: string) {
         const store = this
-
         return ErrorBoundary.wrap(async () => {
             if (!newBalance) {
                 throw new Error('Invalid balance string')
@@ -60,13 +70,19 @@ export const balanceActions = () => ({
 
             log('info', 'Manually updating balance to:', newBalance)
 
+            // Update RAM
             store.balance = newBalance
             store.balanceBigInt = BigInt(newBalance)
             store.dashBigInt = store.balanceBigInt / BigInt(100_000_000_000)
 
-            // Optionally save to storage
+            // 4. 🔥 PERSIST TO DISK IMMEDIATELY
             if (typeof store.saveToStorage === 'function') {
-                await store.saveToStorage()
+                try {
+                    await store.saveToStorage()
+                    log('info', '💾 [balance] Saved new balance to storage manually')
+                } catch (storageErr) {
+                    log('error', '[balance] Failed to save to storage:', storageErr)
+                }
             }
         }, 'UPDATE_BALANCE_FAILED')
     }

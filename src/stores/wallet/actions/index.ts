@@ -21,60 +21,59 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
         return
     }
 
-    // Update store state if network is provided
     if (network) {
         this.network = network
     }
 
     this.isLoading = true
 
-    // FIX: Use .identityId instead of .id
     const identityId = identityStore.identity?.identityId || identityStore.identityId
     if (!identityId) {
-        console.error('Cannot refresh balances: No Identity ID found in store.')
+        console.error('Cannot refresh balances: No Identity ID found.')
         this.isLoading = false
         return
     }
 
-    console.log(`🔄 [wallet:refreshBalances] Starting refresh for ID: ${identityId} on ${this.network}`)
-
-    // 🔥 CRITICAL FIX: Refresh Identity balance FIRST
-    try {
-        console.log('📡 [wallet:refreshBalances] Fetching fresh identity balance...')
-        await identityStore.fetchBalance()
-        console.log(`✅ [wallet:refreshBalances] Identity balance refreshed: ${identityStore.balance}`)
-    } catch (err) {
-        console.error('❌ [wallet:refreshBalances] Failed to refresh identity balance:', err)
-        // Continue anyway with existing balance
+    const identityBalance = identityStore.balance
+    let creditBalance = 0
+    if (identityBalance) {
+        const parsed = Number(identityBalance)
+        if (!isNaN(parsed)) creditBalance = parsed
     }
 
-    // 🔥 FIX: Ensure System Store price is updated
-    if (!systemStore.currentDashPrice) {
+    if (creditBalance === 0 || creditBalance < 1) {
         try {
-            console.log('📡 [wallet:refreshBalances] Fetching DASH price...')
-            await systemStore.fetchDashPrice()
-            console.log(`✅ [wallet:refreshBalances] DASH price: $${systemStore.currentDashPrice}`)
-        } catch (err) {
-            console.error('❌ [wallet:refreshBalances] Failed to fetch DASH price:', err)
+            let getIdentityBalance
+            try {
+                // FIXED: dynamic import with 'as any'
+                const mod = await import('@/services/identity/discovery/IdentityManager') as any
+                getIdentityBalance = mod.getIdentityBalance || mod.default?.getIdentityBalance
+            } catch (e) {
+                getIdentityBalance = (window as any)?.invoke
+            }
+
+            if (typeof getIdentityBalance === 'function') {
+                const nwMod = await import('@/composables/useNetwork') as any
+                const nw = await nwMod.default?.ensure() || await nwMod.ensure()
+                const freshBalance = await getIdentityBalance(identityId, nw)
+                identityStore.balance = String(freshBalance)
+                identityStore.balanceBigInt = BigInt(freshBalance)
+                identityStore.dashBigInt = identityStore.balanceBigInt / BigInt(100_000_000_000)
+                creditBalance = Number(freshBalance)
+            }
+        } catch (e) {
+            console.error('Direct fetch failed:', e)
         }
     }
 
-    // 1. Initialize Asset List with Native Dash/Credits
     const newAssets: IAsset[] = []
-
-    // Use the FRESHLY UPDATED identity balance
-    const creditBalance = identityStore.balance && !isNaN(Number(identityStore.balance))
-        ? Number(identityStore.balance)
-        : 0
-
-    console.log(`💰 [wallet:refreshBalances] Using credit balance: ${creditBalance.toLocaleString()}`)
 
     // Add Credits (Native)
     newAssets.push({
         id: 'credits',
         name: 'Dash Credits',
         symbol: 'CREDITS',
-        decimals: 2, // Fixed for Credits
+        decimals: 2,
         type: 'native',
         category: 'currency',
         network: this.network,
@@ -86,11 +85,10 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
         divisible: true,
         ownerIdentityId: identityId,
         isOwned: true,
-        usdValue: 0 // Credits have no USD value directly
+        usdValue: 0
     })
 
-    // Add DASH (Layer 1 representation)
-    // 1 Dash = 100,000,000 duffs = 100,000,000,000 credits
+    // Add DASH
     const dashAmount = creditBalance / 100000000000
     const currentDashPrice = systemStore.currentDashPrice || 0
     const dashUsdValue = dashAmount * currentDashPrice
@@ -99,7 +97,7 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
         id: 'dash',
         name: 'Dash Coins',
         symbol: 'DASH',
-        decimals: 8, // Fixed for DASH
+        decimals: 8,
         type: 'native',
         category: 'currency',
         network: this.network,
@@ -114,104 +112,41 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
         usdValue: dashUsdValue
     })
 
-    console.log(`💰 [wallet:refreshBalances] Dash Calculation: ${dashAmount} DASH x $${currentDashPrice} = $${dashUsdValue}`)
-
     try {
-        // 2. Load Custom Assets via NEW Rust Command (fetch_identity_tokens)
-        console.log(`📡 [wallet:refreshBalances] Calling fetch_identity_tokens with identityId: "${identityId}", network: "${this.network}"`)
-        let storedAssets: IAssetMinimal[] = []
-        try {
-            // IMPORTANT: Use the exact parameter names as defined in Rust
-            storedAssets = await invoke<IAssetMinimal[]>('fetch_identity_tokens', {
-                identityId: identityId,
-                network: this.network
-            })
-            console.log(`✅ [wallet:refreshBalances] invoke succeeded!`)
-            console.log(`✅ [wallet] Raw response type: ${typeof storedAssets}`)
-            console.log(`✅ [wallet] Is array: ${Array.isArray(storedAssets)}`)
-            console.log(`✅ [wallet] Response length: ${storedAssets?.length || 0}`)
-            console.log(`✅ [wallet] Full response:`, JSON.stringify(storedAssets, null, 2))
-        } catch (invokeError) {
-            console.error('❌ [wallet:refreshBalances] Invoke threw exception:', invokeError)
-            console.error('❌ [wallet] Error details:', invokeError)
-            storedAssets = []
-        }
+        let storedAssets: IAssetMinimal[] = await invoke<IAssetMinimal[]>('fetch_identity_tokens', {
+            identityId: identityId,
+            network: this.network
+        })
 
         if (storedAssets && Array.isArray(storedAssets)) {
-            console.log(`📦 [wallet] Retrieved ${storedAssets.length} assets from Explorer`)
-
             for (const assetDef of storedAssets) {
-                console.log(`📦 [wallet] Processing asset:`, JSON.stringify(assetDef, null, 2))
-
                 let balance = BigInt(0)
                 let balanceFormatted = '0.00'
-
-                // Keep the symbol exactly as returned from Rust (could be tSANS, tDUSD, SANS, DUSD)
                 const symbol = assetDef.symbol || ''
                 const rawContractId = assetDef.asset_id || ''
+                let decimalPlaces = assetDef.decimals || 8
 
-                // Determine decimals based on symbol (testnet vs mainnet)
-                let decimalPlaces = assetDef.decimals || 8 // Default 8
+                if (symbol.toUpperCase().includes('DUSD')) decimalPlaces = 6
 
-                // Check for DUSD/DASH USD (6 decimals) or tDUSD (6 decimals)
-                if (symbol.toUpperCase() === 'DUSD' || symbol.toUpperCase() === 'TDUSD') {
-                    decimalPlaces = 6
-                } else if (symbol.toUpperCase() === 'SANS' || symbol.toUpperCase() === 'TSANS') {
-                    decimalPlaces = 8
-                }
-
-                // EXTRACT: Balance from Rust
                 if (assetDef.balance !== undefined && assetDef.balance !== null) {
-                    try {
-                        balance = BigInt(assetDef.balance)
-                        // Format using the correct decimals
-                        const divisor = BigInt(10 ** decimalPlaces)
-                        const whole = balance / divisor
-                        const remainder = balance % divisor
-
-                        // Convert to Number for formatting
-                        const wholeNum = Number(whole)
-                        const remainderStr = remainder.toString().padStart(decimalPlaces, '0')
-                        const trimmedRemainder = remainderStr.replace(/0+$/, '')
-
-                        if (trimmedRemainder === '') {
-                            balanceFormatted =`${wholeNum.toLocaleString()}`
-                        } else {
-                            balanceFormatted =`${wholeNum.toLocaleString()}.${trimmedRemainder}`
-                        }
-                    } catch (err) {
-                        console.error(`[wallet] Failed to parse balance for ${symbol}:`, err)
-                        console.error(`[wallet] Balance value was:`, assetDef.balance)
-                        balanceFormatted = '0.00'
-                    }
-                } else {
-                    console.warn(`[wallet] Asset ${symbol} has no balance field`)
+                    balance = BigInt(assetDef.balance)
+                    const divisor = BigInt(10 ** decimalPlaces)
+                    const whole = balance / divisor
+                    const remainder = balance % divisor
+                    const remainderStr = remainder.toString().padStart(decimalPlaces, '0')
+                    const trimmedRemainder = remainderStr.replace(/0+$/, '')
+                    balanceFormatted = trimmedRemainder === '' ? `${whole.toLocaleString()}` : `${whole.toLocaleString()}.${trimmedRemainder}`
                 }
 
-                // Calculate USD value based on symbol (case-insensitive)
                 let usdValue = 0
-                const symbolUpper = symbol.toUpperCase()
-
-                if (symbolUpper === 'DUSD' || symbolUpper === 'TDUSD') {
-                    // DUSD is $1.00 stablecoin
-                    const balanceNum = Number(balance) / (10 ** decimalPlaces)
-                    usdValue = balanceNum * 1.00
-                } else if (symbolUpper === 'SANS' || symbolUpper === 'TSANS') {
-                    // SANS is $0.16 per requirement
-                    const balanceNum = Number(balance) / (10 ** decimalPlaces)
-                    usdValue = balanceNum * 0.16
-                }
-
-                // Format a nice display name (remove 't' prefix for display if present)
-                let displayName = assetDef.name || symbol
-
-                // Ensure we have an asset_id for the id field
-                const assetId = rawContractId || `token-${symbol.toLowerCase()}`
+                const balanceNum = Number(balance) / (10 ** decimalPlaces)
+                if (symbol.toUpperCase().includes('DUSD')) usdValue = balanceNum * 1.0
+                if (symbol.toUpperCase().includes('SANS')) usdValue = balanceNum * 0.16
 
                 newAssets.push({
-                    id: assetId,
-                    name: displayName,
-                    symbol: symbol, // Keep original symbol (tSANS or SANS)
+                    id: rawContractId || `token-${symbol.toLowerCase()}`,
+                    name: assetDef.name || symbol,
+                    symbol: symbol,
                     decimals: decimalPlaces,
                     type: 'token',
                     category: 'utility',
@@ -226,40 +161,19 @@ export async function refreshBalances(this: ReturnType<typeof useWalletStore>, n
                     isOwned: true,
                     contractId: rawContractId,
                     usdValue: usdValue,
-                    // lastUpdated: Date.now() // 🔥 ADD: Track when this was last updated
                 })
             }
         }
     } catch (err) {
-        console.error('🚨 [wallet:refreshBalances] Failed to discover assets:', err)
+        console.error('Failed to discover assets:', err)
     }
 
-    // 🔥 ADD: Sort assets by USD value (highest first)
-    newAssets.sort((a, b) => {
-        const valA = a.usdValue || 0
-        const valB = b.usdValue || 0
-        return valB - valA
-    })
-
+    newAssets.sort((a, b) => (b.usdValue || 0) - (a.usdValue || 0))
     this.assets = newAssets
-    console.log(`✅ [wallet:refreshBalances] Assets updated. Total: ${newAssets.length}`)
-    console.log(`✅ [wallet] Asset symbols:`, newAssets.map(a => `${a.symbol} ($${(a.usdValue || 0).toFixed(2)})`))
 
-    // 3. Fetch Transactions
     await this.fetchRealTransactions()
-
     this.isLoading = false
-
-    // 🔥 ADD: Emit event for UI updates
-    const event = new CustomEvent('wallet:balances-refreshed', {
-        detail: {
-            timestamp: Date.now(),
-            assetCount: newAssets.length,
-            creditBalance,
-            dashBalance: dashAmount
-        }
-    })
-    window.dispatchEvent(event)
+    window.dispatchEvent(new CustomEvent('wallet:balances-refreshed', { detail: { creditBalance } }))
 }
 
 export async function fetchLiveBalances(this: ReturnType<typeof useWalletStore>) {
@@ -267,116 +181,71 @@ export async function fetchLiveBalances(this: ReturnType<typeof useWalletStore>)
 }
 
 /**
- * Fetches transactions from the Explorer API
+ * Fetches transactions from the Explorer API and maps with proper Sent/Received titles
  */
 export async function fetchRealTransactions(this: ReturnType<typeof useWalletStore>, limit: number = 20) {
     const identityStore = useIdentityStore()
-    // FIX: Use .identityId instead of .id
     const identityId = identityStore.identity?.identityId || identityStore.identityId
-
-    if (!identityId) {
-        console.warn('Cannot fetch transactions: No Identity ID')
-        return
-    }
+    if (!identityId) return
 
     try {
-        console.log(`🕵️  Fetching transactions for ${identityId} on ${this.network} from Explorer...`)
         const explorerTxs = await fetchIdentityTransactions(identityId, limit, this.network)
-        console.log(`✅ Explorer returned ${explorerTxs.length} transactions`)
 
-        // Map Explorer format to ITransaction UI format
         this.transactions = explorerTxs.map((tx: any): ITransaction => {
             const isSender = tx.sender === identityId
             const isRecipient = tx.recipient === identityId
+            const hash = tx.hash || tx.txHash || ''
+
+            let assetSymbol = tx.token?.symbol || tx.symbol || 'CREDITS'
+            let assetType: 'COIN' | 'TOKEN' = assetSymbol === 'CREDITS' ? 'COIN' : 'TOKEN'
+
+            // --- Determine Title (Sent vs Received) ---
             let title = 'Transaction'
-            let subtitle = new Date(tx.timestamp).toLocaleString()
-            let amountFormatted = '0'
-            let type: any = 'UNKNOWN'
-            let status: 'Completed' | 'Pending...' | 'Failed' = 'Completed'
-
-            // Calculate Direction
-            let direction: 'INCOMING' | 'OUTGOING' | 'SELF' = 'SELF'
-            if (isSender && !isRecipient) direction = 'OUTGOING'
-            if (!isSender && isRecipient) direction = 'INCOMING'
-
-            // Initialize assetSymbol based on transaction data
-            let assetSymbol = 'CREDITS'
-            let assetType: 'COIN' | 'TOKEN' = 'COIN'
-
-            // If transaction payload contains symbol info
-            if (tx.token && tx.token.symbol) {
-                assetSymbol = tx.token.symbol
-                assetType = 'TOKEN'
-            } else if (tx.symbol) {
-                assetSymbol = tx.symbol
-                assetType = 'TOKEN'
+            if (tx.type === 'IDENTITY_CREDIT_TRANSFER') {
+                title = isSender ? 'Sent Credits' : 'Received Credits'
+            } else if (tx.type === 'BATCH' && tx.batchType === 'TOKEN_TRANSFER') {
+                title = isSender ? `Sent ${assetSymbol}` : `Received ${assetSymbol}`
+            } else if (tx.type === 'IDENTITY_TOP_UP') {
+                title = 'Identity Top Up'
+            } else if (tx.type === 'IDENTITY_CREATE') {
+                title = 'Identity Created'
             }
 
-            // FIX: Correct if syntax
-            if (tx.type === 'IDENTITY_CREDIT_TRANSFER') {
-                type = 'IDENTITY_CREDIT_TRANSFER'
-                title = isSender ? 'Sent Credits' : 'Received Credits'
-                // FIX: Explorer API returns 'amount' at root level
-                const rawAmount = tx.amount || 0
-                amountFormatted = `${Number(rawAmount).toLocaleString()} Credits`
-            } else if (tx.type === 'IDENTITY_TOP_UP') {
-                type = 'IDENTITY_TOP_UP'
-                title = 'Identity Top Up'
-                amountFormatted = 'N/A'
-            } else if (tx.type === 'IDENTITY_CREATE') {
-                type = 'IDENTITY_CREATE'
-                title = 'Identity Created'
-                amountFormatted = 'N/A'
-            } else if (tx.type === 'DATA_CONTRACT_TRANSFER') {
-                // Generic Token Transfer
-                type = 'DATA_CONTRACT_TRANSFER'
-                title = isSender ? `Sent ${assetSymbol}` : `Received ${assetSymbol}`
-                const rawAmount = tx.amount || tx.value || 0
-                // Determine decimals for formatting
-                const discoveredAsset = this.assets.find(a => a.symbol === assetSymbol)
-                const decimals = discoveredAsset?.decimals || 8 // Fallback to 8 (DASH) if unknown
+            // --- Format Amount ---
+            let amountFormatted = '0'
+            const rawAmount = Number(tx.amount || tx.value || 0)
+            const asset = this.assets.find(a => a.symbol === assetSymbol)
+            const decimals = asset?.decimals || (assetSymbol.toUpperCase().includes('DUSD') ? 6 : 8)
 
-                amountFormatted = `${Number(rawAmount).toLocaleString(undefined, {
-                    minimumFractionDigits: decimals > 2 ? 2 : decimals,
+            if (assetSymbol === 'CREDITS') {
+                amountFormatted = `${rawAmount.toLocaleString()} Credits`
+            } else {
+                amountFormatted = `${(rawAmount / (10 ** decimals)).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
                     maximumFractionDigits: decimals
                 })} ${assetSymbol}`
             }
 
-            // FIX: Explorer API uses 'txHash' or 'hash'
-            const txHash = tx.txHash || tx.hash || ''
-
             return {
-                id: txHash,
-                hash: txHash,
+                id: hash,
+                hash: hash,
                 confirmations: 1,
                 senderId: tx.sender || 'Unknown',
                 receiverId: tx.recipient || 'Unknown',
-                amount: tx.amount || 0,
+                amount: rawAmount,
                 amountFormatted,
                 assetType,
-                assetSymbol, // FIX: Explicitly assigned
-                status,
-                type,
-                direction,
+                assetSymbol,
+                status: 'Completed',
+                type: tx.type,
+                direction: isSender ? (isRecipient ? 'SELF' : 'OUTGOING') : 'INCOMING',
                 title,
-                subtitle,
+                subtitle: new Date(tx.timestamp).toLocaleString(),
                 date: new Date(tx.timestamp).getTime(),
                 createdAt: new Date(tx.timestamp).getTime(),
-                network: this.network
+                network: this.network as any
             }
         })
-
-        console.log(`✅ Mapped ${this.transactions.length} transactions for UI`)
-
-        // 🔥 ADD: Emit event for UI updates
-        const event = new CustomEvent('wallet:transactions-updated', {
-            detail: {
-                timestamp: Date.now(),
-                transactionCount: this.transactions.length
-            }
-        })
-        window.dispatchEvent(event)
-
     } catch (err) {
         console.error('Failed to fetch real transactions:', err)
     }

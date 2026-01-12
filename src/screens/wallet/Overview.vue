@@ -68,12 +68,12 @@
 
                         <div class="flex items-baseline gap-3 mb-2">
                             <span class="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-                                {{ formatCurrency(totalBalance.usd) }}
+                                {{ formatCurrency(totalBalance?.usd as number) }}
                             </span>
                         </div>
 
                         <p class="text-xl font-medium text-slate-500 dark:text-slate-400 mb-8">
-                            {{ totalBalance.dash.toLocaleString(undefined, { maximumFractionDigits: 8 }) }} Dash Coins
+                            {{ totalBalance?.dash.toLocaleString(undefined, { maximumFractionDigits: 8 }) }} Dash Coins
                         </p>
 
                         <!-- Action Buttons -->
@@ -470,17 +470,25 @@ const formatDashFromCredits = (creditsString: string | number) => {
 
 const totalBalance = computed(() => {
     // Check if Identity has balance
-    if (Identity.isConnected && Identity.balance) {
-        const dash = formatDashFromCredits(Identity.balance)
-        const usd = dash * (System.currentDashPrice || 0)
-
+    if (Identity.isConnected && Identity.balanceBigInt) {
+        // 🔥 FIX: Use dashBigInt (pre-calculated from Credits) instead of raw string math
+        // This ensures consistency across all screens and avoids conversion errors.
+        const dash = Number(Identity.dashBigInt) / 100000000 // BigInt back to float
+        // 1. Calculate DASH Price from System Store
+        const currentDashPrice = System.currentDashPrice || 0
+        const usd = dash * currentDashPrice
         return { dash, usd }
     }
-    // Fallback to wallet store assets
-    const dashBalance = Number(Wallet.assets.find(a => a.symbol === 'DASH')?.balance) || 0
-    return {
-        dash: dashBalance,
-        usd: dashBalance * (System.currentDashPrice || 0)
+    // Fallback to wallet store assets (Legacy path, should ideally be removed)
+    const dashAsset = Wallet.assets.find(a => a.symbol === 'DASH')
+    if (dashAsset?.balance) {
+        // Use parseFloat to ensure we handle the number correctly
+        const dashBalance = parseFloat(String(dashAsset.balance))
+        const usd = dashBalance * (System.currentDashPrice || 0)
+        return {
+            dash: dashBalance,
+            usd: usd
+        }
     }
 })
 
