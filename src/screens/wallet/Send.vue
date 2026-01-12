@@ -367,7 +367,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWallet } from '@/composables/useWallet'
 import { useIdentity } from '@/composables/useIdentity'
-import { useKeyManagement } from '@/composables/useKeyManagement'
+// import { useKeyManagement } from '@/composables/useKeyManagement'
 import {
     getDUSDContractId,
     getSANSContractId,
@@ -384,7 +384,7 @@ const router = useRouter()
 // Initialize composables
 const wallet = useWallet()
 const identity = useIdentity()
-const keyMgr = useKeyManagement()
+// const keyMgr = useKeyManagement()
 
 // Initialize Stores (mirroring Overview)
 const WalletStore = useWalletStore()

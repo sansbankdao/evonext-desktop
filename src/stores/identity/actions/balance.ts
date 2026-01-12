@@ -7,6 +7,7 @@ export const balanceActions = () => ({
     async fetchBalance(this: any) {
         const store = this
         const { ensure } = useNetwork()
+
         return ErrorBoundary.wrap(async () => {
             log('info', 'fetchBalance called, identity:', store.identity?.id)
 
@@ -21,27 +22,38 @@ export const balanceActions = () => ({
 
                 log('info', 'Fetching balance for identity:', identityId)
 
+                // 1. Fetch raw balance string from Network
                 const balanceString = await getIdentityBalance(network, identityId)
 
                 if (balanceString) {
-                    // 1. UPDATE RAM
+                    // 2. Update RAM State (Store)
                     store.balance = balanceString
 
-                    // 2. CALCULATE DERIVED VALUES
-                    const balanceNum = parseInt(balanceString, 10)
+                    // const balanceNum = parseInt(balanceString, 10)
                     store.balanceBigInt = BigInt(balanceString)
                     store.dashBigInt = store.balanceBigInt / BigInt(100_000_000_000)
 
-                    // 3. 🔥 CRITICAL FIX: IMMEDIATELY PERSIST TO DISK
-                    // This ensures that after app restart, we load this NEW value, not the old one.
-                    if (typeof store.saveToStorage === 'function') {
-                        try {
-                            await store.saveToStorage()
-                            log('info', '💾 [balance] Saved new balance to storage:', balanceString)
-                        } catch (storageErr) {
-                            log('error', '[balance] Failed to save to storage:', storageErr)
-                        }
+                    // 3. PERSIST TO RUST BACKEND (The Fix)
+                    // We must treat this refresh like a connection update to ensure
+                    // the backend file (identities map) stays in sync with the chain.
+                    log('info', 'Persisting updated balance to Rust backend...')
+
+                    // Prepare the payload expected by saveIdentityDataToStore (and subsequently Rust)
+                    // We use the current store values for keys/username/revision to ensure we don't overwrite them
+                    // unless we specifically fetched them. Here we are primarily updating Balance.
+                    const updatePayload = {
+                        identityId: identityId,
+                        identityIdx: store.identity?.identityIdx || 0,
+                        username: store.username || identityId,
+                        balance: balanceString, // The NEW balance
+                        revision: store.revision,
+                        publicKeys: store.publicKeys || store.identity?.publicKeys || []
                     }
+
+                    // Call the unified action which triggers the Tauri command
+                    await store.saveIdentityDataToStore(network, identityId, updatePayload)
+
+                    log('info', 'Successfully updated Identity backend balance.')
                 } else {
                     log('warn', 'No balance found for identity')
                     store.balance = null
@@ -75,14 +87,21 @@ export const balanceActions = () => ({
             store.balanceBigInt = BigInt(newBalance)
             store.dashBigInt = store.balanceBigInt / BigInt(100_000_000_000)
 
-            // 4. 🔥 PERSIST TO DISK IMMEDIATELY
-            if (typeof store.saveToStorage === 'function') {
-                try {
-                    await store.saveToStorage()
-                    log('info', '💾 [balance] Saved new balance to storage manually')
-                } catch (storageErr) {
-                    log('error', '[balance] Failed to save to storage:', storageErr)
+            // PERSIST TO RUST BACKEND
+            const network = await store.getCurrentNetwork()
+            const identityId = store.identity?.id
+
+            if (identityId && network) {
+                const updatePayload = {
+                    identityId: identityId,
+                    identityIdx: store.identity?.identityIdx || 0,
+                    username: store.username || identityId,
+                    balance: newBalance,
+                    revision: store.revision,
+                    publicKeys: store.publicKeys || store.identity?.publicKeys || []
                 }
+                await store.saveIdentityDataToStore(network, identityId, updatePayload)
+                log('info', 'Backend updated via updateBalance helper')
             }
         }, 'UPDATE_BALANCE_FAILED')
     }

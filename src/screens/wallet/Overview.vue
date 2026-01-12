@@ -73,7 +73,7 @@
                         </div>
 
                         <p class="text-xl font-medium text-slate-500 dark:text-slate-400 mb-8">
-                            {{ totalBalance?.dash.toLocaleString(undefined, { maximumFractionDigits: 8 }) }} Dash Coins
+                            {{ totalBalance?.dash?.toLocaleString(undefined, { maximumFractionDigits: 8 }) }} Dash Coins
                         </p>
 
                         <!-- Action Buttons -->
@@ -460,13 +460,13 @@ const getTransactionAmount = (tx: any) => {
 }
 
 // Helper to format CREDITS to DASH equivalent (for Total Balance)
-const formatDashFromCredits = (creditsString: string | number) => {
-    const credits = parseInt(String(creditsString), 10)
-    // 1 Credit = 100,000,000,000 Duffs (Dash Satoshis)
-    const duffs = credits / 1000
-    const dash = duffs / 100000000
-    return dash || 0
-}
+// const formatDashFromCredits = (creditsString: string | number) => {
+//     const credits = parseInt(String(creditsString), 10)
+//     // 1 Credit = 100,000,000,000 Duffs (Dash Satoshis)
+//     const duffs = credits / 1000
+//     const dash = duffs / 100000000
+//     return dash || 0
+// }
 
 const totalBalance = computed(() => {
     // Check if Identity has balance
@@ -490,6 +490,7 @@ const totalBalance = computed(() => {
             usd: usd
         }
     }
+    return {}
 })
 
 const formatCurrency = (value: number) => {
