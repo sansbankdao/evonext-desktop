@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 import { usePlatform } from './usePlatform'
+import { EvoSDK } from '@dashevo/evo-sdk'
 import { useKeyManagement } from './useKeyManagement'
 import { useNetwork } from './useNetwork'
 import { ErrorBoundary } from '@/utils/errors'
@@ -42,6 +43,11 @@ interface ITxError {
     message: string
     step?: string
     suggestions?: string[]
+}
+interface WithdrawDashParams {
+    identityId: string
+    recipientAddress: string
+    amountDash: number // The UI passes normalized Dash (e.g., 0.5)
 }
 const EXPLORER_API_URL = 'https://platform-explorer.pshenmic.dev'
 export function useTransactions() {
@@ -615,6 +621,70 @@ export function useTransactions() {
         }
         return await sendToken(params)
     }
+    /**
+     * L2 -> L1 Credit Withdrawal (DASH Coins)
+     * Utilizes @dashevo/evo-sdk for Protocol v1 support
+     */
+    const withdrawDash = async (params: WithdrawDashParams): Promise<TransactionResult> => {
+        const logs: string[] = ['[Withdrawal] Starting L2->L1 Withdrawal...']
+        loading.value = true
+        try {
+            const currentNetwork = network.value // 'testnet' or 'mainnet'
+            logs.push(`[Withdrawal] Network: ${currentNetwork}`)
+            // 1. Resolve Keys
+            const keyPair = await keys.getTransferKey(params.identityId)
+            if (!keyPair || !keyPair.privateKey) {
+                throw new Error('Transfer key (Purpose 3) not found.')
+            }
+            logs.push(`[Withdrawal] Key found (ID: ${keyPair.keyId})`)
+            // 2. Initialize EvoSDK
+            // We use Trusted mode to speed up the connection for a single operation
+            const sdk = currentNetwork === 'mainnet'
+                ? EvoSDK.mainnetTrusted()
+                : EvoSDK.testnetTrusted()
+            logs.push('[Withdrawal] Connecting to EvoSDK...')
+            await sdk.connect()
+            // 3. Convert Dash to Credits (1 Dash = 10^11 Credits)
+            // Note: evo-sdk creditWithdrawal takes 'amount' in credits
+            const creditAmount = BigInt(Math.floor(params.amountDash * 100_000_000_000))
+            logs.push(`[Withdrawal] Amount: ${params.amountDash} DASH (${creditAmount} credits)`)
+            // 4. Execute Withdrawal
+            // This method handles state transition creation, signing, and broadcasting
+            const result = await sdk.identities.creditWithdrawal({
+                identityId: params.identityId,
+                toAddress: params.recipientAddress,
+                amount: creditAmount,
+                coreFeePerByte: 1.2, // Default standard fee
+                privateKeyWif: keyPair.privateKey,
+                keyId: keyPair.keyId
+            })
+            logs.push(`[Withdrawal] Success! Result: ${JSON.stringify(result)}`)
+            // EvoSDK returns the state transition result; we extract the hash
+            const txHash = typeof result === 'string' ? result : (result as any).hash
+            return {
+                success: true,
+                data: {
+                    txid: txHash || 'TRANSFERRED',
+                    message: 'Withdrawal to Core successful'
+                },
+                debugLog: logs
+            }
+        } catch (err: any) {
+            const errMsg = err?.message || 'Withdrawal failed'
+            logs.push(`[Withdrawal] ERROR: ${errMsg}`)
+            return {
+                success: false,
+                error: {
+                    code: 500,
+                    message: errMsg,
+                    step: 'WITHDRAWAL_EXECUTION'
+                },
+                debugLog: logs
+            }
+        } finally {
+            loading.value = false
+        }
+    }
     // =========================================================================
     // 7. Public API
     // =========================================================================
@@ -632,6 +702,7 @@ export function useTransactions() {
         sendCredits,
         sendToken,
         sendCredit,
-        sendTokenTransfer
+        sendTokenTransfer,
+        withdrawDash,
     }
 }

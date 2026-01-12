@@ -183,6 +183,18 @@ export function useWallet() {
         setTimeout(() => refresh(), 2000)
     }
 
+    const withdrawDash = async (
+        identityId: string,
+        recipientAddress: string,
+        amountDash: number
+    ) => {
+        return await transactions.withdrawDash({
+            identityId,
+            recipientAddress,
+            amountDash
+        })
+    }
+
     // Setup
     onMounted(() => {
         document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -226,6 +238,7 @@ export function useWallet() {
         sendToken,
         sendCredit,
         sendTokenTransfer,
+        withdrawDash,
 
         // Store proxies
         fetchLiveBalances: store.fetchLiveBalances,

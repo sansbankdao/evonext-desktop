@@ -31,7 +31,7 @@
                         Send Assets
                     </h1>
                     <p class="text-slate-500 dark:text-slate-400 text-sm">
-                        Transfer Dash Platform assets to any Identity ID.
+                        Transfer Dash Platform assets or withdraw to Core.
                     </p>
                 </div>
 
@@ -112,8 +112,9 @@
 
                         <!-- Recipient -->
                         <div class="space-y-2">
+                            <!-- Dynamic Label based on Asset Type -->
                             <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-1">
-                                Recipient Identity
+                                {{ selectedCurrency === 'dash-coins' ? 'Recipient Core Address' : 'Recipient Identity' }}
                             </label>
                             <div class="relative group/field">
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -124,7 +125,7 @@
                                 <input
                                     v-model="recipient"
                                     type="text"
-                                    placeholder="e.g. yFg..."
+                                    :placeholder="selectedCurrency === 'dash-coins' ? 'e.g. yFg...' : 'e.g. Identity ID'"
                                     class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-3 pl-10 pr-4 text-slate-900 dark:text-slate-100 font-mono text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors group-hover/field:border-slate-300 dark:group-hover/field:border-slate-700"
                                 />
                             </div>
@@ -448,7 +449,7 @@ const selectedAsset = computed(() => {
     }
     const baseTicker = tickerMap[selectedCurrency.value] || ''
 
-    // Handle Token Search (do not use wallet.findAsset strictly to allow fallback)
+    // Handle Token Search
     if (['dusd', 'sans'].includes(selectedCurrency.value)) {
         const searchSymbols = getSearchSymbols(selectedCurrency.value)
         const asset = wallet.assets.value.find((a: any) =>
@@ -458,7 +459,6 @@ const selectedAsset = computed(() => {
     }
 
     // Handle Native Search (DASH or CREDITS)
-    // Use the store getter, or fallback to manual find for safety
     return wallet.findAsset(baseTicker)
 })
 
@@ -469,12 +469,12 @@ const displayBalance = computed(() => {
         return '0.00'
     }
 
-    const numericBalance = Number(asset.balance)
+    const rawBalance = Number(asset.balance)
 
     // --- CREDITS: Special Logic (Raw -> Dash) ---
     if (selectedCurrency.value === 'dash-credits') {
         // Assumes credits are raw units. 100 billion = 1 Dash
-        const dash = numericBalance / 100_000_000_000
+        const dash = rawBalance / 100_000_000_000
         return dash.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 8
@@ -488,19 +488,18 @@ const displayBalance = computed(() => {
             'sans': SANS_DECIMAL_PLACES     // 8
         }
         const decimals = decimalsMap[selectedCurrency.value] || 8
-        const normalized = numericBalance / (10 ** decimals)
+        const normalized = rawBalance / (10 ** decimals)
         return normalized.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 8
         })
     }
 
-    // --- DASH COINS: Heuristic (Atomic vs Normalized) ---
+    // --- DASH COINS: L2 Credits -> Dash (1 Dash = 1e11 Credits) ---
     if (selectedCurrency.value === 'dash-coins') {
-        // If value is extremely small (< 1,000,000), assume it's already normalized DASH (e.g. 0.54).
-        // Otherwise assume Satoshis (need / 100,000,000).
-        const isNormalizedDASH = numericBalance < 1_000_000
-        const normalized = isNormalizedDASH ? numericBalance : numericBalance / 100_000_000
+        // We assume the asset balance is in Credits (Raw Platform Units)
+        // To get Dash, divide by 100,000,000,000
+        const normalized = rawBalance / 100_000_000_000
         return normalized.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 8
@@ -537,14 +536,18 @@ const setMaxAmount = () => {
         return
     }
     const rawBalance = Number(asset.balance)
+
     if (selectedCurrency.value === 'dash-credits') {
         // Normalize raw credits to Dash equiv (1e11)
+        amount.value = rawBalance / 100_000_000_000
+    } else if (selectedCurrency.value === 'dash-coins') {
+        // Normalize L2 Credits to Dash (1e11)
         amount.value = rawBalance / 100_000_000_000
     } else {
         // Normalize tokens/DASH from raw balance using decimals
         const decimalsMap: Record<string, number> = {
-            'dash-coins': 8,      // DASH
-            'dash-credits': 0,    // Handled above
+            'dash-coins': 8,      // Not used here due to logic above, but safe fallback
+            'dash-credits': 0,
             'dusd': DUSD_DECIMAL_PLACES,   // 6
             'sans': SANS_DECIMAL_PLACES     // 8
         }
@@ -554,16 +557,16 @@ const setMaxAmount = () => {
 }
 
 onMounted(async () => {
-    /* 1. Ensure Network Settings are Loaded (COPIED FROM OVERVIEW) */
+    /* 1. Ensure Network Settings are Loaded */
     const currentNetwork = await ensure()
     console.log(`🌐 Network initialized: ${currentNetwork}`)
 
-    /* 2. Validate market data (COPIED FROM OVERVIEW) */
+    /* 2. Validate market data */
     if (!SystemStore.currentDashPrice) {
         await SystemStore.fetchDashPrice()
     }
 
-    /* 3. Validate identity connection (COPIED/ADAPTED FROM OVERVIEW) */
+    /* 3. Validate identity connection */
     if (IdentityStore.isConnected) {
         console.log('✅ Identity connected, using identity data for user:', IdentityStore.username)
     }
@@ -571,8 +574,7 @@ onMounted(async () => {
     /* 4. Ensure wallet is initialized & refreshed */
     await wallet.initialize()
 
-    // FORCE REFRESH: Ensure we have the latest data when landing on this screen
-    // This helps if the store was emptied or updated elsewhere
+    // FORCE REFRESH
     try {
         addLog('INIT: Refreshing balances on Send Screen mount...')
         await wallet.refresh()
@@ -591,6 +593,7 @@ const handleSend = async () => {
     const normSymbol = selectedAsset.value.symbol.replace(/^t/i, '')
     let finalAmount = amount.value || 0
 
+    // Prepare amounts for internal consistency
     if (selectedCurrency.value === 'dash-credits' && amount.value) {
         finalAmount = amount.value * 100_000_000_000
     }
@@ -618,32 +621,51 @@ const handleSend = async () => {
         addLog(`IDENTITY: Found ID ${identityId}`)
 
         // =================================================================
-        // KEY RETRIEVAL (Fixed for KeyPair object)
+        // LOGIC: DASH COINS (L2 -> L1 Withdrawal via EvoSDK)
         // =================================================================
-        addLog('STEP 1: Attempting to retrieve Transfer Key...')
-        const keyPair = await keyMgr.getTransferKey(identityId)
+        if (selectedCurrency.value === 'dash-coins' && amount.value) {
+            addLog('TYPE: Processing DASH Withdrawal (L2 -> L1)...')
 
-        if (!keyPair || !keyPair.privateKey) {
-            throw new Error('Could not find Transfer key (Purpose 3). Please check your identity settings.')
+            // Validate Core Address format (Base58, starts with X or y/7, length ~34)
+            const coreAddressRegex = /^[Xy7][a-km-zA-HJ-NP-Z1-9]{33,34}$/
+            if (!coreAddressRegex.test(recipient.value)) {
+                throw new Error('Invalid Dash Core Address. It must start with X or y and be a valid Base58 string.')
+            }
+            addLog(`VALIDATION: Core Address format OK`)
+
+            // Execute Withdrawal via useWallet -> useTransactions -> EvoSDK
+            const result = await wallet.withdrawDash(
+                identityId,
+                recipient.value,
+                amount.value // Pass normalized Dash (e.g., 1.5)
+            )
+
+            if (result.debugLog) result.debugLog.forEach(logLine => addLog(logLine))
+
+            if (result.success) {
+                const txid = result.data?.txid || 'UNKNOWN'
+                addLog(`SUCCESS: Withdrawal Broadcasted. TXID: ${txid}`)
+                txDetails.value = {
+                    txid,
+                    asset: 'DASH (Core)',
+                    amount: amount.value.toLocaleString(),
+                    recipient: recipient.value,
+                    explorerUrl: `${explorerBase.value}/transaction/${txid}`
+                }
+                showTxModal.value = true
+            } else {
+                throw new Error(result.error?.message || 'Withdrawal failed')
+            }
         }
-
-        addLog('KEY: Successfully retrieved KeyPair')
-
-        // FIX: Access .privateKey for the substring operations
-        const wif = keyPair.privateKey
-        addLog(`KEY: First 4 chars: ${wif.substring(0, 4)}... Last 4 chars: ...${wif.substring(wif.length - 4)}`)
-        addLog(`KEY: Using Key ID: ${keyPair.keyId}`)
 
         // =================================================================
         // LOGIC: Send Credits
         // =================================================================
-        if (normSymbol === 'CREDITS' && amount.value) {
+        else if (normSymbol === 'CREDITS' && amount.value) {
             addLog('TYPE: Processing CREDIT Transfer...')
             const credits = BigInt(Math.floor(finalAmount))
             addLog(`CALC: Converted to credits: ${credits}`)
 
-            // Note: useTransactions.ts will resolve the key again internally
-            // using the identityId to ensure protocol-level sync.
             const result = await wallet.sendCredit(
                 identityId,
                 0,
@@ -725,19 +747,4 @@ const handleSend = async () => {
         addLog('END: Process finished.')
     }
 }
-
-// Watch for success
-// const handleSuccess = () => {
-//     if (showTxModal.value && txDetails.value) {
-//         // Fire the event that useWallet listens to for auto-refresh
-//         const transactionEvent = new CustomEvent('transaction:success', {
-//             detail: {
-//                 txid: txDetails.value?.txid,
-//                 asset: txDetails.value?.asset,
-//                 timestamp: Date.now()
-//             }
-//         })
-//         window.dispatchEvent(transactionEvent)
-//     }
-// }
 </script>
