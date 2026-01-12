@@ -9,7 +9,6 @@ export const storageActions = () => ({
      * Invokes unified command to write to .identity-[network].json.
      * Structure: { "identities": { "identityId": { ... } } }
      */
-    // REPLACE THE EXISTING FUNCTION
     async saveIdentityDataToStore(
         this: IIdentityState,
         network: 'mainnet' | 'testnet',
@@ -23,7 +22,7 @@ export const storageActions = () => ({
             username: data.username ?? this.username ?? targetId,
             dpnsUsername: data.dpnsUsername ?? null,
             // 🔥 FIX: Cast to string properly to prevent overflow issues in JSON/TypeScript
-            balance: typeof data.balance === 'bigint' || data.balance > Number.MAX_SAFE_INTEGER
+            balance: typeof data.balance === 'bigint' || (typeof data.balance === 'number' && data.balance > Number.MAX_SAFE_INTEGER)
                 ? data.balance.toString()
                 : String(data.balance ?? '0'),
             revision: typeof data.revision === 'number' && data.revision > Number.MAX_SAFE_INTEGER
@@ -39,7 +38,22 @@ export const storageActions = () => ({
         }
         log('debug', `[Storage] saveIdentityDataToStore start id=${targetId} net=${network}`)
         log('debug', `[Storage] unified payload: ${JSON.stringify(fullIdentityObject)}`)
-        // ... rest of function
+        // 🔥 CRITICAL FIX: The actual Invoke call was missing!
+        try {
+            const result = await invoke('save_identity_unified', {
+                network: network,
+                payload: fullIdentityObject
+            }) as { success: boolean; error?: string }
+            if (!result.success) {
+                const err = result.error || 'Failed to save identity via unified command'
+                log('error', `[Storage] Backend save failed: ${err}`)
+                throw new Error(err)
+            }
+            log('info', `[Storage] Identity saved successfully to backend: ${targetId}`)
+        } catch (err: any) {
+            log('error', `[Storage] Exception during save: ${err?.message || err}`)
+            throw err
+        }
     },
     /**
      * Save private keys to Rust storage (.safu-[network].json)
