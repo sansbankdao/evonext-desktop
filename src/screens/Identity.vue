@@ -58,15 +58,26 @@
                             </div>
 
                             <div class="mt-auto p-4 border-t border-slate-200 dark:border-slate-700 space-y-3">
-                                <button v-if="identity.identityId !== activeIdentityId"
-                                        @click="handleSwitch(identity.identityId)"
-                                        class="w-full rounded-xl bg-gradient-to-r from-slate-500 to-slate-600 text-white py-3 px-6 text-sm font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">
-                                    Switch Identity
-                                </button>
+                                <div v-if="identity.identityId === activeIdentityId" class="grid grid-cols-2 gap-3">
+                                    <RouterLink :to="`/identity/${identity.identityId}/keys`"
+                                        class="col-span-2 inline-flex items-center justify-center gap-2 rounded-xl border-2 border-cyan-400 text-cyan-700 dark:text-cyan-300 py-2.5 px-4 text-sm font-bold shadow-sm hover:bg-cyan-50 dark:hover:bg-cyan-900/20 transition-all">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                                        </svg>
+                                        <span>Manage Keys</span>
+                                    </RouterLink>
 
-                                <div v-else class="text-center text-sm font-bold text-cyan-600 bg-cyan-50 dark:bg-cyan-900/20 px-6 py-4 rounded-xl border-2 border-cyan-400/30">
-                                    Active Identity
+                                    <div class="text-center text-sm font-bold text-cyan-600 bg-cyan-50 dark:bg-cyan-900/20 px-6 py-3 rounded-xl border-2 border-cyan-400/30 col-span-2">
+                                        Active Identity
+                                    </div>
                                 </div>
+
+                                <template v-else>
+                                    <button @click="handleSwitch(identity.identityId)"
+                                            class="w-full rounded-xl bg-gradient-to-r from-slate-500 to-slate-600 text-white py-3 px-6 text-sm font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all">
+                                        Switch Identity
+                                    </button>
+                                </template>
                             </div>
                         </div>
                     </div>
