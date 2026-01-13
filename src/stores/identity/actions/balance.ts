@@ -1,52 +1,37 @@
 import { getIdentityBalance } from '@evonext/platform'
 import { ErrorBoundary } from '@/utils/errors'
-import { log } from '@/utils/env'
 import { useNetwork } from '@/composables'
-
+import { debugLogger } from '@/utils/debugLogger'
 export const balanceActions = () => ({
     async fetchBalance(this: any) {
         const store = this
         const { ensure } = useNetwork()
-
         return ErrorBoundary.wrap(async () => {
-            log('info', 'fetchBalance called, identity:', store.identity?.id)
-
+            debugLogger.log('[Balance] fetchBalance called', 'info')
             if (!store.identity?.id) {
-                log('warn', '[Balance] No identity loaded, skipping balance fetch')
+                debugLogger.log('[Balance] No identity loaded, skipping', 'warn')
                 return
             }
-
             try {
                 const network = await ensure()
                 const identityId = store.identity.id
-
-                log('info', `[Balance] Fetching balance for identity: ${identityId} on ${network}`)
-
-                // 1. Fetch raw balance string from Network
+                debugLogger.log(`[Balance] Fetching for ${identityId} on ${network}`, 'info')
+                // 1. Fetch raw balance
                 const rawBalance = await getIdentityBalance(network, identityId)
-
-                // 2. Determine the balance string to use
-                // Handle cases where API returns null/undefined but user has 0 balance
                 let balanceString = '0'
                 if (rawBalance !== null && rawBalance !== undefined) {
                     balanceString = String(rawBalance)
-                    log('info', `[Balance] Raw balance received: ${balanceString}`)
+                    debugLogger.log(`[Balance] Raw balance received: ${balanceString}`, 'info')
                 } else {
-                    log('warn', `[Balance] API returned null balance for ${identityId}. Defaulting to "0".`)
+                    debugLogger.log('[Balance] API returned null, defaulting to 0', 'warn')
                 }
-
-                // 3. Update RAM State (Store)
+                // 2. Update RAM
                 store.balance = balanceString
-
                 const balanceNum = parseInt(balanceString, 10)
                 store.balanceBigInt = BigInt(balanceNum)
                 store.dashBigInt = store.balanceBigInt / BigInt(100_000_000_000)
-
-                // 4. PERSIST TO RUST BACKEND (The Critical Step)
-                // We perform this save regardless of whether the balance changed,
-                // to ensure the backend stays synced.
-                log('info', `[Balance] Attempting to save to Rust backend...`)
-
+                // 3. Persist to Backend
+                debugLogger.log('[Balance] Attempting to save to Rust backend...', 'info')
                 const updatePayload = {
                     identityId: identityId,
                     identityIdx: store.identity?.identityIdx || 0,
@@ -55,16 +40,11 @@ export const balanceActions = () => ({
                     revision: store.revision,
                     publicKeys: store.publicKeys || store.identity?.publicKeys || []
                 }
-
-                log('debug', `[Balance] Payload prepared: ${JSON.stringify({ ...updatePayload, publicKeys: '...' })}`)
-
+                // This function now properly invokes the Rust command
                 await store.saveIdentityDataToStore(network, identityId, updatePayload)
-
-                log('info', `[Balance] ✅ Successfully saved updated identity to backend.`)
-
+                debugLogger.log('[Balance] ✅ Successfully saved identity to backend', 'info')
             } catch (error) {
-                log('error', '[Balance] Failed to fetch/save balance:', error)
-                // We set to null/undefined on error to signify failure state
+                debugLogger.log(`[Balance] Error: ${error}`, 'error')
                 store.balance = null
                 store.balanceBigInt = undefined
                 store.dashBigInt = undefined
@@ -72,28 +52,18 @@ export const balanceActions = () => ({
             }
         }, 'FETCH_BALANCE_FAILED')
     },
-
-    /**
-     * Helper to update balance from external source (e.g., after transaction)
-     */
     async updateBalance(this: any, newBalance: string) {
         const store = this
         return ErrorBoundary.wrap(async () => {
             if (!newBalance) {
                 throw new Error('Invalid balance string')
             }
-
-            log('info', '[Balance] Manually updating balance to:', newBalance)
-
-            // Update RAM
+            debugLogger.log(`[Balance] Manual update to: ${newBalance}`, 'info')
             store.balance = newBalance
             store.balanceBigInt = BigInt(newBalance)
             store.dashBigInt = store.balanceBigInt / BigInt(100_000_000_000)
-
-            // PERSIST TO RUST BACKEND
             const network = await store.getCurrentNetwork()
             const identityId = store.identity?.id
-
             if (identityId && network) {
                 const updatePayload = {
                     identityId: identityId,
@@ -104,7 +74,7 @@ export const balanceActions = () => ({
                     publicKeys: store.publicKeys || store.identity?.publicKeys || []
                 }
                 await store.saveIdentityDataToStore(network, identityId, updatePayload)
-                log('info', '[Balance] ✅ Backend updated via updateBalance helper')
+                debugLogger.log('[Balance] ✅ Backend updated manually', 'info')
             }
         }, 'UPDATE_BALANCE_FAILED')
     }

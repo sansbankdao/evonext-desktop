@@ -1,6 +1,5 @@
 <template>
     <main class="min-h-screen w-full flex flex-col items-center bg-slate-50 dark:bg-slate-950 pb-12">
-
         <!-- Navigation Header -->
         <header class="w-full max-w-5xl flex items-center justify-between px-6 py-6">
             <div class="flex items-center gap-3">
@@ -13,7 +12,6 @@
                     Wallet Dashboard
                 </h1>
             </div>
-
             <div class="flex items-center gap-4">
                 <button @click="forceRefresh" class="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors" title="Refresh">
                     <svg class="w-5 h-5" :class="{'animate-spin': isRefreshing}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -21,7 +19,6 @@
                         <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                 </button>
-
                 <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800">
                     <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                     <span class="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
@@ -30,23 +27,18 @@
                 </div>
             </div>
         </header>
-
         <!-- Main Content -->
         <div class="w-full max-w-5xl px-6 space-y-6">
-
             <!-- Top Row: Balance & Collectibles -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
                 <!-- Balance Card (Span 2) -->
                 <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 flex flex-col justify-between relative overflow-hidden">
                     <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-
                     <div class="relative z-10">
                         <div class="flex justify-between items-start mb-4">
                             <p class="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                                 Total Balance
                             </p>
-
                             <!-- Price Display -->
                             <div class="text-right">
                                 <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Market Price</div>
@@ -65,17 +57,14 @@
                                 </div>
                             </div>
                         </div>
-
                         <div class="flex items-baseline gap-3 mb-2">
                             <span class="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
                                 {{ formatCurrency(totalBalance?.usd as number) }}
                             </span>
                         </div>
-
                         <p class="text-xl font-medium text-slate-500 dark:text-slate-400 mb-8">
                             {{ totalBalance?.dash?.toLocaleString(undefined, { maximumFractionDigits: 8 }) }} Dash Coins
                         </p>
-
                         <!-- Action Buttons -->
                         <div class="grid grid-cols-3 gap-3">
                             <button @click="router.push('/wallet/deposit')" class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-emerald-500/30 hover:shadow-lg transition-all group">
@@ -99,7 +88,6 @@
                         </div>
                     </div>
                 </div>
-
                 <!-- Collectibles Card (Span 1) -->
                 <div class="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-black rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 flex flex-col items-center justify-center text-center relative overflow-hidden group">
                     <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
@@ -115,10 +103,8 @@
                     </button>
                 </div>
             </div>
-
             <!-- Middle Row: Assets & Transactions -->
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-
                 <!-- Assets List -->
                 <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 flex flex-col h-full">
                     <div class="flex justify-between items-center mb-6">
@@ -133,7 +119,6 @@
                             <span v-if="isRefreshing" class="text-xs font-bold text-indigo-500 uppercase tracking-wide animate-pulse">Refreshing...</span>
                         </div>
                     </div>
-
                     <div class="space-y-3 flex-1 overflow-y-auto pr-1 custom-scrollbar">
                         <div
                             v-for="asset in Wallet.assets"
@@ -164,7 +149,6 @@
                                 <p class="text-xs text-slate-500 dark:text-slate-400">{{ formatCurrency(asset.usdValue as number) }}</p>
                             </div>
                         </div>
-
                         <div v-if="Wallet.assets.length === 0 && !Wallet.isLoading" class="flex flex-col items-center justify-center py-12 text-slate-400">
                             <svg class="w-12 h-12 mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
@@ -173,10 +157,8 @@
                         </div>
                     </div>
                 </div>
-
                 <!-- Recent Transactions (Paginated) -->
                 <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-0 flex flex-col h-full">
-
                     <!-- Header -->
                     <div class="p-8 pb-4 border-b border-slate-100 dark:border-slate-800">
                         <div class="flex justify-between items-center">
@@ -191,7 +173,6 @@
                             </div>
                         </div>
                     </div>
-
                     <!-- Transactions List -->
                     <div class="flex-1 overflow-y-auto custom-scrollbar p-8 pt-4 space-y-3">
                         <div
@@ -230,7 +211,6 @@
                                 </span>
                             </div>
                         </div>
-
                         <div v-if="displayedTransactions.length === 0 && !Wallet.isLoading" class="flex flex-col items-center justify-center h-full min-h-[200px] text-slate-400">
                             <svg class="w-12 h-12 mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -238,7 +218,6 @@
                             <p class="text-sm font-medium">No recent activity</p>
                         </div>
                     </div>
-
                     <!-- Pagination Controls -->
                     <div v-if="totalPages > 1" class="p-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                         <button
@@ -249,11 +228,9 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
                             Previous
                         </button>
-
                         <span class="text-xs font-bold text-slate-500 dark:text-slate-400 mx-2">
                             {{ displayedTransactions.length }} / {{ Wallet.transactions.length }}
                         </span>
-
                         <button
                             @click="nextPage"
                             :disabled="currentPage === totalPages"
@@ -265,7 +242,6 @@
                     </div>
                 </div>
             </div>
-
             <!-- DEBUG SECTION -->
             <div class="bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden">
                 <div class="p-4 border-b border-slate-700 flex justify-between items-center cursor-pointer hover:bg-slate-800 transition-colors" @click="isDebugOpen = !isDebugOpen">
@@ -278,6 +254,24 @@
                     </svg>
                 </div>
                 <div v-if="isDebugOpen" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 text-xs font-mono">
+                    <!-- Client Logs Section -->
+                    <div class="bg-black/50 p-4 rounded border border-slate-700 md:col-span-2">
+                        <div class="flex justify-between items-center mb-2 border-b border-slate-700 pb-1">
+                            <p class="font-bold text-slate-300">Client Logs (Live)</p>
+                            <button @click="clearLogs" class="text-cyan-500 hover:text-cyan-400 underline">Clear</button>
+                        </div>
+                        <div class="h-32 overflow-y-auto space-y-1">
+                            <div v-for="(log, idx) in clientLogs" :key="idx" class="flex gap-2" :class="{
+                                'text-red-400': log.type === 'error',
+                                'text-amber-400': log.type === 'warn',
+                                'text-emerald-400': log.type === 'info'
+                            }">
+                                <span class="opacity-50">[{{ log.timestamp }}]</span>
+                                <span>{{ log.message }}</span>
+                            </div>
+                            <div v-if="clientLogs.length === 0" class="text-slate-500 italic">No client logs yet.</div>
+                        </div>
+                    </div>
                     <div class="bg-black/50 p-4 rounded border border-slate-700">
                         <p class="font-bold text-slate-300 mb-2 border-b border-slate-700 pb-1">Identity Store State</p>
                         <ul class="space-y-1 text-slate-400">
@@ -323,7 +317,7 @@
                                 <span class="opacity-70">Asset Symbols:</span>
                                 <span class="text-white">{{ Wallet.assets.map(a => a.symbol).join(', ') || 'None' }}</span>
                             </li>
-                            <li class="flex justify-between">
+                             <li class="flex justify-between">
                                 <span class="opacity-70">Token Assets:</span>
                                 <span class="text-white">{{ Wallet.assets.filter(a => a.type === 'token').length }}</span>
                             </li>
@@ -335,79 +329,87 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </main>
 </template>
-
 <script setup lang="ts">
-/* Import modules. */
 import { onMounted, computed, nextTick, ref, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-
 import { useWalletStore } from '@/stores/wallet'
 import { useIdentityStore } from '@/stores/identity'
 import { useSystemStore } from '@/stores/system'
 import { useWallet } from '@/composables/useWallet'
 import { useNetwork } from '@/composables/useNetwork'
 import { DUSD_DECIMAL_PLACES, SANS_DECIMAL_PLACES } from '@/constants'
-
 const router = useRouter()
 const Wallet = useWalletStore()
 const Identity = useIdentityStore()
 const System = useSystemStore()
-const wallet = useWallet() // Import the composable for polling
+const wallet = useWallet()
 const { ensure } = useNetwork()
-
-// --- Debug Toggle State ---
-const isDebugOpen = ref(false)
+// --- Debug State ---
+const isDebugOpen = ref(true)
 const isRefreshing = ref(false)
-
+// --- Client Logs ---
+const clientLogs = ref<{ timestamp: string; message: string; type: 'info' | 'error' | 'warn' }[]>([])
+const addLog = (msg: string, type: 'info' | 'error' | 'warn' = 'info') => {
+    const timestamp = new Date().toLocaleTimeString()
+    clientLogs.value.unshift({ timestamp, message: msg, type })
+    if (clientLogs.value.length > 50) clientLogs.value.pop()
+}
+const clearLogs = () => {
+    clientLogs.value = []
+}
+// Hook into global logger defined in debugLogger.ts
+if ((window as any).debugLogs) {
+    // Watcher for global logs
+    let originalLogs = (window as any).debugLogs
+    Object.defineProperty(window, 'debugLogs', {
+        get() { return originalLogs },
+        set(newVal) {
+            // Sync changes if needed, but for now we just push to local ref on trigger
+            if (Array.isArray(newVal) && newVal.length > originalLogs.length) {
+                clientLogs.value = newVal // Copy for display
+            }
+            originalLogs = newVal
+        }
+    })
+    // Initial sync
+    clientLogs.value = originalLogs
+}
 // --- Pagination State (Recent Activity) ---
 const currentPage = ref(1)
 const txPageSize = 5
-
 const totalPages = computed(() => {
     return Math.ceil(Wallet.transactions.length / txPageSize)
 })
-
 const displayedTransactions = computed(() => {
     const start = (currentPage.value - 1) * txPageSize
     const end = start + txPageSize
     return Wallet.transactions.slice(start, end)
 })
-
 const nextPage = () => {
     if (currentPage.value < totalPages.value) {
         currentPage.value++
     }
 }
-
 const previousPage = () => {
     if (currentPage.value > 1) {
         currentPage.value--
     }
 }
-
 // Helper to normalize an asset's balance for display
 const getNormalizedBalance = (asset: any, symbol: string) => {
     const rawBalance = Number(asset.balance)
     if (!rawBalance) return '0.00'
-
     const normalizedSymbol = symbol.replace(/^t/i, '').toLowerCase()
-
-    // --- CREDITS ---
     if (normalizedSymbol === 'credits' || symbol.toLowerCase() === 'credits') {
-        // Logic: 1 Credit = 0.00000000001 Dash (100 billion credits = 1 Dash)
-        // Example: 31337000000 credits / 100000000000 = 0.31337000 Dash
         const creditsToDash = rawBalance / 100_000_000_000
         return creditsToDash.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 8
         })
     }
-
-    // --- TOKENS (DUSD/SANS) ---
     if (normalizedSymbol === 'dusd') {
         const normalized = rawBalance / (10 ** DUSD_DECIMAL_PLACES)
         return normalized.toLocaleString(undefined, {
@@ -415,7 +417,6 @@ const getNormalizedBalance = (asset: any, symbol: string) => {
             maximumFractionDigits: 2
         })
     }
-
     if (normalizedSymbol === 'sans') {
         const normalized = rawBalance / (10 ** SANS_DECIMAL_PLACES)
         return normalized.toLocaleString(undefined, {
@@ -423,8 +424,6 @@ const getNormalizedBalance = (asset: any, symbol: string) => {
             maximumFractionDigits: 8
         })
     }
-
-    // --- DASH COINS ---
     if (normalizedSymbol === 'dash') {
         const isNormalized = rawBalance < 1_000_000
         const normalized = isNormalized ? rawBalance : rawBalance / 100_000_000
@@ -433,56 +432,36 @@ const getNormalizedBalance = (asset: any, symbol: string) => {
             maximumFractionDigits: 8
         })
     }
-
-    // Default: Return raw
     return rawBalance.toLocaleString()
 }
-
 const getTransactionAmount = (tx: any) => {
-    // Fallback to raw amount if asset info is missing
     if (!tx || (!tx.assetSymbol && !tx.type)) return '0.00'
-
     const symbol = tx.assetSymbol || 'CREDITS'
     const amount = Number(tx.amount) || 0
-
     if (symbol.toLowerCase().includes('credit') || tx.type === 'IDENTITY_CREDIT_TRANSFER') {
-        // Raw Credits -> Dash
         const dashVal = amount / 100_000_000_000
         return dashVal.toLocaleString(undefined, {
             minimumFractionDigits: 2,
             maximumFractionDigits: 8
         })
     }
-
-    // Tokens/T Dash handled similarly to assets if needed
-    // For now, return formatted if exists, else raw
     return tx.amountFormatted || amount.toLocaleString()
 }
-
-// Helper to format CREDITS to DASH equivalent (for Total Balance)
 // const formatDashFromCredits = (creditsString: string | number) => {
 //     const credits = parseInt(String(creditsString), 10)
-//     // 1 Credit = 100,000,000,000 Duffs (Dash Satoshis)
 //     const duffs = credits / 1000
 //     const dash = duffs / 100000000
 //     return dash || 0
 // }
-
 const totalBalance = computed(() => {
-    // Check if Identity has balance
     if (Identity.isConnected && Identity.balanceBigInt) {
-        // 🔥 FIX: Use dashBigInt (pre-calculated from Credits) instead of raw string math
-        // This ensures consistency across all screens and avoids conversion errors.
-        const dash = Number(Identity.dashBigInt) / 100000000 // BigInt back to float
-        // 1. Calculate DASH Price from System Store
+        const dash = Number(Identity.dashBigInt) / 100000000
         const currentDashPrice = System.currentDashPrice || 0
         const usd = dash * currentDashPrice
         return { dash, usd }
     }
-    // Fallback to wallet store assets (Legacy path, should ideally be removed)
     const dashAsset = Wallet.assets.find(a => a.symbol === 'DASH')
     if (dashAsset?.balance) {
-        // Use parseFloat to ensure we handle the number correctly
         const dashBalance = parseFloat(String(dashAsset.balance))
         const usd = dashBalance * (System.currentDashPrice || 0)
         return {
@@ -492,7 +471,6 @@ const totalBalance = computed(() => {
     }
     return {}
 })
-
 const formatCurrency = (value: number) => {
     if (typeof value !== 'number') return '$0.00'
     return new Intl.NumberFormat('en-US', {
@@ -500,7 +478,6 @@ const formatCurrency = (value: number) => {
         currency: 'USD',
     }).format(value)
 }
-
 const getStatusClasses = (status: string) => {
     switch (status) {
         case 'Completed': return 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
@@ -509,59 +486,47 @@ const getStatusClasses = (status: string) => {
         default: return 'bg-slate-50 dark:bg-slate-900/20 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
     }
 }
-
 const getIconSrc = (symbol: string) => {
     const lower = symbol.toLowerCase()
-    // Handle testnet prefixes
     const cleanSymbol = lower.startsWith('t') ? lower.substring(1) : lower
     if (cleanSymbol === 'credits') {
         return '/icons/dash.svg'
     }
     return `/icons/${cleanSymbol}.svg`
 }
-
 const assetIconExists = (symbol: string) => {
     const lower = symbol.toLowerCase()
-    // Handle testnet prefixes (tSANS -> sans, tDUSD -> dusd)
     const cleanSymbol = lower.startsWith('t') ? lower.substring(1) : lower
     const commonIcons = ['dash', 'sans', 'dusd']
     return commonIcons.includes(cleanSymbol) || lower === 'credits'
 }
-
 const forceRefresh = async () => {
     if (isRefreshing.value) return
-
     isRefreshing.value = true
-    currentPage.value = 1 // Reset to page 1 on refresh
-
-    // Clear debug status
+    currentPage.value = 1
+    addLog('Manual Refresh triggered...', 'info')
     const debugEl = document.getElementById('asset-fetch-status')
     if (debugEl) debugEl.textContent = 'Refreshing...'
-
     try {
-        // Get current network
         const currentNetwork = await ensure()
-
-        // Refresh identity balance first
+        addLog(`Network ensured: ${currentNetwork}`, 'info')
         if (Identity.isConnected) {
+            addLog('Fetching Identity Balance...', 'info')
             await Identity.fetchBalance()
+            addLog('Identity Balance fetch complete.', 'info')
         }
-
-        // Refresh wallet balances
+        addLog('Refreshing Wallet Balances...', 'info')
         await Wallet.refreshBalances(currentNetwork)
-
-        // Optional: Refresh system price
+        addLog('Wallet Balances refreshed.', 'info')
         System.fetchDashPrice().catch(() => {})
-
     } catch (error) {
         console.error('Force refresh failed:', error)
+        addLog(`Refresh failed: ${error}`, 'error')
         if (debugEl) debugEl.textContent = 'Refresh failed'
         return
     } finally {
         isRefreshing.value = false
     }
-
-    // Update debug panel with results
     const assetCount = Wallet.assets.length
     const hasDUSD = Wallet.assets.filter(a => a.symbol === 'DUSD' || a.symbol === 'tDUSD').length > 0
     const hasSANS = Wallet.assets.filter(a => a.symbol === 'SANS' || a.symbol === 'tSANS').length > 0
@@ -569,30 +534,22 @@ const forceRefresh = async () => {
         debugEl.textContent = `Complete: ${assetCount} assets, DUSD: ${hasDUSD ? 'YES' : 'NO'}, SANS: ${hasSANS ? 'YES' : 'NO'}`
     }
 }
-
-// Handle transaction success events
 const handleTransactionSuccess = async () => {
     console.log('💸 Transaction completed, forcing refresh...')
+    addLog('Transaction Success: Triggering Refresh...', 'info')
     await forceRefresh()
 }
-
 onMounted(async () => {
     await nextTick()
-
-    /* 1. Ensure Network Settings are Loaded */
+    addLog('App Mounted. Initializing...', 'info')
     const currentNetwork = await ensure()
-    console.log(`🌐 Network initialized: ${currentNetwork}`)
-
-    /* 2. Validate market data using existing System Store methods */
+    addLog(`Network initialized: ${currentNetwork}`, 'info')
     if (!System.currentDashPrice) {
         await System.fetchDashPrice()
     }
-
-    /* 3. Validate identity connection. */
     if (Identity.isConnected) {
-        console.log('✅ Identity connected, using identity data for user:', Identity.username)
+        addLog(`Identity connected: ${Identity.username}`, 'info')
         const realIdentityId = Identity.identityId
-        /* Validate real identity ID. */
         if (realIdentityId) {
             Wallet.user = {
                 username: Identity.username || 'Unknown',
@@ -602,23 +559,14 @@ onMounted(async () => {
                 avatar: '',
                 identityId: realIdentityId
             }
-            console.log('✅ Setting wallet user with real identity ID:', realIdentityId)
-
-            // Force identity balance refresh
             await Identity.fetchBalance()
         }
     }
-
-    /* 4. Refresh Balances */
     await Wallet.refreshBalances(currentNetwork)
-
-    // 🔥 Start auto-refresh polling (every 45 seconds)
+    addLog('Initial Wallet Balances refreshed.', 'info')
     wallet.startPolling(45000)
-
-    // Listen for transaction success events
     window.addEventListener('transaction:success', handleTransactionSuccess)
 })
-
 onUnmounted(() => {
     wallet.stopPolling()
     window.removeEventListener('transaction:success', handleTransactionSuccess)

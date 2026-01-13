@@ -14,7 +14,6 @@
                             <span class="font-medium">Back to Manage Keys</span>
                         </RouterLink>
                     </div>
-
                     <!-- Page Header -->
                     <div class="space-y-4">
                         <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
@@ -24,7 +23,6 @@
                             Add a new public key to your identity for specific purposes or security levels.
                         </p>
                     </div>
-
                     <!-- Loading State -->
                     <div v-if="loading" class="text-center py-12">
                         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
@@ -32,8 +30,7 @@
                             Loading identity details...
                         </p>
                     </div>
-
-                    <!-- No Identities Fallback (Should not happen via Manage Keys, but good safety) -->
+                    <!-- No Identities Fallback -->
                     <div v-else-if="!currentIdentity" class="rounded-xl bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-2 border-amber-400/30 p-8 text-center">
                         <h3 class="text-xl font-semibold text-amber-800 dark:text-amber-300 mb-2">
                             Identity Not Found
@@ -42,10 +39,9 @@
                             Return to Identity List
                         </RouterLink>
                     </div>
-
                     <!-- Identity & Key Configuration -->
                     <template v-else>
-                        <!-- Selected Identity Details (Simplified for this view) -->
+                        <!-- Selected Identity Details -->
                         <div class="bg-white dark:bg-slate-800 rounded-xl border-2 border-slate-200 dark:border-slate-700 p-6 shadow-sm">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-4">
@@ -67,13 +63,11 @@
                                 </div>
                             </div>
                         </div>
-
                         <!-- Key Configuration Form -->
                         <div class="bg-white dark:bg-slate-800 rounded-xl border-2 border-slate-200 dark:border-slate-700 p-8 shadow-lg">
                             <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6 border-b border-slate-200 dark:border-slate-700 pb-4">
                                 Key Configuration
                             </h3>
-
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                 <!-- Purpose Selection -->
                                 <div class="space-y-2">
@@ -92,7 +86,6 @@
                                         {{ getPurposeDescription(selectedPurpose) }}
                                     </p>
                                 </div>
-
                                 <!-- Security Level Selection -->
                                 <div class="space-y-2">
                                     <label class="block text-sm font-bold text-slate-700 dark:text-slate-300">
@@ -111,7 +104,6 @@
                                     </p>
                                 </div>
                             </div>
-
                             <!-- Key Type Selection -->
                             <div class="mb-8 space-y-2">
                                 <label class="block text-sm font-bold text-slate-700 dark:text-slate-300">
@@ -146,7 +138,6 @@
                                     </button>
                                 </div>
                             </div>
-
                             <!-- Validation Status -->
                             <div v-if="keyExists" class="mb-6 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 p-4 flex items-start gap-3">
                                 <svg class="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -159,7 +150,6 @@
                                     </p>
                                 </div>
                             </div>
-
                             <!-- Action -->
                             <div class="flex items-center gap-4">
                                 <button
@@ -176,7 +166,6 @@
                                 </button>
                             </div>
                         </div>
-
                         <!-- Info Section -->
                         <div class="rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6">
                             <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100 mb-2 uppercase tracking-wider">
@@ -195,15 +184,14 @@
         </section>
     </main>
 </template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { invoke } from '@tauri-apps/api/core'
-import { DashPlatformSDK } from 'dash-platform-sdk'
+import { EvoSDK } from '@dashevo/evo-sdk'
 // import { PrivateKeyWASM } from 'pshenmic-dpp'
 // @ts-ignore
-import { hash160 } from '@evonext/crypto'
+import { hash160, binToHex } from '@evonext/crypto'
 import Header from '@/components/Header.vue'
 import { useIdentityStore } from '@/stores/identity'
 import { useKeyManagement } from '@/composables/useKeyManagement'
@@ -265,7 +253,7 @@ const keyExists = computed(() => {
     )
 })
 
-// Check if the combination is valid/derivable
+// Check if combination is valid/derivable
 const isValidSelection = computed(() => {
     return getKeyIndex(selectedPurpose.value, selectedSecurityLevel.value) !== -1
 })
@@ -275,13 +263,10 @@ const fetchIdentity = async () => {
     try {
         loading.value = true
         const identityId = String(route.params.id)
-
         // Try loading from local map first for speed/details
         const settings = await invoke<any>('load_settings').catch(() => null)
         const network = settings?.network === 'testnet' ? 'testnet' : 'mainnet'
-
         const identityMap = await invoke<Record<string, any>>('load_identities_map', { network })
-
         if (identityMap && identityMap[identityId]) {
             const data = identityMap[identityId]
             // Normalize to IIdentity
@@ -308,98 +293,156 @@ const fetchIdentity = async () => {
 
 const addKey = async () => {
     if (!currentIdentity.value || !isValidSelection.value) return
-
     const identity = currentIdentity.value
     const idx = getKeyIndex(selectedPurpose.value, selectedSecurityLevel.value)
-
     if (idx === -1) {
         showNotification('error', 'This key combination is not supported by the wallet yet.')
         return
     }
-
     try {
         isAdding.value = true
         const network = await ensure()
-        const sdk = new DashPlatformSDK({ network })
+        const networkName = network === 'mainnet' ? 'mainnet' : 'testnet'
 
-        // 1. Derive the NEW Private Key
+        // 1. Initialize EvoSDK
+        // Using 'any' for SDK instance to bypass strict facade type definition mismatches
+        const sdk: any = network === 'mainnet'
+            ? EvoSDK.mainnetTrusted()
+            : EvoSDK.testnetTrusted();
+        console.log(`[EvoSDK] Connecting to ${networkName}...`);
+        await sdk.connect()
+        console.log('[EvoSDK] Connected to Platform');
+
+        // 2. Derive NEW Private Key to add
         const newPrivateKey = await deriveKey(identity.identityIdx, idx)
         const newPublicKey = newPrivateKey.getPublicKey()
 
-        // FIX: Handle hash160 conversion safely
-        // Ensure we are working with standard Uint8Arrays
+        // 3. Get raw public key bytes
+        // FIX: Use toBuffer() to avoid '.bytes' property/function conflict
         const pubKeyBytes = new Uint8Array(newPublicKey.bytes())
+        const pubKeyHex = binToHex(pubKeyBytes)
 
-        // Calculate public key data (Hash160 or Raw)
-        const newPublicKeyData = keyType.value === 'ECDSA_HASH160'
-            ? hash160(pubKeyBytes)
-            : pubKeyBytes
-
-        // 2. Get Nonce
-        const identityNonce = await sdk.identities.getIdentityNonce(identity.identityId)
-        const newRevision = BigInt(identity.revision || 0) + BigInt(1)
-
-        // 3. Create Key Object
-        const identityPublicKeyInCreation: any = {
+        // Prepare new key configuration
+        const newKeyConfig = {
+            keyId: -1, // Will be determined by SDK
+            keyType: keyType.value,
             purpose: selectedPurpose.value,
             securityLevel: selectedSecurityLevel.value,
-            keyType: keyType.value,
-            readOnly: false,
-            publicKeyData: newPublicKeyData,
-            signature: new Uint8Array()
+            publicKeyHex: pubKeyHex
         }
 
-        // 4. Create State Transition
-        let identityUpdateTransition = sdk.identities.createStateTransition('update', {
-            identityId: identity.identityId,
-            revision: newRevision,
-            identityNonce: identityNonce + BigInt(1),
-            addPublicKeys: [identityPublicKeyInCreation]
-        })
-
-        // 5. Sign with NEW Key (proof of possession)
-        // We need to estimate the key ID. Usually max ID + 1 or 0 if empty.
-        const validIds = identity.publicKeys.map((k: any) => k.id).filter((id: any) => id !== undefined)
-        const nextKeyId = validIds.length > 0 ? Math.max(...validIds) + 1 : 0
-
-        identityUpdateTransition.signByPrivateKey(newPrivateKey, nextKeyId, keyType.value)
-        identityPublicKeyInCreation.signature = new Uint8Array(identityUpdateTransition.signature)
-
-        // Re-create transition with signature included
-        identityUpdateTransition = sdk.identities.createStateTransition('update', {
-            identityId: identity.identityId,
-            revision: newRevision,
-            identityNonce: identityNonce + BigInt(1),
-            addPublicKeys: [identityPublicKeyInCreation]
-        })
-
-        // 6. Sign with MASTER/CRITICAL Auth Key (Authorization)
+        // 4. Derive AUTH key for signing (Master or Critical)
         const authKey = identity.publicKeys.find((k: any) =>
-            k.purpose === 0 && (k.securityLevel === 0 || k.securityLevel === 3)
+            k.purpose === 0 && (k.securityLevel === 0 || k.securityLevel === 1)
         )
-
         if (!authKey) {
             throw new Error("No suitable Authentication key found to authorize the update.")
         }
 
-        // Derive Auth Key
+        // Derive Auth Key Private Key
         const authKeyIndex = getKeyIndex(0, authKey.securityLevel)
         const authPrivateKey = await deriveKey(identity.identityIdx, authKeyIndex)
+        const authWif = authPrivateKey.WIF()
 
-        identityUpdateTransition.signByPrivateKey(authPrivateKey, authKey.id, authKey.keyType || 'ECDSA_HASH160')
+        console.log('[UpdateIdentity] Adding keys:', [newKeyConfig]);
+        console.log('[UpdateIdentity] Signing with Auth Key WIF:', authWif.substring(0, 5) + '...');
 
-        // 7. Broadcast
-        // FIX: broadcast returns void (or a promise that resolves to void), check the result directly
-        await sdk.stateTransitions.broadcast(identityUpdateTransition)
+        // 5. Call updateIdentity (integrated logic)
+        const result = await updateIdentity(
+            identity.identityId,
+            authWif,
+            [newKeyConfig],
+            [], // No keys to disable
+            networkName,
+            {} // No retry options
+        )
 
-        showNotification('success', 'Key added successfully!')
-        setTimeout(() => router.push(`/identity/${identity.identityId}/keys`), 2000)
-
+        if (result.success) {
+            showNotification('success', 'Key added successfully!')
+            setTimeout(() => router.push(`/identity/${identity.identityId}/keys`), 2000)
+        } else {
+            throw new Error(result.error || 'Failed')
+        }
     } catch (error: any) {
         console.error(error)
         showNotification('error', error.message || 'Failed to add key')
     } finally {
         isAdding.value = false
+    }
+}
+
+// The integrated updateIdentity function
+const updateIdentity = async (
+    identityId: string,
+    privateKeyWif: string,
+    addPublicKeys: any[],
+    disablePublicKeyIds: number[],
+    network: 'testnet' | 'mainnet',
+    _retryOptions: any,
+) => {
+    // Initialize SDK for the target network
+    // Using 'any' for SDK instance to bypass strict facade type definition mismatches
+    const sdk: any = network === 'mainnet'
+        ? EvoSDK.mainnetTrusted()
+        : EvoSDK.testnetTrusted();
+    console.log(`[UpdateIdentity] Connecting to ${network}...`);
+    await sdk.connect()
+    console.log('[UpdateIdentity] Connected to Platform');
+
+    try {
+        console.log('[UpdateIdentity] Updating identity:', identityId);
+        console.log('[UpdateIdentity] Adding', addPublicKeys.length, 'keys, disabling', disablePublicKeyIds.length, 'keys');
+
+        // Format keys for SDK
+        const formattedAddKeys = addPublicKeys.map(key => {
+            const isHash160Type = key.keyType === 'ECDSA_HASH160'
+            if (isHash160Type && key.publicKeyHex) {
+                // For HASH160 type, compute hash160 and pass as 'data' (Base64)
+                const pubKeyBytes = new Uint8Array(key.publicKeyHex.match(/.{1,2}/g)?.map((byte: string) => parseInt(byte, 16)) || []);
+                const hash160Bytes = hash160(pubKeyBytes);
+                const dataBase64 = btoa(String.fromCharCode(...hash160Bytes));
+                return {
+                    keyId: key.keyId,
+                    keyType: key.keyType,
+                    purpose: key.purpose,
+                    securityLevel: key.securityLevel,dataBase64,
+                };
+            } else {
+                // For SECP256K1 and other types, pass publicKeyHex directly
+                return {
+                    keyId: key.keyId,
+                    keyType: key.keyType,
+                    purpose: key.purpose,
+                    securityLevel: key.securityLevel,
+                    publicKeyHex: key.publicKeyHex
+                };
+            }
+        });
+
+        console.log('[UpdateIdentity] Formatted keys to add:', JSON.stringify(formattedAddKeys, null, 2));
+
+        // Call update on the EvoSDK
+        // Pass stringified JSON as expected by the snippet
+        await sdk.identities.update({
+            identityId,
+            privateKeyWif,
+            addPublicKeys: JSON.stringify(formattedAddKeys),
+            disablePublicKeyIds: disablePublicKeyIds.length > 0
+                ? disablePublicKeyIds
+                : undefined,
+        })
+
+        console.log('[UpdateIdentity] Update successful');
+        return { success: true };
+    } catch (error: any) {
+        console.error('[UpdateIdentity] Identity update error:', error);
+        const errorMessage = (error && typeof error === 'object' && 'message' in error)
+            ? String((error).message)
+            : (error instanceof Error ? error.message : String(error));
+        return {
+            success: false,
+            error: errorMessage,
+        };
     }
 }
 

@@ -1,11 +1,11 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useWalletStore } from '@/stores/wallet'
+import { useIdentityStore } from '@/stores/identity'
 import { usePlatform } from './usePlatform'
 import { useTransactions } from './useTransactions'
 import { useKeyManagement } from './useKeyManagement'
 import { useNetwork } from './useNetwork'
 import type { ITransactionResult } from '@/types'
-
 // Local type definitions for missing exports
 interface SendCreditParams {
     identityId: string
@@ -14,7 +14,6 @@ interface SendCreditParams {
     credits: bigint
     privateKey?: string
 }
-
 interface SendTokenParams {
     identityId: string
     identityIdx: number
@@ -23,24 +22,21 @@ interface SendTokenParams {
     atomicUnits: bigint
     privateKey?: string
 }
-
 interface WalletTransactionResult extends ITransactionResult {
     debugLog?: string[]
 }
-
 export function useWallet() {
     const store = useWalletStore()
+    const Identity = useIdentityStore()
     const platform = usePlatform()
     const transactions = useTransactions()
     const keys = useKeyManagement()
     const { network } = useNetwork()
-
     const loading = ref(false)
     const error = ref<string | null>(null)
     let pollInterval: NodeJS.Timeout | undefined
     let refreshTimeout: NodeJS.Timeout | undefined
     let isRefreshing = false
-
     const initialize = async (): Promise<void> => {
         loading.value = true
         error.value = null
@@ -54,27 +50,18 @@ export function useWallet() {
             throw err
         }
     }
-
-    // Balance operations
-    // FIX: getTokenBalance signature updated to accept network
     const getTokenBalance = async (identityId: string, contractId: string): Promise<bigint> => {
         const balance = await store.getTokenBalance(identityId, contractId)
         return BigInt(balance)
     }
-
-    // Transaction operations
     const sendCredits = async (params: SendCreditParams): Promise<WalletTransactionResult> => {
         const result = await transactions.sendCredits(params)
         return result as WalletTransactionResult
     }
-
     const sendToken = async (params: SendTokenParams): Promise<WalletTransactionResult> => {
         const result = await transactions.sendToken(params)
         return result as WalletTransactionResult
     }
-
-    // FIX: Pass identityId (String) to sendCredits
-    // Note: The signature of useTransactions.sendCredits is (identityId: string, identityIdx: number, ...)
     const sendCredit = async (
         identityId: string,
         identityIdx: number,
@@ -91,8 +78,6 @@ export function useWallet() {
         }
         return await sendCredits(params)
     }
-
-    // FIX: Pass identityId (String) to sendTokenTransfer
     const sendTokenTransfer = async (
         identityId: string,
         identityIdx: number,
@@ -111,46 +96,39 @@ export function useWallet() {
         }
         return await sendToken(params)
     }
-
-    // Store operations
     const refresh = async () => {
         if (isRefreshing) return
-
         isRefreshing = true
         error.value = null
         try {
+            // 1. Refresh Wallet (Assets/Tokens)
             await store.refreshBalances()
+            // 2. Refresh Identity (Credits/Keys) - The Fix
+            if (Identity.isConnected) {
+                await Identity.fetchBalance()
+            }
         } catch (err: any) {
             error.value = err.message || 'Failed to refresh wallet'
         } finally {
             isRefreshing = false
         }
     }
-
     const debouncedRefresh = () => {
         if (refreshTimeout) clearTimeout(refreshTimeout)
         refreshTimeout = setTimeout(() => {
             refresh()
-        }, 1000) // Reduced to 1 second for quicker updates
+        }, 1000)
     }
-
     const loadMoreTransactions = async (limit = 20) => {
         await store.fetchRealTransactions(limit)
     }
-
-    // 🔥 ENHANCED: Active polling with immediate refresh
     const startPolling = (intervalMs = 30000) => {
         if (pollInterval) {
             console.log('⏱️  Polling already active')
             return
         }
-
         console.log(`⏱️  Starting wallet polling every ${intervalMs}ms`)
-
-        // Immediate first refresh
         refresh()
-
-        // Start interval
         pollInterval = setInterval(() => {
             if (document.visibilityState === 'visible') {
                 console.log('⏱️  Periodic wallet refresh')
@@ -160,7 +138,6 @@ export function useWallet() {
             }
         }, intervalMs)
     }
-
     const stopPolling = () => {
         if (pollInterval) {
             console.log('⏱️  Stopping wallet polling')
@@ -168,21 +145,16 @@ export function useWallet() {
             pollInterval = undefined
         }
     }
-
     const handleVisibilityChange = () => {
         if (document.visibilityState === 'visible') {
             console.log('👀 Tab became visible, refreshing wallet...')
             debouncedRefresh()
         }
     }
-
-    // 🔥 ADD: Listen for transaction success events
     const handleTransactionSuccess = () => {
         console.log('💸 Transaction completed, refreshing wallet...')
-        // Wait 2 seconds for transaction to propagate, then refresh
         setTimeout(() => refresh(), 2000)
     }
-
     const withdrawDash = async (
         identityId: string,
         recipientAddress: string,
@@ -194,23 +166,17 @@ export function useWallet() {
             amountDash
         })
     }
-
-    // Setup
     onMounted(() => {
         document.addEventListener('visibilitychange', handleVisibilityChange)
-        // Listen for transaction completion events
         window.addEventListener('transaction:success', handleTransactionSuccess)
     })
-
     onUnmounted(() => {
         stopPolling()
         document.removeEventListener('visibilitychange', handleVisibilityChange)
         window.removeEventListener('transaction:success', handleTransactionSuccess)
         if (refreshTimeout) clearTimeout(refreshTimeout)
     })
-
     return {
-        // State
         user: computed(() => store.user),
         assets: computed(() => store.assets),
         transactions: computed(() => store.transactions),
@@ -219,11 +185,7 @@ export function useWallet() {
         balanceChange: computed(() => store.balanceChange),
         error: computed(() => error.value),
         isPolling: computed(() => !!pollInterval),
-
-        // Platform
         platform,
-
-        // Actions
         initialize,
         refresh,
         debouncedRefresh,
@@ -231,28 +193,18 @@ export function useWallet() {
         startPolling,
         stopPolling,
         clear: store.clear,
-
-        // Core operations
         getTokenBalance,
         sendCredits,
         sendToken,
         sendCredit,
         sendTokenTransfer,
         withdrawDash,
-
-        // Store proxies
         fetchLiveBalances: store.fetchLiveBalances,
         fetchRealTransactions: store.fetchRealTransactions,
         findAsset: (ticker: string) => store.getAssetByTicker(ticker),
-
-        // Network
         network: computed(() => network.value),
-
-        // Keys
         getTransferKey: keys.getTransferKey,
         getAuthKey: keys.getAuthKey
     }
 }
-
-// Type export
 export type UseWalletReturn = ReturnType<typeof useWallet>
