@@ -1,119 +1,77 @@
-<!-- src/screens/Identity/Register.vue -->
 <template>
     <main>
         <Header title="Identity Registration" />
-
-        <section class="bg-white dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen rounded-2xl mx-4">
-            <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-                <div class="space-y-8">
-
-                    <!-- Page Header -->
-                    <div class="text-center space-y-2">
-                        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
-                            Register New Identity
-                        </h1>
-
-                        <p class="text-lg text-slate-600 dark:text-slate-400">
-                            Join the decentralized web with your own unique profile.
-                        </p>
+        <section class="bg-white dark:bg-slate-900 min-h-screen rounded-2xl mx-4">
+            <div class="max-w-2xl mx-auto px-4 py-12">
+                <!-- Stepper -->
+                <div class="flex justify-between items-center mb-12">
+                    <div v-for="(s, idx) in ['Details', 'Payment', 'Review', 'Secure']" :key="s" class="flex-1 text-center">
+                        <span class="block text-xs font-bold uppercase tracking-widest mb-2" :class="currentStepIdx >= idx ? 'text-sky-500' : 'text-slate-400'">{{ s }}</span>
+                        <div class="h-1 rounded-full" :class="currentStepIdx >= idx ? 'bg-sky-500' : 'bg-slate-200 dark:bg-slate-700'"></div>
                     </div>
+                </div>
 
-                    <!-- Stepper UI -->
-                    <div class="flex justify-between items-center">
-                        <div class="flex-1 text-center">
-                            <span class="block text-sm font-semibold" :class="[step === 'form' ? 'text-sky-500 dark:text-sky-400' : 'text-slate-600 dark:text-slate-400']">1. Choose Name</span>
-                            <div class="mt-2 h-1 rounded-full" :class="[step !== 'form' ? 'bg-sky-500' : 'bg-slate-200 dark:bg-slate-700']"></div>
-                        </div>
-                        <div class="w-16 h-px bg-slate-200 dark:bg-slate-700 mx-4"></div>
-                        <div class="flex-1 text-center">
-                            <span class="block text-sm font-semibold" :class="[step === 'review' ? 'text-sky-500 dark:text-sky-400' : 'text-slate-600 dark:text-slate-400']">2. Review</span>
-                            <div class="mt-2 h-1 rounded-full" :class="[step === 'seed' || step === 'loading' ? 'bg-sky-500' : 'bg-slate-200 dark:bg-slate-700']"></div>
-                        </div>
-                        <div class="w-16 h-px bg-slate-200 dark:bg-slate-700 mx-4"></div>
-                        <div class="flex-1 text-center">
-                            <span class="block text-sm font-semibold" :class="[step === 'seed' ? 'text-sky-500 dark:text-sky-400' : 'text-slate-600 dark:text-slate-400']">3. Secure Seed</span>
-                            <div class="mt-2 h-1 rounded-full bg-slate-200 dark:bg-slate-700"></div>
+                <!-- Step 1: Form -->
+                <div v-if="step === 'form'" class="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-6">
+                    <h2 class="text-2xl font-bold">Choose your handle</h2>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Display Name</label>
+                        <input v-model="formData.displayName" type="text" placeholder="Alice Smith" class="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-3">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Username</label>
+                        <div class="relative">
+                            <input v-model="formData.username" type="text" placeholder="alice" class="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-3 pr-16">
+                            <span class="absolute inset-y-0 right-4 flex items-center text-slate-400">.dash</span>
                         </div>
                     </div>
+                    <button @click="goToReview" :disabled="!formData.username" class="w-full bg-sky-500 text-white py-4 rounded-xl font-bold">Review Details</button>
+                </div>
 
-                    <!-- Step 1: Form -->
-                    <div v-if="step === 'form'" class="bg-white dark:bg-slate-800 p-8 rounded-2xl space-y-6 border border-slate-200 dark:border-slate-700 shadow-sm">
-                        <div>
-                            <label for="displayName" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Display Name</label>
-                            <input v-model="formData.displayName" type="text" id="displayName" placeholder="e.g., Alice" class="mt-1 block w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-3 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-sky-400 dark:focus:ring-sky-400 focus:border-sky-400 dark:focus:border-sky-400 transition">
+                <!-- Step 2: Payment -->
+                <div v-if="step === 'payment'" class="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 text-center space-y-6">
+                    <h2 class="text-2xl font-bold">Deposit Credits</h2>
+                    <p class="text-slate-500">To secure your identity on the decentralized web, a one-time deposit of 0.1 DASH is required.</p>
+
+                    <div v-if="payAddress" class="space-y-4">
+                        <div class="bg-white p-4 rounded-xl inline-block border">
+                            <qrcode-vue :value="`dash:${payAddress}?amount=0.1`" :size="200" level="H" />
                         </div>
-                        <div>
-                            <label for="username" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Username</label>
-                            <div class="relative mt-1">
-                                <input v-model="formData.username" type="text" id="username" placeholder="e.g., alice" class="block w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-3 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-sky-400 dark:focus:ring-sky-400 focus:border-sky-400 dark:focus:border-sky-400 transition pr-16">
-                                <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-500 dark:text-slate-400">.dash</span>
-                            </div>
+                        <div class="font-mono text-xs bg-slate-100 dark:bg-slate-900 p-3 rounded-lg break-all">
+                            {{ payAddress }}
                         </div>
-                        <div>
-                            <label for="bio" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Bio (Optional)</label>
-                            <textarea v-model="formData.bio" id="bio" rows="3" class="mt-1 block w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl p-3 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-sky-400 dark:focus:ring-sky-400 focus:border-sky-400 dark:focus:border-sky-400 transition" placeholder="Tell us a little about yourself..."></textarea>
-                        </div>
-                        <div class="pt-4">
-                            <button @click="goToReview" class="w-full inline-flex justify-center rounded-2xl bg-sky-500 hover:bg-sky-600 py-3 px-6 text-base font-semibold text-white shadow-sm transition border border-sky-300">Next Step</button>
+                        <div class="animate-pulse text-sky-500 font-bold">Waiting for payment...</div>
+                    </div>
+                    <div v-else class="flex justify-center py-12">
+                        <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-sky-500"></div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Creation (SDK) -->
+                <div v-if="step === 'loading'" class="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 text-center space-y-6">
+                    <div class="flex justify-center">
+                        <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-sky-500"></div>
+                    </div>
+                    <h2 class="text-2xl font-bold">Broadcasting...</h2>
+                    <p class="text-slate-500">{{ loadingState }}</p>
+                </div>
+
+                <!-- Step 4: Seed Phrase -->
+                <div v-if="step === 'seed'" class="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-6">
+                    <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 p-4 rounded-xl text-amber-800 dark:text-amber-200 text-sm">
+                        <strong>CRITICAL:</strong> Your account is now live. Write down these 12 words. There is no password reset in the decentralized web.
+                    </div>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div v-for="(word, i) in seedPhrase.split(' ')" :key="i" class="bg-slate-100 dark:bg-slate-900 p-3 rounded-lg font-mono text-center">
+                            <span class="text-[10px] block text-slate-400">{{ i + 1 }}</span>
+                            {{ word }}
                         </div>
                     </div>
-
-                    <!-- Step 2: Review -->
-                    <div v-if="step === 'review'" class="bg-white dark:bg-slate-800 p-8 rounded-2xl space-y-6 border border-slate-200 dark:border-slate-700 shadow-sm">
-                        <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100 text-center">Review Your Details</h3>
-                        <div class="space-y-4">
-                            <div class="flex justify-between">
-                                <span class="font-medium text-slate-600 dark:text-slate-400">Display Name:</span>
-                                <span class="font-semibold text-slate-900 dark:text-slate-100">{{ formData.displayName }}</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="font-medium text-slate-600 dark:text-slate-400">Username:</span>
-                                <span class="font-semibold text-slate-900 dark:text-slate-100">{{ fullUsername }}</span>
-                            </div>
-                            <div class="flex flex-col text-left">
-                                <span class="font-medium text-slate-600 dark:text-slate-400">Bio:</span>
-                                <p class="font-semibold text-slate-900 dark:text-slate-100 mt-1">{{ formData.bio || 'Not provided' }}</p>
-                            </div>
-                        </div>
-                        <div class="pt-4 flex gap-4">
-                            <button @click="goBackToForm" class="w-full inline-flex justify-center rounded-2xl bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 py-3 px-6 text-base font-semibold text-slate-900 dark:text-slate-100 shadow-sm transition border border-slate-200 dark:border-slate-600">Go Back</button>
-                            <button @click="createIdentity" class="w-full inline-flex justify-center rounded-2xl bg-sky-500 hover:bg-sky-600 py-3 px-6 text-base font-semibold text-white shadow-sm transition border border-sky-300">Confirm & Create</button>
-                        </div>
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" v-model="seedPhraseConfirmed" id="sc" class="h-5 w-5 rounded border-slate-300">
+                        <label for="sc" class="text-sm">I have backed up my recovery phrase.</label>
                     </div>
-
-                    <!-- Step 3: Secure Seed Phrase -->
-                    <div v-if="step === 'seed'" class="bg-white dark:bg-slate-800 p-8 rounded-2xl space-y-6 border border-slate-200 dark:border-slate-700 shadow-sm">
-                        <div class="text-center space-y-2">
-                            <svg class="mx-auto h-12 w-12 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
-                            <h3 class="text-2xl font-bold text-red-500 dark:text-red-400">CRITICAL: Save Your Seed Phrase!</h3>
-                            <p class="text-slate-600 dark:text-slate-400">Write this 12-word phrase down and store it in a secure location. This is the only way to recover your identity. **If you lose it, it is gone forever.**</p>
-                        </div>
-                        <div class="bg-amber-50 dark:bg-slate-900/50 border-2 border-amber-200 dark:border-amber-800/50 rounded-2xl p-4 text-center font-mono text-lg tracking-wider text-amber-700 dark:text-amber-300">
-                            {{ seedPhrase }}
-                        </div>
-                        <div class="relative flex items-start pt-4">
-                            <div class="flex h-6 items-center">
-                                <input id="confirmation" v-model="seedPhraseConfirmed" type="checkbox" class="h-4 w-4 rounded border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sky-500 focus:ring-sky-500 dark:focus:ring-sky-400">
-                            </div>
-                            <div class="ml-3 text-sm leading-6">
-                                <label for="confirmation" class="font-medium text-slate-700 dark:text-slate-300">I have written down and secured my seed phrase.</label>
-                            </div>
-                        </div>
-                        <div class="pt-4">
-                            <button @click="finishRegistration" :disabled="!seedPhraseConfirmed" class="w-full inline-flex justify-center rounded-2xl bg-sky-500 hover:bg-sky-600 py-3 px-6 text-base font-semibold text-white shadow-sm transition disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed border border-sky-300">Finish Registration</button>
-                        </div>
-                    </div>
-
-                    <!-- Loading State -->
-                    <div v-if="step === 'loading'" class="bg-white dark:bg-slate-800 p-8 rounded-2xl text-center space-y-4 border border-slate-200 dark:border-slate-700 shadow-sm">
-                        <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100">Creating Your Identity...</h3>
-                        <p class="text-slate-600 dark:text-slate-400">Please wait while we register your new identity on the Dash Platform. This may take a moment.</p>
-                        <!-- Simple spinner -->
-                        <div class="flex justify-center pt-4">
-                            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-sky-400 dark:border-sky-400"></div>
-                        </div>
-                    </div>
-
+                    <button @click="finishRegistration" :disabled="!seedPhraseConfirmed" class="w-full bg-sky-500 text-white py-4 rounded-xl font-bold">Finish</button>
                 </div>
             </div>
         </section>
@@ -121,72 +79,85 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
+import QrcodeVue from 'qrcode.vue'
+import { mnemonicManager } from '@/composables/useMnemonic'
+import { RegistrationService } from '@/services/identity/registration.service'
+import { invoke } from '@tauri-apps/api/core'
 
-// --- State Management ---
+const router = useRouter()
+const step = ref<'form' | 'payment' | 'loading' | 'seed'>('form')
+const loadingState = ref('')
+const payAddress = ref('')
+const seedPhrase = ref('')
+const seedPhraseConfirmed = ref(false)
 
-// Controls which step of the registration process is visible
-const step = ref<'form' | 'review' | 'seed' | 'loading'>('form')
+const steps = ['form', 'payment', 'loading', 'seed']
+const currentStepIdx = computed(() => steps.indexOf(step.value))
 
-// A reactive object to hold the user's input
 const formData = reactive({
     displayName: '',
     username: '',
-    bio: '',
+    bio: ''
 })
 
-// A computed property to add the .dash suffix automatically for display
-const fullUsername = computed(() => {
-    return formData.username ? `${formData.username}.dash` : ''
-})
+let pollTimer: number | null = null
 
-// Placeholder for the generated mnemonic seed phrase
-const seedPhrase = ref('apple banana kiwi grape orange mango pineapple strawberry blueberry cherry melon lime')
+const goToReview = async () => {
+    // 1. Ensure a mnemonic exists in the backend
+    if (!(await mnemonicManager.hasMnemonic())) {
+        await invoke('generate_new_mnemonic') // Assuming this command exists in your Tauri main.rs
+    }
+    seedPhrase.value = (await mnemonicManager.getMnemonic()) || ''
 
-// State for the confirmation checkbox on the seed phrase step
-const seedPhraseConfirmed = ref(false)
+    // 2. Transition to payment
+    step.value = 'payment'
+    await setupPayment()
+}
 
-// --- Functions ---
-
-const goToReview = () => {
-    // Add validation here before proceeding
-    if (formData.displayName && formData.username) {
-        step.value = 'review'
-    } else {
-        alert('Display Name and Username are required.')
+const setupPayment = async () => {
+    try {
+        payAddress.value = await RegistrationService.getPaymentAddress(formData.username, '', 'testnet')
+        startPolling()
+    } catch (e) {
+        console.error(e)
+        alert('Failed to initialize registrar.')
+        step.value = 'form'
     }
 }
 
-const createIdentity = async () => {
-    console.log('Creating identity with the following data:', formData)
+const startPolling = () => {
+    pollTimer = window.setInterval(async () => {
+        const result = await RegistrationService.pollForProof('testnet')
+        if (result) {
+            stopPolling()
+            await finalizeRegistration(result.proof, result.wif)
+        }
+    }, 5000)
+}
+
+const stopPolling = () => {
+    if (pollTimer) clearInterval(pollTimer)
+}
+
+const finalizeRegistration = async (proof: string, wif: string) => {
     step.value = 'loading'
-
-    // --- TAURI INTEGRATION ---
-    // This is where you would invoke your Rust command to create the identity.
-    // The command should return the mnemonic seed phrase.
-    // For example:
-    // const result = await invoke<{ seed: string }>('create_new_identity', { ...formData });
-    // seedPhrase.value = result.seed;
-
-    // Simulate a delay for the backend process
-    await new Promise(resolve => setTimeout(resolve, 2000))
-
-    step.value = 'seed'
-};
+    try {
+        loadingState.value = 'Creating Identity on Dash Platform...'
+        await RegistrationService.registerOnPlatform(proof, wif, formData.username, 'testnet')
+        step.value = 'seed'
+    } catch (e) {
+        console.error(e)
+        alert('Platform error. Please check your connection and try again.')
+        step.value = 'form'
+    }
+}
 
 const finishRegistration = () => {
-    if (!seedPhraseConfirmed.value) {
-        alert('Please confirm you have saved your seed phrase.')
-        return
-    }
-    console.log('Registration finished. User has confirmed seed phrase.')
-    // Here you would navigate the user to their new identity screen or dashboard
-    // For example: router.push('/identities');
-    alert('Identity created successfully!')
+    router.push('/identity')
 }
 
-const goBackToForm = () => {
-    step.value = 'form'
-}
+onUnmounted(() => stopPolling())
 </script>
