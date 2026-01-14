@@ -382,3 +382,15 @@ fn save_keystore_internal(
         .save(filename, "keystore", store)
         .map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub async fn save_identity_data(
+    app: AppHandle,
+    network: String,
+    identity: IdentityData,
+) -> Result<bool, String> {
+    let mut map = load_identity_map_internal(&app, &network)?;
+    map.insert(identity.identity_id.clone(), identity);
+    save_identity_map_internal(&app, &network, &map, None)?;
+    Ok(true)
+}

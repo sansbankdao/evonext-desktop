@@ -7,4 +7,3 @@ pub mod identity_details_commands;
 pub mod license_commands;
 pub mod mnemonic_commands;
 pub mod settings_commands;
-pub mod identity_v2;

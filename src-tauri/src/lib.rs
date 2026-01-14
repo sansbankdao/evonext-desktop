@@ -6,6 +6,7 @@ mod models;
 mod menu;
 mod constants;
 mod utils;
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -22,24 +23,18 @@ pub fn run() {
             commands::asset_commands::save_assets,
             commands::asset_commands::delete_assets,
 
-            // Identity Keys
+            // Identity Keys (Keystore)
             commands::identity_commands::load_private_keys,
             commands::identity_commands::save_private_keys,
             commands::identity_commands::delete_private_keys,
             commands::identity_commands::save_single_identity_keys,
 
-            // Identity data (legacy + tolerant)
-            commands::identity_commands::load_identity_data,
-            commands::identity_commands::save_identity_data_untyped,
-            commands::identity_commands::save_identity_data,
-            commands::identity_commands::delete_identity_data,
-            commands::identity_commands::debug_identity_payload,
+            // Identity Data (Unified & CRUD)
             commands::identity_commands::load_identities_map,
-
-            // Unified Identity (Phase 1 add; not used by UI yet)
-            commands::identity_v2::save_identity_unified,
-            commands::identity_v2::query_and_update_identity,
-            commands::identity_v2::enrich_keystore_for_identity,
+            commands::identity_commands::save_identity_data,
+            commands::identity_commands::save_identity_unified,
+            commands::identity_commands::delete_identity_data,
+            commands::identity_commands::enrich_keystore_for_identity,
 
             // License
             commands::license_commands::load_license,
