@@ -160,6 +160,7 @@ export interface IIdentityActions {
 export interface IIdentityState extends IIdentityActions {
     username: string | null;
     identityId: string | null;
+    identityIdx?: number | undefined;
     displayName: string | null;
     identity: IIdentity | null;
     balance: number | string | null | undefined;

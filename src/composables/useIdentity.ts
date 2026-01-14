@@ -28,16 +28,16 @@ export function useIdentity() {
     const authPublicKey = computed(() => store.publicKeys.find((k: IPublicKey) => k.purpose === 0))
     const displayName = computed(() => store.displayName || store.identityId || 'Guest')
     const hasTransferKeyComputed = computed(hasTransferKey)
-    async function getIdentityBalance(_network: string, identityId: string): Promise<string> {
-        try {
-            const sdk = await getSDK() as any
-            const identity = await sdk.identities.get(identityId)
-            return identity ? identity.balance.toString() : '0'
-        } catch (e) {
-            console.error('Failed to fetch balance', e)
-            return '0'
-        }
-    }
+    // async function getIdentityBalance(_network: string, identityId: string): Promise<string> {
+    //     try {
+    //         const sdk = await getSDK() as any
+    //         const identity = await sdk.identities.get(identityId)
+    //         return identity ? identity.balance.toString() : '0'
+    //     } catch (e) {
+    //         console.error('Failed to fetch balance', e)
+    //         return '0'
+    //     }
+    // }
     async function init() {
         await store.loadFromStorage()
         if (store.isAuthenticated && store.identityId) {
@@ -111,7 +111,7 @@ export function useIdentity() {
                     sdk
                 )
                 await store.fetchBalance()
-                await store.saveToStorage()
+                // NOTE: The save step is removed here to be handled by the caller or explicit save actions
                 return details
             } catch (error: any) {
                 log('warn', 'Failed to query detailed identity information:', error?.message || error)
@@ -260,13 +260,32 @@ export function useIdentity() {
         }
         return []
     }
-    const refreshIdentity = discoverIdentities
-    async function refreshBalance() {
-        if (store.identityId) {
-            const balance = await getIdentityBalance(unref(network), store.identityId)
-            store.balance = balance
+    /**
+     * Main refresh function called by the Wallet polling.
+     * 1. Fetches Keys/Revision from network -> Updates Store.
+     * 2. Fetches Balance from network -> Updates Store.
+     * 3. Triggers syncIdentityToBackend -> Updates Rust Backend File.
+     */
+    async function refreshIdentity() {
+        if (!store.identityId) return
+        try {
+            const sdk = await getSDK()
+            // 1. Update Keys & Revision in Store Memory
+            // This updates publicKeys and revision in the Pinia store
+            await queryIdentityDetails(store.identityId, store.identityIdx || 0, sdk)
+            // 2. Update Balance in Store Memory
+            // This updates the balance in the Pinia store
+            await store.fetchBalance()
+            // 3. SYNC TO RUST BACKEND
+            // This takes the *current* state (new keys, new revision, new balance)
+            // and writes it to .identity-testnet.json via the Tauri command.
+            const currentNetwork = unref(network) as any
+            await store.syncIdentityToBackend(currentNetwork)
+        } catch (error) {
+            log('error', 'Failed to refresh identity', error)
         }
     }
+    const refreshBalance = discoverIdentities
     async function logout() {
         await store.clearStorage()
         store.$reset()

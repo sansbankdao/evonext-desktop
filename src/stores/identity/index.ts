@@ -10,13 +10,14 @@ import { identityActions } from './actions/identity'
 import { discoveredIdentitiesActions } from './actions/discovered'
 import { unifiedActions } from './actions/unified'
 
+// Combine all actions
 const useIdentityActions = {
     ...storageActions(),
     ...connectionActions(),
     ...identityActions(),
     ...balanceActions(),
     ...discoveredIdentitiesActions(),
-    ...unifiedActions(),
+    ...unifiedActions(), // This includes the new syncIdentityToBackend
     ...identitiesMapActions(),
 }
 

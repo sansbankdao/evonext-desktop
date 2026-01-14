@@ -18,7 +18,7 @@ export function unifiedActions() {
             },
             network: Network
         ): Promise<void> {
-            // Guard against re-entry if your store has a connecting flag
+
             if (this.connecting === true) return
             if (!discovered || !discovered.identityId) {
                 this.error = 'No discovered identity to connect'
@@ -42,10 +42,11 @@ export function unifiedActions() {
                         createdAt: new Date().toISOString()
                     }
                 })) as { success: boolean; error?: string }
+
                 if (!res || !res.success) {
                     throw new Error(res?.error || 'Failed to save identity')
                 }
-                // Update state in-place to avoid triggering legacy connect loops
+
                 this.activeIdentity = {
                     identityId: discovered.identityId,
                     identityIdx: discovered.identityIdx ?? 0,
@@ -100,6 +101,48 @@ export function unifiedActions() {
             } catch (e: any) {
                 this.isConnected = false
                 this.error = e?.message || 'Failed to load identity'
+            }
+        },
+        /**
+         * NEW: Syncs the current Pinia store state to the Rust backend.
+         * This is called by the polling mechanism to update .identity-testnet.json
+         */
+        async syncIdentityToBackend(this: any, network: Network): Promise<void> {
+            // Determine source of truth for the data.
+            // If activeIdentity exists (Unified flow), use it.
+            // Otherwise fallback to flat state properties (Legacy flow).
+            const id = this.activeIdentity?.identityId || this.identityId
+
+            if (!id) {
+                console.warn('[syncIdentityToBackend] No identity ID found to sync.')
+                return
+            }
+
+            try {
+                // Construct payload matching the structure expected by Rust
+                const payload = {
+                    identityId: id,
+                    identityIdx: this.activeIdentity?.identityIdx ?? this.identityIdx ?? 0,
+                    username: this.activeIdentity?.username ?? this.username ?? id,
+                    dpnsUsername: this.activeIdentity?.dpnsUsername ?? this.dpnsUsername ?? null,
+                    balance: this.activeIdentity?.balance ?? this.balance ?? '0',
+                    revision: this.activeIdentity?.revision ?? this.revision ?? null,
+                    publicKeys: this.activeIdentity?.publicKeys ?? this.publicKeys ?? null,
+                    activeIdentityId: id // Ensure we mark this as the active one
+                }
+
+                const res = (await invoke('save_identity_unified', {
+                    network,
+                    payload
+                })) as { success: boolean; error?: string }
+
+                if (!res || !res.success) {
+                    console.error('[syncIdentityToBackend] Failed to save:', res?.error)
+                } else {
+                    console.log('[syncIdentityToBackend] Identity synced to Rust backend successfully.')
+                }
+            } catch (e: any) {
+                console.error('[syncIdentityToBackend] Error syncing identity:', e)
             }
         }
     }
