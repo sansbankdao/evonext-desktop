@@ -1,14 +1,21 @@
+// src/services/identity/registration.service.ts
+
+// import { invoke } from '@tauri-apps/api/core'
+// import { useIdentityStore } from '@/stores/identity'
 import { EvoSDK } from '@dashevo/evo-sdk'
 import { KeyDerivationService } from './keyDerivation.service'
 import { mnemonicManager } from '@/composables/useMnemonic'
+
 const REGISTRAR_BASE = 'https://evonext.app/v1/registrar'
+
 export const KEY_DEFINITIONS = [
     { id: 0, purpose: 0, securityLevel: 0 }, // MASTER
     { id: 1, purpose: 0, securityLevel: 1 }, // CRITICAL
     { id: 2, purpose: 0, securityLevel: 2 }, // HIGH
-    { id: 3, purpose: 1, securityLevel: 1 }, // TRANSFER
-    { id: 4, purpose: 2, securityLevel: 3 }, // ENCRYPTION
+    { id: 3, purpose: 3, securityLevel: 1 }, // TRANSFER
+    { id: 4, purpose: 1, securityLevel: 3 }, // ENCRYPTION
 ]
+
 export class RegistrationService {
     /**
      * Request a payment address from the registrar
@@ -36,6 +43,7 @@ export class RegistrationService {
         const json = await response.json()
         return json.registrar.dashAddr as string
     }
+
     /**
      * Poll the registrar for Asset Lock status
      */
@@ -60,6 +68,7 @@ export class RegistrationService {
         }
         return null
     }
+
     /**
      * Execute Dash Platform Identity & Name Registration
      */

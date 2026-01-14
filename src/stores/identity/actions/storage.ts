@@ -1,11 +1,16 @@
+// src/stores/identity/action/storage.ts
+
 import { invoke } from '@tauri-apps/api/core'
-import { type IIdentityState, type RustDiscoveredIdentitiesStore, type DiscoveredIdentity } from '@/types'
-// import { log } from '@/utils/env'
+import {
+    type IIdentityState,
+    type RustDiscoveredIdentitiesStore,
+    type DiscoveredIdentity
+} from '@/types'
 import { debugLogger } from '@/utils/debugLogger'
 export const storageActions = () => ({
     /**
      * Save identity (non-private-keys) to Rust storage.
-     * CRITICAL FIX: This now actually invokes the backend command.
+     * This ensures the identity map is updated and the correct identity is marked as active.
      */
     async saveIdentityDataToStore(
         this: IIdentityState,
@@ -14,43 +19,40 @@ export const storageActions = () => ({
         data: any
     ): Promise<void> {
         // Construct full object matching Rust IdentityData shape
+        // We include both camelCase and snake_case for backend compatibility
         const fullIdentityObject = {
             identityId: targetId,
+            identity_id: targetId,
             identityIdx: data.identityIdx ?? data.identity_idx ?? 0,
+            identity_idx: data.identityIdx ?? data.identity_idx ?? 0,
             username: data.username ?? this.username ?? targetId,
             dpnsUsername: data.dpnsUsername ?? null,
-            // Fix: Handle BigInt/large numbers safely
-            balance: typeof data.balance === 'bigint' || (typeof data.balance === 'number' && data.balance > Number.MAX_SAFE_INTEGER)
+            balance: (typeof data.balance === 'bigint' || (typeof data.balance === 'number' && data.balance > Number.MAX_SAFE_INTEGER))
                 ? data.balance.toString()
                 : String(data.balance ?? '0'),
-            revision: typeof data.revision === 'number' && data.revision > Number.MAX_SAFE_INTEGER
+            revision: (typeof data.revision === 'number' && data.revision > Number.MAX_SAFE_INTEGER)
                 ? data.revision.toString()
                 : Number(data.revision ?? 0).toString(),
             publicKeys: data.publicKeys ?? data.public_keys ?? null,
+            public_keys: data.publicKeys ?? data.public_keys ?? null,
             createdAt: new Date().toISOString(),
             isAuthenticated: true,
             active_identity_id: targetId
         }
-        debugLogger.log('[Storage] saveIdentityDataToStore invoked', 'info')
+        debugLogger.log(`[Storage] saveIdentityDataToStore invoked for ${targetId}`, 'info')
         try {
-            // CRITICAL INVOKE CALL
-            const result = await invoke('save_identity_unified', {
+            await invoke('save_identity_unified', {
                 network: network,
                 payload: fullIdentityObject
-            }) as { success: boolean; error?: string }
-            if (!result.success) {
-                const err = result.error || 'Unknown backend error'
-                debugLogger.log(`[Storage] Backend failed: ${err}`, 'error')
-                throw new Error(err)
-            }
-            debugLogger.log(`[Storage] ✅ Backend saved ${targetId}`, 'info')
+            })
+            debugLogger.log(`[Storage] ✅ Identity persisted via 'save_identity_unified'`, 'info')
         } catch (err: any) {
-            debugLogger.log(`[Storage] Exception: ${err?.message || err}`, 'error')
+            debugLogger.log(`[Storage] ❌ Failed to persist identity: ${err?.message || err}`, 'error')
             throw err
         }
     },
     /**
-     * Save private keys to Rust storage (.safu-[network].json)
+     * Save private keys to Rust storage
      */
     async saveKeys(
         this: IIdentityState,
@@ -65,7 +67,9 @@ export const storageActions = () => ({
                 identityId: targetId,
                 keys
             })
+            debugLogger.log(`[Storage] Keys saved to safu store for ${targetId}`, 'info')
         } catch (err: any) {
+            debugLogger.log(`[Storage] Failed to save keys: ${err}`, 'error')
             throw new Error('Failed to save keys')
         }
     },
@@ -75,6 +79,7 @@ export const storageActions = () => ({
     async saveToStorage(this: IIdentityState, networkOverride?: 'mainnet' | 'testnet') {
         const network = networkOverride || await this.getCurrentNetwork()
         if (!this.identity || !this.identityId) {
+            debugLogger.log(`[Storage] saveToStorage skipped: No active identity.`, 'warn')
             return
         }
         const identityForSave = {
@@ -85,7 +90,7 @@ export const storageActions = () => ({
             revision: this.revision ?? this.identity.revision ?? 0,
             publicKeys: Array.isArray(this.publicKeys) && this.publicKeys.length > 0
                 ? this.publicKeys
-                : (this.identity.publicKeys || [])
+                : (this.identity.publicKeys || []),
         }
         await this.saveIdentityDataToStore(network, this.identityId, identityForSave)
     },
@@ -109,7 +114,7 @@ export const storageActions = () => ({
                     return
                 }
                 const persistedActiveId = loadedMap['__active_identity_id'] as string | undefined
-                let targetId: string = availableIds[0] || ''
+                let targetId: string = ''
                 let needsPersistenceUpdate = false
                 if (persistedActiveId && availableIds.includes(persistedActiveId)) {
                     targetId = persistedActiveId
@@ -135,7 +140,7 @@ export const storageActions = () => ({
                     this.balance = data.balance || null
                     this.revision = typeof data.revision === 'number'
                         ? data.revision
-                        : Number(data.revision || 0)
+                        : Number(data.revision || 0),
                     this.isAuthenticated = data.isAuthenticated ?? true
                     this.publicKeys = publicKeys
                     this.isConnected = this.isAuthenticated && !!this.identityId
@@ -149,6 +154,7 @@ export const storageActions = () => ({
                 }
             }
             // Legacy Fallback
+            debugLogger.log('[Storage] Map not found, attempting legacy load...', 'warn')
             const data = await invoke<any>('load_identity_data', { network })
             if (data) {
                 const publicKeys = data.publicKeys ?? data.public_keys ?? []
@@ -167,7 +173,7 @@ export const storageActions = () => ({
                 this.balance = data.balance || null
                 this.revision = typeof data.revision === 'number'
                     ? data.revision
-                    : Number(data.revision || 0)
+                    : Number(data.revision || 0),
                 this.isAuthenticated = data.isAuthenticated ?? true
                 this.publicKeys = publicKeys
                 this.isConnected = this.isAuthenticated && !!this.identityId
@@ -175,6 +181,7 @@ export const storageActions = () => ({
                 this.isConnected = false
             }
         } catch (err: any) {
+            debugLogger.log(`[Storage] Exception in loadFromStorage: ${err}`, 'error')
             this.isConnected = false
             throw err
         }
