@@ -117,15 +117,20 @@ export function useWallet() {
         isRefreshing = true
         error.value = null
         try {
-            // 1. Refresh Wallet (Assets/Tokens)
-            await store.refreshBalances()
-
-            // 2. Refresh Identity (Credits, Keys, Revision, DPNS)
-            // We call refreshIdentity which fetches from Network -> Updates Pinia Store -> Saves to Rust Backend
+            // 1. Refresh Identity Store FIRST
+            // This ensures the Identity file (updated by Rust) is read into Pinia
+            // BEFORE the wallet tries to calculate totals.
             if (Identity.isConnected) {
+                // console.log('[useWallet] Refreshing Identity State (Credits, Balance)...')
                 await refreshIdentity()
             }
+
+            // 2. Refresh Wallet Store (Assets/Tokens)
+            // console.log('[useWallet] Refreshing Assets...')
+            await store.refreshBalances()
+
         } catch (err: any) {
+            console.error('[useWallet] Refresh failed:', err)
             error.value = err.message || 'Failed to refresh wallet'
         } finally {
             isRefreshing = false
@@ -143,16 +148,20 @@ export function useWallet() {
         await store.fetchRealTransactions(limit)
     }
 
-    const startPolling = (intervalMs = 30000) => {
+    const startPolling = (intervalMs = 45000) => {
         if (pollInterval) {
             console.log('⏱️  Polling already active')
             return
         }
+
         console.log(`⏱️  Starting wallet polling every ${intervalMs}ms`)
+
+        // Initial refresh on start
         refresh()
+
         pollInterval = setInterval(() => {
             if (document.visibilityState === 'visible') {
-                console.log('⏱️  Periodic wallet refresh')
+                // console.log('⏱️  Periodic wallet refresh triggered')
                 refresh()
             } else {
                 console.log('⏱️  Skipping refresh (tab not visible)')
