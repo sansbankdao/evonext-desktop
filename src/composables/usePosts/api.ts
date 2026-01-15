@@ -251,6 +251,36 @@ export async function fetchUserPostsFromDAPI(userId: string): Promise<IPost[]> {
 }
 
 /**
+ * Fetch specific documents by their IDs.
+ * Used to fetch parent posts for reply context.
+ */
+export async function fetchDocumentsById(
+    network: string,
+    contractId: string,
+    documentIds: string[]
+): Promise<IPostDocument[]> {
+    if (documentIds.length === 0) return []
+
+    try {
+        // Use Tauri invoke with a specific whereClause for IDs
+        // Note: '$id' checks against the document's unique identifier
+        const documents = await invoke<any[]>('get_posts', {
+            dataContractId: contractId,
+            documentType: 'post',
+            whereClause: {
+                $id: { $in: documentIds }
+            },
+            limit: documentIds.length,
+            network
+        })
+        return documents
+    } catch (error: any) {
+        console.error('[API] Error fetching documents by ID:', error)
+        return []
+    }
+}
+
+/**
  * Create a new post
  */
 export async function createPost(params: ICreatePostParams): Promise<IPost | null> {

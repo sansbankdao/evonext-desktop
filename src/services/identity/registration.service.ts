@@ -18,8 +18,9 @@ export const KeyTypeString = {
 
 export const KeyPurposeString = {
     AUTHENTICATION: 'AUTHENTICATION',
-    TRANSFER: 'TRANSFER',
     ENCRYPTION: 'ENCRYPTION',
+    DECRYPTION: 'DECRYPTION',
+    TRANSFER: 'TRANSFER',
 }
 
 export const SecurityLevelString = {
@@ -29,9 +30,9 @@ export const SecurityLevelString = {
     MEDIUM: 'MEDIUM',
 }
 
-// Standard Layout for Dash Identity Keys
+// EvoNext (Default) Layout for Dash Identity Keys
 // Order matters here: [0, 1, 2, 3, 4] corresponds to derivation indices
-export const KEY_DEFINITIONS = [
+export const DEFAULT_KEY_DEFINITIONS = [
     { type: KeyTypeString.ECDSA_HASH160, purpose: KeyPurposeString.AUTHENTICATION, level: SecurityLevelString.MASTER },
     { type: KeyTypeString.ECDSA_HASH160, purpose: KeyPurposeString.AUTHENTICATION, level: SecurityLevelString.CRITICAL },
     { type: KeyTypeString.ECDSA_HASH160, purpose: KeyPurposeString.AUTHENTICATION, level: SecurityLevelString.HIGH },
@@ -136,7 +137,7 @@ export class RegistrationService {
         // Map keys to SDK format
         // Note: We use binToHex on the raw private key bytes
         const identityKeys = derivedKeys.map((key, idx) => {
-            const def = KEY_DEFINITIONS[idx]!
+            const def = DEFAULT_KEY_DEFINITIONS[idx]!
             return {
                 keyType: def.type,
                 purpose: def.purpose,
@@ -180,7 +181,7 @@ export class RegistrationService {
 
             // 3. Find the corresponding PRIVATE key to sign the transaction
             const signingKey = derivedKeys.find((_k, idx) => {
-                const def = KEY_DEFINITIONS[idx]!
+                const def = DEFAULT_KEY_DEFINITIONS[idx]!
                 return def.purpose === KeyPurposeString.AUTHENTICATION && def.level === SecurityLevelString.CRITICAL
             })
 

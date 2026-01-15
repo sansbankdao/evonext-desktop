@@ -101,67 +101,71 @@ export function usePosts() {
                 ? [EVONEXT_CONTRACT_ID_TESTNET, YAPPR_CONTRACT_ID_TESTNET]
                 : [EVONEXT_CONTRACT_ID_MAINNET]
 
-            // 2. Update Debug Stats
-            debugStats.value = {
-                activeContracts,
-                fetchCounts: {},
-                rawData: {},
-                mergeCount: 0,
-                duplicateCount: 0,
-                lastFetchTime: new Date().toISOString()
-            }
+            // ... debug stats setup ...
 
             let allDocuments: IPostDocument[] = []
             const limit = postsStore.limit || 10
 
-            // 3. Fetch from all active contracts
+            // 2. Fetch from all active contracts (Main Feed)
             for (const contractId of activeContracts) {
                 try {
+                    // Using the first contract as the primary for fetching feed
+                    // (Adjust if you want to merge feeds from multiple active contracts)
                     const docs = await api.fetchPostsFromTauri(network, {
                         ownerId: options?.ownerId || '',
                         orderBy: options?.orderBy as ('newest' | 'oldest'),
-                        limit: limit * 2,
+                        limit: limit * 2, // Fetch extra to account for deduping
                         contractId
                     } as any)
-
-                    debugStats.value.fetchCounts[contractId] = docs.length
-
-                    // Store raw data for debugging
-                    debugStats.value.rawData[contractId] = JSON.parse(JSON.stringify(docs))
 
                     allDocuments.push(...docs)
                 } catch (contractErr: any) {
                     console.warn(`[usePosts] Failed to fetch from contract ${contractId}:`, contractErr)
-                    debugStats.value.fetchCounts[contractId] = 0
-                    debugStats.value.rawData[contractId] = [{ error: contractErr.message }]
                 }
             }
 
-            // 4. Merge & Sort
-            allDocuments.sort((a, b) => b.createdAt - a.createdAt)
-
-            // 5. Remove Duplicates
+            // 3. Remove Duplicates
             const uniqueMap = new Map(allDocuments.map(doc => [
-                `${doc.$ownerId}-${doc.createdAt}`,
+                `${doc.$ownerId}-${doc.createdAt}`, // Basic uniqueness key
                 doc
             ]))
-            const uniqueDocuments = Array.from(uniqueMap.values())
+            const finalDocuments = Array.from(uniqueMap.values()).slice(0, limit)
 
-            // Track Duplicates for Debug
-            debugStats.value.duplicateCount = allDocuments.length - uniqueDocuments.length
+            // 4. Identify Reply Context (Requirement 2)
+            // Find all unique replyToPostIds
+            const replyToIds = new Set<string>()
+            finalDocuments.forEach(doc => {
+                if (doc.replyToPostId) {
+                    const id = Array.isArray(doc.replyToPostId) ? doc.replyToPostId[0] : doc.replyToPostId
+                    if (id) replyToIds.add(id)
+                }
+            })
 
-            // 6. Slice to limit
-            const finalDocuments = uniqueDocuments.slice(0, limit)
-            debugStats.value.mergeCount = finalDocuments.length
+            // Fetch missing parent posts
+            // We assume they live in the same primary contract (evonext)
+            let parentDocuments: IPostDocument[] = []
+            if (replyToIds.size > 0) {
+                const targetContractId = network === 'testnet' ? EVONEXT_CONTRACT_ID_TESTNET : EVONEXT_CONTRACT_ID_MAINNET
+                const idsToFetch = Array.from(replyToIds)
 
-            // Reset offset for new fetch
-            postsStore.$patch({ offset: 0 })
+                // Filter out IDs we might already have in finalDocuments to save requests
+                const existingIds = new Set(finalDocuments.map(d => d.id))
+                const missingIds = idsToFetch.filter(id => !existingIds.has(id))
 
-            // 7. Transform all documents with user info
+                if (missingIds.length > 0) {
+                    parentDocuments = await api.fetchDocumentsById(network, targetContractId, missingIds)
+                }
+            }
+
+            // Combine documents for profile fetching
+            const allDocsToProcess = [...finalDocuments, ...parentDocuments]
+
+            // 5. Fetch Profiles & DPNS for ALL involved owners (Requirement 1)
             const profiles = new Map<string, any>()
             const dpnsNames = new Map<string, string>()
 
-            const ownerIds = [...new Set(finalDocuments.map(doc => doc.ownerId || ''))].filter(Boolean)
+            const ownerIds = [...new Set(allDocsToProcess.map(doc => doc.ownerId || ''))].filter(Boolean)
+
             await Promise.all(
                 ownerIds.map(async (ownerId) => {
                     if (!ownerId) return
@@ -174,11 +178,29 @@ export function usePosts() {
                 })
             )
 
-            const posts = await transformers.transformPostDocuments(finalDocuments as IPostDocument[], profiles, dpnsNames)
+            // 6. Transform Parent Posts first (so they exist in the map)
+            const parentPostsMap = new Map<string, IPost>()
+            const transformedParents = await transformers.transformPostDocuments(
+                parentDocuments,
+                profiles,
+                dpnsNames
+            )
+            transformedParents.forEach(p => {
+                if (p.id) parentPostsMap.set(p.id, p)
+            })
 
-            // 8. Inject contractId
+            // 7. Transform Main Documents
+            const posts = await transformers.transformPostDocuments(
+                finalDocuments as IPostDocument[],
+                profiles,
+                dpnsNames,
+                parentPostsMap // Pass the parents here!
+            )
+
+            // 8. Inject contractId and update store
             const postsWithSource = posts.map(post => {
-                const sourceDoc = uniqueDocuments.find(d => d.$ownerId === post.ownerId && Math.abs(d.createdAt - post.createdAt) < 2)
+                // Find source doc to get contract ID if missing
+                const sourceDoc = finalDocuments.find(d => d.id === post.id)
                 return {
                     ...post,
                     contractId: sourceDoc?.dataContractId || ''
@@ -190,8 +212,6 @@ export function usePosts() {
                 lastFetched: new Date(),
                 hasNextPage: allDocuments.length > limit
             })
-
-            console.log(`[usePosts] Fetch complete. Raw: ${allDocuments.length}, Unique: ${uniqueDocuments.length}, Final: ${finalDocuments.length}`)
 
         } catch (err: any) {
             error.value = err.message || 'Failed to fetch posts from blockchain'

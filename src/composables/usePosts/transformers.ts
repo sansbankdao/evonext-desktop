@@ -3,7 +3,7 @@
 import type { IPost, IUser, IPostDocument } from '@/types'
 import {
     generateAvatarUrl,
-    generatePostId,
+    // generatePostId,
     getDisplayNameFromId
 } from './utils'
 
@@ -72,15 +72,15 @@ export function getAvatarUrl(
 
 /**
  * Transform blockchain document to IPost format
- * Enhanced version combining both approaches
  */
 export async function transformPostDocument(
     doc: IPostDocument | any,
-    profileData?: ProfileDocument | null,
-    dpnsName?: string | null
+    profileData?: any | null,
+    dpnsName?: string | null,
+    parentPost?: IPost | null // NEW: Accept parent post
 ): Promise<IPost> {
     const ownerId = doc.ownerId || doc.$ownerId || ''
-    const docId = doc.id || generatePostId(doc)
+    const docId = doc.id || doc.$id || '' // Ensure we capture the ID if present
     const createdAtTimestamp = parseInt(doc.createdAt || doc.$createdAt || Date.now().toString())
     const updatedAtTimestamp = parseInt(doc.updatedAt || doc.$updatedAt || createdAtTimestamp.toString())
 
@@ -89,13 +89,14 @@ export async function transformPostDocument(
 
     return {
         id: docId,
+        contractId: 'TBD',
         ownerId,
         author,
         content: doc.content || '',
         createdAt: createdAtTimestamp,
         updatedAt: updatedAtTimestamp,
         views: 0,
-        likes: 0, // Will be fetched separately via stats
+        likes: 0,
         remixes: 0,
         replies: 0,
         isSensitive: doc.isSensitive || false,
@@ -104,24 +105,32 @@ export async function transformPostDocument(
         hashtag: doc.hashtag,
         mediaUrls: doc.mediaUrl || [],
         mentionIds: doc.mentionIds || [],
-        replyToPostId: Array.isArray(doc.replyToPostId) ? doc.replyToPostId[0] : doc.replyToPostId
+        replyToPostId: Array.isArray(doc.replyToPostId) ? doc.replyToPostId[0] : doc.replyToPostId,
+        quotedPost: parentPost || undefined // NEW: Attach the parent post here
     }
 }
 
 /**
  * Transform multiple documents in parallel
+ * UPDATED: Accepts parentPostsMap
  */
 export async function transformPostDocuments(
     documents: IPostDocument[],
-    profiles: Map<string, ProfileDocument> = new Map(),
-    dpnsNames: Map<string, string> = new Map()
+    profiles: Map<string, any> = new Map(),
+    dpnsNames: Map<string, string> = new Map(),
+    parentPostsMap: Map<string, IPost> = new Map() // NEW
 ): Promise<IPost[]> {
     const transformed = await Promise.all(
         documents.map(async (doc) => {
             const ownerId = doc.ownerId || ''
             const profileData = profiles.get(ownerId)
             const dpnsName = dpnsNames.get(ownerId)
-            return transformPostDocument(doc, profileData, dpnsName)
+
+            // Check if this document is a reply and fetch the parent from the map
+            const replyToId = Array.isArray(doc.replyToPostId) ? doc.replyToPostId[0] : doc.replyToPostId
+            const parentPost = replyToId ? parentPostsMap.get(replyToId) : undefined
+
+            return transformPostDocument(doc, profileData, dpnsName, parentPost)
         })
     )
     return transformed
