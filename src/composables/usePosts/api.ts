@@ -1,16 +1,19 @@
 // src/composables/usePosts/api.ts
+import { invoke } from '@tauri-apps/api/core'
 import { useNetwork } from '@/composables/useNetwork'
 import type { IPost, ICreatePostParams, IUpdatePostParams, PostsFetchResult, IPostDocument } from '@/types/posts'
 import { getUserInfo } from './transformers'
-// Import the critical helper that determines which contracts to hit
 import { getActivePostContracts } from '@/constants'
+
 const DAPI_ENDPOINT = 'https://dashqt.org/v1/dapi'
+
 // API Types
 interface DAPIRequest {
     method: string;
     params: any[];
     network?: string;
 }
+
 interface DAPIResponse<T = any> {
     success: boolean;
     method: string;
@@ -18,16 +21,9 @@ interface DAPIResponse<T = any> {
     network: string;
     result: T[];
 }
-interface ProfileDocument {
-    ownerId: string
-    avatarUrl?: string
-    displayName?: string
-    publicMessage?: string
-    avatarHash?: string
-    avatarFingerprint?: string
-}
+
 /**
- * Make a request to the DAPI endpoint
+ * Make a request to the DAPI endpoint (from libs/posts/api.ts)
  */
 async function makeDAPIRequest<T>(method: string, params: any[], targetNetwork: string): Promise<T[]> {
     const requestBody: DAPIRequest = {
@@ -35,6 +31,7 @@ async function makeDAPIRequest<T>(method: string, params: any[], targetNetwork: 
         params,
         network: targetNetwork
     }
+
     const response = await fetch(DAPI_ENDPOINT, {
         method: 'POST',
         headers: {
@@ -42,18 +39,101 @@ async function makeDAPIRequest<T>(method: string, params: any[], targetNetwork: 
         },
         body: JSON.stringify(requestBody)
     })
+
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
     }
+
     const data: DAPIResponse<T> = await response.json()
+
     if (!data.success) {
         throw new Error('Failed to fetch data from blockchain')
     }
+
     return data.result
 }
+
+/**
+ * Fetch profile data for a user via Tauri
+ */
+export async function fetchUserProfile(ownerId: string, networkOverride?: string): Promise<any | null> {
+    try {
+        const { network } = useNetwork()
+        const targetNetwork = networkOverride || network.value
+
+        // Note: Ideally use getActivePostContracts('dashpay') if you have dashpay contracts
+        // Assuming 'dashpay' ID logic is handled or hardcoded elsewhere for now
+        const contractId = getActivePostContracts(targetNetwork)[0] // Fallback to first active contract
+
+        const profiles = await invoke<any[]>('get_posts', {
+            dataContractId: contractId,
+            documentType: 'profile',
+            whereClause: {
+                $ownerId: ownerId
+            },
+            orderBy: { $updatedAt: 'desc' },
+            limit: 1,
+            network: targetNetwork
+        })
+
+        return profiles.length > 0 ? profiles[0]! : null
+    } catch (error) {
+        console.warn(`Failed to fetch profile for ${ownerId}:`, error)
+        return null
+    }
+}
+
+/**
+ * Fetch posts from blockchain using Tauri
+ *
+ * RESTORED: This function is required by the main composable to iterate
+ * over the active contracts. The signature matches the error log:
+ * api.fetchPostsFromTauri(network, { ..., contractId })
+ */
+export async function fetchPostsFromTauri(
+    network: string,
+    options: {
+        ownerId?: string
+        orderBy?: 'newest' | 'oldest'
+        limit?: number
+        contractId: string // Explicitly required by the caller
+    }
+): Promise<IPostDocument[]> {
+    try {
+        const { ownerId, orderBy, limit, contractId } = options
+
+        let whereClause = null
+        if (ownerId) {
+            whereClause = { $ownerId: ownerId }
+        }
+
+        let orderByClause = null
+        if (orderBy === 'newest') {
+            orderByClause = { $createdAt: 'desc' }
+        } else if (orderBy === 'oldest') {
+            orderByClause = { $createdAt: 'asc' }
+        }
+
+        // Invoke the Tauri backend command
+        const documents = await invoke<any[]>('get_posts', {
+            dataContractId: contractId, // Use the specific contract ID passed by the caller
+            documentType: 'post',
+            whereClause,
+            orderBy: orderByClause,
+            limit: limit || 20,
+            network
+        })
+
+        return documents
+    } catch (error: any) {
+        console.error('Error fetching posts via Tauri:', error)
+        throw error
+    }
+}
+
 /**
  * Fetch posts from blockchain using DAPI
- * REFACTORED: Now iterates over ALL active contracts defined in constants.
+ * This version iterates over all active contracts defined in constants.
  */
 export async function fetchPostsFromDAPI(options?: {
     ownerId?: string
@@ -66,39 +146,39 @@ export async function fetchPostsFromDAPI(options?: {
     try {
         const { network } = useNetwork()
         const targetNetwork = network.value
-        // 1. Get the list of ACTIVE contracts for this specific network
-        // e.g., ['EVONEXT_ID', 'YAPPR_ID']
+
+        // Get the list of ACTIVE contracts
         const activeContractIds = getActivePostContracts(targetNetwork)
+
         console.log(`[API] Fetching from network: ${targetNetwork}`)
         console.log(`[API] Active Contracts:`, activeContractIds)
+
         if (activeContractIds.length === 0) {
             console.warn('[API] No active contracts found for this network.')
             return { posts: [], hasNextPage: false }
         }
-        // 2. Fetch from ALL contracts in parallel
-        // This solves the issue where only one contract was being hit.
+
+        // Fetch from ALL contracts in parallel
         const fetchPromises = activeContractIds.map(async (contractId) => {
             try {
-                // We query for 'post' type documents.
-                // Note: Depending on your contract setup, you might need to specify a 'where' clause
-                // if Remixes and Posts are in the same contract but distinguished by a property.
-                // Here we assume they are separate document types 'post' vs 'remix' or handled by the UI.
                 const docs = await makeDAPIRequest<IPostDocument>(
                     'get_documents',
-                    [contractId, 'post'], // [ContractID, DocumentType]
+                    [contractId, 'post'],
                     targetNetwork
                 )
                 return docs
             } catch (err) {
                 console.error(`[API] Failed to fetch from contract ${contractId}:`, err)
-                return [] // Return empty array for failed contracts to allow partial success
+                return []
             }
         })
-        // 3. Aggregate results
+
         const results = await Promise.all(fetchPromises)
         let rawDocuments: IPostDocument[] = results.flat()
+
         console.log(`[API] Total raw documents fetched: ${rawDocuments.length}`)
-        // 4. Transform and enrich documents (add author info)
+
+        // Transform and enrich documents
         const transformedPosts = await Promise.all(
             rawDocuments.map(async (doc) => {
                 return {
@@ -121,8 +201,10 @@ export async function fetchPostsFromDAPI(options?: {
                 } as IPost
             })
         )
+
         let filteredPosts = transformedPosts
-        // 5. Client-side Filtering (Based on options passed in)
+
+        // Apply Filters
         if (options) {
             if (options.ownerId) {
                 filteredPosts = filteredPosts.filter(post => post.ownerId === options.ownerId)
@@ -145,19 +227,19 @@ export async function fetchPostsFromDAPI(options?: {
                 filteredPosts = filteredPosts.slice(0, options.limit)
             }
         }
-        // 6. Final Deduplication
-        // Since we fetched from multiple contracts, there's a small chance of duplicates
-        // if a document exists in both (rare but technically possible in some migration scenarios).
+
+        // Deduplicate
         const uniquePostsMap = new Map<string, IPost>()
         filteredPosts.forEach(post => {
-            // Use ownerId + timestamp + content snippet as a unique key if ID is missing
             const uniqueKey = post.id || `${post.ownerId}-${post.createdAt}-${post.content.slice(0, 10)}`
             if (!uniquePostsMap.has(uniqueKey)) {
                 uniquePostsMap.set(uniqueKey, post)
             }
         })
         const finalPosts = Array.from(uniquePostsMap.values())
+
         console.log(`[API] Final unique posts: ${finalPosts.length}`)
+
         return {
             posts: finalPosts,
             hasNextPage: false
@@ -167,6 +249,7 @@ export async function fetchPostsFromDAPI(options?: {
         throw error
     }
 }
+
 /**
  * Fetch posts for a specific user via DAPI
  */
@@ -177,25 +260,16 @@ export async function fetchUserPostsFromDAPI(userId: string): Promise<IPost[]> {
     })
     return result.posts
 }
+
 /**
  * Create a new post
- * Note: This creates a post in the FIRST available active contract.
  */
 export async function createPost(params: ICreatePostParams): Promise<IPost | null> {
     try {
-        const { network } = useNetwork()
-        const targetNetwork = network.value
-        const activeContractIds = getActivePostContracts(targetNetwork)
-        if (activeContractIds.length === 0) {
-            throw new Error('No active contracts available to create post.')
-        }
-        // Select the primary contract (first in list) for writing
-        const targetContractId = activeContractIds[0]!
-        console.log(`Creating post on contract: ${targetContractId}`)
+        console.log('Creating post with params:', params)
         const d = new Date()
         const now = d.getTime() / 1000
         // TODO: Implement actual post creation using Dash SDK/Tauri
-        // You will need to use 'targetContractId' here in the state transition.
         const mockPost: IPost = {
             contractId: '',
             ownerId: '',
@@ -216,6 +290,7 @@ export async function createPost(params: ICreatePostParams): Promise<IPost | nul
         throw error
     }
 }
+
 /**
  * Update an existing post
  */
@@ -229,6 +304,7 @@ export async function updatePost(postId: string, updates: IUpdatePostParams): Pr
         throw error
     }
 }
+
 /**
  * Delete a post
  */
