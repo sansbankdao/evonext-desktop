@@ -1,105 +1,56 @@
 // src/composables/useMnemonic.ts
-
 import { invoke } from '@tauri-apps/api/core'
 import { ref } from 'vue'
-
-// Simple caching singleton
 class MnemonicManager {
     private static instance: MnemonicManager
     private mnemonic: string | null = null
-    private loading = false
-    private error: string | null = null
-
+    // private loading = false
     private constructor() {}
-
     static getInstance(): MnemonicManager {
         if (!MnemonicManager.instance) {
             MnemonicManager.instance = new MnemonicManager()
         }
         return MnemonicManager.instance
     }
-
-    async getMnemonic(): Promise<string | null> {
-        if (this.mnemonic !== null) {
-            return this.mnemonic
-        }
-
-        this.loading = true
-        this.error = null
-
+    async getMnemonic(network: 'mainnet' | 'testnet' = 'testnet'): Promise<string | null> {
+        if (this.mnemonic !== null) return this.mnemonic
+        // this.loading = true
         try {
-            console.log('Fetching mnemonic from Tauri backend...')
-            const result = await invoke<string>('load_mnemonic')
-            this.mnemonic = result || null
-            console.log('Mnemonic retrieved:', this.mnemonic ? 'Yes (hidden)' : 'No')
+            // payload matches Rust: load_mnemonic(network: String)
+            const result = await invoke<{ seedPhrase: string } | null>('load_mnemonic', { network })
+            this.mnemonic = result?.seedPhrase || null
             return this.mnemonic
-        } catch (err: any) {
-            console.error('Failed to get mnemonic:', err)
-            this.error = err.message || 'Failed to retrieve mnemonic'
+        } catch (err) {
+            console.error('[MnemonicManager] Fetch failed:', err)
             return null
         } finally {
-            this.loading = false
+            // this.loading = false
         }
     }
-
+    async hasMnemonic(network: 'mainnet' | 'testnet' = 'testnet'): Promise<boolean> {
+        const mnem = await this.getMnemonic(network)
+        return !!mnem
+    }
     clearMnemonic(): void {
         this.mnemonic = null
-        this.error = null
-    }
-
-    async hasMnemonic(): Promise<boolean> {
-        const mnem = await this.getMnemonic()
-        return !!mnem
-    }
-
-    getState() {
-        return {
-            mnemonic: this.mnemonic,
-            loading: this.loading,
-            error: this.error
-        }
     }
 }
-
-// Export singleton instance
 export const mnemonicManager = MnemonicManager.getInstance()
-
-// Vue composable version (if you need reactivity)
 export function useMnemonic() {
-    const mnemonicRef = ref<string | null>(mnemonicManager.getState().mnemonic)
-    const loadingRef = ref(mnemonicManager.getState().loading)
-    const errorRef = ref<string | null>(mnemonicManager.getState().error)
-
-    const getMnemonic = async (): Promise<string | null> => {
-        loadingRef.value = true
-        errorRef.value = null
-
+    const loading = ref(false)
+    const generateNewMnemonic = async (): Promise<string> => {
+        loading.value = true
         try {
-            const result = await mnemonicManager.getMnemonic()
-            mnemonicRef.value = result
-            return result
+            // Calls Rust command to generate and return a new BIP39 phrase
+            return await invoke<string>('generate_new_mnemonic')
         } finally {
-            loadingRef.value = false
+            loading.value = false
         }
     }
-
-    const clearMnemonic = () => {
-        mnemonicManager.clearMnemonic()
-        mnemonicRef.value = null
-        errorRef.value = null
-    }
-
-    const hasMnemonic = async (): Promise<boolean> => {
-        const mnem = await getMnemonic()
-        return !!mnem
-    }
-
     return {
-        mnemonic: mnemonicRef,
-        loading: loadingRef,
-        error: errorRef,
-        getMnemonic,
-        clearMnemonic,
-        hasMnemonic
+        generateNewMnemonic,
+        getMnemonic: mnemonicManager.getMnemonic.bind(mnemonicManager),
+        hasMnemonic: mnemonicManager.hasMnemonic.bind(mnemonicManager),
+        loading
     }
 }

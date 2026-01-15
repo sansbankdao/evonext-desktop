@@ -15,10 +15,18 @@
             />
 
             <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <!-- Display Name -->
                     <p class="font-bold text-slate-900 dark:text-slate-100">
                         {{ post.author.displayName }}
                     </p>
+
+                    <!-- YAPPR Badge (Conditional) -->
+                    <span v-if="isYAPPR" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 ring-1 ring-inset ring-purple-500/20">
+                        YAPPR
+                    </span>
+
+                    <!-- Verification Badge -->
                     <span v-if="post.author.verified" class="inline-flex items-center">
                         <svg class="h-4 w-4 text-cyan-500" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
@@ -180,6 +188,9 @@
 import { computed } from 'vue'
 import type { IPost } from '@/types/posts'
 
+// Import the constant defined in src/constants/index.ts
+import { YAPPR_CONTRACT_ID_TESTNET } from '@/constants'
+
 interface Props {
     post: IPost
 }
@@ -196,10 +207,15 @@ const emit = defineEmits<{
 
 const isSensitive = computed(() => props.post.isSensitive)
 
+// Computed property to detect YAPPR posts
+const isYAPPR = computed(() => {
+    return props.post.contractId === YAPPR_CONTRACT_ID_TESTNET
+})
+
 const timeAgo = computed(() => {
     const now = new Date()
 
-    // FIX: Handle both number (timestamp) and Date object
+    // Handle both number (timestamp) and Date object
     const postDateRaw = props.post.createdAt
     const postDate = typeof postDateRaw === 'number' ? new Date(postDateRaw) : postDateRaw
 
@@ -228,7 +244,6 @@ const handleImageError = (event: Event) => {
 }
 
 const toggleLike = () => {
-    // FIX: Handle both number and Date for ID generation
     const createdAtTime = typeof props.post.createdAt === 'number'
         ? props.post.createdAt
         : new Date(props.post.createdAt).getTime()

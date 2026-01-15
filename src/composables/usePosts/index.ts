@@ -3,7 +3,7 @@
 import { ref, computed, onBeforeUnmount } from 'vue'
 import { usePostsStore } from '@/stores/posts'
 import { useIdentityStore } from '@/stores/identity'
-import { useSettingsStore } from '@/stores/settings' // Revert to SettingsStore
+import { useSettingsStore } from '@/stores/settings'
 import { useDebounce } from '../useDebounce'
 import * as api from './api'
 import * as transformers from './transformers'
@@ -17,9 +17,9 @@ import type {
 } from '@/types/posts'
 import type { FilterOptions } from './filters'
 import {
-    getActivePostContracts,
     EVONEXT_CONTRACT_ID_MAINNET,
-    EVONEXT_CONTRACT_ID_TESTNET
+    EVONEXT_CONTRACT_ID_TESTNET,
+    YAPPR_CONTRACT_ID_TESTNET
 } from '@/constants'
 
 export function usePosts() {
@@ -37,6 +37,15 @@ export function usePosts() {
     const sortBy = ref<filters.SortOrder>('newest')
     const sensitiveFilter = ref<filters.SensitiveFilter>('show')
 
+    // --- DEBUG STATE ---
+    const debugStats = ref<Record<string, any>>({
+        activeContracts: [],
+        fetchCounts: {} as Record<string, number>,
+        mergeCount: 0,
+        duplicateCount: 0,
+        lastFetchTime: null
+    })
+
     // Debounced search
     const debouncedSearch = useDebounce(searchQuery, 500)
 
@@ -44,19 +53,11 @@ export function usePosts() {
     const isAuthenticated = computed(() => identityStore.isAuthenticated)
     const currentUserId = computed(() => identityStore.identity?.id || '')
 
-    // SAFEGUARD: Explicitly validate the network from settings before using it.
-    // This prevents the use of invalid values or accidental 'testnet' defaults if the store logic fails.
     const currentNetwork = computed(() => {
         const net = settingsStore.state.network
-
-        // Strict validation: Only allow 'mainnet' or 'testnet'.
-        // If the store somehow holds 'undefined', 'null', or '', we default to 'testnet' safely.
         if (net === 'mainnet' || net === 'testnet') {
             return net
         }
-
-        // This log is crucial for debugging if the store returns garbage.
-        // If you see this in console, check src/stores/settings.ts
         console.warn(`[usePosts] Network state is invalid ("${net}"). Defaulting to testnet.`)
         return 'testnet'
     })
@@ -93,52 +94,65 @@ export function usePosts() {
         try {
             console.log(`[usePosts] Fetching posts on network: ${currentNetwork.value}`)
 
-            // Get the list of contracts to query (e.g., [EvoNext, YAPPR] for testnet)
-            const activeContracts = getActivePostContracts(currentNetwork.value)
+            // 1. Get Contracts to Query
+            const network = currentNetwork.value
+            const activeContracts = network === 'testnet'
+                ? [EVONEXT_CONTRACT_ID_TESTNET, YAPPR_CONTRACT_ID_TESTNET]
+                : [EVONEXT_CONTRACT_ID_MAINNET]
+
+            // 2. Update Debug Stats
+            debugStats.value = {
+                activeContracts: activeContracts,
+                fetchCounts: {} as Record<string, number>,
+                mergeCount: 0,
+                duplicateCount: 0,
+                lastFetchTime: new Date().toISOString()
+            }
 
             let allDocuments: IPostDocument[] = []
-
-            // 1. Fetch documents from ALL active contracts
-            // We assume api.fetchPostsFromTauri can accept a contractId in options,
-            // or we loop to fetch distinct sets.
-            // (Note: If fetchPostsFromTauri doesn't accept contractId, it might fetch everything and we filter,
-            // but passing it is more efficient if supported).
             const limit = postsStore.limit || 10
 
+            // 3. Fetch from all active contracts
             for (const contractId of activeContracts) {
                 try {
-                    // Fetch a larger set from each to allow for proper sorting/merging
-                    const docs = await api.fetchPostsFromTauri(currentNetwork.value, {
+                    const docs = await api.fetchPostsFromTauri(network, {
                         ownerId: options?.ownerId || '',
                         orderBy: options?.orderBy as ('newest' | 'oldest'),
-                        limit: limit,
-                        // Pass contractId to backend if supported (optional optimization)
-                        contractId
+                        limit: limit * 2, // Fetch more to fill merge buffer
+                        contractId // Inject contract ID
                     } as any)
 
+                    debugStats.value.fetchCounts[contractId] = docs.length
                     allDocuments.push(...docs)
                 } catch (contractErr) {
                     console.warn(`[usePosts] Failed to fetch from contract ${contractId}:`, contractErr)
-                    // Continue fetching from other contracts even if one fails
+                    debugStats.value.fetchCounts[contractId] = 0
                 }
             }
 
-            // 2. Merge and Sort
-            // We assume you want a global feed sorted by newest, regardless of source
-            allDocuments.sort((a, b) => {
-                // Sort by createdAt descending (newest first)
-                return b.createdAt - a.createdAt
-            })
+            // 4. Merge & Sort
+            // Sort by createdAt descending (newest first)
+            allDocuments.sort((a, b) => b.createdAt - a.createdAt)
 
-            // 3. Slice to the requested limit
-            // If we fetched 10 from EvoNext and 10 from YAPPR, we have 20.
-            // We take the top 10 newest overall.
-            const finalDocuments = allDocuments.slice(0, limit)
+            // 5. Remove Duplicates
+            // Using Map key `${ownerId}-${createdAt}` to ensure uniqueness
+            const uniqueMap = new Map(allDocuments.map(doc => [
+                `${doc.$ownerId}-${doc.createdAt}`,
+                doc
+            ]))
+            const uniqueDocuments = Array.from(uniqueMap.values())
+
+            // Track Duplicates for Debug
+            debugStats.value.duplicateCount = allDocuments.length - uniqueDocuments.length
+
+            // 6. Slice to limit
+            const finalDocuments = uniqueDocuments.slice(0, limit)
+            debugStats.value.mergeCount = finalDocuments.length
 
             // Reset offset for new fetch
             postsStore.$patch({ offset: 0 })
 
-            // Transform all documents with user info
+            // 7. Transform all documents with user info
             const profiles = new Map<string, any>()
             const dpnsNames = new Map<string, string>()
 
@@ -147,8 +161,8 @@ export function usePosts() {
                 ownerIds.map(async (ownerId) => {
                     if (!ownerId) return
                     const [profileData, dpnsName] = await Promise.all([
-                        api.fetchUserProfile(ownerId, currentNetwork.value),
-                        api.fetchDPNSName(ownerId, currentNetwork.value)
+                        api.fetchUserProfile(ownerId, network),
+                        api.fetchDPNSName(ownerId, network)
                     ])
                     if (profileData) profiles.set(ownerId, profileData)
                     if (dpnsName) dpnsNames.set(ownerId, dpnsName)
@@ -157,17 +171,19 @@ export function usePosts() {
 
             const posts = await transformers.transformPostDocuments(finalDocuments as IPostDocument[], profiles, dpnsNames)
 
-            // 4. Inject contractId into Post objects for the UI
-            // (Ensure contractId is present on IPost interface)
-            const postsWithSource = posts.map(post => ({
-                ...post,
-                contractId: finalDocuments.find(doc => doc.$ownerId === post.ownerId && doc.createdAt === post.createdAt)?.dataContractId || ''
-            }))
+            // 8. Inject contractId
+            const postsWithSource = posts.map(post => {
+                const sourceDoc = uniqueDocuments.find(d => d.$ownerId === post.ownerId && Math.abs(d.createdAt - post.createdAt) < 2)
+                return {
+                    ...post,
+                    contractId: sourceDoc?.dataContractId || ''
+                }
+            })
 
             postsStore.$patch({
                 posts: postsWithSource,
                 lastFetched: new Date(),
-                hasNextPage: allDocuments.length > limit // If we have leftovers, there might be more
+                hasNextPage: allDocuments.length > limit
             })
 
         } catch (err: any) {
@@ -227,13 +243,12 @@ export function usePosts() {
         const d = new Date()
         const now = d.getTime() / 1000
 
-        // Determine the contract ID for the new post (Default to Primary)
+        // Default to Primary Contract
         const targetContractId = currentNetwork.value === 'testnet'
             ? EVONEXT_CONTRACT_ID_TESTNET
             : EVONEXT_CONTRACT_ID_MAINNET
 
         const optimisticPost: IPost = {
-            contractId: targetContractId,
             ownerId: currentUserId.value!,
             author: {
                 username: identityStore.identity?.username || 'User',
@@ -256,6 +271,7 @@ export function usePosts() {
             mediaUrls: options?.mediaUrl,
             mentionIds: options?.mentionIds,
             replyToPostId: options?.replyToPostId?.[0],
+            contractId: targetContractId
         }
 
         // Optimistic update
@@ -277,7 +293,6 @@ export function usePosts() {
 
             if (createdPost) {
                 // Replace optimistic post with real post
-                // Ensure the API returned post has the contractId or inherit it
                 if (!createdPost.contractId) {
                     createdPost.contractId = targetContractId
                 }
@@ -519,9 +534,12 @@ export function usePosts() {
         uniqueHashtags: computed(() => filters.getUniqueHashtags(postsStore.posts)),
         bookmarkedPosts: computed(() => postsStore.posts.filter(p => stats.isPostBookmarked(p.id!))),
 
+        // DEBUG EXPOSE
+        debugStats: computed(() => debugStats.value),
+
         isAuthenticated,
         currentUserId,
-        currentNetwork, // This now relies on the validated computed property
+        currentNetwork,
 
         // Actions
         fetchPosts,

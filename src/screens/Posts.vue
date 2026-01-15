@@ -1,18 +1,14 @@
 <!-- src/screens/Posts.vue -->
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import PostItem from '@/components/PostItem.vue'
 import { usePosts } from '@/composables/usePosts'
 import { useIdentityStore } from '@/stores/identity'
-import { useNetwork } from '@/composables/useNetwork'
 
 const router = useRouter()
 const identityStore = useIdentityStore()
-
-// REFACTOR: Use useNetwork composable
-const { network: currentNetwork } = useNetwork()
 
 // Use new composable
 const postsComposable = usePosts()
@@ -29,6 +25,8 @@ const {
     totalPosts,
     hasMore,
     isAuthenticated,
+    debugStats, // <--- ADDED: Expose debug stats
+    currentNetwork, // <--- ADDED: Expose network
 
     fetchPosts,
     fetchMorePosts,
@@ -42,13 +40,17 @@ const {
 } = postsComposable
 
 // Constants for Explorer Links
-const EXPLORER_URLS: Record<string, string> = {
-    testnet: 'https://testnet.platform-explorer.com',
-    mainnet: 'https://platform-explorer.com'
-}
+// const EXPLORER_URLS: Record<string, string> = {
+//     testnet: 'https://testnet.platform-explorer.com',
+//     mainnet: 'https://platform-explorer.com'
+// }
 
 // Compute explorer URL for the current network
-const explorerUrl = computed(() => EXPLORER_URLS[currentNetwork.value] || EXPLORER_URLS.testnet)
+// const explorerUrl = computed(() => EXPLORER_URLS[currentNetwork.value] || EXPLORER_URLS.testnet)
+
+// --- DEBUG STATE ---
+const isDebugOpen = ref(true)
+// const isRefreshing = ref(false)
 
 // Create computed property for filtered posts
 const filteredPostsData = computed(() => {
@@ -77,6 +79,29 @@ const filteredPostsData = computed(() => {
 
     return filtered
 })
+
+// --- CLIENT LOGS (For Debug UI) ---
+const clientLogs = ref<{ timestamp: string; message: string; type: 'info' | 'error' | 'warn' }[]>([])
+const addLog = (msg: string, type: 'info' | 'error' | 'warn' = 'info') => {
+    const timestamp = new Date().toLocaleTimeString()
+    clientLogs.value.unshift({ timestamp, message: msg, type })
+    if (clientLogs.value.length > 50) clientLogs.value.pop()
+}
+
+// Sync with global logger if available
+if ((window as any).debugLogs) {
+    let originalLogs = (window as any).debugLogs
+    Object.defineProperty(window, 'debugLogs', {
+        get() { return originalLogs },
+        set(newVal) {
+            if (Array.isArray(newVal)) {
+                clientLogs.value = newVal
+            }
+            originalLogs = newVal
+        }
+    })
+    clientLogs.value = originalLogs
+}
 
 // Local state for compose modal
 const showComposeModal = ref(false)
@@ -129,7 +154,6 @@ const handleLike = async (postId: string) => {
 
 const handleRepost = async (postId: string) => {
     console.log('Reposting:', postId)
-    // TODO: Implement repost functionality
     alert('Repost functionality coming soon!')
 }
 
@@ -156,10 +180,11 @@ const handleShare = (postId: string) => {
     }
 }
 
-// REFACTOR: Watch for network changes using composable value
+// Watch for network changes using composable value
 watch(
     currentNetwork,
     () => {
+        addLog(`Network switched to ${currentNetwork.value}. Refetching posts...`, 'info')
         fetchPosts()
     }
 )
@@ -169,7 +194,7 @@ watch(
     () => identityStore.isAuthenticated,
     (isAuth) => {
         if (isAuth) {
-            // Re-fetch posts when user connects
+            addLog('User connected. Refreshing posts...', 'info')
             fetchPosts()
         }
     }
@@ -181,6 +206,7 @@ onMounted(async () => {
 
     // Initialize posts
     await fetchPosts()
+    addLog('Posts screen mounted', 'info')
 })
 
 onUnmounted(() => {
@@ -193,12 +219,12 @@ onUnmounted(() => {
     <main>
         <Header title="Posts | Remixes" />
 
-        <!-- REFACTOR: Widened UI to max-w-7xl -->
+        <!-- Widened UI to max-w-7xl -->
         <section class="bg-gray-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
                 <div class="flex flex-col gap-8">
 
-                    <!-- REFACTOR: Network Info Section (Replaces Header Text) -->
+                    <!-- Network Info Section -->
                     <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                         <div class="flex items-center gap-4">
                             <div class="p-3 bg-cyan-50 dark:bg-cyan-900/20 rounded-xl border border-cyan-200 dark:border-cyan-800">
@@ -218,16 +244,6 @@ onUnmounted(() => {
 
                         <div class="flex-1 w-full sm:w-auto">
                             <div class="flex flex-col gap-2 text-sm">
-                                <div class="flex items-center justify-between sm:justify-start sm:gap-8">
-                                    <span class="text-slate-500 dark:text-slate-400">Contract ID:</span>
-                                    <a
-                                        :href="`${explorerUrl}/contract/EvO_NEXT_POST_CONTRACT`"
-                                        target="_blank"
-                                        class="text-cyan-600 dark:text-cyan-400 hover:underline font-mono bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded text-xs"
-                                    >
-                                        EvO_NEXT_POST_CONTRACT
-                                    </a>
-                                </div>
                                 <div class="flex items-center justify-between sm:justify-start sm:gap-8">
                                     <span class="text-slate-500 dark:text-slate-400">Total Posts:</span>
                                     <span class="font-bold text-slate-900 dark:text-white">{{ totalPosts }}</span>
@@ -250,7 +266,6 @@ onUnmounted(() => {
                     <div>
                         <div class="border-b-2 border-slate-200 dark:border-slate-700 rounded-t-2xl bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
                             <nav class="-mb-px flex space-x-1 p-2" aria-label="Tabs">
-                                <!-- Active Tab -->
                                 <button
                                     @click="setTab('posts')"
                                     :class="[
@@ -263,7 +278,6 @@ onUnmounted(() => {
                                     Posts
                                 </button>
 
-                                <!-- Remix Tab -->
                                 <button
                                     @click="setTab('remix')"
                                     :class="[
@@ -291,7 +305,7 @@ onUnmounted(() => {
                     <div v-else-if="error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4">
                         <div class="flex items-center gap-3">
                             <svg class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.998-.833-2.732 0L4.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-.833-1.998-.833-2.732 0L4.34 16.5c-.77.833.192 2.5 1.732 3z" />
                             </svg>
                             <p class="text-red-800 dark:text-red-300">
                                 {{ error }}
@@ -309,7 +323,7 @@ onUnmounted(() => {
                     <div v-if="!isLoading || posts.length > 0">
                         <!-- TAB CONTENT: POSTS -->
                         <div v-if="activeTab === 'posts'" class="flex flex-col gap-6">
-                            <!-- REFACTOR: Persistent Input Area (If Authenticated) -->
+                            <!-- Persistent Input Area (If Authenticated) -->
                             <div v-if="isAuthenticated" class="bg-white dark:bg-slate-800 p-4 rounded-2xl flex flex-col gap-4 border-2 border-slate-200 dark:border-slate-700 shadow-xl">
                                 <div class="flex items-start gap-4">
                                     <img
@@ -410,7 +424,7 @@ onUnmounted(() => {
                         <div v-if="activeTab === 'remix'" class="flex flex-col gap-6">
                             <div class="bg-white dark:bg-slate-800 p-12 rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-sm text-center">
                                 <svg class="h-16 w-16 mx-auto text-slate-400 dark:text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10 20l4-16m4 4l4 4-4-4M14 4h6m0 0v6m0 0l4 4m-4-4l4 4" />
                                 </svg>
                                 <h3 class="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">
                                     Remix Feature Coming Soon
@@ -418,14 +432,13 @@ onUnmounted(() => {
                                 <p class="text-slate-600 dark:text-slate-400 mb-6">
                                     The remix feature is under development. Check back soon!
                                 </p>
-                                <!-- REFACTOR: Added Docs Link -->
                                 <a
                                     href="https://docs.evonext.app/remix"
                                     target="_blank"
                                     class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-xl font-medium hover:from-cyan-600 hover:to-cyan-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                                 >
                                     Learn more about Remix
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0 0l4 4m-4-4l4 4" /></svg>
                                 </a>
                             </div>
                         </div>
@@ -449,6 +462,88 @@ onUnmounted(() => {
                         <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">
                             Showing {{ filteredPostsData.length }} of {{ totalPosts }} posts
                         </p>
+                    </div>
+
+                    <!-- DEBUG SECTION -->
+                    <div class="bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden">
+                        <div class="p-4 border-b border-slate-700 flex justify-between items-center cursor-pointer hover:bg-slate-800 transition-colors" @click="isDebugOpen = !isDebugOpen">
+                            <div class="flex items-center gap-2">
+                                <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3, 1.732 3z"/></svg>
+                                <h3 class="text-sm font-bold text-red-400 uppercase tracking-widest">Debug Information</h3>
+                            </div>
+                            <svg class="w-4 h-4 text-slate-400 transition-transform duration-300" :class="{ 'rotate-180': isDebugOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                        <div v-if="isDebugOpen" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 text-xs font-mono">
+                            <!-- Client Logs Section -->
+                            <div class="bg-black/50 p-4 rounded border border-slate-700 md:col-span-2">
+                                <div class="flex justify-between items-center mb-2 border-b border-slate-700 pb-1">
+                                    <p class="font-bold text-slate-300">Client Logs (Live)</p>
+                                    <button @click="clientLogs = []" class="text-cyan-500 hover:text-cyan-400 underline">Clear</button>
+                                </div>
+                                <div class="h-32 overflow-y-auto space-y-1">
+                                    <div v-for="(log, idx) in clientLogs" :key="idx" class="flex gap-2" :class="{
+                                        'text-red-400': log.type === 'error',
+                                        'text-amber-400': log.type === 'warn',
+                                        'text-emerald-400': log.type === 'info'
+                                    }">
+                                        <span class="opacity-50">[{{ log.timestamp }}]</span>
+                                        <span>{{ log.message }}</span>
+                                    </div>
+                                    <div v-if="clientLogs.length === 0" class="text-slate-500 italic">No client logs yet.</div>
+                                </div>
+                            </div>
+
+                            <!-- Contract Stats (New) -->
+                            <div class="bg-black/50 p-4 rounded border border-slate-700 md:col-span-2">
+                                <p class="font-bold text-slate-300 mb-2 border-b border-slate-700 pb-1">Contract Fetch Stats</p>
+                                <ul class="space-y-1 text-slate-400">
+                                    <li class="flex justify-between">
+                                        <span class="opacity-70">Network:</span>
+                                        <span class="text-emerald-400">{{ currentNetwork.toUpperCase() }}</span>
+                                    </li>
+                                    <li class="flex justify-between">
+                                        <span class="opacity-70">Active Contracts:</span>
+                                        <span class="text-white">{{ debugStats.activeContracts.length }}</span>
+                                    </li>
+                                    <li v-for="(count, contract) in debugStats.fetchCounts" :key="contract" class="flex justify-between">
+                                        <span class="opacity-70 truncate max-w-[200px]" :title="contract as string">
+                                            {{ contract === 'AyWK6nDVfb8d1ZmkM5MmZZrThbUyWyso1aMeGuuVSfxf' ? 'YAPPR Contract' : 'EvoNext Contract' }}
+                                        </span>
+                                        <span :class="count > 0 ? 'text-emerald-400' : 'text-red-400'">{{ count }} docs</span>
+                                    </li>
+                                    <li class="flex justify-between">
+                                        <span class="opacity-70">Total Raw Fetched:</span>
+                                        <span class="text-white">
+                                            {{ Object.values(debugStats.fetchCounts).reduce((a: any, b) => a + b, 0) }}
+                                        </span>
+                                    </li>
+                                    <li class="flex justify-between">
+                                        <span class="opacity-70">Duplicates Removed:</span>
+                                        <span :class="debugStats.duplicateCount > 0 ? 'text-amber-400' : 'text-slate-400'">
+                                            {{ debugStats.duplicateCount }}
+                                        </span>
+                                    </li>
+                                    <li class="flex justify-between">
+                                        <span class="opacity-70">Final Merged Count:</span>
+                                        <span class="text-white font-bold">{{ debugStats.mergeCount }}</span>
+                                    </li>
+                                    <li class="flex justify-between">
+                                        <span class="opacity-70">Last Fetch:</span>
+                                        <span class="text-slate-500">{{ debugStats.lastFetchTime }}</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <div class="bg-black/50 p-4 rounded border border-slate-700">
+                                <p class="font-bold text-slate-300 mb-2 border-b border-slate-700 pb-1">Identity Store State</p>
+                                <ul class="space-y-1 text-slate-400">
+                                    <li class="flex justify-between"><span class="opacity-70">Is Connected:</span> <span class="text-emerald-400">{{ identityStore.isAuthenticated }}</span></li>
+                                    <li class="flex justify-between"><span class="opacity-70">Username:</span> <span class="text-white">{{ identityStore.username }}</span></li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
