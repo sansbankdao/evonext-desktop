@@ -175,7 +175,7 @@ src-tauri/
 6. UI updates via wallet store and notifications.
 
 ### 4. Adding a Key to Identity
-1. User goes to screens/Identity/AddKey.vue.
+1. User goes to screens/identity/AddKey.vue.
 2. Selects key type (e.g., Authentication, Voting) via components/addKey/KeyForm.vue.
 2. New key is derived or generated.
 3. Transaction is prepared to add key to Identity contract.

@@ -11,6 +11,10 @@ import Home from '@/screens/Home.vue'
 
 import About from '@/screens/About.vue'
 import Apps from '@/screens/Apps.vue'
+
+import Assets from '@/screens/Assets.vue'
+import AssetsManage from '@/screens/assets/Manage.vue'
+
 import Bootstrap from '@/screens/Bootstrap.vue'
 import Community from '@/screens/Community.vue'
 import Connect from '@/screens/Connect.vue'
@@ -18,10 +22,15 @@ import Disconnect from '@/screens/Disconnect.vue'
 import Explorer from '@/screens/Explorer.vue'
 import Favorites from '@/screens/Favorites.vue'
 
+import Launcher from '@/screens/Launcher.vue'
+import LauncherSimple from '@/screens/launcher/Simple.vue'
+import LauncherProject from '@/screens/launcher/Project.vue'
+import LauncherPlatform from '@/screens/launcher/Platform.vue'
+
 import Identity from '@/screens/Identity.vue'
-import IdentityRegister from '@/screens/Identity/Register.vue'
-import IdentityKeys from '@/screens/Identity/ManageKeys.vue'
-import IdentityAddKey from '@/screens/Identity/AddKey.vue'
+import IdentityRegister from '@/screens/identity/Register.vue'
+import IdentityKeys from '@/screens/identity/ManageKeys.vue'
+import IdentityAddKey from '@/screens/identity/AddKey.vue'
 
 import Posts from '@/screens/Posts.vue'
 import Settings from '@/screens/Settings.vue'
@@ -47,6 +56,14 @@ const routes = [
                 path: 'apps', component: Apps,
                 meta: { requiresPremium: true }
             },
+
+            // Assets
+            { path: 'assets', component: Assets },
+            {
+                path: 'assets/manage', component: AssetsManage,
+                meta: { requiresPremium: true }
+            },
+
             { path: 'bootstrap', component: Bootstrap },
             {
                 path: 'community', component: Community,
@@ -57,14 +74,34 @@ const routes = [
                 path: 'favorites', component: Favorites,
                 meta: { requiresPremium: true }
             },
+
+            // Asset/Token Launcher
+            { path: 'launcher', component: Launcher },
+            { path: 'launcher/simple', component: LauncherSimple },
+            {
+                path: 'launcher/project', component: LauncherProject,
+                meta: { requiresPremium: true }
+            },
+            {
+                path: 'launcher/platform', component: LauncherPlatform,
+                meta: { requiresPremium: true }
+            },
+
+            // Identity
             { path: 'identity', component: Identity },
             { path: 'identity/register', component: IdentityRegister },
             { path: 'identity/:id/keys', component: IdentityKeys, name: 'IdentityKeys' },
             { path: 'identity/:id/keys/add', component: IdentityAddKey, name: 'IdentityAddKey' },
+
+            // Posts
             { path: 'posts', component: Posts },
+
+            // Settings
             { path: 'settings', component: Settings },
             { path: 'stakeline', component: Stakeline },
             { path: 'studio', component: Studio },
+
+            // Wallet
             { path: 'wallet', component: WalletOverview },
             { path: 'wallet/deposit', component: WalletDeposit },
             { path: 'wallet/send', component: WalletSend },
@@ -74,6 +111,8 @@ const routes = [
             },
             { path: 'wallet/asset/:symbol', component: WalletAssetDetails },
             { path: 'wallet/transaction/:id', component: WalletTransactionDetails },
+
+            // Connection
             { path: 'connect', component: Connect },
             { path: 'disconnect', component: Disconnect },
         ]

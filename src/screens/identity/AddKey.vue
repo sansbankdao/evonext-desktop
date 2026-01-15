@@ -1,4 +1,4 @@
-<!-- src/screens/Identity/AddKey.vue -->
+<!-- src/screens/identity/AddKey.vue -->
 <template>
     <main>
         <Header title="Add Identity Key" />
