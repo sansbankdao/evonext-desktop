@@ -147,7 +147,7 @@ export async function fetchPostsFromTauri(
         ownerId?: string
         orderBy?: 'newest' | 'oldest'
         limit?: number
-        contractId: string
+        contractId: string // This is required and must be used
     }
 ): Promise<IPostDocument[]> {
     try {
@@ -165,6 +165,8 @@ export async function fetchPostsFromTauri(
             orderByClause = { $createdAt: 'asc' }
         }
 
+        // Invoke the Tauri backend command
+        // We MUST use the contractId passed in options
         const documents = await invoke<any[]>('get_posts', {
             dataContractId: contractId,
             documentType: 'post',
@@ -176,7 +178,7 @@ export async function fetchPostsFromTauri(
 
         return documents
     } catch (error: any) {
-        console.error('Error fetching posts via Tauri:', error)
+        console.error('[API] Error fetching posts via Tauri:', error)
         throw error
     }
 }

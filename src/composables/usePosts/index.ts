@@ -21,6 +21,7 @@ import {
     EVONEXT_CONTRACT_ID_TESTNET,
     YAPPR_CONTRACT_ID_TESTNET
 } from '@/constants'
+import { getActivePostContracts } from '@/constants'
 
 export function usePosts() {
     const postsStore = usePostsStore()
@@ -93,46 +94,91 @@ export function usePosts() {
         error.value = null
 
         try {
-            console.log(`[usePosts] Fetching posts on network: ${currentNetwork.value}`)
-
-            // 1. Get Contracts to Query
             const network = currentNetwork.value
-            const activeContracts = network === 'testnet'
-                ? [EVONEXT_CONTRACT_ID_TESTNET, YAPPR_CONTRACT_ID_TESTNET]
-                : [EVONEXT_CONTRACT_ID_MAINNET]
 
-            // ... debug stats setup ...
+            // 1. Get Active Contracts (Using centralized helper)
+            // If this fails, we fallback to ensure we don't get stuck
+            let activeContracts: string[] = []
+            try {
+                activeContracts = getActivePostContracts(network)
+            } catch (err) {
+                console.error('[usePosts] getActivePostContracts failed', err)
+                // Fallback
+                if (network === 'testnet') {
+                    activeContracts = [EVONEXT_CONTRACT_ID_TESTNET, YAPPR_CONTRACT_ID_TESTNET]
+                } else {
+                    activeContracts = [EVONEXT_CONTRACT_ID_MAINNET]
+                }
+            }
+
+            if (activeContracts.length === 0) {
+                throw new Error('No active contracts found')
+            }
+
+            console.log(`[usePosts] Fetching on ${network}. Contracts:`, activeContracts)
+
+            // Initialize Debug Stats & Data Storage
+            debugStats.value = {
+                activeContracts,
+                fetchCounts: {},
+                rawData: {},
+                mergeCount: 0,
+                duplicateCount: 0,
+                lastFetchTime: new Date().toISOString()
+            }
 
             let allDocuments: IPostDocument[] = []
             const limit = postsStore.limit || 10
 
-            // 2. Fetch from all active contracts (Main Feed)
+            // 2. Fetch from all active contracts in loop
             for (const contractId of activeContracts) {
                 try {
-                    // Using the first contract as the primary for fetching feed
-                    // (Adjust if you want to merge feeds from multiple active contracts)
                     const docs = await api.fetchPostsFromTauri(network, {
                         ownerId: options?.ownerId || '',
                         orderBy: options?.orderBy as ('newest' | 'oldest'),
                         limit: limit * 2, // Fetch extra to account for deduping
                         contractId
-                    } as any)
+                    })
+
+                    // CRITICAL: Update Debug Stats immediately upon receipt
+                    debugStats.value.fetchCounts[contractId] = docs.length
+                    debugStats.value.rawData[contractId] = JSON.parse(JSON.stringify(docs))
 
                     allDocuments.push(...docs)
                 } catch (contractErr: any) {
                     console.warn(`[usePosts] Failed to fetch from contract ${contractId}:`, contractErr)
+                    debugStats.value.fetchCounts[contractId] = 0
+                    debugStats.value.rawData[contractId] = [{ error: contractErr.message }]
                 }
             }
 
-            // 3. Remove Duplicates
+            // 3. Merge & Sort & Dedupe
+            allDocuments.sort((a, b) => b.createdAt - a.createdAt)
+
             const uniqueMap = new Map(allDocuments.map(doc => [
-                `${doc.$ownerId}-${doc.createdAt}`, // Basic uniqueness key
+                `${doc.$ownerId}-${doc.createdAt}`,
                 doc
             ]))
-            const finalDocuments = Array.from(uniqueMap.values()).slice(0, limit)
+            const uniqueDocuments = Array.from(uniqueMap.values())
 
-            // 4. Identify Reply Context (Requirement 2)
-            // Find all unique replyToPostIds
+            debugStats.value.duplicateCount = allDocuments.length - uniqueDocuments.length
+
+            // 4. Slice to limit
+            const finalDocuments = uniqueDocuments.slice(0, limit)
+            debugStats.value.mergeCount = finalDocuments.length
+
+            // 5. Handle "No Results" scenario
+            if (finalDocuments.length === 0) {
+                console.warn('[usePosts] No documents found from any contract.')
+                postsStore.$patch({
+                    posts: [],
+                    lastFetched: new Date(),
+                    hasNextPage: false
+                })
+                return
+            }
+
+            // 6. Fetch Reply Context (Parent Posts)
             const replyToIds = new Set<string>()
             finalDocuments.forEach(doc => {
                 if (doc.replyToPostId) {
@@ -141,14 +187,15 @@ export function usePosts() {
                 }
             })
 
-            // Fetch missing parent posts
-            // We assume they live in the same primary contract (evonext)
             let parentDocuments: IPostDocument[] = []
             if (replyToIds.size > 0) {
+                // Assuming parents live in the same primary contract
+                // You can refine this to iterate contracts if parents can be in different ones
                 const targetContractId = network === 'testnet' ? EVONEXT_CONTRACT_ID_TESTNET : EVONEXT_CONTRACT_ID_MAINNET
+
                 const idsToFetch = Array.from(replyToIds)
 
-                // Filter out IDs we might already have in finalDocuments to save requests
+                // Filter out IDs we might already have in finalDocuments
                 const existingIds = new Set(finalDocuments.map(d => d.id))
                 const missingIds = idsToFetch.filter(id => !existingIds.has(id))
 
@@ -157,10 +204,11 @@ export function usePosts() {
                 }
             }
 
-            // Combine documents for profile fetching
+            // Combine documents for Identity fetching
+            // We need profiles for both the displayed posts AND the parent posts (context)
             const allDocsToProcess = [...finalDocuments, ...parentDocuments]
 
-            // 5. Fetch Profiles & DPNS for ALL involved owners (Requirement 1)
+            // 7. Fetch Profiles & DPNS for ALL owners involved
             const profiles = new Map<string, any>()
             const dpnsNames = new Map<string, string>()
 
@@ -178,7 +226,7 @@ export function usePosts() {
                 })
             )
 
-            // 6. Transform Parent Posts first (so they exist in the map)
+            // 8. Transform Parent Posts first (build the map)
             const parentPostsMap = new Map<string, IPost>()
             const transformedParents = await transformers.transformPostDocuments(
                 parentDocuments,
@@ -189,18 +237,18 @@ export function usePosts() {
                 if (p.id) parentPostsMap.set(p.id, p)
             })
 
-            // 7. Transform Main Documents
+            // 9. Transform Main Documents (passing parent map)
             const posts = await transformers.transformPostDocuments(
                 finalDocuments as IPostDocument[],
                 profiles,
                 dpnsNames,
-                parentPostsMap // Pass the parents here!
+                parentPostsMap // Pass the context map
             )
 
-            // 8. Inject contractId and update store
+            // 10. Inject contractId and Update Store
             const postsWithSource = posts.map(post => {
                 // Find source doc to get contract ID if missing
-                const sourceDoc = finalDocuments.find(d => d.id === post.id)
+                const sourceDoc = uniqueDocuments.find(d => d.$ownerId === post.ownerId && Math.abs(d.createdAt - post.createdAt) < 2)
                 return {
                     ...post,
                     contractId: sourceDoc?.dataContractId || ''
@@ -212,6 +260,8 @@ export function usePosts() {
                 lastFetched: new Date(),
                 hasNextPage: allDocuments.length > limit
             })
+
+            console.log(`[usePosts] Fetch complete. Raw: ${allDocuments.length}, Unique: ${uniqueDocuments.length}, Final: ${finalDocuments.length}`)
 
         } catch (err: any) {
             error.value = err.message || 'Failed to fetch posts from blockchain'
