@@ -459,14 +459,14 @@ const {
     // Computed
     posts,
     userPosts,
-    totalPosts,
+    // totalPosts,
     hasMore,
     isAuthenticated,
 
     // Actions
     fetchPosts,
     fetchMorePosts,
-    createPost,
+    // createPost,
     likePost,
     bookmarkPost,
     deletePost,
