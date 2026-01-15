@@ -38,12 +38,13 @@ export function usePosts() {
     const sensitiveFilter = ref<filters.SensitiveFilter>('show')
 
     // --- DEBUG STATE ---
-    const debugStats = ref<Record<string, any>>({
-        activeContracts: [],
+    const debugStats = ref({
+        activeContracts: [] as string[],
         fetchCounts: {} as Record<string, number>,
+        rawData: {} as Record<string, any[]>,
         mergeCount: 0,
         duplicateCount: 0,
-        lastFetchTime: null
+        lastFetchTime: null as string | null
     })
 
     // Debounced search
@@ -102,8 +103,9 @@ export function usePosts() {
 
             // 2. Update Debug Stats
             debugStats.value = {
-                activeContracts: activeContracts,
-                fetchCounts: {} as Record<string, number>,
+                activeContracts,
+                fetchCounts: {},
+                rawData: {},
                 mergeCount: 0,
                 duplicateCount: 0,
                 lastFetchTime: new Date().toISOString()
@@ -118,24 +120,27 @@ export function usePosts() {
                     const docs = await api.fetchPostsFromTauri(network, {
                         ownerId: options?.ownerId || '',
                         orderBy: options?.orderBy as ('newest' | 'oldest'),
-                        limit: limit * 2, // Fetch more to fill merge buffer
-                        contractId // Inject contract ID
+                        limit: limit * 2,
+                        contractId
                     } as any)
 
                     debugStats.value.fetchCounts[contractId] = docs.length
+
+                    // Store raw data for debugging
+                    debugStats.value.rawData[contractId] = JSON.parse(JSON.stringify(docs))
+
                     allDocuments.push(...docs)
-                } catch (contractErr) {
+                } catch (contractErr: any) {
                     console.warn(`[usePosts] Failed to fetch from contract ${contractId}:`, contractErr)
                     debugStats.value.fetchCounts[contractId] = 0
+                    debugStats.value.rawData[contractId] = [{ error: contractErr.message }]
                 }
             }
 
             // 4. Merge & Sort
-            // Sort by createdAt descending (newest first)
             allDocuments.sort((a, b) => b.createdAt - a.createdAt)
 
             // 5. Remove Duplicates
-            // Using Map key `${ownerId}-${createdAt}` to ensure uniqueness
             const uniqueMap = new Map(allDocuments.map(doc => [
                 `${doc.$ownerId}-${doc.createdAt}`,
                 doc
@@ -186,6 +191,8 @@ export function usePosts() {
                 hasNextPage: allDocuments.length > limit
             })
 
+            console.log(`[usePosts] Fetch complete. Raw: ${allDocuments.length}, Unique: ${uniqueDocuments.length}, Final: ${finalDocuments.length}`)
+
         } catch (err: any) {
             error.value = err.message || 'Failed to fetch posts from blockchain'
             console.error('usePosts: fetch error', err)
@@ -230,7 +237,7 @@ export function usePosts() {
         mentionIds?: string[]
         replyToPostId?: string[]
         hashtag?: string
-        remix?: string
+        remix?: string | undefined
     }): Promise<IPost | null> {
         if (!isAuthenticated.value) {
             error.value = 'You must be connected to create a post'

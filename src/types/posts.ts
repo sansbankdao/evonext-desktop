@@ -47,7 +47,7 @@ export interface IPostDocument {
     content: string;
     isSensitive: boolean;
     language: string;
-    remix?: string;
+    remix?: string | undefined;
     hashtag?: string;
     mediaUrl?: string[];
     mentionIds?: string[];
@@ -58,6 +58,7 @@ export interface IPostDocument {
 export interface IPost {
     id?: string; // Optional for optimistic creation
     contractId: string;
+    documentId?: string | undefined;
     ownerId: string;
     author: IUser;
     content: string;
@@ -107,7 +108,7 @@ export interface IUpdatePostParams {
     content?: string;
     isSensitive?: boolean;
     language?: string;
-    remix?: string;
+    remix?: string | undefined;
     hashtag?: string;
     mediaUrl?: string[];
     mentionIds?: string[];
