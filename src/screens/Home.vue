@@ -162,7 +162,7 @@ import { usePosts } from '@/composables/usePosts'
 import { useNetwork } from '@/composables/useNetwork'
 
 import Header from '@/components/Header.vue'
-import PostItem from '@/components/PostItem.vue'
+import PostItem from '@/components/posts/Item.vue'
 import TrendingTopics from '@/components/home/TrendingTopics.vue'
 import ContactRequests from '@/components/home/ContactRequests.vue'
 import PendingMessages from '@/components/home/PendingMessages.vue'

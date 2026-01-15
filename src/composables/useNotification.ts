@@ -13,7 +13,6 @@ export interface Notification {
     }
 }
 
-// Singleton notifications list so all useNotification() calls share the same state
 const notifications = reactive<Notification[]>([])
 let nextId = 1
 
@@ -28,13 +27,17 @@ export function useNotification() {
         }
     ) => {
         const id = nextId++
+
+        // Use spread operator to conditionally add optional properties
+        // This satisfies 'exactOptionalPropertyTypes: true'
         const notification: Notification = {
             id,
             type,
             message,
             duration,
             isDismissible: options?.isDismissible ?? true,
-            action: options?.action
+            // ...(duration > 0 ? { timeout: undefined } : {}),
+            ...(options?.action ? { action: options.action } : {})
         }
 
         notifications.push(notification)
@@ -42,6 +45,7 @@ export function useNotification() {
         if (duration > 0) {
             notification.timeout = setTimeout(() => dismiss(id), duration)
         }
+
         return id
     }
 
