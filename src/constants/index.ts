@@ -59,3 +59,16 @@ export function getAllActiveTokens(network: string): string[] {
         ? [DUSD_CONTRACT_ID_TESTNET, SANS_CONTRACT_ID_TESTNET]
         : [DUSD_CONTRACT_ID_MAINNET, SANS_CONTRACT_ID_MAINNET]
 }
+
+/**
+ * Returns the list of active Post contracts for the specified network.
+ * Testnet uses both EVONEXT and YAPPR.
+ * Mainnet uses only EVONEXT.
+ */
+export function getActivePostContracts(network: string): string[] {
+    const n = network.toLowerCase()
+    if (n === 'testnet') {
+        return [EVONEXT_CONTRACT_ID_TESTNET, YAPPR_CONTRACT_ID_TESTNET]
+    }
+    return [EVONEXT_CONTRACT_ID_MAINNET]
+}

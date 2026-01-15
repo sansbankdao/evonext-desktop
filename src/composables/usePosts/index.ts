@@ -16,6 +16,11 @@ import type {
     IPostDocument
 } from '@/types/posts'
 import type { FilterOptions } from './filters'
+import {
+    getActivePostContracts,
+    EVONEXT_CONTRACT_ID_MAINNET,
+    EVONEXT_CONTRACT_ID_TESTNET
+} from '@/constants'
 
 export function usePosts() {
     const postsStore = usePostsStore()
@@ -86,14 +91,49 @@ export function usePosts() {
         error.value = null
 
         try {
-            // Log the network being used to verify it's 'mainnet' and not 'testnet'
             console.log(`[usePosts] Fetching posts on network: ${currentNetwork.value}`)
 
-            const documents = await api.fetchPostsFromTauri(currentNetwork.value, {
-                ownerId: options?.ownerId || '',
-                orderBy: options?.orderBy as ('newest' | 'oldest'),
-                limit: postsStore.limit || 10
+            // Get the list of contracts to query (e.g., [EvoNext, YAPPR] for testnet)
+            const activeContracts = getActivePostContracts(currentNetwork.value)
+
+            let allDocuments: IPostDocument[] = []
+
+            // 1. Fetch documents from ALL active contracts
+            // We assume api.fetchPostsFromTauri can accept a contractId in options,
+            // or we loop to fetch distinct sets.
+            // (Note: If fetchPostsFromTauri doesn't accept contractId, it might fetch everything and we filter,
+            // but passing it is more efficient if supported).
+            const limit = postsStore.limit || 10
+
+            for (const contractId of activeContracts) {
+                try {
+                    // Fetch a larger set from each to allow for proper sorting/merging
+                    const docs = await api.fetchPostsFromTauri(currentNetwork.value, {
+                        ownerId: options?.ownerId || '',
+                        orderBy: options?.orderBy as ('newest' | 'oldest'),
+                        limit: limit,
+                        // Pass contractId to backend if supported (optional optimization)
+                        contractId
+                    } as any)
+
+                    allDocuments.push(...docs)
+                } catch (contractErr) {
+                    console.warn(`[usePosts] Failed to fetch from contract ${contractId}:`, contractErr)
+                    // Continue fetching from other contracts even if one fails
+                }
+            }
+
+            // 2. Merge and Sort
+            // We assume you want a global feed sorted by newest, regardless of source
+            allDocuments.sort((a, b) => {
+                // Sort by createdAt descending (newest first)
+                return b.createdAt - a.createdAt
             })
+
+            // 3. Slice to the requested limit
+            // If we fetched 10 from EvoNext and 10 from YAPPR, we have 20.
+            // We take the top 10 newest overall.
+            const finalDocuments = allDocuments.slice(0, limit)
 
             // Reset offset for new fetch
             postsStore.$patch({ offset: 0 })
@@ -102,7 +142,7 @@ export function usePosts() {
             const profiles = new Map<string, any>()
             const dpnsNames = new Map<string, string>()
 
-            const ownerIds = [...new Set(documents.map(doc => doc.ownerId || ''))].filter(Boolean)
+            const ownerIds = [...new Set(finalDocuments.map(doc => doc.ownerId || ''))].filter(Boolean)
             await Promise.all(
                 ownerIds.map(async (ownerId) => {
                     if (!ownerId) return
@@ -115,12 +155,19 @@ export function usePosts() {
                 })
             )
 
-            const posts = await transformers.transformPostDocuments(documents as IPostDocument[], profiles, dpnsNames)
+            const posts = await transformers.transformPostDocuments(finalDocuments as IPostDocument[], profiles, dpnsNames)
+
+            // 4. Inject contractId into Post objects for the UI
+            // (Ensure contractId is present on IPost interface)
+            const postsWithSource = posts.map(post => ({
+                ...post,
+                contractId: finalDocuments.find(doc => doc.$ownerId === post.ownerId && doc.createdAt === post.createdAt)?.dataContractId || ''
+            }))
 
             postsStore.$patch({
-                posts,
+                posts: postsWithSource,
                 lastFetched: new Date(),
-                hasNextPage: documents.length === postsStore.limit
+                hasNextPage: allDocuments.length > limit // If we have leftovers, there might be more
             })
 
         } catch (err: any) {
@@ -180,7 +227,13 @@ export function usePosts() {
         const d = new Date()
         const now = d.getTime() / 1000
 
+        // Determine the contract ID for the new post (Default to Primary)
+        const targetContractId = currentNetwork.value === 'testnet'
+            ? EVONEXT_CONTRACT_ID_TESTNET
+            : EVONEXT_CONTRACT_ID_MAINNET
+
         const optimisticPost: IPost = {
+            contractId: targetContractId,
             ownerId: currentUserId.value!,
             author: {
                 username: identityStore.identity?.username || 'User',
@@ -202,7 +255,7 @@ export function usePosts() {
             hashtag: options?.hashtag,
             mediaUrls: options?.mediaUrl,
             mentionIds: options?.mentionIds,
-            replyToPostId: options?.replyToPostId?.[0]
+            replyToPostId: options?.replyToPostId?.[0],
         }
 
         // Optimistic update
@@ -224,6 +277,10 @@ export function usePosts() {
 
             if (createdPost) {
                 // Replace optimistic post with real post
+                // Ensure the API returned post has the contractId or inherit it
+                if (!createdPost.contractId) {
+                    createdPost.contractId = targetContractId
+                }
                 postsStore.upsertPost(createdPost)
                 return createdPost
             }
