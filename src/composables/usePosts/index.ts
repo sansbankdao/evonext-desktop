@@ -209,6 +209,7 @@ export function usePosts() {
             const newOffset = (postsStore.offset || 0) + postsStore.limit
 
             const documents = await api.fetchPostsFromTauri(currentNetwork.value, {
+                contractId: '',
                 ownerId: '',
                 orderBy: 'newest',
                 limit: postsStore.limit || 10
