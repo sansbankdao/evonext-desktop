@@ -7,7 +7,6 @@
         ]"
     >
         <!-- REPLY CONTEXT (Parent Post) -->
-        <!-- Displays the post being replied to for context -->
         <div v-if="post.quotedPost" class="mb-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
             <div class="flex items-center gap-2 mb-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
                 <span class="text-slate-400">Replying to</span>
@@ -57,9 +56,16 @@
                 </div>
 
                 <div class="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
-                    <span class="truncate hover:underline cursor-pointer">
+                    <!-- CLICKABLE USERNAME -->
+                    <a
+                        :href="getExplorerUrl(post.ownerId)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="truncate hover:underline hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                        title="View on Explorer"
+                    >
                         {{ post.author.username }}
-                    </span>
+                    </a>
                     <span>·</span>
                     <span>{{ timeAgo }}</span>
                 </div>
@@ -254,6 +260,11 @@ const handleImageError = (event: Event) => {
     const target = event.target as HTMLImageElement
     // Generic fallback placeholder
     target.src = 'https://images.unsplash.com/photo-1614680376593-902f74cf0d41?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+}
+
+const getExplorerUrl = (ownerId: string): string => {
+    // Uses the Identity ID (ownerId) to construct the link
+    return `https://platform-explorer.com/identity/${ownerId}`
 }
 
 // Actions

@@ -32,15 +32,15 @@ interface ProfileDocument {
     avatarFingerprint?: string
 }
 
-interface DPNSDocument {
-    label?: string
-    normalizedLabel?: string
-    normalizedParentDomainName?: string
-    records?: {
-        dashUniqueIdentityId?: string
-        dashAliasIdentityId?: string
-    }
-}
+// interface DPNSDocument {
+//     label?: string
+//     normalizedLabel?: string
+//     normalizedParentDomainName?: string
+//     records?: {
+//         dashUniqueIdentityId?: string
+//         dashAliasIdentityId?: string
+//     }
+// }
 
 /**
  * Make a request to the DAPI endpoint
@@ -78,16 +78,22 @@ async function makeDAPIRequest<T>(method: string, params: any[], targetNetwork: 
  */
 export async function fetchUserProfile(ownerId: string, networkOverride?: string): Promise<ProfileDocument | null> {
     try {
+        // DEBUG: Log Input
+        console.log('[API] fetchUserProfile START', { ownerId, networkOverride })
+
         const { network } = useNetwork()
         const targetNetwork = networkOverride || network.value
 
-        // Use getContractId helper if available, otherwise fallback
-        // Assuming 'dashpay' is a valid key for your constants
+        // Get DashPay Contract ID
         const contractId = getContractId('dashpay', targetNetwork)
+        console.log('[API] Fetching Profile from Contract:', contractId, 'for Owner:', ownerId)
 
-        const profiles = await invoke<ProfileDocument[]>('get_posts', {
+        // Invoke Tauri Command
+        // We use 'get_posts' which maps to client.get_documents in Rust
+        // We SPECIFICALLY ask for 'documentType: 'profile''
+        const profiles = await invoke<any[]>('get_posts', {
             dataContractId: contractId,
-            documentType: 'profile',
+            documentType: 'profile', // <--- CRITICAL: Filters for Profiles only
             whereClause: {
                 $ownerId: ownerId
             },
@@ -96,9 +102,18 @@ export async function fetchUserProfile(ownerId: string, networkOverride?: string
             network: targetNetwork
         })
 
-        return profiles.length > 0 ? profiles[0]! : null
-    } catch (error) {
-        console.warn(`Failed to fetch profile for ${ownerId}:`, error)
+        if (profiles && profiles.length > 0) {
+            const profile = profiles[0]
+            // DEBUG: Log Success
+            console.log('[API] fetchUserProfile SUCCESS', profile)
+            return profile
+        }
+
+        console.log('[API] fetchUserProfile EMPTY RESULT')
+        return null
+    } catch (error: any) {
+        // Catch specific errors to prevent hanging
+        console.warn('[API] fetchUserProfile ERROR', error)
         return null
     }
 }
@@ -109,12 +124,15 @@ export async function fetchUserProfile(ownerId: string, networkOverride?: string
  */
 export async function fetchDPNSName(ownerId: string, networkOverride?: string): Promise<string | null> {
     try {
+        // DEBUG: Log Input
+        console.log('[API] fetchDPNSName START', { ownerId })
+
         const { network } = useNetwork()
         const targetNetwork = networkOverride || network.value
 
         const contractId = getContractId('dpns', targetNetwork)
 
-        const dpnsRecords = await invoke<DPNSDocument[]>('get_posts', {
+        const dpnsRecords = await invoke<any[]>('get_posts', {
             dataContractId: contractId,
             documentType: 'domain',
             whereClause: {
@@ -125,12 +143,14 @@ export async function fetchDPNSName(ownerId: string, networkOverride?: string): 
             network: targetNetwork
         })
 
-        if (dpnsRecords.length > 0) {
-            return dpnsRecords[0]?.label || dpnsRecords[0]?.normalizedLabel || null
+        if (dpnsRecords && dpnsRecords.length > 0) {
+            const name = dpnsRecords[0]?.label || dpnsRecords[0]?.normalizedLabel || null
+            console.log('[API] fetchDPNSName SUCCESS', name)
+            return name
         }
         return null
-    } catch (error) {
-        console.warn(`Failed to fetch DPNS name for ${ownerId}:`, error)
+    } catch (error: any) {
+        console.warn('[API] fetchDPNSName ERROR', error)
         return null
     }
 }

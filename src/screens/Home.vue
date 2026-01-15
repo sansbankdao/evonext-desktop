@@ -1,163 +1,155 @@
 <!-- src/screens/Home.vue -->
 <template>
-    <main class="">
+    <main class="min-h-screen bg-slate-50 dark:bg-slate-950 pb-12">
         <Header title="Maīson Ξvolution" />
 
-        <!-- Balance Card & Actions -->
-        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <div class="lg:col-span-2 bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                <div class="flex justify-between items-start">
-                    <div class="flex-1">
-                        <p class="text-slate-600 dark:text-slate-400 text-sm">
-                            Total Balance
-                        </p>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+            <!-- Top Section: Balance & Assets -->
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <div class="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+                    <div class="flex flex-col md:flex-row justify-between gap-6 relative z-10">
+                        <div class="flex-1">
+                            <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">
+                                Total Balance
+                            </p>
 
-                        <p class="text-4xl font-bold text-slate-900 dark:text-slate-100 mt-1">
-                            {{ formatCurrency(totalBalance.usd) }}
-                        </p>
+                            <div class="flex items-baseline gap-2">
+                                <p class="text-4xl font-black text-slate-900 dark:text-white">
+                                    {{ formatCurrency(totalBalance.usd) }}
+                                </p>
+                            </div>
 
-                        <p class="text-xl text-slate-700 dark:text-slate-300 font-mono">
-                            {{ totalBalance.dash.toLocaleString(undefined, { maximumFractionDigits: 6 }) }} DASH
-                        </p>
+                            <p class="text-lg font-medium text-slate-500 dark:text-slate-400">
+                                {{ totalBalance.dash.toLocaleString(undefined, { maximumFractionDigits: 6 }) }} DASH
+                            </p>
 
-                        <p class="text-sm text-slate-600 dark:text-slate-400 font-mono">
-                            {{ totalBalance.credits.toLocaleString() }} credits
-                        </p>
+                            <p class="text-xs font-mono text-slate-400 mt-1">{{ totalBalance.credits.toLocaleString() }} credits</p>
+                        </div>
 
-                        <div class="mt-2 flex items-center gap-1">
-                            <svg class="w-4 h-4" :class="systemStore.isPricePositive ? 'text-emerald-500 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path v-show="systemStore.isPricePositive" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4 10-10" />
-                                <path v-show="!systemStore.isPricePositive" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l-4 4 10-10" />
-                            </svg>
+                        <div class="flex-1 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800 md:pl-6 pt-4 md:pt-0">
+                            <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">
+                                My Tokens
+                            </p>
 
-                            <span class="text-sm" :class="systemStore.isPricePositive ? 'text-emerald-500 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'">
-                                {{ systemStore.priceChange24h > 0 ? '+' : '' }}{{ systemStore.priceChange24h.toFixed(2) }}% vs last 24h
-                            </span>
+                            <div class="flex flex-wrap gap-3">
+                                <div v-for="asset in walletStore.assets.slice(0, 4)" :key="asset.symbol"
+                                    class="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 min-w-[100px]">
+                                    <div class="w-8 h-8 rounded-full bg-white dark:bg-slate-700 flex items-center justify-center">
+                                        <img v-if="getIconSrc(asset.symbol)" :src="getIconSrc(asset.symbol) as string" class="w-5 h-5" />
+                                        <span v-else class="text-sm font-bold uppercase">
+                                            {{ asset.symbol[0] }}
+                                        </span>
+                                    </div>
+
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-black text-slate-900 dark:text-white truncate">
+                                            {{ getNormalizedBalance(asset) }}
+                                        </p>
+
+                                        <p class="text-xs font-bold text-slate-500 uppercase">
+                                            {{ asset.symbol }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center text-center text-white border border-slate-800 transition-transform">
+                    <h3 class="text-xl font-bold mb-1">Collectibles</h3>
+                    <button class="mt-4 w-full py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold transition-all">Coming Soon</button>
+                </div>
+            </section>
+
+            <!-- Feed Section -->
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 flex flex-col gap-6">
+
+                    <!-- Post Input Card -->
+                    <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div class="flex items-start gap-4">
+                            <img :src="identityStore.identity?.avatarUrl ?? getFallbackAvatar(identityStore.username as string)" class="size-12 rounded-2xl object-cover bg-slate-100" />
+                            <div class="flex-1">
+                                <textarea v-model="newPostContent" rows="3" class="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-2xl p-4 text-slate-900 dark:text-white placeholder-slate-500 resize-none" placeholder="What's on your mind?"></textarea>
+                                <div class="flex justify-between items-center mt-4">
+                                    <span class="text-sm text-slate-400 font-bold uppercase tracking-widest pl-2">Post cost: ~1,000 credits</span>
+                                    <button @click="handleQuickPost" :disabled="!isAuthenticated || !newPostContent.trim() || isSubmitting" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-8 py-2 rounded-xl transition-all disabled:opacity-30">
+                                        {{ isSubmitting ? 'Posting...' : 'Post' }}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-full text-sm border border-slate-200 dark:border-slate-600">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400"></span>
-
-                        <span class="text-slate-700 dark:text-slate-300">
-                            Dash Platform
-                        </span>
+                    <!-- Social Feed Header -->
+                    <div class="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
+                                    <div class="w-2 h-2 rounded-full bg-emerald-500" :class="posts.isLoading.value ? 'animate-pulse' : ''"></div>
+                                </div>
+                                <h2 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Social Feed</h2>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <button @click="refreshFeed" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-cyan-500 transition-colors">
+                                    <svg class="w-5 h-5" :class="{'animate-spin': posts.isLoading.value}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                                <button @click="showDebug = !showDebug" class="text-sm font-bold text-slate-400 uppercase">Debug</button>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="bg-white dark:bg-slate-800 p-6 rounded-xl flex flex-col justify-center items-center text-center border border-slate-200 dark:border-slate-700 shadow-sm">
-                <p class="text-3xl font-semibold text-slate-900 dark:text-slate-100">
-                    Collectibles
-                </p>
+                    <!-- Post List rendering -->
+                    <div v-if="posts.isLoading.value && posts.posts.value.length === 0" class="space-y-6">
+                        <!-- Skeleton Loader -->
+                        <div v-for="i in 3" :key="'skeleton-' + i" class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 animate-pulse">
+                            <div class="flex gap-4">
+                                <div class="size-12 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+                                <div class="flex-1 space-y-3 pt-2">
+                                    <div class="h-3 bg-slate-200 dark:bg-slate-800 rounded-full w-1/4"></div>
+                                    <div class="h-3 bg-slate-200 dark:bg-slate-800 rounded-full w-full"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                <p class="text-xs text-slate-600 dark:text-slate-400 mt-1 uppercase tracking-widest">
-                    unique digital assets
-                </p>
-
-                <button class="mt-4 bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100 font-semibold py-2 px-4 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm tracking-wide border border-slate-200 dark:border-slate-600">
-                    Open My Collection
-                </button>
-            </div>
-        </section>
-
-        <!-- Assets & Transactions -->
-        <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Main Content Feed (2/3 width on large screens) -->
-            <div class="lg:col-span-2 flex flex-col gap-6">
-                <!-- Create Post -->
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                    <div class="flex items-start gap-4">
-                        <img
-                            :src="identityStore.identity?.avatarUrl || getFallbackAvatar(identityStore.username as string)"
-                            alt="Your Avatar"
-                            class="size-12 rounded-full"
+                    <div v-else-if="posts.posts.value.length > 0" class="flex flex-col gap-6">
+                        <PostItem
+                            v-for="post in posts.posts.value.slice(0, 5)"
+                            :key="post.id || `${post.ownerId}-${post.createdAt}`"
+                            :post="post"
+                            @like="handleLike"
+                            @repost="handleRepost"
+                            @bookmark="handleBookmark"
+                            @share="handleShare"
                         />
-
-                        <textarea
-                            v-model="newPostContent"
-                            class="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg p-3 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 focus:ring-2 focus:ring-sky-400 dark:focus:ring-sky-400 focus:border-sky-400 dark:focus:border-sky-400 transition"
-                            placeholder="What's on your mind?"
-                        >
-                        </textarea>
                     </div>
 
-                    <div class="flex justify-end items-center mt-4">
-                        <button
-                            @click="handleQuickPost"
-                            :disabled="!isAuthenticated || !newPostContent.trim()"
-                            class="bg-sky-500 hover:bg-sky-600 text-white font-semibold px-6 py-2 rounded-full transition"
-                        >
-                            Post
-                        </button>
+                    <div v-else-if="!posts.isLoading.value" class="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800">
+                        <h3 class="font-bold text-slate-900 dark:text-white">Empty Feed</h3>
+                        <p class="text-slate-500 text-xs uppercase mt-1">No posts found on Testnet</p>
+                        <button @click="refreshFeed" class="mt-4 text-cyan-500 text-sm font-bold underline">Try Refreshing</button>
                     </div>
                 </div>
 
-                <!-- Fresh Posts Title -->
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">
-                        Fresh Posts
-                    </h2>
-                    <span class="text-xs text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
-                        {{ currentNetwork.toUpperCase() }}
-                    </span>
+                <!-- Sidebar -->
+                <div class="flex flex-col gap-8">
+                    <PendingMessages />
+                    <ContactRequests />
+                    <TrendingTopics />
                 </div>
-
-                <!-- Post Items -->
-                <div v-if="posts.isLoading" class="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-slate-400">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-400 mb-4"></div>
-                    <p>Loading posts...</p>
-                </div>
-
-                <div v-else-if="posts.error" class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 text-sm text-red-800 dark:text-red-300">
-                    <p class="font-semibold mb-2">Error Loading Posts</p>
-                    <p class="mb-4">{{ posts.error }}</p>
-                    <button @click="handlePostRefresh" class="ml-2 underline hover:opacity-80">Retry</button>
-                </div>
-
-                <div v-else-if="recentPosts.length === 0" class="text-center py-8 text-slate-500 dark:text-slate-400">
-                    <p>No posts found on {{ currentNetwork.toUpperCase() }}.</p>
-                    <p v-if="isAuthenticated" class="text-sm mt-2">Be the first to post!</p>
-                </div>
-
-                <div v-else class="flex flex-col gap-6">
-                    <PostItem
-                        v-for="post in recentPosts"
-                        :key="post.id || post.ownerId + '-' + post.createdAt"
-                        :post="post"
-                        @like="handleLike"
-                        @repost="handleRepost"
-                        @bookmark="handleBookmark"
-                        @share="handleShare"
-                    />
-                </div>
-
-                <!-- <div v-if="hasMore" class="text-center pt-4">
-                    <button
-                        @click="fetchMore"
-                        :disabled="posts.isLoading.value"
-                        class="text-sky-500 hover:text-sky-600 dark:text-sky-400 dark:hover:text-sky-300 font-medium transition"
-                    >
-                        Load More Posts
-                    </button>
-                </div> -->
-            </div>
-
-            <!-- Sidebar (1/3 width on large screens) -->
-            <div class="lg:col-span-1 flex flex-col gap-6">
-                <PendingMessages />
-                <ContactRequests />
-                <TrendingTopics />
-            </div>
-        </section>
+            </section>
+        </div>
     </main>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-// import { useRouter } from 'vue-router'
 import { useIdentityStore } from '@/stores/identity'
 import { useSystemStore } from '@/stores/system'
+import { useWalletStore } from '@/stores/wallet'
 import { usePosts } from '@/composables/usePosts'
 import { useNetwork } from '@/composables/useNetwork'
 
@@ -169,118 +161,91 @@ import PendingMessages from '@/components/home/PendingMessages.vue'
 
 const identityStore = useIdentityStore()
 const systemStore = useSystemStore()
-// const router = useRouter()
-
-// Initialize Posts Composable
-const postsComposable = usePosts()
+const walletStore = useWalletStore()
 const { network: currentNetwork } = useNetwork()
-
-const posts = postsComposable
+const posts = usePosts()
 
 const newPostContent = ref('')
-
-// Get the most recent 3 posts
-const recentPosts = computed(() => {
-    return posts.posts.value.slice(0, 3)
-})
+const showDebug = ref(false)
+const isSubmitting = ref(false)
 
 const isAuthenticated = computed(() => identityStore.isAuthenticated)
 
 const totalBalance = computed(() => {
     if (isAuthenticated.value && identityStore.balance) {
-        // The store returns CREDITS
-        const rawBalance = parseInt(String(identityStore.balance), 10)
-
-        const credits = rawBalance
-
-        // 1,000 Credits = 1 Duff
-        const duffs = rawBalance / 1000
-
-        // 100,000,000 Duffs = 1 DASH
-        const dash = duffs / 100000000
-
-        const usd = dash * systemStore.currentDashPrice
-
-        return { dash, usd, credits, duffs }
+        const raw = Number(identityStore.balance)
+        const dash = (raw / 1000) / 100000000
+        return { dash, usd: dash * (systemStore.currentDashPrice || 0), credits: raw }
     }
-    return { dash: 0.00, usd: 0.00, credits: 0, duffs: 0 }
+    return { dash: 0, usd: 0, credits: 0 }
 })
 
-const formatCurrency = (value: number) => {
-    if (typeof value !== 'number') return '$0.00'
-
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    }).format(value)
-}
-
-// Helper to get a fallback avatar (Gravatar) if no avatarUrl is available
-const getFallbackAvatar = (username: string | undefined) => {
-    const name = username || 'Me'
-    // return `https://www.gravatar.com/avatar/${encodeURIComponent(name)}?s=200&d=404&rating=g`
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`
-}
-
-const handlePostRefresh = async () => {
+/**
+ * FIXED: Removed query parameters to match the working call in Posts.vue
+ */
+const refreshFeed = async () => {
     try {
-        await postsComposable.fetchPosts({ orderBy: 'newest', limit: 10 })
-    } catch (err: unknown) {
-        console.error('Failed to refresh posts:', err)
+        // Calling fetchPosts WITHOUT arguments ensures it uses the same
+        // indexing/ordering as the main Posts page.
+        await posts.fetchPosts()
+    } catch (e) {
+        console.error("Home Feed Refresh Error:", e)
     }
 }
+
+const getNormalizedBalance = (asset: any) => {
+    const raw = Number(asset.balance) || 0
+    const divisor = asset.symbol.toUpperCase().includes('USD') ? 100 : 100000000
+    return (raw / divisor).toLocaleString(undefined, { maximumFractionDigits: 2 })
+}
+
+const getIconSrc = (symbol: string) => {
+    const s = symbol.toLowerCase().replace(/^t/, '')
+    const supported = ['dash', 'dusd', 'sans']
+    return supported.includes(s) ? `/icons/${s}.svg` : null
+}
+
+const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val || 0).replace('$', '') + ' USD'
+}
+
+const getFallbackAvatar = (name: string | undefined): string =>
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'Me')}&background=random`
 
 const handleQuickPost = async () => {
-    if (!newPostContent.value.trim()) return
-
+    if (!newPostContent.value.trim() || isSubmitting.value) return
+    isSubmitting.value = true
     try {
-        await postsComposable.createPost(newPostContent.value.trim())
+        await posts.createPost(newPostContent.value.trim())
         newPostContent.value = ''
-    } catch (err: unknown) {
-        console.error('Failed to create post:', err)
-        alert('Failed to post: ' + (err instanceof Error ? err.message : 'Unknown error'))
+        await Promise.all([
+            identityStore.fetchBalance(),
+            refreshFeed()
+        ])
+    } catch (e) {
+        console.error('Post failed', e)
+    } finally {
+        isSubmitting.value = false
     }
 }
 
-const handleLike = async (postId: string) => {
-    await postsComposable.likePost(postId)
-}
-
-const handleRepost = (postId: string) => {
-    console.log('Reposting:', postId)
-}
-
-const handleBookmark = async (postId: string) => {
-    await postsComposable.bookmarkPost(postId)
-}
-
-const handleShare = (postId: string) => {
-    const post = postsComposable.getPostById(postId)
-    const shareText = post
-        ? `Check out this post by ${post.author.displayName}: ${post.content.substring(0, 100)}...`
-        : 'Check out this post on EvoNext!'
-
-    if (navigator.share) {
-        navigator.share({
-            title: 'EvoNext Post',
-            text: shareText,
-            url: `https://app.evonext.app/posts/${postId}`
-        }).catch(console.error)
-    } else {
-        navigator.clipboard.writeText(`https://app.evonext.app/posts/${postId}`)
-            .then(() => alert('Post link copied to clipboard!'))
-            .catch(console.error)
-    }
+const handleLike = (id: string) => posts.likePost(id)
+const handleRepost = (id: string) => console.log('Repost', id)
+const handleBookmark = (id: string) => posts.bookmarkPost(id)
+const handleShare = (id: string) => {
+    const url = `https://app.evonext.app/posts/${id}`
+    if (navigator.share) navigator.share({ url })
+    else navigator.clipboard.writeText(url).then(() => alert('Copied'))
 }
 
 onMounted(async () => {
-    if (isAuthenticated.value) {
-        if (!identityStore.balance) {
-            identityStore.fetchBalance()
-        }
-    }
+    // 1. Fetch Posts immediately using the default call
+    refreshFeed()
 
-    // Fetch Fresh Posts
-    await postsComposable.fetchPosts({ orderBy: 'newest', limit: 10 })
+    // 2. Load balance logic
+    if (isAuthenticated.value) {
+        if (!identityStore.balance) identityStore.fetchBalance()
+        await walletStore.refreshBalances(currentNetwork.value)
+    }
 })
 </script>
