@@ -84,6 +84,19 @@ const routes = [
 const router = createRouter({
     history: createWebHashHistory(),
     routes,
+    /**
+     * Scroll behavior configuration.
+     * - returning `savedPosition` handles the Back/Forward button behavior.
+     * - returning `{ top: 0, left: 0 }` ensures the window scrolls to the top
+     *   on standard navigation, preventing the "black screen" issue in Tauri.
+     */
+    scrollBehavior(_to, _from, savedPosition) {
+        if (savedPosition) {
+            return savedPosition
+        } else {
+            return { top: 0, left: 0 }
+        }
+    },
 })
 
 // Add RouteMeta type augmentation
