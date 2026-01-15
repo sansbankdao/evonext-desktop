@@ -29,14 +29,24 @@ pub fn setup_menus(app: &App) -> tauri::Result<()> {
         .item(&check_privacy_item)
         .build()?;
 
+    let tools_menu = SubmenuBuilder::new(app_handle, "Tools")
+        .text("launcher", "Token Launcher")
+        .text("assets", "Assets Manager")
+        .text("studio", "Mini App Studio")
+        .build()?;
+
     let help_menu = SubmenuBuilder::new(app_handle, "Help")
         .text("bootstrap", "Bootstrap Campaign")
-        .text("studio", "Mini App Studio")
         .text("about", "About")
         .build()?;
 
     let app_menu = MenuBuilder::new(app_handle)
-        .items(&[&identities_menu, &settings_menu, &help_menu])
+        .items(&[
+            &identities_menu,
+            &settings_menu,
+            &tools_menu,
+            &help_menu
+        ])
         .build()?;
 
     app_handle.set_menu(app_menu)?;
@@ -82,8 +92,14 @@ pub fn handle_menu_event(app: &AppHandle<Wry>, event: tauri::menu::MenuEvent) {
             "about" => {
                 window.emit("navigate", "/about").unwrap();
             }
+            "assets" => {
+                window.emit("navigate", "/assets").unwrap();
+            }
             "bootstrap" => {
                 window.emit("navigate", "/bootstrap").unwrap();
+            }
+            "launcher" => {
+                window.emit("navigate", "/launcher").unwrap();
             }
             "studio" => {
                 window.emit("navigate", "/studio").unwrap();

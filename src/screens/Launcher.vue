@@ -5,7 +5,7 @@
 
         <section>
             <p>
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. Corrupti praesentium adipisci, sint cupiditate magnam quasi nesciunt cum quos sed beatae recusandae voluptates dicta minima pariatur ipsum iste. Eius, ipsam quibusdam!
+                Coming soon...
             </p>
         </section>
     </main>
