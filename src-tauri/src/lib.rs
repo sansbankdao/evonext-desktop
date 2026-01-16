@@ -1,5 +1,7 @@
 // src-tauri/src/lib.rs
 
+use tauri::Manager;
+
 mod commands;
 mod dapi;
 mod models;
@@ -78,7 +80,15 @@ pub fn run() {
             commands::dapi_commands::get_identity_by_non_unique_public_key_hash,
         ])
         .setup(|app| {
-            menu::setup_menus(app)?;
+            let handle = app.handle();
+            menu::setup_menus(handle)?;
+
+            // Explicitly set the menu for the main window (especially for Windows/Linux)
+            if let Some(window) = app.get_webview_window("main") {
+                // This ensures the window is forced to recognize the menu
+                let _ = window.set_menu(app.menu().unwrap());
+            }
+
             Ok(())
         })
         .on_menu_event(|app, event| {

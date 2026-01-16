@@ -12,6 +12,7 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "ΞvoNext",
         "width": 1440,
         "height": 720,

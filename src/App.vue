@@ -78,6 +78,17 @@ let unlisten: UnlistenFn | undefined
 
 // Set up the listener when the component is mounted
 onMounted(async () => {
+    /* Add navigation listeners. */
+    unlisten = await listen('navigate', (event) => {
+        console.log('Navigating to:', event.payload)
+
+        /* Validate event payload. */
+        if (typeof event.payload !== 'undefined' && event.payload !== null) {
+            /* Go to target. */
+            router.push(event.payload)
+        }
+    })
+
     // Initialize system store first
     System.startPriceUpdates()
 
@@ -93,16 +104,6 @@ onMounted(async () => {
     await Wallet.refreshBalances()
 
     console.log('App initialization complete. isAuthenticated:', Identity.isAuthenticated, 'DASH price:', System.currentDashPrice)
-
-    unlisten = await listen('navigate', (event) => {
-        console.log('Navigating to:', event.payload)
-
-        /* Validate event payload. */
-        if (typeof event.payload !== 'undefined' && event.payload !== null) {
-            /* Go to target. */
-            router.push(event.payload)
-        }
-    })
 
     manageUpdater()
 })
