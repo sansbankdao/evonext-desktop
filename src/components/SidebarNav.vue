@@ -74,7 +74,7 @@ const navLinks = ref([
     },
     {
         to: '/posts',
-        text: 'Posts | Remix',
+        text: 'Post & Remix',
         icon: HashtagIcon,
     },
     // {
@@ -104,7 +104,7 @@ const navLinks = ref([
     // },
     {
         to: '/identity',
-        text: 'Identities',
+        text: 'Identity',
         icon: UsersIcon,
     },
     {
