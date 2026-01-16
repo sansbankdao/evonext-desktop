@@ -1,191 +1,223 @@
 <!-- src/screens/Stakeline.vue -->
 <template>
-    <main>
-        <Header title="Premium User Stakeline" />
+    <main class="min-h-screen bg-slate-50 dark:bg-slate-950 pb-32 overflow-x-hidden">
+        <Header title="EvoNext Premium" />
 
-        <section class="bg-gray-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl">
-            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-                <div class="flex flex-col items-center gap-12">
+        <!-- 1. CINEMATIC HERO SECTION -->
+        <section class="relative h-[80vh] flex items-center justify-center overflow-hidden">
+            <img
+                src="https://images.unsplash.com/photo-1639322537228-f710d846310a?auto=format&fit=crop&q=80&w=2000"
+                class="absolute inset-0 w-full h-full object-cover opacity-30 dark:opacity-20 select-none"
+                alt="Digital Architecture"
+            />
+            <div class="absolute inset-0 bg-gradient-to-b from-transparent via-slate-50/50 to-slate-50 dark:via-slate-950/50 dark:to-slate-950"></div>
 
-                    <!-- Hero Section -->
-                    <div class="text-center space-y-6">
-                        <!-- <h1 class="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-6xl">
-                            Premium User Stakeline
-                        </h1> -->
+            <div class="relative z-10 text-center px-4 max-w-4xl">
+                <span class="inline-block px-4 py-1.5 mb-6 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-[10px] font-black uppercase tracking-[0.4em] border border-cyan-500/20">
+                    The Sovereign Tier
+                </span>
+                <h1 class="text-6xl md:text-8xl font-black text-slate-900 dark:text-white tracking-tighter mb-8 italic">
+                    Elevated <br/> <span class="text-cyan-500">Sovereignty.</span>
+                </h1>
+                <p class="text-xl text-slate-600 dark:text-slate-400 font-medium max-w-2xl mx-auto leading-relaxed">
+                    EvoNext Premium is a status of total command over the Dash Platform.
+                    Architect your digital legacy with the world's most advanced identity tools.
+                </p>
+            </div>
+        </section>
 
-                        <h3 class="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-amber-500 to-amber-600 dark:from-amber-400 dark:to-amber-500 bg-clip-text text-transparent sm:text-4xl">
-                            Unlock the FULL Potential of EvoNext
-                        </h3>
+        <!-- 2. THE FOUR SUITES (Marketing Content) -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-40 mb-40">
 
-                        <p class="max-w-3xl mx-auto text-lg leading-relaxed text-slate-600 dark:text-slate-400">
-                             During the 8-week Sansbank Bootstrap phase, you may stake your Sansnote (SANS) tokens to gain premium access, early features, and exclusive community perks.
-                        </p>
+            <!-- Suite 1: Social Architect -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                <div class="order-2 lg:order-1">
+                    <span class="text-cyan-500 font-black text-xs uppercase tracking-widest">Suite 01</span>
+                    <h2 class="text-4xl font-black text-slate-900 dark:text-white mt-4 mb-6 uppercase tracking-tight">The Social Architect</h2>
+                    <p class="text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+                        Unlock **Advanced Posting** to attach encrypted data payloads and priority high-resolution media
+                        directly to the Platform indexing layer.
+                    </p>
+                    <ul class="space-y-4 text-sm font-bold text-slate-700 dark:text-slate-300">
+                        <li class="flex items-center gap-3"><div class="w-1.5 h-1.5 rounded-full bg-cyan-500"></div> Priority Feed Indexing</li>
+                        <li class="flex items-center gap-3"><div class="w-1.5 h-1.5 rounded-full bg-cyan-500"></div> Rich Text Support</li>
+                    </ul>
+                </div>
+                <div class="order-1 lg:order-2 bg-slate-200 dark:bg-slate-800 rounded-[3rem] aspect-video overflow-hidden shadow-2xl skew-y-2">
+                    <img src="https://images.unsplash.com/photo-1614850523296-e8c041de4398?auto=format&fit=crop&q=80&w=1000" class="w-full h-full object-cover" />
+                </div>
+            </section>
+
+            <!-- Suite 2: Sovereign Issuer -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                <div class="bg-slate-200 dark:bg-slate-800 rounded-[3rem] aspect-video overflow-hidden shadow-2xl -skew-y-2">
+                    <img src="https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=1000" class="w-full h-full object-cover" />
+                </div>
+                <div>
+                    <span class="text-cyan-500 font-black text-xs uppercase tracking-widest">Suite 02</span>
+                    <h2 class="text-4xl font-black text-slate-900 dark:text-white mt-4 mb-6 uppercase tracking-tight">Sovereign Issuer</h2>
+                    <p class="text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+                        The **Advanced Asset Manager** transforms you into a central bank. Manage complex minting groups,
+                        setup multi-sig control clusters, and execute programmed supply burns.
+                    </p>
+                    <ul class="space-y-4 text-sm font-bold text-slate-700 dark:text-slate-300">
+                        <li class="flex items-center gap-3"><div class="w-1.5 h-1.5 rounded-full bg-cyan-500"></div> Custom Bonding Curves</li>
+                        <li class="flex items-center gap-3"><div class="w-1.5 h-1.5 rounded-full bg-cyan-500"></div> Permission Logic</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Suite 3: Financial Commander -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                <div class="order-2 lg:order-1">
+                    <span class="text-cyan-500 font-black text-xs uppercase tracking-widest">Suite 03</span>
+                    <h2 class="text-4xl font-black text-slate-900 dark:text-white mt-4 mb-6 uppercase tracking-tight">Financial Commander</h2>
+                    <p class="text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+                        The **Advanced Portfolio Manager** provides deep-lens analytics. Track real-time asset velocity,
+                        identity credit burn rates, and historical performance across all connected wallets.
+                    </p>
+                    <ul class="space-y-4 text-sm font-bold text-slate-700 dark:text-slate-300">
+                        <li class="flex items-center gap-3"><div class="w-1.5 h-1.5 rounded-full bg-cyan-500"></div> Net Worth Tracking</li>
+                        <li class="flex items-center gap-3"><div class="w-1.5 h-1.5 rounded-full bg-cyan-500"></div> Exportable Analytics</li>
+                    </ul>
+                </div>
+                <div class="order-1 lg:order-2 bg-slate-200 dark:bg-slate-800 rounded-[3rem] aspect-video overflow-hidden shadow-2xl rotate-2">
+                    <img src="https://images.unsplash.com/photo-1642104704074-907c0698cbd9?auto=format&fit=crop&q=80&w=1000" class="w-full h-full object-cover" />
+                </div>
+            </section>
+
+            <!-- Suite 4: Community Warden -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                <div class="bg-slate-200 dark:bg-slate-800 rounded-[3rem] aspect-video overflow-hidden shadow-2xl -rotate-2">
+                    <img src="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1000" class="w-full h-full object-cover" />
+                </div>
+                <div>
+                    <span class="text-cyan-500 font-black text-xs uppercase tracking-widest">Suite 04</span>
+                    <h2 class="text-4xl font-black text-slate-900 dark:text-white mt-4 mb-6 uppercase tracking-tight">Community Warden</h2>
+                    <p class="text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+                        The **Advanced Community Manager** enables white-label group creation. Setup token-gated membership tiers
+                        and decentralized voting modules for your followers.
+                    </p>
+                    <ul class="space-y-4 text-sm font-bold text-slate-700 dark:text-slate-300">
+                        <li class="flex items-center gap-3"><div class="w-1.5 h-1.5 rounded-full bg-cyan-500"></div> Gated Feed Access</li>
+                        <li class="flex items-center gap-3"><div class="w-1.5 h-1.5 rounded-full bg-cyan-500"></div> Governance Voting</li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+
+        <!-- 3. FINAL CALL TO ACTION (The Checkout Terminal) -->
+        <section class="max-w-5xl mx-auto px-4 py-24 mb-32">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-black text-slate-900 dark:text-white tracking-widest uppercase mb-4">Unlock Elite Evolution</h2>
+                <div class="h-1 w-20 bg-cyan-500 mx-auto"></div>
+            </div>
+
+            <!-- STATE: PLAN SELECTION -->
+            <div v-if="!isStaked && !isStaking" class="grid grid-cols-1 md:grid-cols-2 gap-8 px-4 sm:px-8">
+
+                <!-- Option 1: DUSD Subscription -->
+                <div class="bg-slate-900 p-10 rounded-[3rem] border border-slate-800 shadow-xl relative overflow-hidden flex flex-col">
+                    <div class="relative z-10 flex-1">
+                        <div class="flex justify-between items-start mb-10">
+                            <div class="p-3 bg-white/5 rounded-2xl text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">Monthly Subscription</div>
+                            <img src="/icons/dusd.svg" class="w-10 h-10" />
+                        </div>
+                        <h3 class="text-5xl font-black text-white mb-2">5 DUSD</h3>
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-10">Per Identity / Monthly</p>
+                        <p class="text-slate-500 text-sm leading-relaxed mb-12">Instant activation. Full access to all premium suites without capital lockup.</p>
                     </div>
+                    <button @click="handleDirectPay" class="w-full py-5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-3xl font-black text-sm uppercase tracking-[0.2em] transition-all shadow-lg shadow-cyan-900/40">
+                        Activate Subscription
+                    </button>
+                    <div class="absolute -right-16 -bottom-16 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl"></div>
+                </div>
 
-                    <!-- Value Proposition / What You Get -->
-                    <div class="w-full text-center p-8 border-2 border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 rounded-2xl shadow-xl backdrop-blur-sm">
-                        <h2 class="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-                            Premium Access Features
-                        </h2>
-
-                        <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
-                            <div class="flex items-center space-x-3 p-4 rounded-xl bg-slate-100/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200">
-                                <svg class="h-6 w-6 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                <span class="text-slate-700 dark:text-slate-300 font-medium">Early access to new app services</span>
-                            </div>
-
-                            <div class="flex items-center space-x-3 p-4 rounded-xl bg-slate-100/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200">
-                                <svg class="h-6 w-6 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                <span class="text-slate-700 dark:text-slate-300 font-medium">Exclusive "Premium" badge</span>
-                            </div>
-
-                            <div class="flex items-center space-x-3 p-4 rounded-xl bg-slate-100/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all duration-200">
-                                <svg class="h-6 w-6 text-cyan-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                <span class="text-slate-700 dark:text-slate-300 font-medium">Priority support queue</span>
-                            </div>
+                <!-- Option 2: SANS Staking -->
+                <div class="bg-white dark:bg-slate-900 p-10 rounded-[3rem] border-2 border-slate-200 dark:border-slate-800 shadow-xl flex flex-col group hover:border-cyan-500 transition-all">
+                    <div class="flex-1">
+                        <div class="flex justify-between items-start mb-10">
+                            <div class="p-3 bg-cyan-500/10 rounded-2xl text-cyan-600 text-[10px] font-black uppercase tracking-[0.2em]">Asset Staking</div>
+                            <img src="/icons/sans.svg" class="w-10 h-10" />
                         </div>
+                        <h3 class="text-5xl font-black text-slate-900 dark:text-white mb-2">500 SANS</h3>
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-10">30-day returnable lock</p>
+                        <p class="text-slate-500 text-sm leading-relaxed mb-12">Zero cost. Your assets are returned to you after the lock period concludes.</p>
                     </div>
-
-                    <!-- STATE 1: User is NOT Staked -->
-                    <div v-if="!isStaked" class="w-full max-w-2xl text-center p-8 border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl hover:shadow-3xl hover:-translate-y-1 transition-all duration-300 group">
-                        <h3 class="text-2xl font-bold bg-gradient-to-r from-amber-500 to-amber-600 dark:from-amber-400 dark:to-amber-500 bg-clip-text text-transparent group-hover:scale-105 transition-transform duration-200">
-                            Stake to Unlock
-                        </h3>
-
-                        <div class="my-6 flex justify-center items-baseline gap-8">
-                            <div class="text-center">
-                                <span class="text-4xl font-bold text-slate-900 dark:text-slate-100">
-                                    500
-                                </span>
-
-                                <span class="ml-1 text-lg font-medium text-slate-600 dark:text-slate-400">
-                                    SANS
-                                </span>
-                            </div>
-
-                            <div class="text-center">
-                                <span class="text-4xl font-bold text-slate-900 dark:text-slate-100">
-                                    30
-                                </span>
-
-                                <span class="ml-1 text-lg font-medium text-slate-600 dark:text-slate-400">
-                                    Days
-                                </span>
-                            </div>
-                        </div>
-
-                        <p class="text-slate-700 dark:text-slate-300 text-lg">
-                            A one-time stake of 500 SANS is required for a 30-day lock-up period.
-                        </p>
-
-                        <button @click="beginStaking" class="mt-8 w-full max-w-xs group inline-flex items-center justify-center px-6 py-4 border border-transparent text-lg font-bold rounded-xl shadow-xl text-amber-900 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 hover:shadow-2xl hover:-translate-y-1 focus:ring-4 focus:ring-amber-400/30 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900 transition-all duration-200">
-                            Initiate Staking Process
-                        </button>
-                    </div>
-
-                    <!-- STAKING PROCESS -->
-                    <div v-if="isStaking" class="w-full max-w-2xl text-center p-8 border-2 border-cyan-400/30 dark:border-cyan-500/50 bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-2xl shadow-2xl ring-2 ring-cyan-400/20">
-                        <h3 class="text-2xl font-bold text-cyan-700 dark:text-cyan-300">
-                            Complete Your Stake
-                        </h3>
-
-                        <p class="mt-2 text-slate-700 dark:text-slate-300">
-                            To finalize, send exactly <strong class="text-slate-900 dark:text-slate-100 font-bold">500 SANS</strong> to the address below.
-                        </p>
-
-                        <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl mt-6 inline-block shadow-xl border border-slate-200 dark:border-slate-700">
-                            <svg class="h-48 w-48 mx-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-                                <rect width="100" height="100" fill="#F3F4F6" rx="8" ry="8"/>
-                                <rect x="10" y="10" width="20" height="20" fill="#1F2937" rx="4"/><rect x="40" y="10" width="10" height="10" fill="#1F2937" rx="2"/><rect x="60" y="10" width="30" height="10" fill="#1F2937" rx="2"/><rect x="10" y="40" width="10" height="30" fill="#1F2937" rx="2"/><rect x="40" y="40" width="30" height="30" fill="#1F2937" rx="4"/><rect x="80" y="40" width="10" height="20" fill="#1F2937" rx="2"/><rect x="10" y="80" width="30" height="10" fill="#1F2937" rx="2"/><rect x="60" y="70" width="20" height="20" fill="#1F2937" rx="4"/>
-                            </svg>
-                        </div>
-
-                        <div class="mt-6 w-full max-w-md mx-auto">
-                            <div class="relative">
-                                <input type="text" readonly value="EvolutionFOMOStakeline.dash" class="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-mono text-center p-4 rounded-xl border-2 border-slate-300 dark:border-slate-700 pr-12 shadow-sm focus:ring-4 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-200 text-lg">
-                                <button @click="completeStaking" class="absolute inset-y-0 right-0 flex items-center px-4 text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors duration-200 shadow-sm hover:shadow-md" title="Copy Address">
-                                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        <p class="mt-6 text-sm text-slate-600 dark:text-slate-400">
-                            Your access will be granted automatically after the transaction is confirmed.
-                        </p>
-                    </div>
-
-                    <!-- STATE 2: User IS Staked -->
-                    <div v-if="isStaked" class="w-full max-w-2xl text-center p-8 border-2 border-emerald-400/30 dark:border-emerald-500/50 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 rounded-2xl shadow-2xl ring-2 ring-emerald-400/20">
-                        <div class="flex justify-center items-center gap-3 mb-6">
-                            <svg class="h-12 w-12 text-emerald-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-
-                            <h3 class="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
-                                Premium Access Unlocked
-                            </h3>
-                        </div>
-
-                        <p class="text-lg text-slate-700 dark:text-slate-300 mb-8">
-                            Your SANS tokens are securely staked. Enjoy your premium features!
-                        </p>
-
-                        <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 p-4 rounded-2xl mb-8 shadow-lg">
-                            <div class="flex justify-between mb-4">
-                                <span class="font-medium text-slate-700 dark:text-slate-400">
-                                    Amount Staked:
-                                </span>
-
-                                <span class="font-bold text-2xl text-slate-900 dark:text-slate-100">
-                                    500 SANS
-                                </span>
-                            </div>
-
-                            <div class="flex justify-between">
-                                <span class="font-medium text-slate-700 dark:text-slate-400">
-                                    Stake Unlocks In:
-                                </span>
-
-                                <span class="font-bold text-xl text-slate-900 dark:text-slate-100">
-                                    29 Days, 14 Hours, 21 Minutes
-                                </span>
-                            </div>
-                        </div>
-
-                        <button disabled class="w-full max-w-xs inline-flex items-center justify-center px-6 py-4 border-2 border-slate-300 dark:border-slate-600 text-lg font-bold rounded-xl text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 cursor-not-allowed shadow-sm">
-                            Unstake (Available After Lock-up)
-                        </button>
-                    </div>
-
+                    <button @click="beginStaking" class="w-full py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-3xl font-black text-sm uppercase tracking-[0.2em] transition-all">
+                        Initiate Stake
+                    </button>
                 </div>
             </div>
+
+            <!-- STATE: STAKING IN PROGRESS -->
+            <div v-if="isStaking" class="max-w-2xl mx-auto text-center py-12 bg-white dark:bg-slate-900 p-10 rounded-[3rem] border-2 border-cyan-500/30 shadow-2xl">
+                <h3 class="text-2xl font-black text-slate-900 dark:text-white uppercase mb-8">Verification Terminal</h3>
+                <div class="bg-slate-50 dark:bg-slate-800 p-6 rounded-3xl inline-block mb-8 border border-slate-100 dark:border-slate-700">
+                    <img :src="`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=EvolutionStakeline`" class="w-40 h-40 dark:invert" />
+                </div>
+                <p class="text-slate-500 font-mono text-sm mb-12">EvolutionFOMOStakeline.dash</p>
+                <div class="flex gap-4 justify-center">
+                    <button @click="isStaking = false" class="px-8 py-3 text-slate-500 font-black text-xs uppercase tracking-widest">Cancel</button>
+                    <button @click="completeStaking" class="px-8 py-4 bg-emerald-600 text-white rounded-2x font-black text-xs uppercase tracking-widest shadow-lg">Verify Stake</button>
+                </div>
+            </div>
+
+            <!-- STATE: STAKED STATUS -->
+            <div v-if="isStaked" class="text-center py-20 bg-slate-900 p-10 rounded-[3rem] border border-white/5 shadow-2xl">
+                <div class="w-16 h-16 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>
+                </div>
+                <h2 class="text-3xl font-black text-white uppercase tracking-tight mb-2">Access Granted</h2>
+                <p class="text-slate-500 font-bold uppercase text-[10px] tracking-[0.3em]">Identity: Premium Verified</p>
+            </div>
+
+            <!-- STAKING TERMINAL STATES -->
+            <div v-if="isStaking" class="max-w-2xl mx-auto text-center py-12 mb-24 bg-white dark:bg-slate-900 p-10 rounded-[3rem] border border-cyan-500/30">
+                <h3 class="text-xl font-black text-white uppercase mb-8 tracking-widest">Verification Terminal</h3>
+                <div class="bg-white p-6 rounded-3xl inline-block mb-8"><img :src="`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=EvolutionStakeline`" class="w-40 h-40" /></div>
+                <p class="font-mono text-xs text-slate-500 mb-8">EvolutionFOMOStakeline.dash</p>
+                <button @click="completeStaking" class="px-10 py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest">Verify Stake</button>
+            </div>
+
+            <div v-if="isStaked" class="text-center py-20 bg-slate-900 rounded-[3rem] mb-24 border border-white/5">
+                <h2 class="text-3xl font-black text-white uppercase tracking-tight">Access Granted</h2>
+                <p class="text-cyan-500 font-bold uppercase text-[10px] tracking-widest mt-2">Premium Verified</p>
+            </div>
+
+            <!-- PREMIUM ADVANTAGE FOOTER -->
+            <div class="mt-32 bg-white dark:bg-slate-900/50 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-12 shadow-sm">
+                <p class="text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-12">Premium Advantage</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+                    <div class="space-y-4 text-center md:text-left">
+                        <h5 class="font-black text-slate-900 dark:text-white uppercase text-sm tracking-tight">Advanced Launcher</h5>
+                        <p class="text-slate-500 text-xs leading-relaxed font-medium">Deploy custom complex token curves and programmed distribution schedules.</p>
+                    </div>
+                    <div class="space-y-4 text-center md:text-left">
+                        <h5 class="font-black text-slate-900 dark:text-white uppercase text-sm tracking-tight">App Ecosystem</h5>
+                        <p class="text-slate-500 text-xs leading-relaxed font-medium">Full access to the EvoNext App Store including DAO tools and yield vaults.</p>
+                    </div>
+                    <div class="space-y-4 text-center md:text-left">
+                        <h5 class="font-black text-slate-900 dark:text-white uppercase text-sm tracking-tight">Priority Governance</h5>
+                        <p class="text-slate-500 text-xs leading-relaxed font-medium">Higher weighted voting power on platform upgrades and community proposals.</p>
+                    </div>
+                </div>
+            </div>
+
         </section>
     </main>
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import Header from '@/components/Header.vue'
 
 const isStaked = ref(false)
 const isStaking = ref(false)
 
-const init = async () => {
-    isStaked.value = false
-}
+const beginStaking = () => { isStaking.value = true }
+const completeStaking = () => { isStaked.value = true; isStaking.value = false }
+const handleDirectPay = () => { if (confirm('Authorize 5 DUSD Subscription for this identity?')) isStaked.value = true }
 
-const beginStaking = async () => {
-    isStaking.value = true
-}
-
-const completeStaking = async () => {
-    isStaked.value = true
-    isStaking.value = false
-}
-
-onMounted(async () => {
-    init()
-})
-
-onUnmounted(() => {
-    // TODO
-})
+onMounted(() => { /* Verify current identity license */ })
 </script>
