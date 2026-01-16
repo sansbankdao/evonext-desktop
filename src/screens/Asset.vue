@@ -1,7 +1,7 @@
-<!-- src/screens/Assets.vue -->
+<!-- src/screens/Asset.vue -->
 <template>
     <main>
-        <Header title="Assets Manager" />
+        <Header title="Asset Manager" />
 
         <section>
             <p>

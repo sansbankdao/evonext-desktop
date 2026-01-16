@@ -28,7 +28,8 @@ pub fn setup_menus(app_handle: &AppHandle) -> tauri::Result<()> {
 
     let tools_menu = SubmenuBuilder::new(app_handle, "Tools")
         .text("launcher", "Token Launcher")
-        .text("assets", "Assets Manager")
+        .text("asset", "Asset Manager")
+        .text("portfolio", "Portfolio Manager")
         .text("studio", "Mini App Studio")
         .build()?;
 
@@ -96,9 +97,10 @@ pub fn handle_menu_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
     if let Some(_window) = app.get_webview_window("main") {
         match id {
             "about" => { let _ = app.emit("navigate", "/about"); }
-            "assets" => { let _ = app.emit("navigate", "/assets"); }
+            "asset" => { let _ = app.emit("navigate", "/asset"); }
             "bootstrap" => { let _ = app.emit("navigate", "/bootstrap"); }
             "launcher" => { let _ = app.emit("navigate", "/launcher"); }
+            "portfolio" => { let _ = app.emit("navigate", "/portfolio"); }
             "studio" => { let _ = app.emit("navigate", "/studio"); }
             "exit" | "quit" => { app.exit(0); }
             _ => {

@@ -12,8 +12,8 @@ import Home from '@/screens/Home.vue'
 import About from '@/screens/About.vue'
 import Apps from '@/screens/Apps.vue'
 
-import Assets from '@/screens/Assets.vue'
-import AssetsManage from '@/screens/assets/Manage.vue'
+import Asset from '@/screens/Asset.vue'
+import AssetManage from '@/screens/asset/Manage.vue'
 
 import Bootstrap from '@/screens/Bootstrap.vue'
 import Community from '@/screens/Community.vue'
@@ -22,15 +22,18 @@ import Disconnect from '@/screens/Disconnect.vue'
 import Explorer from '@/screens/Explorer.vue'
 import Favorites from '@/screens/Favorites.vue'
 
+import Identity from '@/screens/Identity.vue'
+import IdentityRegister from '@/screens/identity/Register.vue'
+import IdentityKeys from '@/screens/identity/ManageKeys.vue'
+import IdentityAddKey from '@/screens/identity/AddKey.vue'
+
 import Launcher from '@/screens/Launcher.vue'
 import LauncherSimple from '@/screens/launcher/Simple.vue'
 import LauncherProject from '@/screens/launcher/Project.vue'
 import LauncherPlatform from '@/screens/launcher/Platform.vue'
 
-import Identity from '@/screens/Identity.vue'
-import IdentityRegister from '@/screens/identity/Register.vue'
-import IdentityKeys from '@/screens/identity/ManageKeys.vue'
-import IdentityAddKey from '@/screens/identity/AddKey.vue'
+import Portfolio from '@/screens/Portfolio.vue'
+import PortfolioManage from '@/screens/portfolio/Manage.vue'
 
 import Posts from '@/screens/Posts.vue'
 import Settings from '@/screens/Settings.vue'
@@ -58,9 +61,9 @@ const routes = [
             },
 
             // Assets
-            { path: 'assets', component: Assets },
+            { path: 'asset', component: Asset },
             {
-                path: 'assets/manage', component: AssetsManage,
+                path: 'asset/manage', component: AssetManage,
                 meta: { requiresPremium: true }
             },
 
@@ -92,6 +95,13 @@ const routes = [
             { path: 'identity/register', component: IdentityRegister },
             { path: 'identity/:id/keys', component: IdentityKeys, name: 'IdentityKeys' },
             { path: 'identity/:id/keys/add', component: IdentityAddKey, name: 'IdentityAddKey' },
+
+            // Portfolio
+            { path: 'portfolio', component: Portfolio },
+            {
+                path: 'portfolio/manage', component: PortfolioManage,
+                meta: { requiresPremium: true }
+            },
 
             // Posts
             { path: 'posts', component: Posts },
