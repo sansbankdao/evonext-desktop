@@ -1,4 +1,6 @@
 // src/stores/identity/actions/connection.ts
+
+import { invoke } from '@tauri-apps/api/core'
 import { ErrorBoundary } from '@/utils/errors'
 import { KeyDerivationService } from '@/services/identity/keyDerivation.service'
 import { DAPIService } from '@/services/identity/discovery/DAPIService'
@@ -9,6 +11,23 @@ import type {
     DiscoveredIdentity,
     IIdentity
 } from '@/types'
+
+/**
+ * Helper to persist the active identity ID to the Rust backend settings.
+ */
+async function persistActiveIdentity(identityId: string | null) {
+    try {
+        const settings = await invoke<any>('load_settings').catch(() => null)
+        if (settings) {
+            settings.activeIdentityId = identityId
+            await invoke('save_settings', { settings })
+            console.log(`[Source of Truth] backend updated with activeIdentityId: ${identityId}`)
+        }
+    } catch (e) {
+        console.error('Failed to persist active identity to Rust settings:', e)
+    }
+}
+
 export const connectionActions = () => ({
     /**
      * Initialize the store from storage (called on app start)
@@ -18,6 +37,10 @@ export const connectionActions = () => ({
              await this.loadFromStorage()
         }, 'INIT_FROM_STORAGE_FAILED')
     },
+
+    /**
+     * Swapping between known identities
+     */
     async switchIdentity(
         this: IIdentityState,
         targetIdentityId: string
@@ -27,14 +50,26 @@ export const connectionActions = () => ({
             try {
                 const network = await this.getCurrentNetwork()
                 const mnemonicData = await this.loadMnemonic(network)
-                if (!mnemonicData?.seedPhrase) throw new Error('No seed phrase found')
+
+                if (!mnemonicData?.seedPhrase) {
+                    throw new Error('No seed phrase found. Please connect with your seed phrase again.')
+                }
+
                 const discovered = await this.loadDiscoveredIdentities(network)
                 let targetIdx = 0
                 if (discovered && discovered.identities && discovered.identities[targetIdentityId]) {
                     targetIdx = discovered.identities[targetIdentityId].identityIdx
                 }
-                await this.connectWithSeed(mnemonicData.seedPhrase, network, targetIdentityId, targetIdx)
-                return { success: true, identityId: targetIdentityId }
+
+                // Attempt to connect
+                const result = await this.connectWithSeed(
+                    mnemonicData.seedPhrase,
+                    network,
+                    targetIdentityId,
+                    targetIdx
+                )
+
+                return result
             } catch(e: any) {
                 this.connectionError = e.message
                 return { success: false, error: e.message }
@@ -43,20 +78,10 @@ export const connectionActions = () => ({
             }
         }, 'SWITCH_IDENTITY_FAILED')
     },
-    // Legacy Support for ConnectSeedForm - CORRECTED ORDER
-    async connectWriteOnlyFromDiscovered(
-        this: IIdentityState,
-        identity: DiscoveredIdentity,
-        seedPhrase: string
-    ): Promise<ConnectionResult> {
-        const network = await this.getCurrentNetwork()
-        return this.connectWithSeed(
-            seedPhrase,
-            network,
-            identity.identityId,
-            identity.identityIdx
-        )
-    },
+
+    /**
+     * Connect via Seed (Standard Mnemonic Flow)
+     */
     async connectWithSeed(
         this: IIdentityState,
         seedPhrase: string,
@@ -70,6 +95,7 @@ export const connectionActions = () => ({
             try {
                 const { initialize, reset } = usePlatform()
                 reset()
+
                 await initialize({
                     network,
                     wallet: {
@@ -77,21 +103,28 @@ export const connectionActions = () => ({
                         unsafeOptions: { skipSynchronizationBeforeHeight: 950000 }
                     }
                 })
+
                 await this.saveMnemonicToStore(network, seedPhrase)
+
                 const fetchResult = await DAPIService.getIdentityById(targetId, network)
                 if (!fetchResult.success || !fetchResult.data) {
                     throw new Error(fetchResult.error || `Failed to fetch identity ${targetId}`)
                 }
+
                 const identityData = fetchResult.data
                 const publicKeys = identityData.publicKeys || []
+
+                // Key Purpose/Security Mapping
                 const purposeMap: Record<string, number> = {
                     AUTHENTICATION: 0, ENCRYPTION: 1, DECRYPTION: 2, TRANSFER: 3
                 }
                 const secMap: Record<string, number> = {
                     MASTER: 0, CRITICAL: 1, HIGH: 2, MEDIUM: 3, LOW: 4
                 }
+
                 const now = new Date().toISOString()
                 const privateKeyEntries: any[] = []
+
                 for (let i = 0; i < publicKeys.length; i++) {
                     const pk = publicKeys[i] || {}
                     const keyId = Number(pk.id ?? i)
@@ -104,6 +137,7 @@ export const connectionActions = () => ({
                         )
                         const purposeStr = String(pk.purpose || 'AUTHENTICATION').toUpperCase()
                         const secStr = String(pk.securityLevel || 'MASTER').toUpperCase()
+
                         privateKeyEntries.push({
                             identityId: targetId,
                             keyId: keyId,
@@ -117,12 +151,14 @@ export const connectionActions = () => ({
                             lastUsed: now
                         })
                     } catch (e) {
-                        // Skip keys that fail derivation
+                        // Skip key derivation errors for individual keys
                     }
                 }
+
                 if (privateKeyEntries.length > 0) {
                     await this.saveKeys(network, targetId, privateKeyEntries)
                 }
+
                 const activeIdentity: IIdentity = {
                     identityId: targetId,
                     identityIdx: identityIndex,
@@ -130,7 +166,8 @@ export const connectionActions = () => ({
                     revision: identityData.revision ? Number(identityData.revision) : 0,
                     publicKeys
                 }
-                // Patch state before persistence
+
+                // Patch Pinia State
                 this.isAuthenticated = true
                 this.username = targetId
                 this.identityId = targetId
@@ -138,21 +175,22 @@ export const connectionActions = () => ({
                 this.publicKeys = publicKeys
                 this.balance = activeIdentity.balance
                 this.isConnected = this.isAuthenticated && !!this.identityId
-                // Explicit identity save with detailed logs (unified then legacy)
-                await this.saveIdentityDataToStore(
-                    network,
-                    targetId,
-                    {
-                        identityId: targetId,
-                        identityIdx: identityIndex,
-                        username: this.username,
-                        balance: this.balance,
-                        revision: this.revision ?? activeIdentity.revision ?? 0,
-                        publicKeys: this.publicKeys
-                    }
-                )
-                // Optional: also call saveToStorage (safe no-throw)
+
+                // Save to IndexedDB/Store
+                await this.saveIdentityDataToStore(network, targetId, {
+                    identityId: targetId,
+                    identityIdx: identityIndex,
+                    username: this.username,
+                    balance: this.balance,
+                    revision: this.revision ?? activeIdentity.revision ?? 0,
+                    publicKeys: this.publicKeys
+                })
+
                 await this.saveToStorage(network)
+
+                // SYNC TO RUST (The Source of Truth)
+                await persistActiveIdentity(targetId)
+
                 return { success: true, identityId: targetId, identity: activeIdentity }
             } catch (err: any) {
                 this.connectionError = err.message || 'Failed to connect'
@@ -162,6 +200,10 @@ export const connectionActions = () => ({
             }
         }, 'CONNECT_WITH_SEED_FAILED')
     },
+
+    /**
+     * Connect via Single Private Key
+     */
     async connectWithSingleKey(
         this: IIdentityState,
         privateKey: string,
@@ -175,8 +217,10 @@ export const connectionActions = () => ({
             try {
                 const trimmedId = identityId.trim()
                 if (!trimmedId) throw new Error('Identity ID is required')
+
                 const { initialize, reset } = usePlatform()
                 reset()
+
                 await initialize({
                     network,
                     wallet: {
@@ -184,6 +228,7 @@ export const connectionActions = () => ({
                         unsafeOptions: { skipSynchronizationBeforeHeight: 950000 }
                     }
                 })
+
                 let identityData: any | null = null
                 if (preloaded && preloaded.identityId === trimmedId) {
                     identityData = {
@@ -195,16 +240,15 @@ export const connectionActions = () => ({
                 } else {
                     const fetchResult = await DAPIService.getIdentityById(trimmedId, network)
                     if (!fetchResult.success || !fetchResult.data) {
-                         // Allow continuing if fetch fails but preloaded exists?
-                         // For now strict check as per original logic,
-                         // but we can log to error for debugging.
                         throw new Error(fetchResult.error || 'Failed to fetch identity details')
                     }
                     identityData = fetchResult.data
                 }
+
                 const publicKeys = identityData.publicKeys || []
                 const now = new Date().toISOString()
                 const firstAuthKey = publicKeys.find((pk: any) => (pk.purpose ?? pk.purposeNumber) === 0)
+
                 const privateKeyEntry = {
                     identityId: trimmedId,
                     keyId: firstAuthKey?.id || 0,
@@ -217,7 +261,9 @@ export const connectionActions = () => ({
                     createdAt: now,
                     lastUsed: now
                 }
+
                 await this.saveKeys(network, trimmedId, [privateKeyEntry])
+
                 const activeIdentity: IIdentity = {
                     identityId: trimmedId,
                     identityIdx: 0,
@@ -225,7 +271,7 @@ export const connectionActions = () => ({
                     revision: identityData.revision ? Number(identityData.revision) : 0,
                     publicKeys
                 }
-                // Patch state before persistence
+
                 this.isAuthenticated = true
                 this.username = trimmedId
                 this.identityId = trimmedId
@@ -233,20 +279,21 @@ export const connectionActions = () => ({
                 this.publicKeys = publicKeys
                 this.balance = activeIdentity.balance
                 this.isConnected = this.isAuthenticated && !!this.identityId
-                // Explicit identity save with detailed logs (unified then legacy)
-                await this.saveIdentityDataToStore(
-                    network,
-                    trimmedId,
-                    {
-                        identityId: trimmedId,
-                        identityIdx: 0,
-                        username: this.username,
-                        balance: this.balance,
-                        revision: this.revision ?? activeIdentity.revision ?? 0,
-                        publicKeys: this.publicKeys
-                    }
-                )
+
+                await this.saveIdentityDataToStore(network, trimmedId, {
+                    identityId: trimmedId,
+                    identityIdx: 0,
+                    username: this.username,
+                    balance: this.balance,
+                    revision: this.revision ?? activeIdentity.revision ?? 0,
+                    publicKeys: this.publicKeys
+                })
+
                 await this.saveToStorage(network)
+
+                // SYNC TO RUST (The Source of Truth)
+                await persistActiveIdentity(trimmedId)
+
                 return { success: true, identityId: trimmedId, identity: activeIdentity }
             } catch (err: any) {
                 this.connectionError = err.message || 'Failed to connect'
@@ -256,9 +303,30 @@ export const connectionActions = () => ({
             }
         }, 'CONNECT_WITH_SINGLE_KEY_FAILED')
     },
+
+    /**
+     * Legacy Support for ConnectSeedForm
+     */
+    async connectWriteOnlyFromDiscovered(
+        this: IIdentityState,
+        identity: DiscoveredIdentity,
+        seedPhrase: string
+    ): Promise<ConnectionResult> {
+        const network = await this.getCurrentNetwork()
+        return this.connectWithSeed(
+            seedPhrase,
+            network,
+            identity.identityId,
+            identity.identityIdx
+        )
+    },
+
     async logout(this: IIdentityState) {
+        // Clear Rust persistence on logout
+        await persistActiveIdentity(null)
         await this.clearStorage()
     },
+
     clearConnectionError(this: IIdentityState) {
         this.connectionError = null
     }

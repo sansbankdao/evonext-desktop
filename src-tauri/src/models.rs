@@ -1,4 +1,5 @@
 // src-tauri/src/models.rs
+
 use serde::{Serialize, Deserialize, Deserializer};
 use serde::de::{Error as DeError, Unexpected};
 use std::collections::HashMap;
@@ -11,6 +12,7 @@ pub struct IAppSettings {
     pub notifications: NotificationSettings,
     #[serde(default)]
     pub profile: ProfileSettings,
+    pub active_identity_id: Option<String>,
 }
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]

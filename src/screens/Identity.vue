@@ -107,6 +107,14 @@ const init = async () => {
     try {
         const settings = await invoke<any>('load_settings').catch(() => null)
         const network = settings?.network === 'testnet' ? 'testnet' : 'mainnet'
+
+        // --- NEW: AUTO-RECOVERY LOGIC ---
+        // If Pinia is empty but Rust has an activeIdentityId, reconnect automatically
+        if (settings?.activeIdentityId && !store.identityId) {
+            console.log("State loss detected. Recovering from Rust truth:", settings.activeIdentityId)
+            await store.switchIdentity(settings.activeIdentityId)
+        }
+
         // Load the raw map
         const rawData = await invoke<any>('load_identities_map', { network }).catch(() => null)
         if (rawData && typeof rawData === 'object' && Object.keys(rawData).length > 0) {
