@@ -1,18 +1,19 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Register NEW Identities and Usernames Till Your Heart's Content
+### A Complete Platform Wallet
 
-This latest version of EvoNext re-introduces Identity + Username registrations.
+This latest version of EvoNext stabilizes the Wallet user experience (UX) and fixes some very annoying bugs.
 
 # Changelog
 
 ## Latest Features:
 
-- Identity: Register NEW Mainnet and Testnet usernames with ease.
+- Wallet: Stabilized the ability to navigate in and out of the Wallet without disrupting the Identity.
 
 ## Bugfixes:
 
-- Fixed identity manager.
+- Fixed identity reset bug.
+- Fixed menu navigation.
 
 ## Notes:
 
