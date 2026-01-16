@@ -541,31 +541,21 @@ const handleTransactionSuccess = async () => {
 }
 onMounted(async () => {
     await nextTick()
-    addLog('App Mounted. Initializing...', 'info')
+    addLog('Wallet Dashboard Mounted', 'info')
+
+    // Get network ONCE
     const currentNetwork = await ensure()
-    addLog(`Network initialized: ${currentNetwork}`, 'info')
-    if (!System.currentDashPrice) {
-        await System.fetchDashPrice()
+
+    // Fetch price independently
+    if (!System.currentDashPrice) System.fetchDashPrice()
+
+    // Refresh balances if connected
+    if (Identity.isConnected && Identity.identityId) {
+        await Identity.fetchBalance()
+        await Wallet.refreshBalances(currentNetwork)
     }
-    if (Identity.isConnected) {
-        addLog(`Identity connected: ${Identity.username}`, 'info')
-        const realIdentityId = Identity.identityId
-        if (realIdentityId) {
-            Wallet.user = {
-                username: Identity.username || 'Unknown',
-                displayName: Identity.username || 'Unknown',
-                name: Identity.username || '',
-                address: realIdentityId,
-                avatar: '',
-                identityId: realIdentityId
-            }
-            await Identity.fetchBalance()
-        }
-    }
-    await Wallet.refreshBalances(currentNetwork)
-    addLog('Initial Wallet Balances refreshed.', 'info')
+
     wallet.startPolling(45000)
-    window.addEventListener('transaction:success', handleTransactionSuccess)
 })
 onUnmounted(() => {
     wallet.stopPolling()
