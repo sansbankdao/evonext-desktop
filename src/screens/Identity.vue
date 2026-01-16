@@ -102,37 +102,42 @@ const activeIdentityId = computed(() => store.identityId || '')
 
 const loading = ref(true)
 const identities = ref<DiscoveredIdentity[]>([])
+// src/screens/Identity.vue
+
 const init = async () => {
     loading.value = true
     try {
         const settings = await invoke<any>('load_settings').catch(() => null)
-        const network = settings?.network === 'testnet' ? 'testnet' : 'mainnet'
+        const network = settings?.network || 'mainnet'
 
-        // --- NEW: AUTO-RECOVERY LOGIC ---
-        // If Pinia is empty but Rust has an activeIdentityId, reconnect automatically
-        if (settings?.activeIdentityId && !store.identityId) {
-            console.log("State loss detected. Recovering from Rust truth:", settings.activeIdentityId)
-            await store.switchIdentity(settings.activeIdentityId)
-        }
+        // THE DIRECT QUERY
+        const rawData = await invoke<any>('load_identities_map', { network })
 
-        // Load the raw map
-        const rawData = await invoke<any>('load_identities_map', { network }).catch(() => null)
-        if (rawData && typeof rawData === 'object' && Object.keys(rawData).length > 0) {
-            identities.value = Object.values(rawData).map((raw: any) => ({
-                // FIX: Handle both camelCase (new) and snake_case (legacy) keys
-                identityId: raw.identityId || raw.identity_id,
-                identityIdx: raw.identityIdx ?? raw.identity_idx ?? 0,
-                dpnsUsername: raw.dpnsUsername ?? raw.dpns_username ?? null,
-                balance: raw.balance ? String(raw.balance) : null,
-                revision: raw.revision ?? null,
-                publicKeys: raw.publicKeys ?? raw.public_keys ?? []
-            }))
-        } else {
-            identities.value = []
+        // PROOF: This will now show your JSON content in the Browser Console
+        console.log("[Source of Truth] Data from Rust:", rawData)
+
+        if (rawData && typeof rawData === 'object') {
+            const list: DiscoveredIdentity[] = []
+
+            // Map the entries
+            Object.entries(rawData).forEach(([key, value]: [string, any]) => {
+                // Rust command above filters __, but we double-check here
+                if (key.startsWith('__')) return
+
+                list.push({
+                    identityId: value.identityId || value.identity_id || key,
+                    identityIdx: value.identityIdx ?? 0,
+                    dpnsUsername: value.dpnsUsername ?? null,
+                    balance: value.balance ? String(value.balance) : '0',
+                    revision: value.revision ?? null,
+                    publicKeys: value.publicKeys ?? []
+                })
+            })
+
+            identities.value = list
         }
     } catch (e) {
-        console.error("Failed to load identities:", e)
-        identities.value = []
+        console.error("Failed to load:", e)
     } finally {
         loading.value = false
     }

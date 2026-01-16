@@ -265,18 +265,31 @@ fn load_identity_map_internal(
 ) -> Result<IdentityMap, String> {
     let manager = StoreManager::new(app);
     let filename = get_network_file(network, "identity")?;
-    // 1. Try loading Map structure
+
+    println!("[Rust] Reading identity file: {}", filename);
+
     if let Ok(Some(val)) = manager.load::<JsonValue>(filename.clone(), "identities") {
-        if let Ok(map) = serde_json::from_value::<IdentityMap>(val) {
-            return Ok(map);
+        if let Some(obj) = val.as_object() {
+            let mut identity_map = HashMap::new();
+
+            for (key, value) in obj {
+                // SKIP METADATA
+                if key.starts_with("__") { continue; }
+
+                // Attempt to parse actual identity data
+                if let Ok(identity_data) = serde_json::from_value::<IdentityData>(value.clone()) {
+                    identity_map.insert(key.clone(), identity_data);
+                } else {
+                    println!("[Rust] Skipping invalid identity entry for key: {}", key);
+                }
+            }
+
+            println!("[Rust] Successfully loaded {} identities", identity_map.len());
+            return Ok(identity_map);
         }
     }
-    // 2. Legacy Fallback: Try loading single identity
-    if let Ok(Some(single)) = manager.load::<IdentityData>(filename, "identity") {
-        let mut map = HashMap::new();
-        map.insert(single.identity_id.clone(), single);
-        return Ok(map);
-    }
+
+    // Fallback: Legacy / Empty
     Ok(HashMap::new())
 }
 fn save_identity_map_internal(
