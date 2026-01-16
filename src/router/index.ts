@@ -4,6 +4,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { useNetwork } from '@/composables'
 import { useLicense } from '@/composables'
+import { useIdentityStore } from '@/stores/identity'
 
 /* Import your layout and screens. */
 import AppLayout from '@/layouts/AppLayout.vue'
@@ -133,18 +134,8 @@ const routes = [
 const router = createRouter({
     history: createWebHashHistory(),
     routes,
-    /**
-     * Scroll behavior configuration.
-     * - returning `savedPosition` handles the Back/Forward button behavior.
-     * - returning `{ top: 0, left: 0 }` ensures the window scrolls to the top
-     *   on standard navigation, preventing the "black screen" issue in Tauri.
-     */
     scrollBehavior(_to, _from, savedPosition) {
-        if (savedPosition) {
-            return savedPosition
-        } else {
-            return { top: 0, left: 0 }
-        }
+        return savedPosition || { top: 0, left: 0 }
     },
 })
 
@@ -160,39 +151,35 @@ declare module 'vue-router' {
 
 /* Global route guard. */
 router.beforeEach(async (to, _from, next) => {
-    const { ensure, network } = useNetwork()
+    const { network } = useNetwork()
     const { loadLicense, hasPremiumLicense } = useLicense()
+    const Identity = useIdentityStore()
 
     try {
-        // Ensure network is loaded
-        await ensure()
-
-        // Check if route requires premium access
+        // Premium Protection Logic
         if (to.meta?.requiresPremium) {
+            // Bypass for development on testnet
             if (network.value === 'testnet') {
-                // Testnet always allows premium routes (for development)
-                next()
-                return
+                return next()
             }
 
-            // Mainnet: check license
-            await loadLicense()
+            // Load license for the current Identity ID
+            if (Identity.identityId) {
+                await loadLicense(Identity.identityId)
 
-            if (hasPremiumLicense()) {
-                next()
-                return
-            } else {
-                console.log(`Premium route ${to.path} requires license, redirecting to stakeline`)
-                next('/stakeline')
-                return
+                if (hasPremiumLicense()) {
+                    return next()
+                }
             }
+
+            // Fallback: Redirect if no license discovered
+            console.warn(`Access denied to ${to.path}. Identity ID: ${Identity.identityId}`)
+            return next('/stakeline')
         }
 
-        // Non-premium route: always allow
         next()
     } catch (error) {
-        console.error('Router guard error:', error)
-        // Fallback: allow navigation but log error
+        console.error('Router Guard Error:', error)
         next()
     }
 })

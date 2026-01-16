@@ -1,3 +1,5 @@
+// src/services/BootstrapService.ts
+
 import { useIdentityStore } from '@/stores/identity'
 import { useLicense } from '@/composables/useLicense'
 import { useWalletStore } from '@/stores/wallet'
@@ -6,37 +8,34 @@ export const BootstrapService = {
     async init() {
         const Identity = useIdentityStore()
         const Wallet = useWalletStore()
-
-        // Use refreshLicense to match the source of useLicense.ts
-        const { refreshLicense, loadLicense } = useLicense()
+        const { refreshLicense } = useLicense()
 
         try {
-            // 1. Initialize identity from storage (Settings/Filesystem)
+            // 1. Restore identity session
             await Identity.initFromStorage()
 
-            /**
-             * 2. Check for Identity ID.
-             * We check both the store instance and the state object
-             * depending on how your Pinia store is structured.
-             */
-            const currentId = Identity.identityId ||
-                             (Identity as any).activeIdentityId ||
-                             (Identity as any).state?.activeIdentityId
+            const id = Identity.identityId
 
-            if (currentId) {
-                console.log('Syncing license for:', currentId)
-                await refreshLicense(currentId)
+            // 2. Load license specifically for this identity
+            if (id) {
+                console.log('Bootstrap: Syncing license for ID', id)
+                const data = await refreshLicense(id)
+
+                // Update identity store flag for UI consistency
+                if (data) {
+                    Identity.premiumAccess = data.isPremium
+                }
             } else {
-                console.log('No active identity found, loading local license cache...')
-                await loadLicense()
+                console.log('Bootstrap: No identity found, premium access disabled')
+                Identity.premiumAccess = false
             }
 
-            // 3. Load wallet data
+            // 3. Populate Wallet
             await Wallet.refreshBalances()
 
-            console.log('App Bootstrap Complete')
+            console.log('Bootstrap: Sequence reached completion')
         } catch (error) {
-            console.error('Bootstrap failed:', error)
+            console.error('Bootstrap: Failed to initialize app services', error)
         }
     }
 }

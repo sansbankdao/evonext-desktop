@@ -46,6 +46,9 @@ pub struct ILicense {
     pub updated_at: Option<i64>,
 }
 
+// Map of Identity IDs to their respective License data
+pub type LicenseStoreMap = HashMap<String, ILicense>;
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct IMnemonic {
