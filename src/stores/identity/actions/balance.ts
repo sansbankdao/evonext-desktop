@@ -8,13 +8,13 @@ export const balanceActions = () => ({
         const { ensure } = useNetwork()
         return ErrorBoundary.wrap(async () => {
             debugLogger.log('[Balance] fetchBalance called', 'info')
-            if (!store.identity?.id) {
+            if (!store.identity?.identityId) {
                 debugLogger.log('[Balance] No identity loaded, skipping', 'warn')
                 return
             }
             try {
                 const network = await ensure()
-                const identityId = store.identity.id
+                const identityId = store.identity.identityId
                 debugLogger.log(`[Balance] Fetching for ${identityId} on ${network}`, 'info')
                 // 1. Fetch raw balance
                 const rawBalance = await getIdentityBalance(network, identityId)
@@ -63,7 +63,7 @@ export const balanceActions = () => ({
             store.balanceBigInt = BigInt(newBalance)
             store.dashBigInt = store.balanceBigInt / BigInt(100_000_000_000)
             const network = await store.getCurrentNetwork()
-            const identityId = store.identity?.id
+            const identityId = store.identity?.identityId
             if (identityId && network) {
                 const updatePayload = {
                     identityId: identityId,
