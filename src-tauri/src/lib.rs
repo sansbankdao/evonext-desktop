@@ -42,6 +42,7 @@ pub fn run() {
             commands::license_commands::load_license,
             commands::license_commands::save_license,
             commands::license_commands::delete_license,
+            commands::license_commands::refresh_license,
 
             // Mnemonic
             commands::mnemonic_commands::load_mnemonic,

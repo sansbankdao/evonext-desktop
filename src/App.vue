@@ -18,6 +18,8 @@ import { useIdentityStore } from '@/stores/identity'
 import { useWalletStore } from '@/stores/wallet'
 import { useSettingsStore } from '@/stores/settings'
 
+import { BootstrapService } from '@/services/BootstrapService'
+
 const System = useSystemStore()
 const Identity = useIdentityStore()
 const Wallet = useWalletStore()
@@ -91,6 +93,9 @@ onMounted(async () => {
 
     // Initialize system store first
     System.startPriceUpdates()
+
+    // Run the centralized bootstrap sequence
+    await BootstrapService.init()
 
     // Initialize identity from storage
     await Identity.initFromStorage()

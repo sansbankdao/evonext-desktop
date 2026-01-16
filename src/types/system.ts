@@ -26,7 +26,13 @@ export interface IAppState {
 }
 
 export interface ILicense {
-    license_id: string;
+    success: boolean;
+    identityId: string;
+    txid: string;
+    isPremium: boolean;
+    createdAt: number;
+    expiresAt: number;
+    updatedAt?: number;
 }
 
 export interface INetwork {
