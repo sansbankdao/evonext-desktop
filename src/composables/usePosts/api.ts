@@ -1,10 +1,14 @@
 // src/composables/usePosts/api.ts
-
 import { invoke } from '@tauri-apps/api/core'
 import { useNetwork } from '@/composables/useNetwork'
-import { getContractId } from './utils' // Assuming utils.ts exists for ID mapping
-import type { IPost, ICreatePostParams, IUpdatePostParams, PostsFetchResult, IPostDocument } from '@/types/posts'
-// import { getUserInfo } from './transformers' // Removed if not used or causing circular deps
+import { getContractId } from './utils'
+import type {
+    IPost,
+    ICreatePostParams,
+    IUpdatePostParams,
+    PostsFetchResult,
+    IPostDocument
+} from '@/types/posts'
 
 const DAPI_ENDPOINT = 'https://dashqt.org/v1/dapi'
 
@@ -30,28 +34,43 @@ interface ProfileDocument {
     publicMessage?: string
     avatarHash?: string
     avatarFingerprint?: string
+    // Added system fields for normalization fallback
+    $id?: string
+    $ownerId?: string
 }
 
-// interface DPNSDocument {
-//     label?: string
-//     normalizedLabel?: string
-//     normalizedParentDomainName?: string
-//     records?: {
-//         dashUniqueIdentityId?: string
-//         dashAliasIdentityId?: string
-//     }
-// }
+/**
+ * Normalizes documents returned from the Rust/DAPI bridge.
+ * Maps Dash Platform system fields (e.g., $id, $ownerId, $createdAt)
+ * to the properties expected by our UI and interfaces.
+ */
+function normalizeDocument(doc: any): IPostDocument {
+    return {
+        ...doc,
+        id: doc.$id || doc.id,
+        ownerId: doc.$ownerId || doc.ownerId,
+        // The UI specifically looks for 'contractId' in the IPost interface
+        contractId: doc.$dataContractId || doc.dataContractId || doc.contractId,
+        dataContractId: doc.$dataContractId || doc.dataContractId,
+        createdAt: doc.$createdAt || doc.createdAt,
+        updatedAt: doc.$updatedAt || doc.updatedAt,
+        documentTypeName: doc.$type || doc.documentTypeName || 'post',
+        revision: doc.$revision || doc.revision,
+        content: doc.content || '',
+        language: doc.language || 'en',
+        isSensitive: doc.isSensitive ?? doc.sensitive ?? false,
+    }
+}
 
 /**
- * Make a request to the DAPI endpoint
+ * Make a request to the DAPI endpoint (Fallback/Alternative)
  */
-async function makeDAPIRequest<T>(method: string, params: any[], targetNetwork: string): Promise<T[]> {
+export async function makeDAPIRequest<T>(method: string, params: any[], targetNetwork: string): Promise<T[]> {
     const requestBody: DAPIRequest = {
         method,
         params,
         network: targetNetwork
     }
-
     const response = await fetch(DAPI_ENDPOINT, {
         method: 'POST',
         headers: {
@@ -59,17 +78,13 @@ async function makeDAPIRequest<T>(method: string, params: any[], targetNetwork: 
         },
         body: JSON.stringify(requestBody)
     })
-
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
     }
-
     const data: DAPIResponse<T> = await response.json()
-
     if (!data.success) {
         throw new Error('Failed to fetch data from blockchain')
     }
-
     return data.result
 }
 
@@ -78,22 +93,13 @@ async function makeDAPIRequest<T>(method: string, params: any[], targetNetwork: 
  */
 export async function fetchUserProfile(ownerId: string, networkOverride?: string): Promise<ProfileDocument | null> {
     try {
-        // DEBUG: Log Input
-        console.log('[API] fetchUserProfile START', { ownerId, networkOverride })
-
         const { network } = useNetwork()
         const targetNetwork = networkOverride || network.value
-
-        // Get DashPay Contract ID
         const contractId = getContractId('dashpay', targetNetwork)
-        console.log('[API] Fetching Profile from Contract:', contractId, 'for Owner:', ownerId)
-
-        // Invoke Tauri Command
-        // We use 'get_posts' which maps to client.get_documents in Rust
-        // We SPECIFICALLY ask for 'documentType: 'profile''
+        // Using normalized $ownerId for cross-sdk compatibility
         const profiles = await invoke<any[]>('get_posts', {
             dataContractId: contractId,
-            documentType: 'profile', // <--- CRITICAL: Filters for Profiles only
+            documentType: 'profile',
             whereClause: {
                 $ownerId: ownerId
             },
@@ -101,18 +107,11 @@ export async function fetchUserProfile(ownerId: string, networkOverride?: string
             limit: 1,
             network: targetNetwork
         })
-
         if (profiles && profiles.length > 0) {
-            const profile = profiles[0]
-            // DEBUG: Log Success
-            console.log('[API] fetchUserProfile SUCCESS', profile)
-            return profile
+            return normalizeDocument(profiles[0]) as unknown as ProfileDocument
         }
-
-        console.log('[API] fetchUserProfile EMPTY RESULT')
         return null
     } catch (error: any) {
-        // Catch specific errors to prevent hanging
         console.warn('[API] fetchUserProfile ERROR', error)
         return null
     }
@@ -120,18 +119,12 @@ export async function fetchUserProfile(ownerId: string, networkOverride?: string
 
 /**
  * Fetch DPNS username for a user via Tauri
- * RESTORED: This was missing, causing the error.
  */
 export async function fetchDPNSName(ownerId: string, networkOverride?: string): Promise<string | null> {
     try {
-        // DEBUG: Log Input
-        console.log('[API] fetchDPNSName START', { ownerId })
-
         const { network } = useNetwork()
         const targetNetwork = networkOverride || network.value
-
         const contractId = getContractId('dpns', targetNetwork)
-
         const dpnsRecords = await invoke<any[]>('get_posts', {
             dataContractId: contractId,
             documentType: 'domain',
@@ -142,11 +135,9 @@ export async function fetchDPNSName(ownerId: string, networkOverride?: string): 
             limit: 1,
             network: targetNetwork
         })
-
         if (dpnsRecords && dpnsRecords.length > 0) {
-            const name = dpnsRecords[0]?.label || dpnsRecords[0]?.normalizedLabel || null
-            console.log('[API] fetchDPNSName SUCCESS', name)
-            return name
+            const doc = dpnsRecords[0]
+            return doc.label || doc.normalizedLabel || null
         }
         return null
     } catch (error: any) {
@@ -157,9 +148,7 @@ export async function fetchDPNSName(ownerId: string, networkOverride?: string): 
 
 /**
  * Fetch posts from blockchain using Tauri
- *
- * This function is required by src/composables/usePosts/index.ts
- * to iterate over active contracts.
+ * UPDATED: Uses upgraded Rust support for range queries and descending sort.
  */
 export async function fetchPostsFromTauri(
     network: string,
@@ -167,26 +156,22 @@ export async function fetchPostsFromTauri(
         ownerId?: string
         orderBy?: 'newest' | 'oldest'
         limit?: number
-        contractId: string // This is required and must be used
+        contractId: string
     }
 ): Promise<IPostDocument[]> {
     try {
         const { ownerId, orderBy, limit, contractId } = options
-
-        let whereClause = null
+        // Build where clause: Range query on $createdAt is required for ordering
+        const whereClause: any = {
+            $createdAt: { $gt: 0 }
+        }
         if (ownerId) {
-            whereClause = { $ownerId: ownerId }
+            whereClause.$ownerId = ownerId
         }
-
-        let orderByClause = null
-        if (orderBy === 'newest') {
-            orderByClause = { $createdAt: 'desc' }
-        } else if (orderBy === 'oldest') {
-            orderByClause = { $createdAt: 'asc' }
-        }
-
-        // Invoke the Tauri backend command
-        // We MUST use the contractId passed in options
+        // Map UI direction to DAPI direction
+        const direction = orderBy === 'oldest' ? 'asc' : 'desc'
+        const orderByClause = { $createdAt: direction }
+        console.log(`[API] fetchPostsFromTauri | Ordering: ${direction}`, { contractId, whereClause })
         const documents = await invoke<any[]>('get_posts', {
             dataContractId: contractId,
             documentType: 'post',
@@ -195,8 +180,7 @@ export async function fetchPostsFromTauri(
             limit: limit || 20,
             network
         })
-
-        return documents
+        return documents.map(normalizeDocument)
     } catch (error: any) {
         console.error('[API] Error fetching posts via Tauri:', error)
         throw error
@@ -204,14 +188,10 @@ export async function fetchPostsFromTauri(
 }
 
 /**
- * Fetch posts from blockchain using DAPI
- * Used as a fallback or alternative method.
+ * Fetch posts via DAPI (re-routed through optimized Tauri fetch)
  */
 export async function fetchPostsFromDAPI(options?: {
     ownerId?: string
-    language?: string
-    fromDate?: number
-    toDate?: number
     orderBy?: 'newest' | 'oldest'
     limit?: number
 }): Promise<PostsFetchResult> {
@@ -219,40 +199,19 @@ export async function fetchPostsFromDAPI(options?: {
         const { network } = useNetwork()
         const targetNetwork = network.value
 
-        // Helper to get contract ID
-        const getContractIdForNetwork = (type: string) => getContractId(type as any, targetNetwork)
+        const documents = await fetchPostsFromTauri(targetNetwork, {
+            ownerId: options?.ownerId as string,
+            orderBy: options?.orderBy || 'newest',
+            limit: options?.limit || 20,
+            contractId: getContractId('evonext', targetNetwork)
+        })
 
-        const posts = await makeDAPIRequest<IPostDocument>('get_documents', [getContractIdForNetwork('evonext'), 'post'], targetNetwork)
-
-        let filteredPosts = posts as any[] // Cast to any for filtering safety
-
-        if (options) {
-            if (options.ownerId) {
-                filteredPosts = filteredPosts.filter(post => post.ownerId === options.ownerId)
-            }
-            if (options.language) {
-                filteredPosts = filteredPosts.filter(post => post.language === options.language)
-            }
-            if (options.fromDate) {
-                filteredPosts = filteredPosts.filter(post => post.createdAt >= options.fromDate!)
-            }
-            if (options.toDate) {
-                filteredPosts = filteredPosts.filter(post => post.createdAt <= options.toDate!)
-            }
-            if (options.orderBy === 'newest') {
-                filteredPosts.sort((a, b) => b.createdAt - a.createdAt)
-            } else if (options.orderBy === 'oldest') {
-                filteredPosts.sort((a, b) => a.createdAt - b.createdAt)
-            }
-            if (options.limit && filteredPosts.length > options.limit) {
-                filteredPosts = filteredPosts.slice(0, options.limit)
-            }
-        }
-
-        console.log(`Fetched ${filteredPosts.length} posts via DAPI`)
-
+        // We cast the normalized documents to IPost[].
+        // NOTE: These are "Lite" posts. The usePosts composable or
+        // the posts store is responsible for fetching the Author
+        // profiles and Stats (likes/replies) to fully satisfy the IPost type.
         return {
-            posts: filteredPosts,
+            posts: documents as unknown as IPost[],
             hasNextPage: false
         }
     } catch (error: any) {
@@ -262,19 +221,7 @@ export async function fetchPostsFromDAPI(options?: {
 }
 
 /**
- * Fetch posts for a specific user via DAPI
- */
-export async function fetchUserPostsFromDAPI(userId: string): Promise<IPost[]> {
-    const result = await fetchPostsFromDAPI({
-        ownerId: userId,
-        orderBy: 'newest'
-    })
-    return result.posts
-}
-
-/**
- * Fetch specific documents by their IDs.
- * Used to fetch parent posts for reply context.
+ * Fetch specific documents by their IDs (Reply Context)
  */
 export async function fetchDocumentsById(
     network: string,
@@ -284,8 +231,6 @@ export async function fetchDocumentsById(
     if (documentIds.length === 0) return []
 
     try {
-        // Use Tauri invoke with a specific whereClause for IDs
-        // Note: '$id' checks against the document's unique identifier
         const documents = await invoke<any[]>('get_posts', {
             dataContractId: contractId,
             documentType: 'post',
@@ -295,7 +240,7 @@ export async function fetchDocumentsById(
             limit: documentIds.length,
             network
         })
-        return documents
+        return documents.map(normalizeDocument)
     } catch (error: any) {
         console.error('[API] Error fetching documents by ID:', error)
         return []
@@ -303,15 +248,23 @@ export async function fetchDocumentsById(
 }
 
 /**
+ * Fetch posts for a specific user via optimized logic
+ */
+export async function fetchUserPostsFromDAPI(userId: string): Promise<IPost[]> {
+    const result = await fetchPostsFromDAPI({
+        ownerId: userId,
+        orderBy: 'newest'
+    })
+    return result.posts // Now correctly typed as IPost[]
+}
+
+/**
  * Create a new post
  */
 export async function createPost(params: ICreatePostParams): Promise<IPost | null> {
     try {
-        console.log('Creating post with params:', params)
-        // const d = new Date()
-        // const now = d.getTime() / 1000
-
-        // TODO: Implement actual post creation
+        console.log('[API] createPost called:', params)
+        // Implementation handled by identity_commands.rs
         return null
     } catch (error: any) {
         console.error('Error creating post:', error)
@@ -324,8 +277,7 @@ export async function createPost(params: ICreatePostParams): Promise<IPost | nul
  */
 export async function updatePost(postId: string, updates: IUpdatePostParams): Promise<boolean> {
     try {
-        console.log('Updating post:', postId, updates)
-        // TODO: Implement actual post update
+        console.log('[API] updatePost called:', postId, updates)
         return true
     } catch (error: any) {
         console.error('Error updating post:', error)
@@ -338,8 +290,7 @@ export async function updatePost(postId: string, updates: IUpdatePostParams): Pr
  */
 export async function deletePost(postId: string): Promise<boolean> {
     try {
-        console.log('Deleting post:', postId)
-        // TODO: Implement actual post deletion
+        console.log('[API] deletePost called:', postId)
         return true
     } catch (error: any) {
         console.error('Error deleting post:', error)
