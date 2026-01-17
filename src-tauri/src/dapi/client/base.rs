@@ -22,14 +22,16 @@ impl DAPIClient {
         Self {
             client: reqwest::Client::new(),
             endpoint,
-            cache: Arc::new(Mutex::new(Cache::new(100))),
+            cache: Arc::new(Mutex::new(Cache::new(200))),
         }
     }
 
+    /// Generic request method for DAPI calls
     pub async fn request<T>(&self, method: String, params: Vec<Value>, network: Network) -> Result<Vec<T>, DAPIError>
     where
         T: for<'de> Deserialize<'de> + Serialize + Clone + Send + Sync + std::fmt::Debug,
     {
+        // 1. Validate parameters against internal method schema
         let method_info = MethodParamInfo::for_method(&method)?;
         let mut params_map = HashMap::new();
         let params_clone = params.clone();
@@ -40,32 +42,31 @@ impl DAPIClient {
         }
         validate_dapi_params(&method, &params_map)?;
 
+        // 2. Construct the request payload
         let request = DAPIRequest {
             method: method.clone(),
             params: Value::Array(params),
             network: Some(network.as_str().to_string()),
         };
 
-        // LOGGING: Print the exact HTTP Payload sent to the proxy
-        // This will verify if "network": "mainnet" is actually in the body.
-        let payload_str = serde_json::to_string(&request).unwrap_or_else(|_| "Invalid JSON".to_string());
+        // 3. Cache lookup
+        let cache_key = format!("{}-{}-{}", method, request.params.to_string(), network.as_str());
+        if let Some(cached) = self.cache.lock().await.get(&cache_key) {
+            if let Ok(result) = serde_json::from_value::<Vec<T>>(cached.clone()) {
+                info!("Cache hit for {}: {}", method, network.as_str());
+                return Ok(result);
+            }
+        }
+
+        // 4. Log Outbound Request
+        let payload_str = serde_json::to_string(&request).unwrap_or_default();
         println!(
             "[NETWORK_TRACE] Method: {} | Outbound JSON Payload: {}",
             method,
             payload_str
         );
 
-        // CRITICAL: include network in cache key
-        let cache_key = format!("{}-{}-{}", method, request.params.to_string(), network.as_str());
-        if let Some(cached) = self.cache.lock().await.get(&cache_key) {
-            if let Ok(result) = serde_json::from_value::<Vec<T>>(cached.clone()) {
-                info!("Cache hit for method: {} (network={})", method, network.as_str());
-                return Ok(result);
-            }
-        }
-
-        info!("Making DAPI request: {} to {} (network={})", method, self.endpoint, network.as_str());
-
+        // 5. Send HTTP Request
         let response = self.client
             .post(&self.endpoint)
             .json(&request)
@@ -76,6 +77,7 @@ impl DAPIClient {
                 DAPIError::RequestFailed(e.to_string())
             })?;
 
+        // 6. Monitor HTTP Status
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
@@ -83,36 +85,48 @@ impl DAPIClient {
             return Err(DAPIError::RequestFailed(format!("HTTP {}: {}", status, error_text)));
         }
 
-        let api_response: DAPIResponse = response
-            .json()
-            .await
-            .map_err(|e| {
-                error!("Failed to parse DAPI response: {}", e);
-                DAPIError::SerializationError(e.to_string())
-            })?;
+        // 7. Get Response Body as Text
+        let response_text = response.text().await.map_err(|e| {
+            DAPIError::SerializationError(format!("Failed to read response body: {}", e))
+        })?;
 
-        if !api_response.success {
-            // LOGGING: Print the API error response details
-            println!(
-                "[API_ERROR_RESPONSE] Method: {} | Success: false | Details: {:?}",
-                method,
-                api_response
-            );
-            error!("DAPI method {} failed: {:?}", method, api_response);
-            return Err(DAPIError::APIFailed(format!("DAPI method {} failed", method)));
+        println!(
+            "[NETWORK_TRACE] Method: {} | Inbound Raw Response: {}",
+            method,
+            response_text
+        );
+
+        // 8. Attempt Dual-Parsing (Wrapped vs Raw)
+        // This logic handles proxies that return [{},{}] and nodes that return {"success":true,"result":[]}
+        let result: Vec<T> = if let Ok(api_response) = serde_json::from_str::<DAPIResponse>(&response_text) {
+            // Case A: Response has the success/result wrapper
+            if !api_response.success {
+                println!("[API_ERROR] Method: {} | Body: {}", method, response_text);
+                return Err(DAPIError::APIFailed(format!("DAPI method {} failure", method)));
+            }
+            api_response.into_result::<T>()?
+        } else if let Ok(raw_array) = serde_json::from_str::<Vec<T>>(&response_text) {
+            // Case B: Response is a direct JSON array (Matches your current logs)
+            raw_array
+        } else {
+            // Case C: Deserialization failed for both patterns
+            error!("Failed to parse DAPI response for {}", method);
+            println!("[SERIALIZATION_FAILURE] Raw Body: {}", response_text);
+            return Err(DAPIError::SerializationError("Unsupported response format".into()));
+        };
+
+        // 9. Cache successful result
+        if let Ok(cache_value) = serde_json::to_value(&result) {
+            self.cache.lock().await.set(cache_key, cache_value);
         }
 
-        let result = api_response.into_result::<T>()?;
-        let cache_value = serde_json::to_value(&result)
-            .map_err(|e| DAPIError::SerializationError(e.to_string()))?;
-        self.cache.lock().await.set(cache_key, cache_value);
-        info!("DAPI request successful: {} returned {} items (network={})", method, result.len(), network.as_str());
+        info!("DAPI request successful: {} returned {} items", method, result.len());
         Ok(result)
     }
 
-    pub fn get_endpoint(&self) -> &str {
-        &self.endpoint
-    }
+    // pub fn get_endpoint(&self) -> &str {
+    //     &self.endpoint
+    // }
 }
 
 lazy_static::lazy_static! {
