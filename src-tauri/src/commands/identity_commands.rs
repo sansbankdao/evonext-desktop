@@ -1,21 +1,19 @@
 // src-tauri/src/commands/identity_commands.rs
 
-use std::collections::HashMap;
-use tauri::AppHandle;
-use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
-use chrono::Utc;
-use ts_rs::TS;
+use crate::models::{IdentityData, IdentityPublicKey, PrivateKeyEntry, PrivateKeyStore};
+use crate::utils::network_file::get_network_file;
+use crate::utils::StoreManager;
+use base64::{engine::general_purpose, Engine};
 use bitcoin::secp256k1::Secp256k1;
 use bitcoin::PrivateKey;
-use sha2::{Digest as ShaDigest, Sha256};
+use chrono::Utc;
 use ripemd::Ripemd160;
-use base64::{engine::general_purpose, Engine};
-use crate::models::{
-    IdentityData, IdentityPublicKey, PrivateKeyEntry, PrivateKeyStore,
-};
-use crate::utils::StoreManager;
-use crate::utils::network_file::get_network_file;
+use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
+use sha2::{Digest as ShaDigest, Sha256};
+use std::collections::HashMap;
+use tauri::AppHandle;
+use ts_rs::TS;
 type IdentityMap = HashMap<String, IdentityData>;
 // =====================================================
 // Public API Types (TS Export)
@@ -39,9 +37,9 @@ pub struct SaveIdentityPayload {
     pub dpns_username: Option<String>,
     pub balance: Option<String>,
     #[ts(type = "unknown")]
-    pub revision: Option<JsonValue>,            // number | string | null
+    pub revision: Option<JsonValue>, // number | string | null
     #[ts(type = "unknown[]")]
-    pub public_keys: Option<Vec<JsonValue>>,    // tolerant; normalized here
+    pub public_keys: Option<Vec<JsonValue>>, // tolerant; normalized here
     pub created_at: Option<String>,
     // We want to allow the frontend to pass this to persist the active choice
     #[serde(default)]
@@ -64,16 +62,13 @@ pub async fn save_identity_unified(
         None => None,
     };
     // 2. Normalize Public Keys (accepts DAPI-like and our internal shapes)
-    let normalized_public_keys = payload
-        .public_keys
-        .as_ref()
-        .map(|raw_vec| {
-            raw_vec
-                .iter()
-                .enumerate()
-                .filter_map(|(i, v)| normalize_public_key(i as u32, v))
-                .collect::<Vec<IdentityPublicKey>>()
-        });
+    let normalized_public_keys = payload.public_keys.as_ref().map(|raw_vec| {
+        raw_vec
+            .iter()
+            .enumerate()
+            .filter_map(|(i, v)| normalize_public_key(i as u32, v))
+            .collect::<Vec<IdentityPublicKey>>()
+    });
     // 3. Derive public key IDs for quick lookup
     let pk_ids = normalized_public_keys
         .as_ref()
@@ -112,10 +107,7 @@ pub async fn save_identity_unified(
     })
 }
 #[tauri::command]
-pub async fn load_identities_map(
-    app: AppHandle,
-    network: String,
-) -> Result<IdentityMap, String> {
+pub async fn load_identities_map(app: AppHandle, network: String) -> Result<IdentityMap, String> {
     load_identity_map_internal(&app, &network)
 }
 #[tauri::command]
@@ -158,10 +150,10 @@ pub async fn enrich_keystore_for_identity(
         .ok_or("Identity not found in local storage")?;
     // 2. Load Keystore
     let mut store = load_keystore_internal(&app, &network)?;
-    let entries = store
-        .identities
-        .get_mut(&identity_id)
-        .ok_or(format!("No private keys found for identity {}", identity_id))?;
+    let entries = store.identities.get_mut(&identity_id).ok_or(format!(
+        "No private keys found for identity {}",
+        identity_id
+    ))?;
     let mut updated = 0;
     // 3. Iterate through local private keys
     for entry in entries.iter_mut() {
@@ -259,10 +251,7 @@ pub async fn save_single_identity_keys(
 // =====================================================
 // Internal Logic Helpers
 // =====================================================
-fn load_identity_map_internal(
-    app: &AppHandle,
-    network: &str,
-) -> Result<IdentityMap, String> {
+fn load_identity_map_internal(app: &AppHandle, network: &str) -> Result<IdentityMap, String> {
     let manager = StoreManager::new(app);
     let filename = get_network_file(network, "identity")?;
 
@@ -274,7 +263,9 @@ fn load_identity_map_internal(
 
             for (key, value) in obj {
                 // SKIP METADATA
-                if key.starts_with("__") { continue; }
+                if key.starts_with("__") {
+                    continue;
+                }
 
                 // Attempt to parse actual identity data
                 if let Ok(identity_data) = serde_json::from_value::<IdentityData>(value.clone()) {
@@ -284,7 +275,10 @@ fn load_identity_map_internal(
                 }
             }
 
-            println!("[Rust] Successfully loaded {} identities", identity_map.len());
+            println!(
+                "[Rust] Successfully loaded {} identities",
+                identity_map.len()
+            );
             return Ok(identity_map);
         }
     }
@@ -349,7 +343,11 @@ fn normalize_public_key(default_id: u32, raw: &JsonValue) -> Option<IdentityPubl
         _ => 0,
     };
     Some(IdentityPublicKey {
-        id: obj.get("id").and_then(|v| v.as_u64()).map(|n| n as u32).unwrap_or(default_id),
+        id: obj
+            .get("id")
+            .and_then(|v| v.as_u64())
+            .map(|n| n as u32)
+            .unwrap_or(default_id),
         type_: obj
             .get("type")
             .or(obj.get("keyType"))
@@ -359,7 +357,10 @@ fn normalize_public_key(default_id: u32, raw: &JsonValue) -> Option<IdentityPubl
         purpose,
         security_level,
         data,
-        read_only: obj.get("readOnly").and_then(|v| v.as_bool()).unwrap_or(false),
+        read_only: obj
+            .get("readOnly")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
         disabled_at: obj
             .get("disabledAt")
             .and_then(|v| v.as_str())

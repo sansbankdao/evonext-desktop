@@ -1,8 +1,8 @@
 // src-tauri/src/dapi/client/methods/tokens.rs
 
-use serde_json::Value;
 use crate::dapi::types::{DAPIError, Network, TokenContractInfo};
 use crate::dapi::DAPIClient;
+use serde_json::Value;
 
 impl DAPIClient {
     /// Get token contract information (typed)
@@ -89,7 +89,9 @@ impl DAPIClient {
             Network::Testnet => DUSD_CONTRACT_ID_TESTNET,
         };
 
-        let result = self.get_token_contract_info(contract_id.to_string(), network, with_proof).await?;
+        let result = self
+            .get_token_contract_info(contract_id.to_string(), network, with_proof)
+            .await?;
         Ok(result.into_iter().next())
     }
 
@@ -106,7 +108,9 @@ impl DAPIClient {
             Network::Testnet => SANS_CONTRACT_ID_TESTNET,
         };
 
-        let result = self.get_token_contract_info(contract_id.to_string(), network, with_proof).await?;
+        let result = self
+            .get_token_contract_info(contract_id.to_string(), network, with_proof)
+            .await?;
         Ok(result.into_iter().next())
     }
 
@@ -123,7 +127,9 @@ impl DAPIClient {
             Network::Testnet => EVONEXT_CONTRACT_ID_TESTNET,
         };
 
-        let result = self.get_token_contract_info(contract_id.to_string(), network, with_proof).await?;
+        let result = self
+            .get_token_contract_info(contract_id.to_string(), network, with_proof)
+            .await?;
         Ok(result.into_iter().next())
     }
 
@@ -135,8 +141,8 @@ impl DAPIClient {
         with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
         use crate::constants::{
-            DUSD_CONTRACT_ID_MAINNET, DUSD_CONTRACT_ID_TESTNET,
-            SANS_CONTRACT_ID_MAINNET, SANS_CONTRACT_ID_TESTNET
+            DUSD_CONTRACT_ID_MAINNET, DUSD_CONTRACT_ID_TESTNET, SANS_CONTRACT_ID_MAINNET,
+            SANS_CONTRACT_ID_TESTNET,
         };
 
         let (dusd_id, sans_id) = match network {
@@ -147,7 +153,8 @@ impl DAPIClient {
         let token_ids = vec![dusd_id.to_string(), sans_id.to_string()];
 
         // Call the identity method directly on self
-        self.get_identity_token_balances(identity_id, token_ids, network, with_proof).await
+        self.get_identity_token_balances(identity_id, token_ids, network, with_proof)
+            .await
     }
 
     /// Get all token balances for an identity (currently common tokens) - untyped
@@ -157,7 +164,8 @@ impl DAPIClient {
         network: Network,
         with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        self.get_common_token_balances(identity_id, network, with_proof).await
+        self.get_common_token_balances(identity_id, network, with_proof)
+            .await
     }
 
     /// Format token balance with decimals

@@ -1,18 +1,16 @@
 // src-tauri/src/dapi/client/methods/system.rs
 
-use serde_json::Value;
-use serde::Deserialize;
-use crate::dapi::types::{DAPIError, Network};
 use super::super::DAPIClient;
+use crate::dapi::types::{DAPIError, Network};
+use serde::Deserialize;
+use serde_json::Value;
 
 impl DAPIClient {
     /// Get platform status
-    pub async fn get_platform_status(
-        &self,
-        network: Network,
-    ) -> Result<Vec<Value>, DAPIError> {
+    pub async fn get_platform_status(&self, network: Network) -> Result<Vec<Value>, DAPIError> {
         let params = vec![];
-        self.request("get_status".to_string(), params, network).await
+        self.request("get_status".to_string(), params, network)
+            .await
     }
 
     /// Get current epoch info
@@ -49,8 +47,16 @@ impl DAPIClient {
         let mut params = vec![];
 
         // Add optional parameters
-        params.push(start_epoch.map(|s| Value::Number(s.into())).unwrap_or(Value::Null));
-        params.push(count.map(|c| Value::Number(c.into())).unwrap_or(Value::Null));
+        params.push(
+            start_epoch
+                .map(|s| Value::Number(s.into()))
+                .unwrap_or(Value::Null),
+        );
+        params.push(
+            count
+                .map(|c| Value::Number(c.into()))
+                .unwrap_or(Value::Null),
+        );
         params.push(ascending.map(Value::Bool).unwrap_or(Value::Null));
 
         self.request(method, params, network).await
@@ -74,8 +80,16 @@ impl DAPIClient {
         let mut params = vec![];
 
         // Add optional parameters
-        params.push(start_epoch.map(|s| Value::Number(s.into())).unwrap_or(Value::Null));
-        params.push(count.map(|c| Value::Number(c.into())).unwrap_or(Value::Null));
+        params.push(
+            start_epoch
+                .map(|s| Value::Number(s.into()))
+                .unwrap_or(Value::Null),
+        );
+        params.push(
+            count
+                .map(|c| Value::Number(c.into()))
+                .unwrap_or(Value::Null),
+        );
         params.push(ascending.map(Value::Bool).unwrap_or(Value::Null));
 
         self.request(method, params, network).await
@@ -119,23 +133,30 @@ impl DAPIClient {
         network: Network,
     ) -> Result<Vec<Value>, DAPIError> {
         let params = vec![];
-        self.request("get_current_quorums_info".to_string(), params, network).await
+        self.request("get_current_quorums_info".to_string(), params, network)
+            .await
     }
 
     /// Prefetch trusted quorums for mainnet
-    pub async fn prefetch_trusted_quorums_mainnet(
-        &self,
-    ) -> Result<Vec<Value>, DAPIError> {
+    pub async fn prefetch_trusted_quorums_mainnet(&self) -> Result<Vec<Value>, DAPIError> {
         let params = vec![];
-        self.request("prefetch_trusted_quorums_mainnet".to_string(), params, Network::Mainnet).await
+        self.request(
+            "prefetch_trusted_quorums_mainnet".to_string(),
+            params,
+            Network::Mainnet,
+        )
+        .await
     }
 
     /// Prefetch trusted quorums for testnet
-    pub async fn prefetch_trusted_quorums_testnet(
-        &self,
-    ) -> Result<Vec<Value>, DAPIError> {
+    pub async fn prefetch_trusted_quorums_testnet(&self) -> Result<Vec<Value>, DAPIError> {
         let params = vec![];
-        self.request("prefetch_trusted_quorums_testnet".to_string(), params, Network::Testnet).await
+        self.request(
+            "prefetch_trusted_quorums_testnet".to_string(),
+            params,
+            Network::Testnet,
+        )
+        .await
     }
 
     /// Get vote polls by end date
@@ -155,25 +176,29 @@ impl DAPIClient {
         let mut params = vec![];
 
         // Add optional parameters
-        params.push(end_time_ms.map(|e| Value::Number(e.into())).unwrap_or(Value::Null));
-        params.push(limit.map(|l| Value::Number(l.into())).unwrap_or(Value::Null));
+        params.push(
+            end_time_ms
+                .map(|e| Value::Number(e.into()))
+                .unwrap_or(Value::Null),
+        );
+        params.push(
+            limit
+                .map(|l| Value::Number(l.into()))
+                .unwrap_or(Value::Null),
+        );
 
         self.request(method, params, network).await
     }
 
     /// Check if platform is healthy
-    pub async fn check_platform_health(
-        &self,
-        network: Network,
-    ) -> Result<bool, DAPIError> {
+    pub async fn check_platform_health(&self, network: Network) -> Result<bool, DAPIError> {
         match self.get_platform_status(network).await {
             Ok(status) => {
                 // Check if status contains expected fields
-                let is_healthy = !status.is_empty() &&
-                    status.iter().any(|item|
-                        item.get("chainHeight").is_some() ||
-                        item.get("version").is_some()
-                    );
+                let is_healthy = !status.is_empty()
+                    && status.iter().any(|item| {
+                        item.get("chainHeight").is_some() || item.get("version").is_some()
+                    });
                 Ok(is_healthy)
             }
             Err(_) => Ok(false),

@@ -1,11 +1,14 @@
 // src-tauri/src/commands/mnemonic_commands.rs
 
-use tauri::{AppHandle, Wry};
 use crate::models::{IMnemonic, PrivateKeyStore};
-use crate::utils::{StoreManager, network_file::get_network_file};
+use crate::utils::{network_file::get_network_file, StoreManager};
+use tauri::{AppHandle, Wry};
 
 #[tauri::command]
-pub fn load_mnemonic(app_handle: AppHandle<Wry>, network: String) -> Result<Option<IMnemonic>, String> {
+pub fn load_mnemonic(
+    app_handle: AppHandle<Wry>,
+    network: String,
+) -> Result<Option<IMnemonic>, String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
 
@@ -20,7 +23,11 @@ pub fn load_mnemonic(app_handle: AppHandle<Wry>, network: String) -> Result<Opti
 }
 
 #[tauri::command]
-pub fn save_mnemonic(app_handle: AppHandle<Wry>, network: String, payload: IMnemonic) -> Result<(), String> {
+pub fn save_mnemonic(
+    app_handle: AppHandle<Wry>,
+    network: String,
+    payload: IMnemonic,
+) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
 
@@ -59,7 +66,10 @@ pub fn delete_mnemonic(app_handle: AppHandle<Wry>, network: String) -> Result<()
 
     match manager.save(filename, "keystore", &keystore) {
         Ok(_) => {
-            println!("Mnemonic deleted successfully from keystore for {}.", network);
+            println!(
+                "Mnemonic deleted successfully from keystore for {}.",
+                network
+            );
             Ok(())
         }
         Err(e) => {

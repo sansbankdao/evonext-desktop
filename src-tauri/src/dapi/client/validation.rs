@@ -1,7 +1,7 @@
 // src-tauri/src/dapi/client/validation.rs
 
-use std::collections::HashMap;
 use serde_json::Value;
+use std::collections::HashMap;
 use tracing::warn;
 
 use crate::dapi::types::DAPIError;
@@ -41,87 +41,79 @@ impl MethodParamInfo {
             // Identity
             "identity_fetch" | "identity_fetch_with_proof_info" => MethodParamInfo {
                 required_params: vec!["identityId"],
-                param_types: HashMap::from([
-                    ("identityId", "string"),
-                ]),
+                param_types: HashMap::from([("identityId", "string")]),
             },
 
             "get_identity_balance" | "get_identity_balance_with_proof_info" => MethodParamInfo {
                 required_params: vec!["identityId"],
-                param_types: HashMap::from([
-                    ("identityId", "string"),
-                ]),
+                param_types: HashMap::from([("identityId", "string")]),
             },
 
-            "get_identity_by_public_key_hash" | "get_identity_by_public_key_hash_with_proof_info" => MethodParamInfo {
+            "get_identity_by_public_key_hash"
+            | "get_identity_by_public_key_hash_with_proof_info" => MethodParamInfo {
                 required_params: vec!["publicKeyHash"],
-                param_types: HashMap::from([
-                    ("publicKeyHash", "string"),
-                ]),
+                param_types: HashMap::from([("publicKeyHash", "string")]),
             },
 
-            "get_identity_token_balances" | "get_identity_token_balances_with_proof_info" => MethodParamInfo {
-                required_params: vec!["identityId", "tokenIds"],
-                param_types: HashMap::from([
-                    ("identityId", "string"),
-                    ("tokenIds", "array"),
-                ]),
-            },
+            "get_identity_token_balances" | "get_identity_token_balances_with_proof_info" => {
+                MethodParamInfo {
+                    required_params: vec!["identityId", "tokenIds"],
+                    param_types: HashMap::from([("identityId", "string"), ("tokenIds", "array")]),
+                }
+            }
 
             // Contracts
             "data_contract_fetch" | "data_contract_fetch_with_proof_info" => MethodParamInfo {
                 required_params: vec!["contractId"],
-                param_types: HashMap::from([
-                    ("contractId", "string"),
-                ]),
+                param_types: HashMap::from([("contractId", "string")]),
             },
 
-            "get_data_contract_history" | "get_data_contract_history_with_proof_info" => MethodParamInfo {
-                required_params: vec!["contractId"],
-                param_types: HashMap::from([
-                    ("contractId", "string"),
-                    ("limit", "number"),
-                    ("offset", "number"),
-                    ("startAtMs", "number"),
-                ]),
-            },
+            "get_data_contract_history" | "get_data_contract_history_with_proof_info" => {
+                MethodParamInfo {
+                    required_params: vec!["contractId"],
+                    param_types: HashMap::from([
+                        ("contractId", "string"),
+                        ("limit", "number"),
+                        ("offset", "number"),
+                        ("startAtMs", "number"),
+                    ]),
+                }
+            }
 
             // DPNS
-            "dpns_resolve_name" | "get_dpns_username_by_name" | "get_dpns_username_by_name_with_proof_info" => MethodParamInfo {
+            "dpns_resolve_name"
+            | "get_dpns_username_by_name"
+            | "get_dpns_username_by_name_with_proof_info" => MethodParamInfo {
                 required_params: vec!["username"],
-                param_types: HashMap::from([
-                    ("username", "string"),
-                ]),
+                param_types: HashMap::from([("username", "string")]),
             },
 
-            "get_dpns_username" | "get_dpns_usernames" | "get_dpns_usernames_with_proof_info" => MethodParamInfo {
-                required_params: vec!["identityId"],
-                param_types: HashMap::from([
-                    ("identityId", "string"),
-                ]),
-            },
+            "get_dpns_username" | "get_dpns_usernames" | "get_dpns_usernames_with_proof_info" => {
+                MethodParamInfo {
+                    required_params: vec!["identityId"],
+                    param_types: HashMap::from([("identityId", "string")]),
+                }
+            }
 
             // Tokens
-            "get_token_contract_info" | "get_token_contract_info_with_proof_info" => MethodParamInfo {
-                required_params: vec!["dataContractId"],
-                param_types: HashMap::from([
-                    ("dataContractId", "string"),
-                ]),
-            },
+            "get_token_contract_info" | "get_token_contract_info_with_proof_info" => {
+                MethodParamInfo {
+                    required_params: vec!["dataContractId"],
+                    param_types: HashMap::from([("dataContractId", "string")]),
+                }
+            }
 
             "get_token_statuses" | "get_token_statuses_with_proof_info" => MethodParamInfo {
                 required_params: vec!["tokenIds"],
-                param_types: HashMap::from([
-                    ("tokenIds", "array"),
-                ]),
+                param_types: HashMap::from([("tokenIds", "array")]),
             },
 
-            "get_token_total_supply" | "get_token_total_supply_with_proof_info" => MethodParamInfo {
-                required_params: vec!["tokenId"],
-                param_types: HashMap::from([
-                    ("tokenId", "string"),
-                ]),
-            },
+            "get_token_total_supply" | "get_token_total_supply_with_proof_info" => {
+                MethodParamInfo {
+                    required_params: vec!["tokenId"],
+                    param_types: HashMap::from([("tokenId", "string")]),
+                }
+            }
 
             // System
             "get_status" => MethodParamInfo {
@@ -134,10 +126,12 @@ impl MethodParamInfo {
                 param_types: HashMap::new(),
             },
 
-            "get_total_credits_in_platform" | "get_total_credits_in_platform_with_proof_info" => MethodParamInfo {
-                required_params: vec![],
-                param_types: HashMap::new(),
-            },
+            "get_total_credits_in_platform" | "get_total_credits_in_platform_with_proof_info" => {
+                MethodParamInfo {
+                    required_params: vec![],
+                    param_types: HashMap::new(),
+                }
+            }
 
             _ => {
                 // For unknown methods, allow any params but log warning
@@ -153,7 +147,10 @@ impl MethodParamInfo {
     }
 }
 
-pub fn validate_dapi_params(method: &str, params: &HashMap<String, Value>) -> Result<(), DAPIError> {
+pub fn validate_dapi_params(
+    method: &str,
+    params: &HashMap<String, Value>,
+) -> Result<(), DAPIError> {
     let method_info = MethodParamInfo::for_method(method)?;
 
     // Check required params
@@ -223,7 +220,10 @@ pub fn validate_dapi_params(method: &str, params: &HashMap<String, Value>) -> Re
     Ok(())
 }
 
-pub fn params_array_to_object(method: &str, params_array: Vec<Value>) -> Result<HashMap<String, Value>, DAPIError> {
+pub fn params_array_to_object(
+    method: &str,
+    params_array: Vec<Value>,
+) -> Result<HashMap<String, Value>, DAPIError> {
     let method_info = MethodParamInfo::for_method(method)?;
     let mut params = HashMap::new();
 

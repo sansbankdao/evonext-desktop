@@ -1,16 +1,16 @@
 // src-tauri/src/dapi/client/methods/mod.rs
 
-pub mod documents;
-pub mod identity;
 pub mod contracts;
+pub mod documents;
 pub mod dpns;
-pub mod tokens;
+pub mod identity;
 pub mod system;
+pub mod tokens;
 
 // Re-export all method implementations
-pub use documents::*;
-pub use identity::*;
 pub use contracts::*;
+pub use documents::*;
 pub use dpns::*;
-pub use tokens::*;
+pub use identity::*;
 pub use system::*;
+pub use tokens::*;

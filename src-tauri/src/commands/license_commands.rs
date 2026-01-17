@@ -1,16 +1,16 @@
 // src-tauri/src/commands/license_commands.rs
 
+use crate::constants::LICENSE_FILE;
+use crate::models::{ILicense, LicenseStoreMap};
+use crate::utils::StoreManager;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 use tauri::{AppHandle, Wry};
-use crate::models::{ILicense, LicenseStoreMap};
-use crate::utils::StoreManager;
-use crate::constants::LICENSE_FILE;
 
 #[tauri::command]
 pub async fn refresh_license(
     app_handle: AppHandle<Wry>,
-    identity_id: String
+    identity_id: String,
 ) -> Result<ILicense, String> {
     let url = format!(
         "https://evonext.app/v1/stakeline/status?identityId={}",
@@ -33,13 +33,15 @@ pub async fn refresh_license(
 
     // 2. Load existing map or create new
     let manager = StoreManager::new(&app_handle);
-    let mut map: LicenseStoreMap = manager.load(LICENSE_FILE, "licenses")
+    let mut map: LicenseStoreMap = manager
+        .load(LICENSE_FILE, "licenses")
         .map_err(|e| e.to_string())?
         .unwrap_or_default();
 
     // 3. Update specific entry and save
     map.insert(identity_id, api_data.clone());
-    manager.save(LICENSE_FILE, "licenses", &map)
+    manager
+        .save(LICENSE_FILE, "licenses", &map)
         .map_err(|e| e.to_string())?;
 
     Ok(api_data)
@@ -48,10 +50,11 @@ pub async fn refresh_license(
 #[tauri::command]
 pub async fn load_license(
     app_handle: AppHandle<Wry>,
-    identity_id: String
+    identity_id: String,
 ) -> Result<Option<ILicense>, String> {
     let manager = StoreManager::new(&app_handle);
-    let map: Option<LicenseStoreMap> = manager.load(LICENSE_FILE, "licenses")
+    let map: Option<LicenseStoreMap> = manager
+        .load(LICENSE_FILE, "licenses")
         .map_err(|e| e.to_string())?;
 
     match map {
@@ -65,7 +68,8 @@ pub fn save_license(app_handle: AppHandle<Wry>, payload: ILicense) -> Result<(),
     let manager = StoreManager::new(&app_handle);
 
     // 1. Load the existing map (or start fresh if file doesn't exist)
-    let mut map: LicenseStoreMap = manager.load(LICENSE_FILE, "licenses")
+    let mut map: LicenseStoreMap = manager
+        .load(LICENSE_FILE, "licenses")
         .map_err(|e| e.to_string())?
         .unwrap_or_default();
 
@@ -87,15 +91,15 @@ pub fn save_license(app_handle: AppHandle<Wry>, payload: ILicense) -> Result<(),
 }
 
 #[tauri::command]
-pub fn delete_license(
-    app_handle: AppHandle<Wry>,
-    identity_id: String
-) -> Result<(), String> {
+pub fn delete_license(app_handle: AppHandle<Wry>, identity_id: String) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
-    let mut map: LicenseStoreMap = manager.load(LICENSE_FILE, "licenses")
+    let mut map: LicenseStoreMap = manager
+        .load(LICENSE_FILE, "licenses")
         .map_err(|e| e.to_string())?
         .unwrap_or_default();
 
     map.remove(&identity_id);
-    manager.save(LICENSE_FILE, "licenses", &map).map_err(|e| e.to_string())
+    manager
+        .save(LICENSE_FILE, "licenses", &map)
+        .map_err(|e| e.to_string())
 }

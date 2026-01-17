@@ -1,8 +1,8 @@
 // src-tauri/src/dapi/client/cache.rs
 
+use serde_json::Value;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
-use serde_json::Value;
 
 #[derive(Debug)]
 pub struct CacheEntry {
@@ -90,7 +90,8 @@ impl Cache {
     }
 
     pub fn cleanup(&mut self) {
-        let expired_keys: Vec<String> = self.entries
+        let expired_keys: Vec<String> = self
+            .entries
             .iter()
             .filter(|(_, entry)| entry.is_expired())
             .map(|(key, _)| key.clone())

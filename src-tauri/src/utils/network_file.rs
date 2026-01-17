@@ -1,10 +1,8 @@
 // src-tauri/src/utils/network_file.rs
 
 use crate::constants::{
-    ASSETS_MAINNET_FILE, ASSETS_TESTNET_FILE,
-    SAFU_MAINNET_FILE, SAFU_TESTNET_FILE,
-    IDENTITY_MAINNET_FILE, IDENTITY_TESTNET_FILE,
-    DISCOVERED_MAINNET_FILE, DISCOVERED_TESTNET_FILE
+    ASSETS_MAINNET_FILE, ASSETS_TESTNET_FILE, DISCOVERED_MAINNET_FILE, DISCOVERED_TESTNET_FILE,
+    IDENTITY_MAINNET_FILE, IDENTITY_TESTNET_FILE, SAFU_MAINNET_FILE, SAFU_TESTNET_FILE,
 };
 /// Get the correct filename based on network and file type
 pub fn get_network_file(network: &str, file_type: &str) -> Result<&'static str, String> {

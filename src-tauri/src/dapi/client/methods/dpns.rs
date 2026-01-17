@@ -1,8 +1,8 @@
 // src-tauri/src/dapi/client/methods/dpns.rs
 
-use serde_json::Value;
-use crate::dapi::types::{DAPIError, Network};
 use super::super::DAPIClient;
+use crate::dapi::types::{DAPIError, Network};
+use serde_json::Value;
 
 impl DAPIClient {
     /// Resolve a DPNS name to an identity
@@ -18,9 +18,7 @@ impl DAPIClient {
             "dpns_resolve_name".to_string()
         };
 
-        let params = vec![
-            Value::String(username),
-        ];
+        let params = vec![Value::String(username)];
 
         self.request(method, params, network).await
     }
@@ -38,9 +36,7 @@ impl DAPIClient {
             "get_dpns_username".to_string()
         };
 
-        let params = vec![
-            Value::String(identity_id),
-        ];
+        let params = vec![Value::String(identity_id)];
 
         self.request(method, params, network).await
     }
@@ -58,9 +54,7 @@ impl DAPIClient {
             "get_dpns_usernames".to_string()
         };
 
-        let params = vec![
-            Value::String(identity_id),
-        ];
+        let params = vec![Value::String(identity_id)];
 
         self.request(method, params, network).await
     }
@@ -82,14 +76,17 @@ impl DAPIClient {
 
         let params = vec![
             // We need to use the contract ID for DPNS
-            Value::String("dpns".to_string()), // DPNS contract ID
+            Value::String("dpns".to_string()),   // DPNS contract ID
             Value::String("domain".to_string()), // Document type
             where_clause.unwrap_or(Value::Null),
             Value::Null, // orderBy
-            limit.map(|l| Value::Number(l.into())).unwrap_or(Value::Null),
+            limit
+                .map(|l| Value::Number(l.into()))
+                .unwrap_or(Value::Null),
         ];
 
-        self.request("get_documents".to_string(), params, network).await
+        self.request("get_documents".to_string(), params, network)
+            .await
     }
 
     /// Check if a DPNS name is available
@@ -118,7 +115,9 @@ impl DAPIClient {
         network: Network,
         with_proof: bool,
     ) -> Result<Option<Value>, DAPIError> {
-        let records = self.resolve_dpns_name(username, network, with_proof).await?;
+        let records = self
+            .resolve_dpns_name(username, network, with_proof)
+            .await?;
 
         if records.is_empty() {
             return Ok(None);
@@ -138,7 +137,10 @@ impl DAPIClient {
         let mut results = Vec::new();
 
         for identity_id in identity_ids {
-            match self.get_dpns_username(identity_id.clone(), network, with_proof).await {
+            match self
+                .get_dpns_username(identity_id.clone(), network, with_proof)
+                .await
+            {
                 Ok(domains) => {
                     for domain in domains {
                         let mut record = serde_json::Map::new();

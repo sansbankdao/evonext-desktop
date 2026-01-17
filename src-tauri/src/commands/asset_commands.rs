@@ -1,20 +1,23 @@
 // src-tauri/src/commands/asset_commands.rs
 
-use tauri::AppHandle;
-use serde_json::Value;
 use reqwest;
+use serde_json::Value;
+use tauri::AppHandle;
 
-use crate::models::{AssetDefinition, AssetStoreMap, IAssets};
-use crate::utils::{StoreManager, network_file::get_network_file};
 use crate::commands::identity_commands::{load_identities_map, save_identity_data};
+use crate::models::{AssetDefinition, AssetStoreMap, IAssets};
+use crate::utils::{network_file::get_network_file, StoreManager};
 
 #[tauri::command]
 pub fn discover_assets(
     app_handle: AppHandle,
     identity_id: String,
-    network: String
+    network: String,
 ) -> Result<IAssets, String> {
-    println!("🕵️♂️ [discover_assets] Starting discovery for identity: {}", identity_id);
+    println!(
+        "🕵️♂️ [discover_assets] Starting discovery for identity: {}",
+        identity_id
+    );
 
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
@@ -27,7 +30,10 @@ pub fn discover_assets(
         "https://testnet.platform-explorer.pshenmic.dev"
     };
 
-    let explorer_url = format!("{}/identity/{}/tokens?page=1&limit=10", base_url, identity_id);
+    let explorer_url = format!(
+        "{}/identity/{}/tokens?page=1&limit=10",
+        base_url, identity_id
+    );
 
     // Fetch Data (Blocking)
     let response_body = match reqwest::blocking::get(&explorer_url) {
@@ -55,7 +61,9 @@ pub fn discover_assets(
         if let Some(Value::Array(items)) = data.get("resultSet") {
             for item in items.iter() {
                 let get_str = |key: &str| -> Option<String> {
-                    item.get(key).and_then(|v| v.as_str()).map(|s| s.to_string())
+                    item.get(key)
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string())
                 };
 
                 let symbol = item
@@ -125,7 +133,10 @@ pub async fn fetch_identity_tokens(
     identity_id: String,
     network: String,
 ) -> Result<IAssets, String> {
-    println!("🔍 [fetch_identity_tokens] Fetching tokens for ID: {}", identity_id);
+    println!(
+        "🔍 [fetch_identity_tokens] Fetching tokens for ID: {}",
+        identity_id
+    );
 
     let base_url = match network.as_str() {
         "testnet" => "https://testnet.platform-explorer.pshenmic.dev",
@@ -133,7 +144,10 @@ pub async fn fetch_identity_tokens(
         _ => return Err("Unsupported network".to_string()),
     };
 
-    let url = format!("{}/identity/{}/tokens?page=1&limit=10&order=asc", base_url, identity_id);
+    let url = format!(
+        "{}/identity/{}/tokens?page=1&limit=10&order=asc",
+        base_url, identity_id
+    );
 
     let client = reqwest::Client::new();
     let response = client
@@ -156,7 +170,9 @@ pub async fn fetch_identity_tokens(
     if let Some(Value::Array(items)) = json_response.get("resultSet") {
         for item in items {
             let get_str = |key: &str| -> Option<String> {
-                item.get(key).and_then(|v| v.as_str()).map(|s| s.to_string())
+                item.get(key)
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
             };
 
             let symbol = item
@@ -183,7 +199,10 @@ pub async fn fetch_identity_tokens(
                 name: symbol.clone(),
                 symbol,
                 asset_id: Some(contract_id),
-                decimals: item.get("decimals").and_then(|v| v.as_u64()).map(|v| v as u8),
+                decimals: item
+                    .get("decimals")
+                    .and_then(|v| v.as_u64())
+                    .map(|v| v as u8),
                 balance: Some(balance),
                 network: Some(network.clone()),
             });
@@ -205,13 +224,18 @@ pub async fn fetch_identity_tokens(
         .map_err(|e| format!("Failed to save assets: {}", e))?;
 
     // Sync balance back to identity store
-    let identities_map = load_identities_map(app.clone(), network.clone()).await
+    let identities_map = load_identities_map(app.clone(), network.clone())
+        .await
         .map_err(|e| format!("Failed to load identities: {}", e))?;
 
     if let Some(mut identity_data) = identities_map.get(&identity_id).cloned() {
-        let total_balance: u128 = assets.iter().filter_map(|a| a.balance.map(|b| b as u128)).sum();
+        let total_balance: u128 = assets
+            .iter()
+            .filter_map(|a| a.balance.map(|b| b as u128))
+            .sum();
         identity_data.balance = Some(total_balance.to_string());
-        save_identity_data(app, network, identity_data).await
+        save_identity_data(app, network, identity_data)
+            .await
             .map_err(|e| format!("Failed to sync identity: {}", e))?;
     }
 
@@ -222,15 +246,13 @@ pub async fn fetch_identity_tokens(
 pub fn load_assets(
     app_handle: AppHandle,
     identity_id: String,
-    network: String
+    network: String,
 ) -> Result<IAssets, String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
 
     match manager.load::<AssetStoreMap>(filename, "assets") {
-        Ok(Some(map)) => {
-            Ok(map.get(&identity_id).cloned().unwrap_or_default())
-        }
+        Ok(Some(map)) => Ok(map.get(&identity_id).cloned().unwrap_or_default()),
         _ => Ok(Vec::new()),
     }
 }
@@ -240,7 +262,7 @@ pub fn save_assets(
     app_handle: AppHandle,
     identity_id: String,
     network: String,
-    payload: IAssets
+    payload: IAssets,
 ) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;

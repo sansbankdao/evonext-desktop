@@ -1,12 +1,12 @@
 // src-tauri/src/dapi/client/methods/documents.rs
 
+use chrono::{DateTime, Utc};
 use serde_json::Value;
 use std::collections::HashMap;
-use chrono::{DateTime, Utc};
 
-use crate::dapi::types::{DAPIError, Network};
-use crate::constants; // Import centralized constants
 use super::super::DAPIClient;
+use crate::constants; // Import centralized constants
+use crate::dapi::types::{DAPIError, Network};
 
 impl DAPIClient {
     /// Fetch documents from a data contract
@@ -57,7 +57,8 @@ impl DAPIClient {
             params.push(Value::Null);
         }
 
-        self.request("get_documents".to_string(), params, network).await
+        self.request("get_documents".to_string(), params, network)
+            .await
     }
 
     /// Fetch a specific document by ID
@@ -106,7 +107,8 @@ impl DAPIClient {
             limit,
             start_after,
             start_at,
-        ).await
+        )
+        .await
     }
 
     /// Fetch posts by a specific owner
@@ -127,7 +129,8 @@ impl DAPIClient {
             })
         });
 
-        self.get_posts(network, where_clause, Some(order_by), limit, None, None).await
+        self.get_posts(network, where_clause, Some(order_by), limit, None, None)
+            .await
     }
 
     /// Fetch recent posts with optional filters
@@ -163,7 +166,8 @@ impl DAPIClient {
             "$createdAt": "desc"
         });
 
-        self.get_posts(network, where_value, Some(order_by), limit, None, None).await
+        self.get_posts(network, where_value, Some(order_by), limit, None, None)
+            .await
     }
 
     /// Search posts by content
@@ -183,7 +187,8 @@ impl DAPIClient {
             "$createdAt": "desc"
         });
 
-        self.get_posts(network, where_clause, Some(order_by), limit, None, None).await
+        self.get_posts(network, where_clause, Some(order_by), limit, None, None)
+            .await
     }
 
     /// Get posts with media attachments
@@ -202,14 +207,15 @@ impl DAPIClient {
             "$createdAt": "desc"
         });
 
-        self.get_posts(network, where_clause, Some(order_by), limit, None, None).await
+        self.get_posts(network, where_clause, Some(order_by), limit, None, None)
+            .await
     }
 }
 
 /// Helper functions for working with post documents
 pub mod helpers {
-    use serde_json::Value;
     use chrono::{DateTime, Utc};
+    use serde_json::Value;
 
     /// Extract content from a post document
     pub fn get_post_content(doc: &Value) -> Option<String> {

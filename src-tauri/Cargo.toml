@@ -43,6 +43,9 @@ sha2 = "0.10"
 ripemd = "0.1"
 bitcoin = "0.32.8"
 
+sentry = "0.42"
+tauri-plugin-sentry = "0.5"
+
 [features]
 # This section is used for custom features. You can leave it as is.
 custom-protocol = ["tauri/custom-protocol"]

@@ -70,14 +70,17 @@ impl Debug for DAPIResponse {
             .field("success", &self.success)
             .field("method", &self.method)
             .field("network", &self.network)
-            .field("result_type", &match &self.result {
-                Value::Null => "null".to_string(),
-                Value::Bool(_) => "bool".to_string(),
-                Value::Number(_) => "number".to_string(),
-                Value::String(_) => "string".to_string(),
-                Value::Array(arr) => format!("array[{}]", arr.len()),
-                Value::Object(_) => "object".to_string(),
-            })
+            .field(
+                "result_type",
+                &match &self.result {
+                    Value::Null => "null".to_string(),
+                    Value::Bool(_) => "bool".to_string(),
+                    Value::Number(_) => "number".to_string(),
+                    Value::String(_) => "string".to_string(),
+                    Value::Array(arr) => format!("array[{}]", arr.len()),
+                    Value::Object(_) => "object".to_string(),
+                },
+            )
             .finish()
     }
 }
@@ -88,7 +91,10 @@ impl DAPIResponse {
         T: for<'de> Deserialize<'de> + Debug,
     {
         if !self.success {
-            return Err(DAPIError::APIFailed(format!("DAPI request failed for method: {}", self.method)));
+            return Err(DAPIError::APIFailed(format!(
+                "DAPI request failed for method: {}",
+                self.method
+            )));
         }
 
         match self.result {

@@ -1,11 +1,9 @@
 // src-tauri/src/menu.rs
 
 use tauri::{
-    AppHandle,
-    Manager,
     menu::{CheckMenuItemBuilder, MenuBuilder, MenuItem, SubmenuBuilder},
     tray::TrayIconBuilder,
-    Emitter,
+    AppHandle, Emitter, Manager,
 };
 
 pub fn setup_menus(app_handle: &AppHandle) -> tauri::Result<()> {
@@ -47,15 +45,26 @@ pub fn setup_menus(app_handle: &AppHandle) -> tauri::Result<()> {
 
     // 2. Build the Tray Menu
     let tray_menu = MenuBuilder::new(app_handle)
-        .item(&MenuItem::with_id(app_handle, "open", "Open", true, None::<&str>)?)
+        .item(&MenuItem::with_id(
+            app_handle,
+            "open",
+            "Open",
+            true,
+            None::<&str>,
+        )?)
         .separator()
-        .item(&MenuItem::with_id(app_handle, "exit", "Exit", true, None::<&str>)?)
+        .item(&MenuItem::with_id(
+            app_handle,
+            "exit",
+            "Exit",
+            true,
+            None::<&str>,
+        )?)
         .build()?;
 
-    let icon_path = app_handle.path().resolve(
-        "icons/icon.png",
-        tauri::path::BaseDirectory::Resource
-    )?;
+    let icon_path = app_handle
+        .path()
+        .resolve("icons/icon.png", tauri::path::BaseDirectory::Resource)?;
 
     // 3. IMPORTANT: Build the Tray and don't let it drop
     // We remove "let _tray =" to let it live for the app duration
@@ -96,13 +105,27 @@ pub fn handle_menu_event(app: &AppHandle, event: tauri::menu::MenuEvent) {
     // OR verify "main" exists.
     if let Some(_window) = app.get_webview_window("main") {
         match id {
-            "about" => { let _ = app.emit("navigate", "/about"); }
-            "asset" => { let _ = app.emit("navigate", "/asset"); }
-            "bootstrap" => { let _ = app.emit("navigate", "/bootstrap"); }
-            "launcher" => { let _ = app.emit("navigate", "/launcher"); }
-            "portfolio" => { let _ = app.emit("navigate", "/portfolio"); }
-            "studio" => { let _ = app.emit("navigate", "/studio"); }
-            "exit" | "quit" => { app.exit(0); }
+            "about" => {
+                let _ = app.emit("navigate", "/about");
+            }
+            "asset" => {
+                let _ = app.emit("navigate", "/asset");
+            }
+            "bootstrap" => {
+                let _ = app.emit("navigate", "/bootstrap");
+            }
+            "launcher" => {
+                let _ = app.emit("navigate", "/launcher");
+            }
+            "portfolio" => {
+                let _ = app.emit("navigate", "/portfolio");
+            }
+            "studio" => {
+                let _ = app.emit("navigate", "/studio");
+            }
+            "exit" | "quit" => {
+                app.exit(0);
+            }
             _ => {
                 println!("No match found for menu ID: {}", id);
             }

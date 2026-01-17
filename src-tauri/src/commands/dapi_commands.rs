@@ -1,10 +1,10 @@
 // src-tauri/src/commands/dapi_commands.rs
 
-use tauri::command;
-use serde_json::{Value, json};
-use std::collections::HashMap;
 use crate::dapi::client::{get_dapi_client, MethodParamInfo};
 use crate::dapi::types::Network;
+use serde_json::{json, Value};
+use std::collections::HashMap;
+use tauri::command;
 
 #[command]
 pub async fn dapi_request(
@@ -17,7 +17,11 @@ pub async fn dapi_request(
     } else {
         Network::Testnet
     };
-    println!("[DEBUG DAPI] dapi_request method={} network={}", method, current_network.as_str());
+    println!(
+        "[DEBUG DAPI] dapi_request method={} network={}",
+        method,
+        current_network.as_str()
+    );
     let method_info = match MethodParamInfo::for_method(&method) {
         Ok(info) => info,
         Err(e) => return Err(e.to_string()),
@@ -31,7 +35,10 @@ pub async fn dapi_request(
         }
     }
     let client = get_dapi_client();
-    match client.request::<Value>(method.clone(), params_array, current_network).await {
+    match client
+        .request::<Value>(method.clone(), params_array, current_network)
+        .await
+    {
         Ok(result) => Ok(result),
         Err(e) => {
             tracing::error!("DAPI request failed for {}: {}", method, e);
@@ -57,18 +64,26 @@ pub async fn get_posts(
     };
 
     // LOGGING: Verify Input
-    println!("[COMMAND] get_posts | Network: {} | Contract ID: {} | Type: {}", current_network.as_str(), data_contract_id, document_type);
-
-    match client.get_documents(
+    println!(
+        "[COMMAND] get_posts | Network: {} | Contract ID: {} | Type: {}",
+        current_network.as_str(),
         data_contract_id,
-        document_type,
-        current_network,
-        where_clause,
-        order_by,
-        limit,
-        None,
-        None,
-    ).await {
+        document_type
+    );
+
+    match client
+        .get_documents(
+            data_contract_id,
+            document_type,
+            current_network,
+            where_clause,
+            order_by,
+            limit,
+            None,
+            None,
+        )
+        .await
+    {
         Ok(docs) => Ok(docs),
         Err(e) => {
             tracing::error!("Failed to get posts: {}", e);
@@ -90,14 +105,21 @@ pub async fn get_identity_info(
         Network::Testnet
     };
     let with_proof = with_proof.unwrap_or(false);
-    println!("[DEBUG DAPI] get_identity_info network={}", current_network.as_str());
-    match client.get_identity(identity_id, current_network, with_proof).await {
+    println!(
+        "[DEBUG DAPI] get_identity_info network={}",
+        current_network.as_str()
+    );
+    match client
+        .get_identity(identity_id, current_network, with_proof)
+        .await
+    {
         Ok(identities) => {
-            let values: Vec<Value> = identities.into_iter()
+            let values: Vec<Value> = identities
+                .into_iter()
                 .map(|i| serde_json::to_value(i).unwrap_or_default())
                 .collect();
             Ok(values)
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to get identity info: {}", e);
             Err(e.to_string())
@@ -118,16 +140,20 @@ pub async fn get_identity_balance(
         Network::Testnet
     };
     let with_proof = with_proof.unwrap_or(false);
-    println!("[DEBUG DAPI] get_identity_balance network={}", current_network.as_str());
+    println!(
+        "[DEBUG DAPI] get_identity_balance network={}",
+        current_network.as_str()
+    );
     let method = if with_proof {
         "get_identity_balance_with_proof_info".to_string()
     } else {
         "get_identity_balance".to_string()
     };
-    let params = vec![
-        Value::String(identity_id),
-    ];
-    match client.request::<Value>(method, params, current_network).await {
+    let params = vec![Value::String(identity_id)];
+    match client
+        .request::<Value>(method, params, current_network)
+        .await
+    {
         Ok(balances) => Ok(balances),
         Err(e) => {
             tracing::error!("Failed to get identity balance: {}", e);
@@ -150,8 +176,14 @@ pub async fn get_token_balances(
         Network::Testnet
     };
     let with_proof = with_proof.unwrap_or(false);
-    println!("[DEBUG DAPI] get_token_balances network={}", current_network.as_str());
-    match client.get_identity_token_balances(identity_id, token_ids, current_network, with_proof).await {
+    println!(
+        "[DEBUG DAPI] get_token_balances network={}",
+        current_network.as_str()
+    );
+    match client
+        .get_identity_token_balances(identity_id, token_ids, current_network, with_proof)
+        .await
+    {
         Ok(balances) => Ok(balances),
         Err(e) => {
             tracing::error!("Failed to get token balances: {}", e);
@@ -173,8 +205,14 @@ pub async fn resolve_dpns_name(
         Network::Testnet
     };
     let with_proof = with_proof.unwrap_or(false);
-    println!("[DEBUG DAPI] resolve_dpns_name network={}", current_network.as_str());
-    match client.resolve_dpns_name(username, current_network, with_proof).await {
+    println!(
+        "[DEBUG DAPI] resolve_dpns_name network={}",
+        current_network.as_str()
+    );
+    match client
+        .resolve_dpns_name(username, current_network, with_proof)
+        .await
+    {
         Ok(result) => Ok(result),
         Err(e) => {
             tracing::error!("Failed to resolve DPNS name: {}", e);
@@ -196,8 +234,14 @@ pub async fn get_dpns_username(
         Network::Testnet
     };
     let with_proof = with_proof.unwrap_or(false);
-    println!("[DEBUG DAPI] get_dpns_username network={}", current_network.as_str());
-    match client.get_dpns_username(identity_id, current_network, with_proof).await {
+    println!(
+        "[DEBUG DAPI] get_dpns_username network={}",
+        current_network.as_str()
+    );
+    match client
+        .get_dpns_username(identity_id, current_network, with_proof)
+        .await
+    {
         Ok(result) => Ok(result),
         Err(e) => {
             tracing::error!("Failed to get DPNS username: {}", e);
@@ -207,18 +251,22 @@ pub async fn get_dpns_username(
 }
 
 #[command]
-pub async fn get_platform_status(
-    network: Option<String>,
-) -> Result<Vec<Value>, String> {
+pub async fn get_platform_status(network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
     let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet
     };
-    println!("[DEBUG DAPI] get_platform_status network={}", current_network.as_str());
+    println!(
+        "[DEBUG DAPI] get_platform_status network={}",
+        current_network.as_str()
+    );
     let params = vec![];
-    match client.request::<Value>("get_status".to_string(), params, current_network).await {
+    match client
+        .request::<Value>("get_status".to_string(), params, current_network)
+        .await
+    {
         Ok(status) => Ok(status),
         Err(e) => {
             tracing::error!("Failed to get platform status: {}", e);
@@ -240,17 +288,21 @@ pub async fn get_identities_balances(
         Network::Testnet
     };
     let with_proof = with_proof.unwrap_or(false);
-    println!("[DEBUG DAPI] get_identities_balances network={}", current_network.as_str());
+    println!(
+        "[DEBUG DAPI] get_identities_balances network={}",
+        current_network.as_str()
+    );
     let method = if with_proof {
         "get_identities_balances_with_proof_info".to_string()
     } else {
         "get_identities_balances".to_string()
     };
     let ids_array: Vec<Value> = identity_ids.into_iter().map(Value::String).collect();
-    let params = vec![
-        Value::Array(ids_array),
-    ];
-    match client.request::<Value>(method, params, current_network).await {
+    let params = vec![Value::Array(ids_array)];
+    match client
+        .request::<Value>(method, params, current_network)
+        .await
+    {
         Ok(balances) => Ok(balances),
         Err(e) => {
             tracing::error!("Failed to get identities balances: {}", e);
@@ -272,16 +324,20 @@ pub async fn get_data_contract_info(
         Network::Testnet
     };
     let with_proof = with_proof.unwrap_or(false);
-    println!("[DEBUG DAPI] get_data_contract_info network={}", current_network.as_str());
+    println!(
+        "[DEBUG DAPI] get_data_contract_info network={}",
+        current_network.as_str()
+    );
     let method = if with_proof {
         "data_contract_fetch_with_proof_info".to_string()
     } else {
         "data_contract_fetch".to_string()
     };
-    let params = vec![
-        Value::String(contract_id),
-    ];
-    match client.request::<Value>(method, params, current_network).await {
+    let params = vec![Value::String(contract_id)];
+    match client
+        .request::<Value>(method, params, current_network)
+        .await
+    {
         Ok(contracts) => Ok(contracts),
         Err(e) => {
             tracing::error!("Failed to get data contract info: {}", e);
@@ -303,16 +359,20 @@ pub async fn get_token_contract_info(
         Network::Testnet
     };
     let with_proof = with_proof.unwrap_or(false);
-    println!("[DEBUG DAPI] get_token_contract_info network={}", current_network.as_str());
+    println!(
+        "[DEBUG DAPI] get_token_contract_info network={}",
+        current_network.as_str()
+    );
     let method = if with_proof {
         "get_token_contract_info_with_proof_info".to_string()
     } else {
         "get_token_contract_info".to_string()
     };
-    let params = vec![
-        Value::String(contract_id),
-    ];
-    match client.request::<Value>(method, params, current_network).await {
+    let params = vec![Value::String(contract_id)];
+    match client
+        .request::<Value>(method, params, current_network)
+        .await
+    {
         Ok(contracts) => Ok(contracts),
         Err(e) => {
             tracing::error!("Failed to get token contract info: {}", e);
@@ -334,17 +394,21 @@ pub async fn get_token_statuses(
         Network::Testnet
     };
     let with_proof = with_proof.unwrap_or(false);
-    println!("[DEBUG DAPI] get_token_statuses network={}", current_network.as_str());
+    println!(
+        "[DEBUG DAPI] get_token_statuses network={}",
+        current_network.as_str()
+    );
     let method = if with_proof {
         "get_token_statuses_with_proof_info".to_string()
     } else {
         "get_token_statuses".to_string()
     };
     let token_ids_array: Vec<Value> = token_ids.into_iter().map(Value::String).collect();
-    let params = vec![
-        Value::Array(token_ids_array),
-    ];
-    match client.request::<Value>(method, params, current_network).await {
+    let params = vec![Value::Array(token_ids_array)];
+    match client
+        .request::<Value>(method, params, current_network)
+        .await
+    {
         Ok(statuses) => Ok(statuses),
         Err(e) => {
             tracing::error!("Failed to get token statuses: {}", e);
@@ -366,16 +430,20 @@ pub async fn get_total_supply(
         Network::Testnet
     };
     let with_proof = with_proof.unwrap_or(false);
-    println!("[DEBUG DAPI] get_total_supply network={}", current_network.as_str());
+    println!(
+        "[DEBUG DAPI] get_total_supply network={}",
+        current_network.as_str()
+    );
     let method = if with_proof {
         "get_token_total_supply_with_proof_info".to_string()
     } else {
         "get_token_total_supply".to_string()
     };
-    let params = vec![
-        Value::String(token_id),
-    ];
-    match client.request::<Value>(method, params, current_network).await {
+    let params = vec![Value::String(token_id)];
+    match client
+        .request::<Value>(method, params, current_network)
+        .await
+    {
         Ok(supply) => Ok(supply),
         Err(e) => {
             tracing::error!("Failed to get token total supply: {}", e);
@@ -396,14 +464,20 @@ pub async fn get_current_epoch(
         Network::Testnet
     };
     let with_proof = with_proof.unwrap_or(false);
-    println!("[DEBUG DAPI] get_current_epoch network={}", current_network.as_str());
+    println!(
+        "[DEBUG DAPI] get_current_epoch network={}",
+        current_network.as_str()
+    );
     let method = if with_proof {
         "get_current_epoch_with_proof_info".to_string()
     } else {
         "get_current_epoch".to_string()
     };
     let params = vec![];
-    match client.request::<Value>(method, params, current_network).await {
+    match client
+        .request::<Value>(method, params, current_network)
+        .await
+    {
         Ok(epoch) => Ok(epoch),
         Err(e) => {
             tracing::error!("Failed to get current epoch: {}", e);
@@ -424,9 +498,19 @@ pub async fn get_total_credits_in_platform(
         Network::Testnet
     };
     let with_proof = with_proof.unwrap_or(false);
-    println!("[DEBUG DAPI] get_total_credits_in_platform network={}", current_network.as_str());
+    println!(
+        "[DEBUG DAPI] get_total_credits_in_platform network={}",
+        current_network.as_str()
+    );
     let params = vec![];
-    match client.request::<Value>("get_total_credits_in_platform".to_string(), params, current_network).await {
+    match client
+        .request::<Value>(
+            "get_total_credits_in_platform".to_string(),
+            params,
+            current_network,
+        )
+        .await
+    {
         Ok(credits) => Ok(credits),
         Err(e) => {
             tracing::error!("Failed to get total credits: {}", e);
@@ -443,9 +527,19 @@ pub async fn get_identity_by_public_key_hash(
     let client = get_dapi_client();
     let network_value = network.unwrap_or_else(|| "testnet".to_string());
     let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
-    println!("[DEBUG DAPI] get_identity_by_public_key_hash network={}", network_enum.as_str());
+    println!(
+        "[DEBUG DAPI] get_identity_by_public_key_hash network={}",
+        network_enum.as_str()
+    );
     let params = vec![json!(public_key_hash)];
-    match client.request::<Value>("get_identity_by_public_key_hash".to_string(), params, network_enum).await {
+    match client
+        .request::<Value>(
+            "get_identity_by_public_key_hash".to_string(),
+            params,
+            network_enum,
+        )
+        .await
+    {
         Ok(result) => {
             let is_empty = result.is_empty();
             if is_empty {
@@ -483,9 +577,19 @@ pub async fn get_identity_by_non_unique_public_key_hash(
     let client = get_dapi_client();
     let network_value = network.unwrap_or_else(|| "testnet".to_string());
     let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
-    println!("[DEBUG DAPI] get_identity_by_non_unique_public_key_hash network={}", network_enum.as_str());
+    println!(
+        "[DEBUG DAPI] get_identity_by_non_unique_public_key_hash network={}",
+        network_enum.as_str()
+    );
     let params = vec![json!(public_key_hash)];
-    match client.request::<Value>("get_identity_by_non_unique_public_key_hash".to_string(), params, network_enum).await {
+    match client
+        .request::<Value>(
+            "get_identity_by_non_unique_public_key_hash".to_string(),
+            params,
+            network_enum,
+        )
+        .await
+    {
         Ok(result) => {
             let is_empty = result.is_empty();
             if is_empty {
@@ -502,7 +606,10 @@ pub async fn get_identity_by_non_unique_public_key_hash(
             }
         }
         Err(e) => {
-            tracing::error!("Failed to get identity by non-unique public key hash: {}", e);
+            tracing::error!(
+                "Failed to get identity by non-unique public key hash: {}",
+                e
+            );
             let error_response = json!({
                 "success": false,
                 "method": "get_identity_by_non_unique_public_key_hash",
@@ -523,9 +630,15 @@ pub async fn get_identity_by_id(
     let client = get_dapi_client();
     let network_value = network.unwrap_or_else(|| "testnet".to_string());
     let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
-    println!("[DEBUG DAPI] get_identity_by_id network={}", network_enum.as_str());
+    println!(
+        "[DEBUG DAPI] get_identity_by_id network={}",
+        network_enum.as_str()
+    );
     let params = vec![json!(identity_id)];
-    match client.request::<serde_json::Value>("getIdentity".to_string(), params, network_enum).await {
+    match client
+        .request::<serde_json::Value>("getIdentity".to_string(), params, network_enum)
+        .await
+    {
         Ok(result) => {
             let response = json!({
                 "success": true,
@@ -550,9 +663,11 @@ pub async fn get_identity_by_id(
     }
 }
 
-pub fn params_array_to_object(method: &str, params_array: Vec<Value>) -> Result<HashMap<String, Value>, String> {
-    let method_info = MethodParamInfo::for_method(method)
-        .map_err(|e| e.to_string())?;
+pub fn params_array_to_object(
+    method: &str,
+    params_array: Vec<Value>,
+) -> Result<HashMap<String, Value>, String> {
+    let method_info = MethodParamInfo::for_method(method).map_err(|e| e.to_string())?;
     let mut params = HashMap::new();
     for (i, param_value) in params_array.into_iter().enumerate() {
         if i < method_info.required_params.len() {

@@ -1,8 +1,8 @@
 // src-tauri/src/dapi/client/methods/contracts.rs
 
-use serde_json::Value;
-use crate::dapi::types::{DAPIError, Network};
 use super::super::DAPIClient;
+use crate::dapi::types::{DAPIError, Network};
+use serde_json::Value;
 
 impl DAPIClient {
     /// Fetch data contract
@@ -18,9 +18,7 @@ impl DAPIClient {
             "data_contract_fetch".to_string()
         };
 
-        let params = vec![
-            Value::String(contract_id),
-        ];
+        let params = vec![Value::String(contract_id)];
 
         self.request(method, params, network).await
     }
@@ -41,14 +39,24 @@ impl DAPIClient {
             "get_data_contract_history".to_string()
         };
 
-        let mut params = vec![
-            Value::String(contract_id),
-        ];
+        let mut params = vec![Value::String(contract_id)];
 
         // Add optional parameters
-        params.push(limit.map(|l| Value::Number(l.into())).unwrap_or(Value::Null));
-        params.push(offset.map(|o| Value::Number(o.into())).unwrap_or(Value::Null));
-        params.push(start_at_ms.map(|s| Value::Number(s.into())).unwrap_or(Value::Null));
+        params.push(
+            limit
+                .map(|l| Value::Number(l.into()))
+                .unwrap_or(Value::Null),
+        );
+        params.push(
+            offset
+                .map(|o| Value::Number(o.into()))
+                .unwrap_or(Value::Null),
+        );
+        params.push(
+            start_at_ms
+                .map(|s| Value::Number(s.into()))
+                .unwrap_or(Value::Null),
+        );
 
         self.request(method, params, network).await
     }
@@ -67,9 +75,7 @@ impl DAPIClient {
         };
 
         let ids_array: Vec<Value> = contract_ids.into_iter().map(Value::String).collect();
-        let params = vec![
-            Value::Array(ids_array),
-        ];
+        let params = vec![Value::Array(ids_array)];
 
         self.request(method, params, network).await
     }
@@ -109,9 +115,7 @@ impl DAPIClient {
             "get_group_infos".to_string()
         };
 
-        let params = vec![
-            Value::String(contract_id),
-        ];
+        let params = vec![Value::String(contract_id)];
 
         self.request(method, params, network).await
     }
@@ -128,7 +132,8 @@ impl DAPIClient {
             Value::Number(serde_json::Number::from(group_position)),
         ];
 
-        self.request("get_group_members".to_string(), params, network).await
+        self.request("get_group_members".to_string(), params, network)
+            .await
     }
 
     /// Get contested resources

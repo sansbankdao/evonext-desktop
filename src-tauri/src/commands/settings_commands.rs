@@ -1,9 +1,9 @@
 // src-tauri/src/commands/settings_commands.rs
 
-use tauri::{AppHandle, Wry};
+use crate::constants::SETTINGS_FILE;
 use crate::models::IAppSettings;
 use crate::utils::StoreManager;
-use crate::constants::SETTINGS_FILE;
+use tauri::{AppHandle, Wry};
 
 #[tauri::command]
 pub fn load_settings(app_handle: AppHandle<Wry>) -> Result<Option<IAppSettings>, String> {

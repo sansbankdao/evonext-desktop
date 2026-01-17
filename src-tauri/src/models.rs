@@ -1,7 +1,7 @@
 // src-tauri/src/models.rs
 
-use serde::{Serialize, Deserialize, Deserializer};
 use serde::de::{Error as DeError, Unexpected};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -95,9 +95,9 @@ where
             if s.is_empty() {
                 return Ok(None);
             }
-            s.parse::<u64>()
-                .map(Some)
-                .map_err(|_| D::Error::invalid_value(Unexpected::Str(&s), &"a u64 or stringified u64"))
+            s.parse::<u64>().map(Some).map_err(|_| {
+                D::Error::invalid_value(Unexpected::Str(&s), &"a u64 or stringified u64")
+            })
         }
         NumOrStr::Null => Ok(None),
     }

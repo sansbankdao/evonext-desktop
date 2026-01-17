@@ -1,15 +1,15 @@
 // src-tauri/src/dapi/client/base.rs
 
+use super::cache::Cache;
+use super::validation::{validate_dapi_params, MethodParamInfo};
+use crate::constants::DAPI_WEB_API_ENDPOINT;
+use crate::dapi::types::{DAPIError, DAPIRequest, DAPIResponse, Network};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use tracing::{info, error};
-use crate::constants::DAPI_WEB_API_ENDPOINT;
-use super::validation::{validate_dapi_params, MethodParamInfo};
-use super::cache::Cache;
-use crate::dapi::types::{DAPIError, DAPIRequest, DAPIResponse, Network};
+use tracing::{error, info};
 
 pub struct DAPIClient {
     client: reqwest::Client,
@@ -27,7 +27,12 @@ impl DAPIClient {
     }
 
     /// Generic request method for DAPI calls
-    pub async fn request<T>(&self, method: String, params: Vec<Value>, network: Network) -> Result<Vec<T>, DAPIError>
+    pub async fn request<T>(
+        &self,
+        method: String,
+        params: Vec<Value>,
+        network: Network,
+    ) -> Result<Vec<T>, DAPIError>
     where
         T: for<'de> Deserialize<'de> + Serialize + Clone + Send + Sync + std::fmt::Debug,
     {
@@ -50,7 +55,12 @@ impl DAPIClient {
         };
 
         // 3. Cache lookup
-        let cache_key = format!("{}-{}-{}", method, request.params.to_string(), network.as_str());
+        let cache_key = format!(
+            "{}-{}-{}",
+            method,
+            request.params.to_string(),
+            network.as_str()
+        );
         if let Some(cached) = self.cache.lock().await.get(&cache_key) {
             if let Ok(result) = serde_json::from_value::<Vec<T>>(cached.clone()) {
                 info!("Cache hit for {}: {}", method, network.as_str());
@@ -62,12 +72,12 @@ impl DAPIClient {
         let payload_str = serde_json::to_string(&request).unwrap_or_default();
         println!(
             "[NETWORK_TRACE] Method: {} | Outbound JSON Payload: {}",
-            method,
-            payload_str
+            method, payload_str
         );
 
         // 5. Send HTTP Request
-        let response = self.client
+        let response = self
+            .client
             .post(&self.endpoint)
             .json(&request)
             .send()
@@ -80,9 +90,15 @@ impl DAPIClient {
         // 6. Monitor HTTP Status
         if !response.status().is_success() {
             let status = response.status();
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
             error!("DAPI HTTP error {}: {}", status, error_text);
-            return Err(DAPIError::RequestFailed(format!("HTTP {}: {}", status, error_text)));
+            return Err(DAPIError::RequestFailed(format!(
+                "HTTP {}: {}",
+                status, error_text
+            )));
         }
 
         // 7. Get Response Body as Text
@@ -92,35 +108,44 @@ impl DAPIClient {
 
         println!(
             "[NETWORK_TRACE] Method: {} | Inbound Raw Response: {}",
-            method,
-            response_text
+            method, response_text
         );
 
         // 8. Attempt Dual-Parsing (Wrapped vs Raw)
         // This logic handles proxies that return [{},{}] and nodes that return {"success":true,"result":[]}
-        let result: Vec<T> = if let Ok(api_response) = serde_json::from_str::<DAPIResponse>(&response_text) {
-            // Case A: Response has the success/result wrapper
-            if !api_response.success {
-                println!("[API_ERROR] Method: {} | Body: {}", method, response_text);
-                return Err(DAPIError::APIFailed(format!("DAPI method {} failure", method)));
-            }
-            api_response.into_result::<T>()?
-        } else if let Ok(raw_array) = serde_json::from_str::<Vec<T>>(&response_text) {
-            // Case B: Response is a direct JSON array (Matches your current logs)
-            raw_array
-        } else {
-            // Case C: Deserialization failed for both patterns
-            error!("Failed to parse DAPI response for {}", method);
-            println!("[SERIALIZATION_FAILURE] Raw Body: {}", response_text);
-            return Err(DAPIError::SerializationError("Unsupported response format".into()));
-        };
+        let result: Vec<T> =
+            if let Ok(api_response) = serde_json::from_str::<DAPIResponse>(&response_text) {
+                // Case A: Response has the success/result wrapper
+                if !api_response.success {
+                    println!("[API_ERROR] Method: {} | Body: {}", method, response_text);
+                    return Err(DAPIError::APIFailed(format!(
+                        "DAPI method {} failure",
+                        method
+                    )));
+                }
+                api_response.into_result::<T>()?
+            } else if let Ok(raw_array) = serde_json::from_str::<Vec<T>>(&response_text) {
+                // Case B: Response is a direct JSON array (Matches your current logs)
+                raw_array
+            } else {
+                // Case C: Deserialization failed for both patterns
+                error!("Failed to parse DAPI response for {}", method);
+                println!("[SERIALIZATION_FAILURE] Raw Body: {}", response_text);
+                return Err(DAPIError::SerializationError(
+                    "Unsupported response format".into(),
+                ));
+            };
 
         // 9. Cache successful result
         if let Ok(cache_value) = serde_json::to_value(&result) {
             self.cache.lock().await.set(cache_key, cache_value);
         }
 
-        info!("DAPI request successful: {} returned {} items", method, result.len());
+        info!(
+            "DAPI request successful: {} returned {} items",
+            method,
+            result.len()
+        );
         Ok(result)
     }
 
