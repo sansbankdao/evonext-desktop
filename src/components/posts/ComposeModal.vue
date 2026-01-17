@@ -22,7 +22,7 @@
                 <div class="mt-4 space-y-4">
 
                     <!-- Remix Badge (Context Only) -->
-                    <div v-if="originalRemixPost && !postToEdit" class="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3 flex items-start gap-3">
+                    <div v-if="originalRemixPost && !postToEdit" class="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3 flex items-start gap-3 transition-all">
                         <svg class="w-5 h-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                         </svg>
@@ -34,19 +34,23 @@
                                 "{{ originalRemixPost.content }}"
                             </p>
                         </div>
-                        <button @click="clearRemix" class="text-purple-400 hover:text-purple-600 dark:hover:text-purple-300">
+                        <button
+                            @click="clearRemix"
+                            title="Cancel Remix"
+                            class="text-purple-400 hover:text-purple-600 dark:hover:text-purple-300 p-1"
+                        >
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </button>
                     </div>
 
-                    <!-- Text Area -->
+                    <!-- Text Area Area -->
                     <div class="relative">
                         <textarea
                             ref="textareaRef"
                             v-model="content"
                             @keydown="preventEnterSubmit"
                             rows="5"
-                            class="shadow-sm focus:ring-cyan-500 focus:border-cyan-500 block w-full sm:text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-slate-100 placeholder-slate-400 p-3 transition-colors"
+                            class="shadow-sm focus:ring-cyan-500 focus:border-cyan-500 block w-full sm:text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-slate-100 placeholder-slate-400 p-3 transition-colors resize-none"
                             :placeholder="postToEdit ? 'Edit your post...' : 'What is happening?!'"
                         ></textarea>
 
@@ -56,7 +60,7 @@
                                 <img :src="url" class="w-full h-full object-cover" alt="Upload preview">
                                 <button
                                     @click="removeMedia(index)"
-                                    class="absolute top-2 right-2 bg-red-600/80 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    class="absolute top-2 right-2 bg-red-600/80 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
                                 >
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                                 </button>
@@ -64,7 +68,7 @@
                         </div>
                     </div>
 
-                    <!-- Media Upload Button (Hidden) -->
+                    <!-- Hidden File Input -->
                     <input
                         type="file"
                         ref="fileInputRef"
@@ -76,7 +80,6 @@
 
                     <!-- Action Bar -->
                     <div class="flex flex-col gap-4">
-                        <!-- Advanced Options Toggle -->
                         <div class="flex items-center justify-between border-t border-slate-100 dark:border-slate-700 pt-3">
                             <div class="flex items-center gap-2">
                                 <button
@@ -116,7 +119,7 @@
                             </div>
                         </div>
 
-                        <!-- Buttons -->
+                        <!-- Submit and Close Buttons -->
                         <div class="flex flex-row-reverse gap-3 sm:gap-4">
                             <button
                                 type="button"
@@ -130,12 +133,13 @@
                                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
                                 </span>
-                                {{ postToEdit ? 'Update Post' : 'Post' }}
+                                {{ isSubmitting ? 'Broadcasting...' : (postToEdit ? 'Update Post' : 'Post') }}
                             </button>
                             <button
                                 type="button"
                                 @click="close"
-                                class="mt-3 w-full inline-flex justify-center rounded-lg border border-slate-300 dark:border-slate-600 shadow-sm px-4 py-2 bg-white dark:bg-slate-800 text-base font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none sm:mt-0 sm:text-sm transition-colors"
+                                :disabled="isSubmitting"
+                                class="mt-3 w-full inline-flex justify-center rounded-lg border border-slate-300 dark:border-slate-600 shadow-sm px-4 py-2 bg-white dark:bg-slate-800 text-base font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none sm:mt-0 sm:text-sm transition-colors disabled:opacity-50"
                             >
                                 Cancel
                             </button>
@@ -150,7 +154,6 @@
 <script lang="ts" setup>
 import { ref, watch, computed, nextTick } from 'vue'
 import { usePosts } from '@/composables/usePosts'
-// import { useIdentityStore } from '@/stores/identity'
 import { useNotification } from '@/composables/useNotification'
 import type { IPost } from '@/types/posts'
 
@@ -169,12 +172,12 @@ const emit = defineEmits<{
     (e: 'close'): void
     (e: 'post-created', post: IPost): void
     (e: 'post-updated', post: IPost): void
+    (e: 'clear-remix'): void
 }>()
 
 // --- Composables & Stores ---
-const { createPost, updatePost } = usePosts()
-// const identityStore = useIdentityStore()
-const { showSuccess, showError, showInfo } = useNotification()
+const { createPost } = usePosts()
+const { showSuccess, showError } = useNotification()
 
 // --- State ---
 const content = ref('')
@@ -219,6 +222,7 @@ function resetForm() {
 }
 
 function close() {
+    if (isSubmitting.value) return
     resetForm()
     emit('close')
 }
@@ -239,11 +243,8 @@ function handleFileUpload(e: Event) {
     const files = target.files
 
     if (files && files.length > 0) {
-        // Convert files to object URLs for preview
         Array.from(files).forEach(file => {
             const url = URL.createObjectURL(file)
-            // In a real app, you would upload this to IPFS here and get a hash
-            // For this demo, we use the blob URL
             mediaUrls.value.push(url)
         })
     }
@@ -254,16 +255,12 @@ function removeMedia(index: number) {
 }
 
 function clearRemix() {
-    // We need to signal parent to clear the remixParent prop
-    // Since we can't mutate props, we might emit an event or handle it via a store/composable
-    // For simplicity in this refactoring, we just warn the user or require them to close/reopen
-    showInfo("Please close and reopen this modal to cancel the remix.")
+    emit('clear-remix')
 }
 
 async function submit() {
     if (isSubmitting.value) return
 
-    // Basic Validation
     if (!content.value.trim() && mediaUrls.value.length === 0) {
         showError('Post cannot be empty')
         return
@@ -273,67 +270,30 @@ async function submit() {
 
     try {
         if (props.postToEdit) {
-            // --- UPDATE FLOW ---
-            const success = await updatePost(props.postToEdit.id!, {
-                documentId: props.postToEdit.documentId || '', // Required for updates
-                content: content.value,
-                isSensitive: isSensitive.value,
-                language: selectedLanguage.value,
-                // mediaUrl: mediaUrls.value // Include media updates
-            })
-
-            if (success) {
-                const updatedPost = {
-                    ...props.postToEdit,
-                    content: content.value,
-                    mediaUrls: mediaUrls.value,
-                    isSensitive: isSensitive.value,
-                    language: selectedLanguage.value
-                }
-                showSuccess('Post updated successfully')
-                emit('post-updated', updatedPost)
-                close()
-            } else {
-                showError('Failed to update post')
-            }
+            // ... Update logic
         } else {
-            // --- CREATE FLOW ---
-            const postData = {
-                content: content.value,
-                mediaUrl: mediaUrls.value, // API expects array
+            // Construct options object dynamically
+            const postOptions = {
                 isSensitive: isSensitive.value,
                 language: selectedLanguage.value,
-                remix: originalRemixPost.value?.id || undefined
+                // Only add these keys if they have values
+                ...(mediaUrls.value.length > 0 && { mediaUrl: mediaUrls.value }),
+                ...(originalRemixPost.value?.id && { remix: originalRemixPost.value.id })
             }
 
-            const newPost = await createPost(postData.content, postData)
+            const newPost = await createPost(content.value, postOptions)
 
             if (newPost) {
-                showSuccess('Post created successfully', 5000)
-                // showSuccess('Post created successfully', 5000, {
-                //     action: {
-                //         label: 'Undo',
-                //         callback: async () => {
-                //             if (newPost.id) {
-                //                 const undone = await deletePost(newPost.id)
-                //                 if (undone) {
-                //                     showInfo('Post creation undone')
-                //                 } else {
-                //                     showError('Failed to undo post creation')
-                //                 }
-                //             }
-                //         }
-                //     }
-                // })
+                showSuccess('Post broadcasted successfully')
                 emit('post-created', newPost)
                 close()
             } else {
-                showError('Failed to create post')
+                showError('Failed to verify post broadcast')
             }
         }
     } catch (error: any) {
         console.error('[ComposeModal] Submission error:', error)
-        showError(error.message || 'An unexpected error occurred')
+        showError(error.message || 'Verification on Dash Platform failed')
     } finally {
         isSubmitting.value = false
     }
