@@ -1,6 +1,6 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Register NEW Identities and Usernames Till Your Heart's Content
+### Yappr Posts Are Now Available
 
 This latest version of EvoNext re-introduces Identity + Username registrations.
 
@@ -8,12 +8,11 @@ This latest version of EvoNext re-introduces Identity + Username registrations.
 
 ## Latest Features:
 
-- Identity: Register NEW Mainnet and Testnet usernames with ease.
+- Posts: Added support for the latest Yappr posts.
 
 ## Bugfixes:
 
-- Fixed identity reset bug.
-- Fixed menu navigation.
+- Re-fixed identity reset bug.
 
 ## Notes:
 

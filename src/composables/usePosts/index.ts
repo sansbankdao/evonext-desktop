@@ -135,7 +135,7 @@ export function usePosts() {
                 try {
                     const docs = await api.fetchPostsFromTauri(network, {
                         ownerId: options?.ownerId || '',
-                        orderBy: options?.orderBy as ('newest' | 'oldest'),
+                        orderBy: options?.orderBy as ('desc' | 'asc'),
                         limit: limit * 2, // Fetch extra to account for deduping
                         contractId
                     })
@@ -281,7 +281,7 @@ export function usePosts() {
             const documents = await api.fetchPostsFromTauri(currentNetwork.value, {
                 contractId: '',
                 ownerId: '',
-                orderBy: 'newest',
+                orderBy: 'desc',
                 limit: postsStore.limit || 10
             })
 
@@ -327,6 +327,7 @@ export function usePosts() {
             : EVONEXT_CONTRACT_ID_MAINNET
 
         const optimisticPost: IPost = {
+            id: '',
             ownerId: currentUserId.value!,
             author: {
                 username: identityStore.identity?.username || 'User',
@@ -344,11 +345,11 @@ export function usePosts() {
             views: 0,
             isSensitive: options?.isSensitive || false,
             language: options?.language || 'en',
-            remix: options?.remix as string | undefined,
-            hashtag: options?.hashtag,
-            mediaUrls: options?.mediaUrl,
-            mentionIds: options?.mentionIds,
-            replyToPostId: options?.replyToPostId?.[0],
+            remix: options?.remix as string,
+            hashtag: options?.hashtag as string,
+            mediaUrls: options?.mediaUrl as string[],
+            mentionIds: options?.mentionIds as string[],
+            replyToPostId: options?.replyToPostId?.[0] as string,
             contractId: targetContractId
         }
 
@@ -356,16 +357,24 @@ export function usePosts() {
         postsStore.upsertPost(optimisticPost)
 
         try {
+            // 1. Extract the single ID if the input is an array
+            const replyId = Array.isArray(options?.replyToPostId)
+                ? options.replyToPostId[0]
+                : options?.replyToPostId;
+
+            // 2. Build the object using the Spread Pattern to satisfy exactOptionalPropertyTypes
             const createPostParams: ICreatePostParams = {
                 content,
-                isSensitive: options?.isSensitive || false,
-                language: options?.language || 'en',
-                mediaUrl: options?.mediaUrl,
-                mentionIds: options?.mentionIds,
-                replyToPostId: options?.replyToPostId,
-                hashtag: options?.hashtag,
-                remix: options?.remix || undefined
-            }
+                isSensitive: options?.isSensitive ?? false,
+                language: options?.language ?? 'en',
+
+                // Only include optional keys if they actually have a value
+                ...(options?.mediaUrl && { mediaUrl: options.mediaUrl }),
+                ...(options?.mentionIds && { mentionIds: options.mentionIds }),
+                ...(replyId && { replyToPostId: replyId }),
+                ...(options?.hashtag && { hashtag: options.hashtag }),
+                ...(options?.remix && { remix: options.remix })
+            };
 
             const createdPost = await api.createPost(createPostParams)
 

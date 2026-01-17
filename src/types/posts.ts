@@ -77,11 +77,12 @@ export interface IPost extends IPostBase {
  * Note: Properties match IPostBase but are all optional except content.
  */
 export interface ICreatePostParams {
+    content: string;
     isSensitive?: boolean;
     language?: string;
     remix?: string;
     hashtag?: string;
-    mediaUrl?: string[]; // Kept as mediaUrl for API consistency, logic maps to mediaUrls
+    mediaUrl?: string[];
     mentionIds?: string[];
     replyToPostId?: string;
 }

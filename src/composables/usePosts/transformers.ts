@@ -112,16 +112,16 @@ export async function transformPostDocument(
     parentPost?: IPost | null
 ): Promise<IPost> {
     const ownerId = doc.ownerId || doc.$ownerId || ''
-    const docId = doc.id || doc.$id || '' // Ensure we capture ID if present
+    const docId = doc.id || doc.$id || ''
     const createdAtTimestamp = parseInt(doc.createdAt || doc.$createdAt || Date.now().toString())
     const updatedAtTimestamp = parseInt(doc.updatedAt || doc.$updatedAt || createdAtTimestamp.toString())
 
-    // Use provided data or fallback (now uses Identity ID logic & Rust Query)
     const author = await getUserInfo(ownerId, profileData, dpnsName)
 
-    return {
+    // 1. Build the base object with required fields
+    const post: IPost = {
         id: docId,
-        contractId: 'TBD', // Note: You may want to map real contract ID here if available in doc
+        contractId: 'TBD',
         ownerId,
         author,
         content: doc.content || '',
@@ -131,15 +131,36 @@ export async function transformPostDocument(
         likes: 0,
         remixes: 0,
         replies: 0,
-        isSensitive: doc.isSensitive || false,
+        isSensitive: !!doc.isSensitive,
         language: doc.language || 'en',
-        remix: doc.remix,
-        hashtag: doc.hashtag,
-        mediaUrls: doc.mediaUrl || [],
-        mentionIds: doc.mentionIds || [],
-        replyToPostId: Array.isArray(doc.replyToPostId) ? doc.replyToPostId[0] : doc.replyToPostId,
-        quotedPost: parentPost || undefined // Attach parent post here
     }
+
+    // 2. Conditionally add optional fields ONLY if they have values
+    // This satisfies exactOptionalPropertyTypes
+    if (doc.remix) post.remix = doc.remix
+    if (doc.hashtag) post.hashtag = doc.hashtag
+
+    // Media - Use plural mediaUrls from IPost interface
+    if (doc.mediaUrl && doc.mediaUrl.length > 0) {
+        post.mediaUrls = doc.mediaUrl
+    }
+
+    if (doc.mentionIds && doc.mentionIds.length > 0) {
+        post.mentionIds = doc.mentionIds
+    }
+
+    // Handle reply ID normalization
+    const replyId = Array.isArray(doc.replyToPostId) ? doc.replyToPostId[0] : doc.replyToPostId
+    if (replyId) {
+        post.replyToPostId = replyId
+    }
+
+    // Attach parent post
+    if (parentPost) {
+        post.quotedPost = parentPost
+    }
+
+    return post
 }
 
 /**
