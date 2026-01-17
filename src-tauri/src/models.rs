@@ -33,6 +33,7 @@ pub struct AssetDefinition {
 
 // IAssets is now a type alias for a list of assets
 pub type IAssets = Vec<AssetDefinition>;
+pub type AssetStoreMap = HashMap<String, Vec<AssetDefinition>>;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
