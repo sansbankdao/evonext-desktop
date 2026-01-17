@@ -49,27 +49,43 @@ export const connectionActions = () => ({
             this.isConnecting = true
             try {
                 const network = await this.getCurrentNetwork()
-                const mnemonicData = await this.loadMnemonic(network)
 
+                // 1. Check if this is a "Single Key" identity by looking in the keystore
+                const keystore: any = await invoke('load_private_keys', { network })
+                const localEntries = keystore?.identities?.[targetIdentityId] || []
+                const isSingleKeyIdentity = localEntries.some((e: any) => e.derivedFromMnemonic === false)
+
+                if (isSingleKeyIdentity) {
+                    console.log(`[Switch] ${targetIdentityId} detected as Single Key identity.`)
+                    // Typically the first Auth key (Purpose 0) is the one used to connect
+                    const authEntry = localEntries.find((e: any) => e.purpose === 0)
+                    if (!authEntry) throw new Error('No local authentication key found for this identity.')
+
+                    return await this.connectWithSingleKey(
+                        authEntry.privateKey,
+                        targetIdentityId,
+                        network
+                    )
+                }
+
+                // 2. Standard Mnemonic Flow
+                const mnemonicData = await this.loadMnemonic(network)
                 if (!mnemonicData?.seedPhrase) {
                     throw new Error('No seed phrase found. Please connect with your seed phrase again.')
                 }
 
                 const discovered = await this.loadDiscoveredIdentities(network)
                 let targetIdx = 0
-                if (discovered && discovered.identities && discovered.identities[targetIdentityId]) {
+                if (discovered?.identities?.[targetIdentityId]) {
                     targetIdx = discovered.identities[targetIdentityId].identityIdx
                 }
 
-                // Attempt to connect
-                const result = await this.connectWithSeed(
+                return await this.connectWithSeed(
                     mnemonicData.seedPhrase,
                     network,
                     targetIdentityId,
                     targetIdx
                 )
-
-                return result
             } catch(e: any) {
                 this.connectionError = e.message
                 return { success: false, error: e.message }
@@ -92,10 +108,12 @@ export const connectionActions = () => ({
         return ErrorBoundary.wrap(async () => {
             this.isConnecting = true
             this.connectionError = null
+
             try {
                 const { initialize, reset } = usePlatform()
                 reset()
 
+                // 1. Initialize Platform with the provided Seed
                 await initialize({
                     network,
                     wallet: {
@@ -104,8 +122,10 @@ export const connectionActions = () => ({
                     }
                 })
 
+                // 2. Persist mnemonic locally
                 await this.saveMnemonicToStore(network, seedPhrase)
 
+                // 3. Fetch Identity from network
                 const fetchResult = await DAPIService.getIdentityById(targetId, network)
                 if (!fetchResult.success || !fetchResult.data) {
                     throw new Error(fetchResult.error || `Failed to fetch identity ${targetId}`)
@@ -114,50 +134,63 @@ export const connectionActions = () => ({
                 const identityData = fetchResult.data
                 const publicKeys = identityData.publicKeys || []
 
-                // Key Purpose/Security Mapping
-                const purposeMap: Record<string, number> = {
-                    AUTHENTICATION: 0, ENCRYPTION: 1, DECRYPTION: 2, TRANSFER: 3
-                }
-                const secMap: Record<string, number> = {
-                    MASTER: 0, CRITICAL: 1, HIGH: 2, MEDIUM: 3, LOW: 4
-                }
+                // ============================================================
+                // CRITICAL FIX: Ghost Key Prevention
+                // ============================================================
+                const keystore: any = await invoke('load_private_keys', { network })
+                const existingLocal = keystore?.identities?.[targetId] || []
+                const isManualIdentity = existingLocal.some((e: any) => e.derivedFromMnemonic === false)
 
-                const now = new Date().toISOString()
-                const privateKeyEntries: any[] = []
-
-                for (let i = 0; i < publicKeys.length; i++) {
-                    const pk = publicKeys[i] || {}
-                    const keyId = Number(pk.id ?? i)
-                    try {
-                        const res = await KeyDerivationService.getPrivateKeyWASM(
-                            seedPhrase,
-                            network,
-                            identityIndex,
-                            keyId
-                        )
-                        const purposeStr = String(pk.purpose || 'AUTHENTICATION').toUpperCase()
-                        const secStr = String(pk.securityLevel || 'MASTER').toUpperCase()
-
-                        privateKeyEntries.push({
-                            identityId: targetId,
-                            keyId: keyId,
-                            purpose: purposeMap[purposeStr] ?? 0,
-                            securityLevel: secMap[secStr] ?? 0,
-                            keyType: String(pk.keyType || pk.type || 'ECDSA_SECP256K1'),
-                            privateKey: res.privateKey.WIF(),
-                            publicKey: pk.data || '',
-                            derivedFromMnemonic: true,
-                            createdAt: now,
-                            lastUsed: now
-                        })
-                    } catch (e) {
-                        // Skip key derivation errors for individual keys
+                if (!isManualIdentity) {
+                    const purposeMap: Record<string, number> = {
+                        AUTHENTICATION: 0, ENCRYPTION: 1, DECRYPTION: 2, TRANSFER: 3
                     }
-                }
+                    const secMap: Record<string, number> = {
+                        MASTER: 0, CRITICAL: 1, HIGH: 2, MEDIUM: 3, LOW: 4
+                    }
 
-                if (privateKeyEntries.length > 0) {
-                    await this.saveKeys(network, targetId, privateKeyEntries)
+                    const now = new Date().toISOString()
+                    const privateKeyEntries: any[] = []
+
+                    // Only derive keys for IDs 0-5 (Standard Wallet Indices)
+                    for (const pk of publicKeys) {
+                        const keyId = Number(pk.id)
+                        if (keyId > 5) continue; // Skip non-standard/contract keys
+
+                        try {
+                            const res = await KeyDerivationService.getPrivateKeyWASM(
+                                seedPhrase,
+                                network,
+                                identityIndex,
+                                keyId
+                            )
+                            const purposeStr = String(pk.purpose || 'AUTHENTICATION').toUpperCase()
+                            const secStr = String(pk.securityLevel || 'MASTER').toUpperCase()
+
+                            privateKeyEntries.push({
+                                identityId: targetId,
+                                keyId: keyId,
+                                purpose: purposeMap[purposeStr] ?? 0,
+                                securityLevel: secMap[secStr] ?? 0,
+                                keyType: String(pk.keyType || pk.type || 'ECDSA_SECP256K1'),
+                                privateKey: res.privateKey.WIF(),
+                                publicKey: pk.data || '',
+                                derivedFromMnemonic: true,
+                                createdAt: now,
+                                lastUsed: now
+                            })
+                        } catch (e) {
+                            console.warn(`[Connect] Could not derive key ${keyId}:`, e)
+                        }
+                    }
+
+                    if (privateKeyEntries.length > 0) {
+                        await this.saveKeys(network, targetId, privateKeyEntries)
+                    }
+                } else {
+                    console.log(`[Connect] Identity ${targetId} is Manual. Skipping automatic derivation loop.`);
                 }
+                // ============================================================
 
                 const activeIdentity: IIdentity = {
                     identityId: targetId,
@@ -167,28 +200,25 @@ export const connectionActions = () => ({
                     publicKeys
                 }
 
-                // Patch Pinia State
+                // Update Pinia State
                 this.isAuthenticated = true
                 this.username = targetId
                 this.identityId = targetId
                 this.identity = activeIdentity
                 this.publicKeys = publicKeys
                 this.balance = activeIdentity.balance
-                this.isConnected = this.isAuthenticated && !!this.identityId
+                this.isConnected = true
 
-                // Save to IndexedDB/Store
                 await this.saveIdentityDataToStore(network, targetId, {
                     identityId: targetId,
                     identityIdx: identityIndex,
                     username: this.username,
                     balance: this.balance,
-                    revision: this.revision ?? activeIdentity.revision ?? 0,
+                    revision: activeIdentity.revision,
                     publicKeys: this.publicKeys
                 })
 
                 await this.saveToStorage(network)
-
-                // SYNC TO RUST (The Source of Truth)
                 await persistActiveIdentity(targetId)
 
                 return { success: true, identityId: targetId, identity: activeIdentity }

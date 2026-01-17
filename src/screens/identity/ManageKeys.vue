@@ -210,6 +210,7 @@ import Header from '@/components/Header.vue'
 // import { useIdentityStore } from '@/stores/identity'
 import { useNetwork } from '@/composables/useNetwork'
 import type { IPublicKey } from '@/types'
+
 const route = useRoute()
 // const identityStore = useIdentityStore()
 const { ensure } = useNetwork()
@@ -232,66 +233,108 @@ const debugLiveStatus = ref<string>('Waiting')
 const debugLiveData = ref<any>(null)
 // const debugMapStatus = ref<string>('Waiting')
 // const debugMapData = ref<any>(null)
+
 const shortId = computed(() => {
     const id = identityId.value
     return id ? `${id.slice(0, 8)}...${id.slice(-8)}` : '...'
 })
+
 const hasTransferKey = computed(() => {
     return keys.value.some(key => key.purpose === 3 && !key.disabledAt)
 })
-const checkLocalKeys = async () => {
-    try {
-        const activeNetwork = await ensure()
-        const keystore: any = await invoke('load_private_keys', { network: activeNetwork })
-        const identityPrivates = keystore?.identities?.[identityId.value] || []
-        const map: Record<number, boolean> = {}
-        identityPrivates.forEach((k: any) => { map[k.keyId] = true })
-        localKeys.value = map
-    } catch (e) {
-        console.warn('Failed to verify local keys')
-    }
-}
+
+// const checkLocalKeys = async () => {
+//     try {
+//         const activeNetwork = await ensure()
+//         // 1. Load the raw keystore
+//         const keystore: any = await invoke('load_private_keys', { network: activeNetwork })
+
+//         // 2. Get keys ONLY for this specific identity
+//         const identityPrivates = keystore?.identities?.[identityId.value] || []
+
+//         // 3. Create a map of IDs that actually have a private key entry saved
+//         const map: Record<number, boolean> = {}
+//         identityPrivates.forEach((k: any) => {
+//             // Only mark as locally present if the private_key field isn't empty
+//             if (k.privateKey && k.privateKey.length > 0) {
+//                 map[k.keyId] = true
+//             }
+//         })
+
+//         localKeys.value = map
+//         console.log(`[KeyManager] Local keys for ${identityId.value}:`, map)
+//     } catch (e) {
+//         console.warn('Failed to verify local keys', e)
+//     }
+// }
+
 const fetchData = async () => {
     loading.value = true
-    debugLiveStatus.value = 'Waiting...'
+    debugLiveStatus.value = 'Syncing...'
+
     try {
         identityId.value = String(route.params.id)
+
+        // 1. Resolve Network
         const activeNetwork = await ensure()
         network.value = activeNetwork as 'mainnet' | 'testnet'
-        // 1. Live Fetch
+
+        // 2. Load Local Keystore (safu) and map existence strictly
+        console.log(`[KeyManager] Verifying local keys for ${identityId.value} in Keystore...`)
+        const keystore: any = await invoke('load_private_keys', { network: network.value })
+        const identityPrivates = keystore?.identities?.[identityId.value] || []
+
+        const map: Record<number, boolean> = {}
+        identityPrivates.forEach((k: any) => {
+            // Only consider a key present if the privateKey string is actually there
+            if (k.privateKey && k.privateKey.trim().length > 0) {
+                map[k.keyId] = true
+            }
+        })
+        localKeys.value = map
+        console.log(`[KeyManager] Verified local key mapping:`, map)
+
+        // 3. Fetch Network Identity Details (SDK)
         debugLiveStatus.value = `Invoking get_identity_public_keys (${network.value})...`
         try {
             const sdkData = await invoke<any>('get_identity_public_keys', {
                 identityId: identityId.value,
                 network: network.value
             })
+
             debugLiveStatus.value = 'Success'
             debugLiveData.value = sdkData
+
             let keysList: any[] = sdkData?.publicKeys || sdkData?.keys || (Array.isArray(sdkData) ? sdkData : [])
+
             if (keysList.length > 0) {
-                // FIXED: Map all required IPublicKey fields to avoid TS-plugin(2322)
                 keys.value = keysList.map((k: any) => ({
+                    id: k.id,
                     type: k.type || k.type_ || 'ECDSA_HASH160',
-                    keyType: k.type || k.type_ || 'ECDSA_HASH160', // Required by IPublicKey
+                    keyType: k.type || k.type_ || 'ECDSA_HASH160',
                     purpose: k.purpose,
                     securityLevel: k.securityLevel !== undefined ? k.securityLevel : k.security_level,
                     data: k.data,
                     readOnly: k.readOnly ?? false,
                     disabledAt: k.disabledAt ?? null,
                 }))
+
                 displayName.value = sdkData.username || sdkData.displayName || identityId.value.slice(0, 8)
-                await checkLocalKeys()
-                return
+                return // Exit on success
             }
-            throw new Error('Fallback')
+            throw new Error('Empty Network Response')
         } catch (e: any) {
-            console.warn('Network fetch failed, falling back to local map', e)
+            console.warn('Network fetch failed, falling back to local identity map', e)
+            debugLiveStatus.value = `Failed: ${e.message}. Using fallback.`
+
+            // 4. Fallback: Load from Identity Map (Rust identities file)
             const identityMap = await invoke<Record<string, any>>('load_identities_map', { network: network.value })
             if (identityMap && identityMap[identityId.value]) {
                 const rawData = identityMap[identityId.value]
                 displayName.value = rawData.username || rawData.displayName || identityId.value.slice(0, 8)
-                // FIXED: Full mapping for local fallback
+
                 keys.value = (rawData.publicKeys || []).map((k: any) => ({
+                    id: k.id,
                     type: k.type || k.type_ || 'ECDSA_HASH160',
                     keyType: k.type || k.type_ || 'ECDSA_HASH160',
                     purpose: k.purpose,
@@ -300,20 +343,22 @@ const fetchData = async () => {
                     readOnly: k.readOnly ?? false,
                     disabledAt: k.disabledAt ?? null
                 }))
-                await checkLocalKeys()
             }
         }
     } catch (error) {
         console.error('Critical error loading keys:', error)
+        showNotification('error', 'Failed to load key management data')
     } finally {
         loading.value = false
     }
 }
+
 const openImportModal = (id: number) => {
     targetKeyId.value = id
     importKeyInput.value = ''
     showImportModal.value = true
 }
+
 const handleImport = async () => {
     if (!targetKeyId.value || !importKeyInput.value) return
     try {
@@ -332,28 +377,33 @@ const handleImport = async () => {
         showNotification('error', `Import failed: ${e}`)
     }
 }
+
 // Helpers...
 const getPurposeLabel = (purpose: number) => {
     switch(purpose) {
         case 0: return 'AUTHENTICATION'; case 1: return 'ENCRYPTION'; case 2: return 'DECRYPTION'; case 3: return 'TRANSFER'; default: return `Purpose ${purpose}`
     }
 }
+
 const getSecurityLevelLabel = (level: number) => {
     switch(level) {
         case 0: return 'MASTER'; case 1: return 'CRITICAL'; case 2: return 'HIGH'; case 3: return 'MEDIUM'; case 4: return 'LOW'; default: return `Level ${level}`
     }
 }
+
 const getSecurityLevelClass = (level: number) => {
     if (level === 0) return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
     if (level === 1) return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
     if (level === 3) return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'
     return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
 }
+
 const getKeyIconClass = (purpose: number) => purpose === 3 ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
 const getKeyIcon = (purpose: number) => purpose === 3 ? 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' : 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'
 const showUnimplemented = () => showNotification('info', 'Unimplemented')
 const showNotification = (type: any, message: string) => {
     window.dispatchEvent(new CustomEvent('notification', { detail: { type, message } }))
 }
+
 onMounted(fetchData)
 </script>
