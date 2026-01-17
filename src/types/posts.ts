@@ -9,11 +9,11 @@ interface IPostBase {
     content: string;
     isSensitive: boolean;
     language: string;
-    remix?: string;
-    hashtag?: string;
-    mediaUrls?: string[];
-    mentionIds?: string[];
-    replyToPostId?: string;
+    remix?: string | undefined;
+    hashtag?: string | undefined;
+    mediaUrls?: string[] | undefined;
+    mentionIds?: string[] | undefined;
+    replyToPostId?: string | undefined;
 }
 
 /**
@@ -22,10 +22,10 @@ interface IPostBase {
 export interface IMedia {
     type: 'image' | 'video' | 'gif';
     url: string;
-    thumbnail?: string;
-    alt?: string;
-    width?: number;
-    height?: number;
+    thumbnail?: string | undefined;
+    alt?: string | undefined;
+    width?: number | undefined;
+    height?: number | undefined;
 }
 
 /**
@@ -38,7 +38,7 @@ export interface IPostDocument extends IPostBase {
     revision: number;
     createdAt: number;
     updatedAt: number | null;
-    $ownerId?: string;
+    $ownerId?: string | undefined;
 }
 
 /**
@@ -48,7 +48,7 @@ export interface IPostDocument extends IPostBase {
 export interface IPost extends IPostBase {
     id: string;
     contractId: string;
-    documentId?: string;
+    documentId?: string | undefined;
     ownerId: string;
     author: IUser;
     createdAt: number;
@@ -59,32 +59,31 @@ export interface IPost extends IPostBase {
     remixes: number;
     replies: number;
     views: number;
-    bookmarks?: number;
+    bookmarks?: number | undefined;
 
     // Rich Objects
-    media?: IMedia[];
-    replyTo?: IPost;
-    quotedPost?: IPost;
+    media?: IMedia[] | undefined;
+    replyTo?: IPost | undefined;
+    quotedPost?: IPost | undefined;
 
     // Interaction States (Local to the current user)
-    liked?: boolean;
-    remixed?: boolean;
-    bookmarked?: boolean;
+    liked?: boolean | undefined;
+    remixed?: boolean | undefined;
+    bookmarked?: boolean | undefined;
 }
 
 /**
  * Parameters for creating a new post.
- * Note: Properties match IPostBase but are all optional except content.
  */
 export interface ICreatePostParams {
     content: string;
-    isSensitive?: boolean;
-    language?: string;
-    remix?: string;
-    hashtag?: string;
-    mediaUrl?: string[];
-    mentionIds?: string[];
-    replyToPostId?: string;
+    isSensitive?: boolean | undefined;
+    language?: string | undefined;
+    remix?: string | undefined;
+    hashtag?: string | undefined;
+    mediaUrl?: string[] | undefined;
+    mentionIds?: string[] | undefined;
+    replyToPostId?: string | undefined;
 }
 
 /**
@@ -92,19 +91,19 @@ export interface ICreatePostParams {
  */
 export interface IUpdatePostParams {
     documentId: string;
-    content?: string;
-    isSensitive?: boolean;
-    language?: string;
-    hashtag?: string;
-    mediaUrl?: string[];
-    mentionIds?: string[];
+    content?: string | undefined;
+    isSensitive?: boolean | undefined;
+    language?: string | undefined;
+    hashtag?: string | undefined;
+    mediaUrl?: string[] | undefined;
+    mentionIds?: string[] | undefined;
 }
 
 export interface IPostStats {
     likes: number;
     remixes: number;
     replies: number;
-    bookmarks?: number;
+    bookmarks?: number | undefined;
 }
 
 export interface IComment {
@@ -112,14 +111,14 @@ export interface IComment {
     content: string;
     createdAt: Date;
     likes: number;
-    liked?: boolean;
+    liked?: boolean | undefined;
     postId: string;
 }
 
 export interface INotification {
     type: 'like' | 'remix' | 'follow' | 'reply' | 'mention';
     from: IUser;
-    post?: IPost;
+    post?: IPost | undefined;
     createdAt: Date;
     read: boolean;
 }
@@ -141,34 +140,34 @@ export interface IPostsState {
     isLoading: boolean;
     error: string | null;
     lastFetched: Date | null;
-    nextPage?: string;
+    nextPage?: string | undefined;
     hasNextPage: boolean;
-    hasMorePosts?: boolean;
+    hasMorePosts?: boolean | undefined;
     limit: number;
     offset: number;
 }
 
 export interface PostsFetchResult {
     posts: IPost[];
-    nextPage?: string;
+    nextPage?: string | undefined;
     hasNextPage: boolean;
 }
 
 export interface PostsFetchOptions {
-    id?: string;
-    ownerId?: string;
-    limit?: number;
-    offset?: number;
-    fromDate?: Date;
-    toDate?: Date;
-    language?: string;
-    orderBy?: 'newest' | 'oldest';
+    id?: string | undefined;
+    ownerId?: string | undefined;
+    limit?: number | undefined;
+    offset?: number | undefined;
+    fromDate?: Date | undefined;
+    toDate?: Date | undefined;
+    language?: string | undefined;
+    orderBy?: 'newest' | 'oldest' | undefined;
 }
 
 export interface IPostFilters {
-    language?: string;
-    fromDate?: Date;
-    toDate?: Date;
-    hashtag?: string;
-    isSensitive?: boolean;
+    language?: string | undefined;
+    fromDate?: Date | undefined;
+    toDate?: Date | undefined;
+    hashtag?: string | undefined;
+    isSensitive?: boolean | undefined;
 }
