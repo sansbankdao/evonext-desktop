@@ -297,77 +297,51 @@ const addKey = async () => {
     if (!currentIdentity.value || !isValidSelection.value) return
     const identity = currentIdentity.value
     const idx = getKeyIndex(selectedPurpose.value, selectedSecurityLevel.value)
-    if (idx === -1) {
-        showNotification('error', 'This key combination is not supported by the wallet yet.')
-        return
-    }
+
     try {
         isAdding.value = true
         const network = await ensure()
         const networkName = network === 'mainnet' ? 'mainnet' : 'testnet'
 
-        // 1. Initialize EvoSDK
-        // Using 'any' for SDK instance to bypass strict facade type definition mismatches
-        const sdk: any = network === 'mainnet'
-            ? EvoSDK.mainnetTrusted()
-            : EvoSDK.testnetTrusted();
-        console.log(`[EvoSDK] Connecting to ${networkName}...`);
-        await sdk.connect()
-        console.log('[EvoSDK] Connected to Platform');
-
-        // 2. Derive NEW Private Key to add
+        // 1. Derive NEW Private Key to register
         const newPrivateKey = await deriveKey(identity.identityIdx, idx)
-        const newPublicKey = newPrivateKey.getPublicKey()
+        const privateKeyHex = binToHex(newPrivateKey.bytes)
 
-        // 3. Get raw public key bytes
-        // FIX: Use toBuffer() to avoid '.bytes' property/function conflict
-        const pubKeyBytes = new Uint8Array(newPublicKey.bytes())
-        const pubKeyHex = binToHex(pubKeyBytes)
-
-        // Prepare new key configuration
-        const newKeyConfig = {
-            keyId: -1, // Will be determined by SDK
+        // 2. Prepare Payload (Match your reference snippet)
+        const keysToRegister = [{
             keyType: keyType.value,
-            purpose: selectedPurpose.value,
+            purpose: selectedPurpose.value, // numeric is fine for EvoSDK facade
             securityLevel: selectedSecurityLevel.value,
-            publicKeyHex: pubKeyHex
-        }
+            privateKeyHex: privateKeyHex
+        }]
 
-        // 4. Derive AUTH key for signing (Master or Critical)
-        const authKey = identity.publicKeys.find((k: any) =>
-            k.purpose === 0 && (k.securityLevel === 0 || k.securityLevel === 1)
-        )
-        if (!authKey) {
-            throw new Error("No suitable Authentication key found to authorize the update.")
-        }
+        // 3. Find Master Key for signing the update
+        const authKey = identity.publicKeys.find(k => k.purpose === 0 && k.securityLevel === 0)
+        if (!authKey) throw new Error("Master key required to add new keys.")
 
-        // Derive Auth Key Private Key
-        const authKeyIndex = getKeyIndex(0, authKey.securityLevel)
+        const authKeyIndex = getKeyIndex(0, 0)
         const authPrivateKey = await deriveKey(identity.identityIdx, authKeyIndex)
         const authWif = authPrivateKey.WIF()
 
-        console.log('[UpdateIdentity] Adding keys:', [newKeyConfig]);
-        console.log('[UpdateIdentity] Signing with Auth Key WIF:', authWif.substring(0, 5) + '...');
-
-        // 5. Call updateIdentity (integrated logic)
+        // 4. Update Identity (signs and broadcasts)
         const result = await updateIdentity(
             identity.identityId,
             authWif,
-            [newKeyConfig],
-            [], // No keys to disable
+            keysToRegister,
+            [],
             networkName,
-            {} // No retry options
+            undefined
         )
 
         if (result.success) {
-            showNotification('success', 'Key added successfully!')
-            setTimeout(() => router.push(`/identity/${identity.identityId}/keys`), 2000)
+            showNotification('success', 'Key registered on network!')
+            // Redirect back - user will see this key as "Missing Local Private Key" and can Import it
+            setTimeout(() => router.push(`/identity/${identity.identityId}/keys`), 1500)
         } else {
-            throw new Error(result.error || 'Failed')
+            throw new Error(result.error)
         }
     } catch (error: any) {
-        console.error(error)
-        showNotification('error', error.message || 'Failed to add key')
+        showNotification('error', error.message)
     } finally {
         isAdding.value = false
     }

@@ -408,3 +408,46 @@ pub async fn save_identity_data(
     save_identity_map_internal(&app, &network, &map, None)?;
     Ok(true)
 }
+
+#[tauri::command]
+pub async fn save_imported_key(
+    app: AppHandle,
+    identity_id: String,
+    key_id: u32,
+    private_key_hex: String,
+    network: String,
+) -> Result<bool, String> {
+    let mut store = load_keystore_internal(&app, &network)?;
+    let entries = store.identities.entry(identity_id.clone()).or_default();
+
+    // 1. Derive Public Key for the entry
+    let pub_hex = derive_compressed_pubkey_hex_from_wif(&private_key_hex)
+        .ok_or("Invalid private key format")?;
+
+    let new_entry = PrivateKeyEntry {
+        identity_id: identity_id.clone(),
+        key_id,
+        private_key: private_key_hex,
+        public_key: pub_hex,
+        purpose: 0, // Placeholder: will be enriched by enrich_keystore_for_identity
+        security_level: 0, // Placeholder
+        key_type: "ECDSA_HASH160".into(),
+        created_at: Utc::now().to_rfc3339(),
+        last_used: Utc::now().to_rfc3339(),
+        derived_from_mnemonic: Some(false),
+    };
+
+    // Replace if exists, else push
+    if let Some(existing) = entries.iter_mut().find(|e| e.key_id == key_id) {
+        *existing = new_entry;
+    } else {
+        entries.push(new_entry);
+    }
+
+    save_keystore_internal(&app, &network, &store)?;
+
+    // Auto-enrich to align purpose/security level with the identity file
+    let _ = enrich_keystore_for_identity(app, network, identity_id).await;
+
+    Ok(true)
+}
