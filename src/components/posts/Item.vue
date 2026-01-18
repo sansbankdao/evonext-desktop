@@ -264,7 +264,7 @@ const handleImageError = (event: Event) => {
 
 const getExplorerUrl = (ownerId: string): string => {
     // Uses the Identity ID (ownerId) to construct the link
-    return `https://platform-explorer.com/identity/${ownerId}`
+    return `https://testnet.platform-explorer.com/identity/${ownerId}`
 }
 
 // Actions
