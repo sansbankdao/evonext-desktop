@@ -1,15 +1,33 @@
 // src/stores/identity/actions/keys.ts
+
+import { invoke } from '@tauri-apps/api/core'
+import { ErrorBoundary } from '@/utils/errors'
 import { getTransferKey } from './get_key'
 
-// We act as a central export point for key logic
-// This isolates file-based logic from WASM-based logic in useKeyManagement
+export { getTransferKey }
 
-export {
-    // Export specialized helper created for this regression
-    getTransferKey,
+export const keyActions = {
+    /**
+     * Imports a WIF/Hex key into the local keychain file
+     */
+    async importPrivateKey(
+        this: any,
+        identityId: string,
+        keyId: number,
+        privateKey: string,
+        network: string
+    ): Promise<boolean> {
+        return ErrorBoundary.wrap(async () => {
+            console.log(`[Store] Importing Key ID ${keyId} for ${identityId} on ${network}`)
 
-    // Re-export common helpers via dynamic import to avoid circular deps
-    // This allows UI to import everything from 'stores/identity/actions/keys'
-    // getAuthKey: () => import('@/composables/useKeyManagement').then(m => m.getAuthKey()),
-    // getEncryptionKey: () => import('@/composables/useKeyManagement').then(m => m.getEncryptionKey())
+            const success = await invoke<boolean>('save_imported_key', {
+                identityId,
+                keyId,
+                privateKeyHex: privateKey,
+                network
+            })
+
+            return success
+        }, 'IMPORT_PRIVATE_KEY_FAILED')
+    }
 }

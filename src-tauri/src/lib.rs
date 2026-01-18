@@ -37,6 +37,7 @@ pub fn run() {
             commands::identity_commands::save_identity_unified,
             commands::identity_commands::delete_identity_data,
             commands::identity_commands::enrich_keystore_for_identity,
+            commands::identity_commands::save_imported_key,
 
             // License
             commands::license_commands::load_license,
