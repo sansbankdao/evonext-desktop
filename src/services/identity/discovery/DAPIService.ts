@@ -83,6 +83,27 @@ export class DAPIService {
         }
     }
 
+    static async getDPNSUsernames(
+        identityId: string,
+        network: 'mainnet' | 'testnet'
+    ): Promise<string[] | null> {
+        try {
+            const response = await invoke<any>('get_dpns_usernames', {
+                identityId: identityId,
+                network: network
+            })
+
+            // Tauri returns [Result]
+            if (response?.success && response?.result) {
+                return response.result as [any]
+            }
+
+            return null
+        } catch {
+            return null
+        }
+    }
+
     static async getIdentityById(
         identityId: string,
         network: 'mainnet' | 'testnet'

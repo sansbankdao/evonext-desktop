@@ -284,6 +284,35 @@ pub async fn get_dpns_username(
 }
 
 #[command]
+pub async fn get_dpns_usernames(
+    identity_id: String,
+    with_proof: Option<bool>,
+    network: Option<String>,
+) -> Result<Vec<Value>, String> {
+    let client = get_dapi_client();
+    let current_network = if let Some(network_str) = network {
+        Network::from_str(&network_str).unwrap_or(Network::Testnet)
+    } else {
+        Network::Testnet
+    };
+    let with_proof = with_proof.unwrap_or(false);
+    println!(
+        "[DEBUG DAPI] get_dpns_usernames network={}",
+        current_network.as_str()
+    );
+    match client
+        .get_dpns_usernames(identity_id, current_network, with_proof)
+        .await
+    {
+        Ok(result) => Ok(result),
+        Err(e) => {
+            tracing::error!("Failed to get DPNS usernames: {}", e);
+            Err(e.to_string())
+        }
+    }
+}
+
+#[command]
 pub async fn get_platform_status(network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
     let current_network = if let Some(network_str) = network {

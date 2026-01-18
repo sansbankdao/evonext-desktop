@@ -70,6 +70,7 @@ pub fn run() {
             commands::dapi_commands::get_token_balances,
             commands::dapi_commands::resolve_dpns_name,
             commands::dapi_commands::get_dpns_username,
+            commands::dapi_commands::get_dpns_usernames,
             commands::dapi_commands::get_platform_status,
             commands::dapi_commands::get_identities_balances,
             commands::dapi_commands::get_data_contract_info,
