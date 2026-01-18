@@ -94,7 +94,10 @@ impl DAPIClient {
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            error!("DAPI HTTP error {}: {}", status, error_text);
+            eprintln!(
+                "[NETWORK_ERROR] Method: {} | HTTP {}: {}",
+                method, status, error_text
+            );
             return Err(DAPIError::RequestFailed(format!(
                 "HTTP {}: {}",
                 status, error_text
@@ -103,21 +106,24 @@ impl DAPIClient {
 
         // 7. Get Response Body as Text
         let response_text = response.text().await.map_err(|e| {
+            eprintln!("[NETWORK_ERROR] Method: {} | Failed to read response body: {}", method, e);
             DAPIError::SerializationError(format!("Failed to read response body: {}", e))
         })?;
 
-        println!(
+        // =========================================================================
+        // CRITICAL DEBUG: Force Inbound Trace to stderr
+        // =========================================================================
+        eprintln!(
             "[NETWORK_TRACE] Method: {} | Inbound Raw Response: {}",
             method, response_text
         );
 
         // 8. Attempt Dual-Parsing (Wrapped vs Raw)
-        // This logic handles proxies that return [{},{}] and nodes that return {"success":true,"result":[]}
         let result: Vec<T> =
             if let Ok(api_response) = serde_json::from_str::<DAPIResponse>(&response_text) {
-                // Case A: Response has the success/result wrapper
+                // Case A: Response has a success/result wrapper
                 if !api_response.success {
-                    println!("[API_ERROR] Method: {} | Body: {}", method, response_text);
+                    eprintln!("[API_ERROR] Method: {} | Body: {}", method, response_text);
                     return Err(DAPIError::APIFailed(format!(
                         "DAPI method {} failure",
                         method
@@ -130,7 +136,7 @@ impl DAPIClient {
             } else {
                 // Case C: Deserialization failed for both patterns
                 error!("Failed to parse DAPI response for {}", method);
-                println!("[SERIALIZATION_FAILURE] Raw Body: {}", response_text);
+                eprintln!("[SERIALIZATION_FAILURE] Method: {} | Raw Body: {}", method, response_text);
                 return Err(DAPIError::SerializationError(
                     "Unsupported response format".into(),
                 ));
@@ -141,6 +147,13 @@ impl DAPIClient {
             self.cache.lock().await.set(cache_key, cache_value);
         }
 
+        // 10. Success Trace
+        eprintln!(
+            "[NETWORK_SUCCESS] Method: {} | Returned {} items",
+            method,
+            result.len()
+        );
+
         info!(
             "DAPI request successful: {} returned {} items",
             method,
@@ -148,10 +161,6 @@ impl DAPIClient {
         );
         Ok(result)
     }
-
-    // pub fn get_endpoint(&self) -> &str {
-    //     &self.endpoint
-    // }
 }
 
 lazy_static::lazy_static! {
