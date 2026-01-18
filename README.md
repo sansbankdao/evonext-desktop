@@ -2,10 +2,10 @@
 
 <div align="center">
   <img src="src/assets/icon.svg" alt="EvoNext Logo" width="150"/>
-  <h1>EvoNext</h1>
-  <p><strong>Free and Fearless ⛓️‍💥
-  <br />Discover safe and enjoyable spaces to Explore. Curate. Share YOUR Truth Fearlessly ✊</strong></p>
-  <p>A decentralized social platform secured by Dash Evolution Platform 🛡️</p>
+  <h1>ΞvoNext</h1>
+  <p><strong>Free and Fearless Social
+  <br />Connect with early-stage Founders and Creators</strong></p>
+  <p>Plus, the hottest collection of Mini Apps designed to streamline your workflow and simplify everyday tasks.</p>
 
   <p>
     <a href="https://github.com/your-username/evonext-desktop/releases/latest">

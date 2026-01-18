@@ -2,18 +2,17 @@ Introducing the newest version of the EvoNext Desktop Edition
 
 ### Private Key Management Center
 
-This latest version of EvoNext offers a very user-friendly Private Key Management Center; for Identities that are NOT seed phrase derived, but have individual private keys (e.g. Yappr identities).
+This latest version of EvoNext introduces a brand NEW testing suite; to make 100% sure that "avoidable" errors & bugs remain FREE from the application.
 
 # Changelog
 
 ## Latest Features:
 
-- Identity: Manage individual private keys for an Identity.
-- Assets: Each asset is now individually managed per Identity, instead of application-wide.
+- __Tests:__ Introduced a NEW comprehensive test suite.
 
 ## Bugfixes:
 
-- Asset management is now multi-tenant.
+- n/a
 
 ## Notes:
 
