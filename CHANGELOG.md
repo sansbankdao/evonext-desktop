@@ -9,10 +9,12 @@ This latest version of EvoNext introduces a brand NEW testing suite; to make 100
 ## Latest Features:
 
 - __Tests:__ Introduced a NEW comprehensive test suite.
+- __Core:__ Upgrade ALL packages to their latest.
 
 ## Bugfixes:
 
-- n/a
+- __UI:__ Fixed the app navigation screen starting point to TOP.
+- __Links:__ Fixed the Yappr explorer URL link.
 
 ## Notes:
 
