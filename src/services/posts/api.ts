@@ -1,4 +1,4 @@
-// src/composables/usePosts/api.ts
+// src/services/posts/api.ts
 
 import { invoke } from '@tauri-apps/api/core'
 import { EvoSDK } from '@dashevo/evo-sdk'

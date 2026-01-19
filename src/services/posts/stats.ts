@@ -1,4 +1,4 @@
-// src/composables/usePosts/stats.ts
+// src/services/posts/stats.ts
 
 import type { IPost } from '@/types/posts'
 

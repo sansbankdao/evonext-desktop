@@ -1,4 +1,4 @@
-// src/composables/usePosts/filters.ts
+// src/services/posts/filters.ts
 
 import type { IPost } from '@/types/posts'
 

@@ -1,4 +1,4 @@
-// src/composables/usePosts/transformers.ts
+// src/services/posts/transformers.ts
 
 import type { IPost, IUser, IPostDocument } from '@/types'
 import {

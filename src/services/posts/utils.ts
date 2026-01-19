@@ -1,4 +1,4 @@
-// src/composables/usePosts/utils.ts
+// src/services/posts/utils.ts
 
 import {
     EVONEXT_CONTRACT_ID_TESTNET,
