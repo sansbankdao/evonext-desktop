@@ -12,7 +12,11 @@
         </div>
 
         <div class="flex flex-col gap-4">
-            <a href="#" class="block hover:bg-slate-50 dark:hover:bg-slate-700 p-2 rounded-lg transition-colors">
+            <a
+                href="#"
+                class="block hover:bg-slate-50 dark:hover:bg-slate-700 p-2 rounded-lg transition-colors"
+                @click.prevent="goToBootstrap"
+            >
                 <div class="w-32 xl:w-48 flex items-center gap-3">
                     <img
                         src="https://ui-avatars.com/api/?name=Admin&background=random"
@@ -36,5 +40,11 @@
 </template>
 
 <script setup lang="ts">
-// No script needed - pure presentation component
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+const goToBootstrap = () => {
+    router.push('/bootstrap')
+}
 </script>

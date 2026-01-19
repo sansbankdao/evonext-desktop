@@ -6,19 +6,35 @@
         </h2>
 
         <div class="flex flex-col gap-3">
-            <a href="#" class="text-sky-500 dark:text-sky-400 hover:text-sky-600 dark:hover:text-sky-300 font-semibold">
+            <a
+                href="#"
+                class="text-sky-500 dark:text-sky-400 hover:text-sky-600 dark:hover:text-sky-300 font-semibold"
+                @click.prevent="goToBootstrap"
+            >
                 #Sansbank
             </a>
 
-            <a href="#" class="text-sky-500 dark:text-sky-400 hover:text-sky-600 dark:hover:text-sky-300 font-semibold">
+            <a
+                href="#"
+                class="text-sky-500 dark:text-sky-400 hover:text-sky-600 dark:hover:text-sky-300 font-semibold"
+                @click.prevent="goToBootstrap"
+            >
                 #Dashpay
             </a>
 
-            <a href="#" class="text-sky-500 dark:text-sky-400 hover:text-sky-600 dark:hover:text-sky-300 font-semibold">
+            <a
+                href="#"
+                class="text-sky-500 dark:text-sky-400 hover:text-sky-600 dark:hover:text-sky-300 font-semibold"
+                @click.prevent="goToBootstrap"
+            >
                 #DashCon2026
             </a>
 
-            <a href="#" class="text-sky-500 dark:text-sky-400 hover:text-sky-600 dark:hover:text-sky-300 font-semibold">
+            <a
+                href="#"
+                class="text-sky-500 dark:text-sky-400 hover:text-sky-600 dark:hover:text-sky-300 font-semibold"
+                @click.prevent="goToBootstrap"
+            >
                 #EvoNext
             </a>
         </div>
@@ -26,5 +42,11 @@
 </template>
 
 <script setup lang="ts">
-// No script needed - pure presentation component
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+const goToBootstrap = () => {
+    router.push('/bootstrap');
+};
 </script>
