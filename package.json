@@ -1,14 +1,19 @@
 {
   "name": "evonext-desktop",
   "description": "Free and Fearless — Discover safe spaces to Explore. Curate. Share YOUR Truth — secured by Dash Platform.",
-  "version": "26.1.10",
+  "version": "26.1.19",
   "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:rust": "cargo test --manifest-path=./src-tauri/Cargo.toml",
+    "test:e2e": "pnpm tauri build && pnpm exec wdio run wdio.conf.ts",
+    "test:all": "pnpm test && pnpm test:rust && pnpm test:e2e"
   },
   "dependencies": {
     "@dashevo/evo-sdk": "3.0.0-dev.11",
@@ -39,6 +44,7 @@
     "@vitest/browser": "4.0.16",
     "@vitest/ui": "4.0.16",
     "@vue/test-utils": "2.4.6",
+    "appium": "3.1.2",
     "autoprefixer": "10.4.20",
     "happy-dom": "20.0.11",
     "jsdom": "27.3.0",
