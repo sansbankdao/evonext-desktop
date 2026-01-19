@@ -10,10 +10,16 @@ export default {
     isLoading: false,
     error: null,
     lastFetched: null,
-    // FIX: Cast undefined to allow assignment, or use 'undefined as string | undefined'
-    // if you update your interface. For now, simple casting solves the overlap check.
     nextPage: undefined as string | undefined,
     hasNextPage: false,
     limit: 10,
-    offset: 0
+    offset: 0,
+    // Add this to preserve your debugging capability
+    debug: {
+        activeContracts: [],
+        fetchCounts: {},
+        mergeCount: 0,
+        duplicateCount: 0,
+        lastFetchTime: null
+    }
 } as IPostsState

@@ -1,6 +1,5 @@
 // src/stores/posts/actions/index.ts
 
-// src/stores/posts/actions/index.ts (fixed)
 import {
     fetchPostsAction,
     fetchUserPostsAction,

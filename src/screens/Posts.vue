@@ -88,7 +88,7 @@
                                 <div class="space-y-1">
                                     <div v-for="(count, contract) in debugStats.fetchCounts" :key="contract"
                                          class="flex justify-between items-center text-sm">
-                                        <span class="text-slate-300 truncate">{{ contract.slice(0, 12) }}...</span>
+                                        <span class="text-slate-300 truncate">{{ String(contract).slice(0, 12) }}...</span>
                                         <span class="text-emerald-400 font-mono">{{ count }}</span>
                                     </div>
                                 </div>
@@ -128,7 +128,7 @@
                             <div v-if="showRawData" class="bg-slate-950 border border-slate-700 rounded-lg p-4 max-h-96 overflow-y-auto">
                                 <div v-for="(data, contractId) in debugStats.rawData" :key="contractId" class="mb-4 last:mb-0">
                                     <div class="text-sm font-medium text-cyan-400 mb-2">
-                                        {{ contractId.slice(0, 16) }}...
+                                        {{ String(contractId).slice(0, 16) }}...
                                     </div>
                                     <pre class="text-xs text-slate-400 whitespace-pre-wrap break-words">{{ JSON.stringify(data, null, 2) }}</pre>
                                 </div>
@@ -487,7 +487,11 @@ const filteredPostsData = computed(() => {
 
 const calculateTotalFetched = () => {
     if (!debugStats.value.fetchCounts) return 0
-    return Object.values(debugStats.value.fetchCounts).reduce((sum, count) => sum + count, 0)
+    // Cast to Record<string, number> to tell TS the values are numbers
+    return Object.values(debugStats.value.fetchCounts as Record<string, number>).reduce(
+      (sum: number, count: number) => sum + count,
+      0
+    )
 }
 
 const retryFetch = async () => {
