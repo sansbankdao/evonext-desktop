@@ -1,6 +1,6 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Private Key Management Center
+### Introduced a NEW Comprehensive Test Suite
 
 This latest version of EvoNext introduces a brand NEW testing suite; to make 100% sure that "avoidable" errors & bugs remain FREE from the application.
 
