@@ -27,30 +27,56 @@ const abbreviateId = (id: string) => {
  * PURE FUNCTION: Get user information from ownerId with DPNS/profile data.
  *
  * STRATEGY:
- * 1. Use passed data if available (Optimal path).
- * 2. Fallback to abbreviated Identity ID logic if data is missing.
+ * 1. Prefer DPNS Profile if available.
+ * 2. Fall back to YAPPR Profile if DPNS is missing.
+ * 3. Fallback to abbreviated Identity ID logic if both are missing.
  *
- * NOTE: Removed 'invoke' to prevent blocking the UI thread during list rendering.
- * Data fetching is now strictly handled in usePosts/index.ts via Promise.all.
+ * @param ownerId - The Identity ID of the user.
+ * @param profileData - The profile document from the DashPay contract (DPNS profile).
+ * @param yapprProfile - The profile document from the YAPPR contract.
+ * @param dpnsName - The DPNS name (e.g., "alice.dash").
  */
 export function getUserInfo(
     ownerId: string,
     profileData?: ProfileDocument | null,
+    yapprProfile?: ProfileDocument | null,
     dpnsName?: string | null
 ): IUser {
-    // Use DPNS name, or abbreviated Identity ID
-    const username = dpnsName ? `@${dpnsName}` : `@${abbreviateId(ownerId)}`
+    let displayName: string
+    let avatar: string
+    let bio: string = ''
+    let verified: boolean = !!dpnsName
+    let username: string = dpnsName ? `@${dpnsName}` : `@${abbreviateId(ownerId)}`
 
-    // Use Profile Display Name, or abbreviated Identity ID
-    // This prevents "Alice", "Charlie", etc. from showing if display name is missing
-    const displayName = profileData?.displayName || abbreviateId(ownerId)
+    // 1. Check DPNS Profile first (Priority)
+    if (profileData?.displayName) {
+        displayName = profileData.displayName
+        avatar = profileData.avatarUrl || generateAvatarUrl(ownerId, displayName)
+        bio = profileData.publicMessage || ''
+        verified = !!dpnsName // Strictly DPNS verification
+    }
+    // 2. Fall back to YAPPR Profile
+    else if (yapprProfile?.displayName) {
+        displayName = yapprProfile.displayName
+        avatar = yapprProfile.avatarUrl || generateAvatarUrl(ownerId, displayName)
+        bio = yapprProfile.publicMessage || ''
+        // Note: YAPPR users are not "Verified" in the traditional DPNS sense,
+        // but they have a custom name. We keep verified false to distinguish from DPNS,
+        // or you could set it to true if you consider YAPPR name ownership verification.
+        verified = false
+    }
+    // 3. Fallback to abbreviated ID
+    else {
+        displayName = abbreviateId(ownerId)
+        avatar = generateAvatarUrl(ownerId, displayName)
+    }
 
     return {
         username,
         displayName,
-        avatar: profileData?.avatarUrl || generateAvatarUrl(ownerId, displayName),
-        verified: dpnsName !== null, // Verified if they have a DPNS name
-        bio: profileData?.publicMessage || ''
+        avatar,
+        verified,
+        bio
     }
 }
 
@@ -60,6 +86,7 @@ export function getUserInfo(
 export function transformPostDocument(
     doc: IPostDocument | any,
     profileData?: any | null,
+    yapprProfile?: any | null,
     dpnsName?: string | null,
     parentPost?: IPost | null
 ): IPost {
@@ -70,7 +97,7 @@ export function transformPostDocument(
     const createdAtTimestamp = parseInt(doc.createdAt || doc.$createdAt || Date.now().toString())
     const updatedAtTimestamp = parseInt(doc.updatedAt || doc.$updatedAt || createdAtTimestamp.toString())
 
-    const author = getUserInfo(ownerId, profileData, dpnsName)
+    const author = getUserInfo(ownerId, profileData, yapprProfile, dpnsName)
 
     // 1. Build the base object with required fields
     const post: IPost = {
@@ -122,6 +149,7 @@ export function transformPostDocument(
 export function transformPostDocuments(
     documents: IPostDocument[],
     profiles: Map<string, any> = new Map(),
+    yapprProfiles: Map<string, any> = new Map(),
     dpnsNames: Map<string, string> = new Map(),
     parentPostsMap: Map<string, IPost> = new Map()
 ): IPost[] {
@@ -132,12 +160,13 @@ export function transformPostDocuments(
 
         // Look up data from the maps populated by usePosts
         const profileData = profiles.get(ownerId)
+        const yapprProfile = yapprProfiles.get(ownerId)
         const dpnsName = dpnsNames.get(ownerId)
 
         // Check if this document is a reply and fetch parent from map
         const replyToId = Array.isArray(doc.replyToPostId) ? doc.replyToPostId[0] : doc.replyToPostId
         const parentPost = replyToId ? parentPostsMap.get(replyToId) : undefined
 
-        return transformPostDocument(doc, profileData, dpnsName, parentPost)
+        return transformPostDocument(doc, profileData, yapprProfile, dpnsName, parentPost)
     })
 }

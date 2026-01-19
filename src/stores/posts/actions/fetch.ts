@@ -10,12 +10,77 @@ import {
     YAPPR_CONTRACT_ID_TESTNET
 } from '@/constants'
 import { useSettingsStore } from '@/stores/settings'
+import { invoke } from '@tauri-apps/api/core'
 
-// Helper to get network (can't use store 'this' easily inside non-exported helpers)
+// Helper to get network
 function getCurrentNetwork() {
     const settings = useSettingsStore()
     const net = settings.state.network
     return (net === 'mainnet' || net === 'testnet') ? net : 'testnet'
+}
+
+/**
+ * PURE JS BASE58 IMPLEMENTATION
+ */
+const Base58 = {
+    ALPHABET: '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
+    ALPHABET_MAP: {} as Record<string, number>,
+
+    init() {
+        if (Object.keys(this.ALPHABET_MAP).length === 0) {
+            for (let i = 0; i < this.ALPHABET.length; i++) {
+                this.ALPHABET_MAP[this.ALPHABET.charAt(i)] = i
+            }
+        }
+    },
+
+    encode(buffer: Uint8Array): string {
+        this.init()
+        const digits: number[] = [0]
+
+        for (let i = 0; i < buffer.length; i++) {
+            let carry = buffer[i] as number
+            for (let j = 0; j < digits.length; ++j) {
+                carry += (digits[j] as number) << 8
+                digits[j] = carry % 58
+                carry = ((carry as number) / 58) | 0
+            }
+            while (carry > 0) {
+                digits.push((carry as number) % 58)
+                carry = ((carry as number) / 58) | 0
+            }
+        }
+
+        let result = ''
+        for (let i = 0; i < buffer.length && buffer[i] === 0; i++) {
+            result += '1'
+        }
+        for (let i = digits.length - 1; i >= 0; i--) {
+            const index = digits[i] as number
+            result += this.ALPHABET[index]
+        }
+        return result
+    }
+}
+
+/**
+ * Helper to ensure IDs are in Base58 format.
+ */
+function ensureBase58(id: string): string {
+    if (!id) return id
+    if (id.length === 44 && id.endsWith('=') || id.includes('+') || id.includes('/')) {
+        try {
+            const binaryString = atob(id)
+            const bytes = new Uint8Array(binaryString.length)
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i)
+            }
+            return Base58.encode(bytes)
+        } catch (e) {
+            return id
+        }
+    }
+    return id
 }
 
 export async function fetchPostsAction(this: any, options?: PostsFetchOptions): Promise<void> {
@@ -113,19 +178,51 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
 
         // 6. Fetch Profiles & DPNS
         const allDocsToProcess = [...finalDocuments, ...parentDocuments]
-        const profiles = new Map<string, any>()
+        const profiles = new Map<string, any>() // DPNS
+        const yapprProfiles = new Map<string, any>() // YAPPR
         const dpnsNames = new Map<string, string>()
         const ownerIds = [...new Set(allDocsToProcess.map(doc => doc.ownerId || ''))].filter(Boolean)
 
         await Promise.all(
             ownerIds.map(async (ownerId) => {
                 if (!ownerId) return
-                const [profileData, dpnsName] = await Promise.all([
-                    api.fetchUserProfile(ownerId, network),
-                    api.fetchDPNSName(ownerId, network)
-                ])
-                if (profileData) profiles.set(ownerId, profileData)
-                if (dpnsName) dpnsNames.set(ownerId, dpnsName)
+
+                // 6a. Fetch DPNS Profile
+                const dpnsProfile = await api.fetchUserProfile(ownerId, network)
+                if (dpnsProfile) {
+                    profiles.set(ownerId, dpnsProfile)
+                }
+
+                // 6b. Fetch YAPPR Profile
+                // CRITICAL FIX: YAPPR index is 'owner', NOT '$ownerId'
+                const yapprContractId = network === 'testnet'
+                    ? YAPPR_CONTRACT_ID_TESTNET
+                    : YAPPR_CONTRACT_ID_TESTNET
+
+                let yapprDocs: any[] = []
+                try {
+                    yapprDocs = await invoke<any[]>('get_posts', {
+                        dataContractId: yapprContractId,
+                        documentType: 'profile',
+                        // FIX: Use 'ownerId' without the dollar sign for YAPPR query
+                        whereClause: JSON.stringify([["$ownerId", "==", ensureBase58(ownerId)]]),
+                        limit: 1,
+                        orderBy: JSON.stringify([["$ownerId", "desc"]]),
+                        // orderBy: JSON.stringify([]),
+                        network
+                    })
+                } catch (err) {
+                    // Suppress error
+                }
+
+                if (yapprDocs && yapprDocs.length > 0) {
+                    yapprProfiles.set(ownerId, yapprDocs[0])
+                }
+
+                const dpnsName = await api.fetchDPNSName(ownerId, network)
+                if (dpnsName) {
+                    dpnsNames.set(ownerId, dpnsName)
+                }
             })
         )
 
@@ -134,6 +231,7 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
         const transformedParents = transformers.transformPostDocuments(
             parentDocuments,
             profiles,
+            yapprProfiles,
             dpnsNames
         )
         transformedParents.forEach(p => { if (p.id) parentPostsMap.set(p.id, p) })
@@ -141,6 +239,7 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
         const posts = transformers.transformPostDocuments(
             finalDocuments,
             profiles,
+            yapprProfiles,
             dpnsNames,
             parentPostsMap
         )
@@ -177,17 +276,21 @@ export async function fetchMorePostsAction(this: any): Promise<void> {
         const network = getCurrentNetwork()
         const newOffset = (this.offset || 0) + this.limit
 
+        const primaryContractId = network === 'testnet' ? EVONEXT_CONTRACT_ID_TESTNET : EVONEXT_CONTRACT_ID_MAINNET
+
         const documents = await api.fetchPostsFromTauri(network, {
-            contractId: '', // FetchMore in API.ts handles logic if ID is empty? Check API.ts logic.
-            // NOTE: Your API.ts fetchPostsFromTauri requires a contractId.
-            // You might need to adjust this logic to pick a specific contract or loop again.
-            // For now, mirroring your existing logic which passed empty string.
+            contractId: primaryContractId,
             ownerId: '',
             orderBy: 'desc',
             limit: this.limit || 10
         })
 
-        const posts = transformers.transformPostDocuments(documents)
+        const posts = transformers.transformPostDocuments(
+            documents,
+            new Map(),
+            new Map(),
+            new Map()
+        )
 
         this.posts = [...this.posts, ...posts]
         this.offset = newOffset
@@ -201,15 +304,12 @@ export async function fetchMorePostsAction(this: any): Promise<void> {
     }
 }
 
-// Keeping this simple as it was in your original code
 export async function fetchUserPostsAction(this: any, userId: string): Promise<void> {
-    // Re-use the main fetch logic but filtering for owner
     await this.fetchPosts({
         ownerId: userId,
         orderBy: 'newest',
         limit: 50
     })
 
-    // Sync the specific userPosts array
     this.userPosts = this.posts.filter((p: any) => p.ownerId === userId)
 }
