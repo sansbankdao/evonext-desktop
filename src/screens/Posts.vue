@@ -7,135 +7,6 @@
         <section class="bg-gray-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
                 <div class="flex flex-col gap-8">
-
-                    <!-- Network Status & Debug Header -->
-                    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-                            <div class="flex items-center gap-4">
-                                <div class="p-3 bg-cyan-50 dark:bg-cyan-900/20 rounded-xl border border-cyan-200 dark:border-cyan-800">
-                                    <svg class="w-6 h-6 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-1">
-                                        Social Feed
-                                    </h1>
-                                    <p class="text-slate-500 dark:text-slate-400">
-                                        Viewing content from <span class="font-medium text-cyan-600 dark:text-cyan-400">{{ currentNetwork.toUpperCase() }}</span> blockchain
-                                    </p>
-                                </div>
-                            </div>
-
-                            <!-- Debug Toggle -->
-                            <button
-                                @click="showDebug = !showDebug"
-                                :class="[
-                                    'flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-200',
-                                    showDebug
-                                        ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400'
-                                        : 'bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                                ]"
-                            >
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                                </svg>
-                                <span class="font-medium">Debug</span>
-                                <span class="text-xs px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300">
-                                    {{ showDebug ? 'ON' : 'OFF' }}
-                                </span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Debug Panel -->
-                    <div v-if="showDebug" class="bg-slate-900 border border-slate-700 rounded-2xl p-6 text-slate-200">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
-                                <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Network Debugger
-                            </h3>
-                            <button
-                                @click="refreshWithDebug"
-                                class="flex items-center gap-2 px-3 py-1.5 bg-cyan-700 hover:bg-cyan-600 text-cyan-100 rounded-lg text-sm font-medium transition-colors"
-                            >
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 16m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                                Refresh Data
-                            </button>
-                        </div>
-
-                        <!-- Debug Stats Grid -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                            <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-                                <div class="text-xs text-slate-400 mb-1">Active Contracts</div>
-                                <div class="text-base font-mono text-slate-100">
-                                    {{ debugStats.activeContracts?.length || 0 }}
-                                </div>
-                                <div class="mt-2 space-y-1">
-                                    <div v-for="contract in debugStats.activeContracts" :key="contract"
-                                         class="text-xs text-cyan-400 truncate">
-                                        {{ contract }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-                                <div class="text-xs text-slate-400 mb-1">Fetch Counts</div>
-                                <div class="space-y-1">
-                                    <div v-for="(count, contract) in debugStats.fetchCounts" :key="contract"
-                                         class="flex justify-between items-center text-sm">
-                                        <span class="text-slate-300 truncate">{{ String(contract).slice(0, 12) }}...</span>
-                                        <span class="text-emerald-400 font-mono">{{ count }}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-                                <div class="text-xs text-slate-400 mb-1">Data Integrity</div>
-                                <div class="space-y-2">
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-slate-300">Total Fetched:</span>
-                                        <span class="text-slate-100 font-mono">{{ calculateTotalFetched() }}</span>
-                                    </div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-slate-300">Duplicates Removed:</span>
-                                        <span class="text-amber-400 font-mono">{{ debugStats.duplicateCount }}</span>
-                                    </div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-slate-300">Final Posts:</span>
-                                        <span class="text-emerald-400 font-mono">{{ debugStats.mergeCount }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Raw Data Toggle -->
-                        <div>
-                            <button
-                                @click="showRawData = !showRawData"
-                                class="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-300 mb-2"
-                            >
-                                <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-90': showRawData }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                </svg>
-                                Raw Contract Data
-                            </button>
-
-                            <div v-if="showRawData" class="bg-slate-950 border border-slate-700 rounded-lg p-4 max-h-96 overflow-y-auto">
-                                <div v-for="(data, contractId) in debugStats.rawData" :key="contractId" class="mb-4 last:mb-0">
-                                    <div class="text-sm font-medium text-cyan-400 mb-2">
-                                        {{ String(contractId).slice(0, 16) }}...
-                                    </div>
-                                    <pre class="text-xs text-slate-400 whitespace-pre-wrap break-words">{{ JSON.stringify(data, null, 2) }}</pre>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Content Area -->
                     <div class="flex flex-col lg:flex-row gap-8">
                         <!-- Left Column: Create Post & Filters -->
@@ -410,6 +281,135 @@
                             </div>
                         </div>
                     </div>
+
+<!-- Network Status & Debug Header -->
+                    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                            <div class="flex items-center gap-4">
+                                <div class="p-3 bg-cyan-50 dark:bg-cyan-900/20 rounded-xl border border-cyan-200 dark:border-cyan-800">
+                                    <svg class="w-6 h-6 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                                        Social Feed
+                                    </h1>
+                                    <p class="text-slate-500 dark:text-slate-400">
+                                        Viewing content from <span class="font-medium text-cyan-600 dark:text-cyan-400">{{ currentNetwork.toUpperCase() }}</span> blockchain
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Debug Toggle -->
+                            <button
+                                @click="showDebug = !showDebug"
+                                :class="[
+                                    'flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-200',
+                                    showDebug
+                                        ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400'
+                                        : 'bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                                ]"
+                            >
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                </svg>
+                                <span class="font-medium">Debug</span>
+                                <span class="text-xs px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300">
+                                    {{ showDebug ? 'ON' : 'OFF' }}
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Debug Panel -->
+                    <div v-if="showDebug" class="bg-slate-900 border border-slate-700 rounded-2xl p-6 text-slate-200">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Network Debugger
+                            </h3>
+                            <button
+                                @click="refreshWithDebug"
+                                class="flex items-center gap-2 px-3 py-1.5 bg-cyan-700 hover:bg-cyan-600 text-cyan-100 rounded-lg text-sm font-medium transition-colors"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 16m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                Refresh Data
+                            </button>
+                        </div>
+
+                        <!-- Debug Stats Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                                <div class="text-xs text-slate-400 mb-1">Active Contracts</div>
+                                <div class="text-base font-mono text-slate-100">
+                                    {{ debugStats.activeContracts?.length || 0 }}
+                                </div>
+                                <div class="mt-2 space-y-1">
+                                    <div v-for="contract in debugStats.activeContracts" :key="contract"
+                                         class="text-xs text-cyan-400 truncate">
+                                        {{ contract }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                                <div class="text-xs text-slate-400 mb-1">Fetch Counts</div>
+                                <div class="space-y-1">
+                                    <div v-for="(count, contract) in debugStats.fetchCounts" :key="contract"
+                                         class="flex justify-between items-center text-sm">
+                                        <span class="text-slate-300 truncate">{{ String(contract).slice(0, 12) }}...</span>
+                                        <span class="text-emerald-400 font-mono">{{ count }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+                                <div class="text-xs text-slate-400 mb-1">Data Integrity</div>
+                                <div class="space-y-2">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-slate-300">Total Fetched:</span>
+                                        <span class="text-slate-100 font-mono">{{ calculateTotalFetched() }}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-slate-300">Duplicates Removed:</span>
+                                        <span class="text-amber-400 font-mono">{{ debugStats.duplicateCount }}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-slate-300">Final Posts:</span>
+                                        <span class="text-emerald-400 font-mono">{{ debugStats.mergeCount }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Raw Data Toggle -->
+                        <div>
+                            <button
+                                @click="showRawData = !showRawData"
+                                class="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-300 mb-2"
+                            >
+                                <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-90': showRawData }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                                Raw Contract Data
+                            </button>
+
+                            <div v-if="showRawData" class="bg-slate-950 border border-slate-700 rounded-lg p-4 max-h-96 overflow-y-auto">
+                                <div v-for="(data, contractId) in debugStats.rawData" :key="contractId" class="mb-4 last:mb-0">
+                                    <div class="text-sm font-medium text-cyan-400 mb-2">
+                                        {{ String(contractId).slice(0, 16) }}...
+                                    </div>
+                                    <pre class="text-xs text-slate-400 whitespace-pre-wrap break-words">{{ JSON.stringify(data, null, 2) }}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </section>
