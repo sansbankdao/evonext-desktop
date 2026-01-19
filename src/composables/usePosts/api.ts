@@ -18,6 +18,8 @@ import type {
     IPostDocument
 } from '@/types/posts'
 
+const MAX_DPNS_NAMES_LIMIT = 100
+
 /**
  * PURE JS BASE58 IMPLEMENTATION
  * Type-safe implementation to satisfy TS strict mode.
@@ -190,7 +192,9 @@ export async function fetchPostsFromDAPI(options?: {
 /**
  * Fetch profile data for a user via Tauri
  */
-export async function fetchUserProfile(ownerId: string, networkOverride?: string): Promise<any | null> {
+export async function fetchUserProfile(
+    ownerId: string, networkOverride?: string
+): Promise<any | null> {
     try {
         const { network } = useNetwork()
         const targetNetwork = networkOverride || network.value
@@ -221,7 +225,9 @@ export async function fetchUserProfile(ownerId: string, networkOverride?: string
 /**
  * Fetch DPNS username for a user via Tauri
  */
-export async function fetchDPNSName(ownerId: string, networkOverride?: string): Promise<string | null> {
+export async function fetchDPNSName(
+    ownerId: string, networkOverride?: string
+): Promise<string | null> {
     try {
         const { network } = useNetwork()
         const targetNetwork = networkOverride || network.value
@@ -236,13 +242,80 @@ export async function fetchDPNSName(ownerId: string, networkOverride?: string): 
             dataContractId: contractId,
             documentType: 'domain',
             whereClause,
-            limit: 1,
+            limit: MAX_DPNS_NAMES_LIMIT, // NOTE: We still MUST select a DEFAULT
             network: targetNetwork
         })
 
         if (dpnsRecords && dpnsRecords.length > 0) {
-            const doc = dpnsRecords[0]
+            // Filter criteria: if multiple records, remove those where label === normalizedLabel
+            let filteredRecords = [...dpnsRecords]
+
+            if (filteredRecords.length > 1) {
+                filteredRecords = filteredRecords.filter(record => {
+                    const label = record.label || ''
+                    const normalized = record.normalizedLabel || ''
+                    return label !== normalized
+                })
+            }
+
+            // If filtering removed all records, revert to original
+            if (filteredRecords.length === 0) {
+                filteredRecords = [...dpnsRecords]
+            }
+
+            // Sort by label length (ascending), then alphabetically
+            const sortedRecords = filteredRecords.sort((a, b) => {
+                const labelA = a.label || ''
+                const labelB = b.label || ''
+
+                // First compare by length
+                if (labelA.length !== labelB.length) {
+                    return labelA.length - labelB.length
+                }
+
+                // If lengths are equal, compare alphabetically
+                return labelA.localeCompare(labelB)
+            })
+
+            const doc = sortedRecords[0]
             return doc.label || doc.normalizedLabel || null
+        }
+
+        return null
+    } catch (error: any) {
+        console.warn(`[API] DPNS Error for ${ownerId}:`, error)
+        return null
+    }
+}
+
+/**
+ * Fetch DPNS username for a user via Tauri
+ */
+export async function fetchDPNSNames(
+    ownerId: string, networkOverride?: string
+): Promise<string[] | null> {
+    try {
+        const { network } = useNetwork()
+        const targetNetwork = networkOverride || network.value
+        const contractId = getContractId('dpns', targetNetwork)
+
+        // FIX: Ensure ID is Base58
+        const cleanId = ensureBase58(ownerId)
+        // FIX: Changed "records.dashUniqueIdentityId" to "records.identity"
+        const whereClause = [["records.identity", "==", cleanId]]
+
+        const dpnsRecords = await invoke<any[]>('get_posts', {
+            dataContractId: contractId,
+            documentType: 'domain',
+            whereClause,
+            limit: MAX_DPNS_NAMES_LIMIT,
+            network: targetNetwork
+        })
+
+        if (dpnsRecords && dpnsRecords.length > 0) {
+            return dpnsRecords.map(_doc => {
+                return _doc.label || _doc.normalizedLabel || null
+            })
         }
         return null
     } catch (error: any) {
