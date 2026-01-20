@@ -1,5 +1,5 @@
 <!-- src/components/wallet/AssetList.vue -->
- <template>
+<template>
     <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 flex flex-col h-full">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -14,7 +14,7 @@
         </div>
         <div class="space-y-3 flex-1 overflow-y-auto pr-1 custom-scrollbar">
             <div
-                v-for="asset in assets"
+                v-for="asset in filteredAssets"
                 :key="asset.id"
                 role="button"
                 @click="router.push(`/wallet/asset/${asset.symbol}`)"
@@ -39,10 +39,10 @@
                 </div>
                 <div class="text-right">
                     <p class="font-bold text-slate-900 dark:text-white">{{ getNormalizedBalance(asset) }}</p>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">{{ formatCurrency(asset.usdValue || 0) }}</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">{{ formatCurrency(getAssetUsdValue(asset)) }}</p>
                 </div>
             </div>
-            <div v-if="assets.length === 0 && !isLoading" class="flex flex-col items-center justify-center py-12 text-slate-400">
+            <div v-if="filteredAssets.length === 0 && !isLoading" class="flex flex-col items-center justify-center py-12 text-slate-400">
                 <p class="text-sm font-medium">No assets found</p>
             </div>
         </div>
@@ -50,19 +50,47 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { DUSD_DECIMAL_PLACES, SANS_DECIMAL_PLACES } from '@/constants'
 import type { IAsset } from '@/types'
 
-defineProps<{
+const props = defineProps<{
     assets: IAsset[]
     isLoading: boolean
 }>()
 
 const router = useRouter()
 
+// Filter out "Dash" (Layer 1) to only show Credits and other assets
+const filteredAssets = computed(() => {
+    return props.assets.filter(asset => {
+        const symbol = asset.symbol.toLowerCase().replace(/^t/, '')
+        return symbol !== 'dash'
+    })
+})
+
 const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)
+}
+
+// Calculate USD value for Credits by deriving the Dash price from the 'dash' asset
+const getAssetUsdValue = (asset: IAsset) => {
+    const symbol = asset.symbol.toLowerCase().replace(/^t/, '')
+
+    // If it's Credits and USD value is missing or 0, calculate it
+    if (symbol === 'credits' && (!asset.usdValue || asset.usdValue === 0)) {
+        const dashAsset = props.assets.find(a => a.symbol.toLowerCase().replace(/^t/, '') === 'dash')
+
+        // Calculate Price per Dash (L1) = Total USD / (Balance / 1e8)
+        if (dashAsset && Number(dashAsset.balance) > 0) {
+            const dashPrice = (dashAsset.usdValue || 0) / (Number(dashAsset.balance) / 100_000_000)
+            const creditsBalance = Number(asset.balance) / 100_000_000_000 // Credits Balance
+            return creditsBalance * dashPrice
+        }
+    }
+
+    return asset.usdValue || 0
 }
 
 const getNormalizedBalance = (asset: IAsset) => {
@@ -70,7 +98,9 @@ const getNormalizedBalance = (asset: IAsset) => {
     if (!rawBalance) return '0.00'
     const symbol = asset.symbol.replace(/^t/i, '').toLowerCase()
 
-    if (symbol === 'credits') return (rawBalance / 100_000_000_000).toFixed(2)
+    // Fixed: Credits uses 1e11 (100 Billion) divisor
+    if (symbol === 'credits') return (rawBalance / 100_000_000_000).toFixed(8)
+
     if (symbol === 'dusd') return (rawBalance / (10 ** DUSD_DECIMAL_PLACES)).toFixed(2)
     if (symbol === 'sans') return (rawBalance / (10 ** SANS_DECIMAL_PLACES)).toFixed(8)
     if (symbol === 'dash') return (rawBalance < 1_000_000 ? rawBalance : rawBalance / 100_000_000).toFixed(8)
