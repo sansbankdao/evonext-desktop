@@ -2,7 +2,7 @@
 <template>
     <header class="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 bg-gray-50 dark:bg-slate-900 p-4 rounded-xl shadow-lg border-2 border-slate-200 dark:border-slate-700">
         <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4 sm:mb-0">
-            {{ title }}
+            {{ props.title }}
         </h1>
 
         <!-- Authenticated View -->
