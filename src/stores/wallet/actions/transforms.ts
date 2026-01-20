@@ -16,13 +16,11 @@ import type { ITransaction, IAsset, IdentityTransfer, TokenTransition } from '@/
 
 // Define token prices as constants
 const TOKEN_PRICES = {
-    DUSD: 1.00, // Fixed stablecoin
-    SANS: 0.16  // Updated to $0.16 per your requirement
+    DUSD: 1.00,
+    SANS: 0.16
 } as const
 
-/**
- * Create updated assets array with live data
- */
+// ... (createUpdatedAssets and processTokenBalances functions remain unchanged) ...
 export function createUpdatedAssets(
     dashBalance: number,
     creditsBalance: number,
@@ -31,7 +29,6 @@ export function createUpdatedAssets(
     dashPrice: number
 ): IAsset[] {
     return [
-        // DASH (same as credits)
         {
             id: 'DASH',
             symbol: 'DASH',
@@ -50,7 +47,6 @@ export function createUpdatedAssets(
             transferable: true,
             divisible: true,
         },
-        // CREDITS (same as DASH balance, uses DASH price)
         {
             id: 'CREDITS',
             symbol: 'CREDITS',
@@ -69,7 +65,6 @@ export function createUpdatedAssets(
             transferable: true,
             divisible: true,
         },
-        // DUSD ($1.00 hardcoded as stablecoin)
         {
             id: 'DUSD',
             symbol: 'DUSD',
@@ -88,7 +83,6 @@ export function createUpdatedAssets(
             transferable: true,
             divisible: true,
         },
-        // SANS ($0.16 hardcoded - updated per requirement)
         {
             id: 'SANS',
             symbol: 'SANS',
@@ -110,10 +104,6 @@ export function createUpdatedAssets(
     ]
 }
 
-/**
- * Process token balances from API response
- * Updated to accept explicit `network` string instead of boolean isTestnet
- */
 export function processTokenBalances(
     tokenBalances: any[],
     network: string
@@ -121,163 +111,218 @@ export function processTokenBalances(
     const isTestnet = network.toLowerCase() === 'testnet'
     const dusdContractId = isTestnet ? DUSD_CONTRACT_ID_TESTNET : DUSD_CONTRACT_ID_MAINNET
     const sansContractId = isTestnet ? SANS_CONTRACT_ID_TESTNET : SANS_CONTRACT_ID_MAINNET
-    // Handle different tokenId structures (object vs string)
+
     const dusdBalanceAtomic = tokenBalances.find(token => {
         const tokenIdStr = typeof token.tokenId === 'string'
             ? token.tokenId
             : (token.tokenId?.base58 ? token.tokenId.base58() : '')
         return tokenIdStr === dusdContractId
     })?.balance || BigInt(0)
+
     const sansBalanceAtomic = tokenBalances.find(token => {
         const tokenIdStr = typeof token.tokenId === 'string'
             ? token.tokenId
             : (token.tokenId?.base58 ? token.tokenId.base58() : '')
         return tokenIdStr === sansContractId
     })?.balance || BigInt(0)
+
     return {
         dusdBalance: Number(dusdBalanceAtomic) / (10 ** DUSD_DECIMAL_PLACES),
         sansBalance: Number(sansBalanceAtomic) / (10 ** SANS_DECIMAL_PLACES)
     }
 }
 
-/**
- * Transform identity transfer to transaction object
- */
+// ... (transformIdentityTransfer remains unchanged) ...
 export function transformIdentityTransfer(
-    transfer: IdentityTransfer,
+    transfer: any,
     identityId: string
 ): ITransaction {
-    const isSent = transfer.sender === identityId
-    const isReceived = transfer.recipient === identityId
-    let type: 'IDENTITY_CREATE' | 'IDENTITY_CREDIT_TRANSFER' | 'UNKNOWN'
-    let title: string
-    let subtitle: string
-    let amountStr: string
-    // Convert string amount to number for atomicToDash
-    const transferAmount = typeof transfer.amount === 'string'
-        ? parseFloat(transfer.amount)
-        : Number(transfer.amount)
-    if (transfer.type === 'IDENTITY_CREATE') {
+    // 1. Resolve Sender Correctly (API nests it in owner.identifier)
+    // We check all possible locations the API might put the ID
+    const rawSender = transfer.owner?.identifier ||
+                      transfer.sender ||
+                      transfer.senderId ||
+                      'Unknown'
+
+    // 2. Resolve Recipient (Often missing in raw Identity transfers)
+    const rawRecipient = transfer.recipient || transfer.recipientId || 'Unknown'
+
+    // 3. Resolve Type
+    const rawType = transfer.type || 'UNKNOWN'
+
+    // 4. Determine Direction
+    const isSent = rawSender === identityId
+    const isReceived = rawRecipient === identityId
+
+    // 5. Safe Amount Parsing
+    // If the API returns NO amount field (common for raw Identity txs), we mark it.
+    let amountVal = 0
+    let hasAmount = false
+
+    if (transfer.amount !== undefined && transfer.amount !== null) {
+        amountVal = Number(transfer.amount)
+        hasAmount = !isNaN(amountVal)
+    }
+
+    // --- DISPLAY LOGIC ---
+    let type: 'IDENTITY_CREATE' | 'IDENTITY_CREDIT_TRANSFER' | 'SYSTEM' | 'UNKNOWN' = 'UNKNOWN'
+    let title = 'System Activity'
+    let subtitle = 'State Transition'
+    let amountStr = '---' // Default to dashes if no amount exists
+    let assetType: 'COIN' | 'TOKEN' = 'COIN'
+
+    if (rawType === 'IDENTITY_CREATE') {
         type = 'IDENTITY_CREATE'
-        title = 'New Identity Registered'
-        subtitle = 'Identity Creation'
-        const dashAmount = atomicToDash(transferAmount)
-        amountStr = formatDashAmount(dashAmount, true)
-    } else if (transfer.type === 'IDENTITY_CREDIT_TRANSFER') {
+        title = 'Identity Created'
+        subtitle = 'Registration'
+        amountStr = hasAmount ? formatDashAmount(atomicToDash(amountVal), true) : '---'
+    }
+    else if (rawType === 'IDENTITY_CREDIT_TRANSFER') {
+        type = 'IDENTITY_CREDIT_TRANSFER'
+
+        // Since raw API hides the amount in Base64 'data', we can't show it easily.
+        // We focus on the direction instead.
         if (isSent) {
-            type = 'IDENTITY_CREDIT_TRANSFER'
-            title = 'Sent DASH'
-            subtitle = `To: ${truncateAddress(transfer.recipient)}`
-            const dashAmount = atomicToDash(transferAmount)
-            amountStr = formatDashAmount(dashAmount, false)
-        } else if (isReceived) {
-            type = 'IDENTITY_CREDIT_TRANSFER'
-            title = 'Received DASH'
-            subtitle = `From: ${truncateAddress(transfer.sender || 'Unknown')}`
-            const dashAmount = atomicToDash(transferAmount)
-            amountStr = formatDashAmount(dashAmount, true)
+            title = 'Sent Credits'
+            subtitle = 'Standard Transfer' // Recipient is also hidden in 'data'
+            amountStr = hasAmount ? formatDashAmount(atomicToDash(amountVal), false) : '---'
         } else {
-            type = 'IDENTITY_CREDIT_TRANSFER'
-            title = 'Credit Transfer'
-            subtitle = 'Unknown'
-            const dashAmount = atomicToDash(transferAmount)
-            amountStr = formatDashAmount(dashAmount, true)
+            // If we don't know direction, assumption is interaction
+            title = 'Credit Interaction'
+            subtitle = 'Network Event'
+            amountStr = hasAmount ? formatDashAmount(atomicToDash(amountVal), true) : '---'
         }
-    } else {
+    }
+    else if (rawType === 'IDENTITY_CREDIT_WITHDRAWAL') {
+        type = 'IDENTITY_CREDIT_TRANSFER'
+        title = 'Withdrawal'
+        subtitle = 'To Layer 1'
+        amountStr = hasAmount ? formatDashAmount(atomicToDash(amountVal), false) : '---'
+    }
+    else if (rawType === 'DATA_CONTRACT_CREATE') {
+        type = 'SYSTEM'
+        title = 'Contract Created'
+        subtitle = 'Developer Action'
+        amountStr = '' // No amount relevant here
+    }
+    else if (rawType === 'BATCH' && transfer.batchType === 'TOKEN_TRANSFER') {
+        // These are the wrappers for your Token Txs.
+        // We label them SYSTEM so the Component can filter them out
+        // (because the Detailed Token Logic handles the real data)
+        type = 'SYSTEM'
+        title = 'Token Bundle'
+        subtitle = 'Processed internally'
+        amountStr = ''
+    }
+    else {
         type = 'UNKNOWN'
-        title = transfer.type
-        subtitle = 'Unknown'
-        const dashAmount = atomicToDash(transferAmount)
-        amountStr = formatDashAmount(dashAmount, true)
+        title = rawType.replace(/_/g, ' ') // Make "SOME_TYPE" look like "SOME TYPE"
+        subtitle = 'System Event'
     }
 
     return {
-        id: transfer.txHash || '',
-        type,
-        title, // Mapped
-        subtitle, // Mapped
+        id: transfer.hash || transfer.txHash || String(Date.now()),
+        type: type as any,
+        title,
+        subtitle,
         amount: amountStr,
-        status: 'CONFIRMED' as const,
-        createdAt: transfer.createdAt,
-        date: transfer.createdAt, // Added alias
-
-        // Required properties from ITransaction
-        hash: transfer.txHash || '',
-        confirmations: 0, // Spelling fixed to confirmations
-        senderId: transfer.sender || '',
-        receiverId: transfer.recipient,
-        assetType: 'COIN',
-        assetSymbol: '',
+        status: 'CONFIRMED',
+        createdAt: transfer.timestamp ? new Date(transfer.timestamp).getTime() : Date.now(),
+        date: transfer.timestamp ? new Date(transfer.timestamp).getTime() : Date.now(),
+        hash: transfer.hash || '',
+        confirmations: 1,
+        senderId: rawSender,
+        receiverId: rawRecipient,
+        assetType,
+        assetSymbol: 'DASH',
         direction: isSent ? 'OUTGOING' : 'INCOMING',
-        network: 'testnet', // Note: Should this be dynamic? Or is this data from history?
+        network: 'testnet',
     }
 }
 
 /**
- * Transform token transitions to transaction objects
+ * FIXED: Transform token transitions to transaction objects
+ * Handles raw API structure correctly (owner.identifier, recipient, action)
  */
 export function transformTokenTransitions(
-    transitions: TokenTransition[],
+    transitions: any[], // Type 'any' used to handle raw API variation
     identityId: string,
     tokenTicker: string,
     decimalPlaces: number
 ): ITransaction[] {
     const result: ITransaction[] = []
+
     for (const transition of transitions) {
-        // FIX: Safe property access based on typical Dash Platform types
-        // We use 'identityId' and 'recipientId' which are strings in types
-        const isOwner = transition.identityId === identityId
-        const isRecipient = transition.recipientId === identityId
+        // 1. Resolve Fields from Raw API
+        const rawOwner = transition.owner?.identifier || transition.identityId || 'Unknown'
+        const rawRecipient = transition.recipient || transition.recipientId || 'Unknown'
+        const rawAction = transition.action || transition.type || 'UNKNOWN'
+        const rawHash = transition.stateTransitionHash || transition.txHash || ''
+        const rawTimestamp = transition.timestamp || transition.createdAt || Date.now()
+
+        // 2. Determine Ownership
+        const isOwner = rawOwner === identityId
+        const isRecipient = rawRecipient === identityId
+
+        // Filter irrelevant (unless you want to see everything)
         if (!isOwner && !isRecipient) {
-            continue
+            // continue // Uncomment if strict filtering is desired
         }
-        let type: 'sent' | 'received' = 'received'
+
+        let type: 'sent' | 'received' | 'swap' = 'received'
         let title = ''
         let subtitle = ''
         let amountStr = ''
-        // Convert string amount to number for formatTokenAmount
+
         const transitionAmount = typeof transition.amount === 'string'
             ? parseFloat(transition.amount)
             : Number(transition.amount)
-        switch (transition.type) { // Changed from action to type
-            case 'TOKEN_MINT':
-                type = 'received'
-                title = `Minted ${tokenTicker}`
-                subtitle = 'Token Mint'
-                amountStr = formatTokenAmount(transitionAmount, tokenTicker, decimalPlaces, true)
-                break
-            case 'IDENTITY_TOKEN_TRANSFER': // Adjusted case to likely enum value
-                if (isOwner) {
-                    type = 'sent'
-                    title = `Sent ${tokenTicker}`
-                    subtitle = `To: ${truncateAddress(transition.recipientId || 'Unknown')}`
-                    amountStr = formatTokenAmount(transitionAmount, tokenTicker, decimalPlaces, false)
-                } else if (isRecipient) {
-                    type = 'received'
-                    title = `Received ${tokenTicker}`
-                    subtitle = `From: ${truncateAddress(transition.identityId || 'Unknown')}`
-                    amountStr = formatTokenAmount(transitionAmount, tokenTicker, decimalPlaces, true)
-                }
-                break
-            default:
-                continue
+
+        // 3. Map Actions
+        if (rawAction === 'TOKEN_MINT' || rawAction === 'MINT') {
+            type = 'received'
+            title = `Minted ${tokenTicker}`
+            subtitle = 'Token Mint'
+            amountStr = formatTokenAmount(transitionAmount, tokenTicker, decimalPlaces, true)
         }
+        else if (rawAction === 'TOKEN_TRANSFER' || rawAction === 'TRANSFER' || rawAction === 'IDENTITY_TOKEN_TRANSFER') {
+            if (isOwner) {
+                type = 'sent'
+                title = `Sent ${tokenTicker}`
+                subtitle = `To: ${truncateAddress(rawRecipient)}`
+                amountStr = formatTokenAmount(transitionAmount, tokenTicker, decimalPlaces, false)
+            } else {
+                // Default to received if we are recipient or observer
+                type = 'received'
+                title = `Received ${tokenTicker}`
+                subtitle = `From: ${truncateAddress(rawOwner)}`
+                amountStr = formatTokenAmount(transitionAmount, tokenTicker, decimalPlaces, true)
+            }
+        }
+        else if (rawAction === 'TOKEN_BURN' || rawAction === 'BURN') {
+            type = 'sent'
+            title = `Burnt ${tokenTicker}`
+            subtitle = 'Token Burn'
+            amountStr = formatTokenAmount(transitionAmount, tokenTicker, decimalPlaces, false)
+        }
+
         if (title && amountStr) {
+            // Parse Date
+            const dateVal = new Date(rawTimestamp).getTime()
+
             result.push({
-                id: transition.txHash || '',
+                id: rawHash,
                 type,
                 title,
                 subtitle,
                 amount: amountStr,
-                status: 'PENDING' as const,
-                // FIX: Convert Date to number for 'date' property
-                date: typeof transition.createdAt === 'number' ? transition.createdAt : new Date(transition.createdAt).getTime(),
-                createdAt: typeof transition.createdAt === 'number' ? transition.createdAt : new Date(transition.createdAt).getTime(),
-                // Required properties from ITransaction
-                hash: transition.txHash || '',
-                confirmations: 0,
-                senderId: isOwner ? identityId : (transition.identityId || ''),
-                receiverId: isRecipient ? identityId : (transition.recipientId || ''),
+                status: 'CONFIRMED',
+                date: dateVal,
+                createdAt: dateVal,
+                hash: rawHash,
+                confirmations: 1,
+                senderId: rawOwner,
+                receiverId: rawRecipient,
                 assetType: 'TOKEN',
                 assetSymbol: tokenTicker,
                 direction: isOwner ? 'OUTGOING' : 'INCOMING',

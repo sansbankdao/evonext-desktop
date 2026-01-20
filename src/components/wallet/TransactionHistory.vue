@@ -119,17 +119,27 @@ const txPageSize = 5
 
 // --- 1. Combine Store Transactions with Fetched Token Txs ---
 const allTransactions = computed(() => {
-    // Merge store transactions with local token transactions
-    // Deduplicate by ID to be safe
-    const combined = [...props.transactions]
+    const combined = [...localTokenTransactions.value]
 
-    localTokenTransactions.value.forEach(tokenTx => {
-        if (!combined.find(t => t.id === tokenTx.id)) {
-            combined.push(tokenTx)
+    props.transactions.forEach(storeTx => {
+        const alreadyExists = combined.some(localTx => localTx.id === storeTx.id)
+
+        // Filter logic:
+        // 1. Hide "SYSTEM" types (like the Token Batch wrappers)
+        // 2. Hide things that are strictly "0.00" (Ghosts)
+        // 3. KEEP things that are "---" (Real txs where we just missed the amount)
+
+        const isSystem = (storeTx.type as any) === 'SYSTEM'
+        const isGhostZero = (storeTx.amount === '0' || storeTx.amount === '0.00' || storeTx.amount === '$0.00')
+
+        // If amount is "---", it's a real tx we want to show, even if incomplete.
+        const isValidEntry = storeTx.amount === '---' || (!isSystem && !isGhostZero)
+
+        if (!alreadyExists && isValidEntry) {
+            combined.push(storeTx)
         }
     })
 
-    // Sort by Date Descending
     return combined.sort((a, b) => {
         const dateA = new Date(a.date || a.createdAt || 0).getTime()
         const dateB = new Date(b.date || b.createdAt || 0).getTime()
