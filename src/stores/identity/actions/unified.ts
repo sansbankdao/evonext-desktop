@@ -26,15 +26,19 @@ export function unifiedActions() {
             }
             this.error = null
             if (typeof this.connecting === 'boolean') this.connecting = true
+
             try {
-                const balanceStr =
-                    discovered.balance == null ? null : String(discovered.balance)
+                const balanceStr = discovered.balance == null ? null : String(discovered.balance)
+
+                // LOGIC FIX: Prioritize DPNS name, fallback to ID
+                const effectiveUsername = discovered.dpnsUsername || discovered.identityId
+
                 const res = (await invoke('save_identity_unified', {
                     network,
                     payload: {
                         identityId: discovered.identityId,
                         identityIdx: discovered.identityIdx ?? 0,
-                        username: discovered.identityId,
+                        username: effectiveUsername, // Pass the real name to Rust
                         dpnsUsername: discovered.dpnsUsername ?? null,
                         balance: balanceStr,
                         revision: discovered.revision ?? null,
@@ -50,8 +54,9 @@ export function unifiedActions() {
                 this.activeIdentity = {
                     identityId: discovered.identityId,
                     identityIdx: discovered.identityIdx ?? 0,
-                    username: discovered.identityId,
-                    displayName: discovered.identityId,
+                    // LOGIC FIX: Set store username to the DPNS name if available
+                    username: effectiveUsername,
+                    displayName: effectiveUsername,
                     dpnsUsername: discovered.dpnsUsername ?? null,
                     balance: balanceStr ?? '0',
                     revision:
@@ -72,14 +77,20 @@ export function unifiedActions() {
                 if (typeof this.connecting === 'boolean') this.connecting = false
             }
         },
+
         async loadActiveIdentityUnified(this: any, network: Network): Promise<void> {
             try {
                 const res = (await invoke('query_and_update_identity', {
                     network,
                     identityId: this.activeIdentity?.identityId || ''
                 })) as { success: boolean; error?: string; payload?: any }
+
                 if (res.success && res.payload) {
                     const data = res.payload
+
+                    // LOGIC FIX: Prioritize DPNS name from Rust payload
+                    const effectiveUsername = data.dpns_username || data.username || data.identity_id
+
                     this.activeIdentity = {
                         identityId: data.identity_id,
                         identityIdx: data.identity_idx || 0,
@@ -87,8 +98,9 @@ export function unifiedActions() {
                         revision: Number(data.revision || 0),
                         publicKeys: data.public_keys || [],
                         isAuthenticated: true,
-                        username: data.username || data.identity_id,
-                        displayName: data.username || data.identity_id,
+                        // LOGIC FIX: Apply here as well
+                        username: effectiveUsername,
+                        displayName: effectiveUsername,
                         dpnsUsername: data.dpns_username || null,
                         createdAt: data.created_at
                     }
@@ -103,14 +115,8 @@ export function unifiedActions() {
                 this.error = e?.message || 'Failed to load identity'
             }
         },
-        /**
-         * NEW: Syncs the current Pinia store state to the Rust backend.
-         * This is called by the polling mechanism to update .identity-testnet.json
-         */
+
         async syncIdentityToBackend(this: any, network: Network): Promise<void> {
-            // Determine source of truth for the data.
-            // If activeIdentity exists (Unified flow), use it.
-            // Otherwise fallback to flat state properties (Legacy flow).
             const id = this.activeIdentity?.identityId || this.identityId
 
             if (!id) {
@@ -119,7 +125,6 @@ export function unifiedActions() {
             }
 
             try {
-                // Construct payload matching the structure expected by Rust
                 const payload = {
                     identityId: id,
                     identityIdx: this.activeIdentity?.identityIdx ?? this.identityIdx ?? 0,
@@ -128,7 +133,7 @@ export function unifiedActions() {
                     balance: this.activeIdentity?.balance ?? this.balance ?? '0',
                     revision: this.activeIdentity?.revision ?? this.revision ?? null,
                     publicKeys: this.activeIdentity?.publicKeys ?? this.publicKeys ?? null,
-                    activeIdentityId: id // Ensure we mark this as the active one
+                    activeIdentityId: id
                 }
 
                 const res = (await invoke('save_identity_unified', {

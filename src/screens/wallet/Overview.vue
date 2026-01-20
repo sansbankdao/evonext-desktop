@@ -1,6 +1,8 @@
 <!-- scr/screens/wallet/Overview.vuew -->
 <template>
     <main class="min-h-screen w-full flex flex-col items-center bg-slate-50 dark:bg-slate-950 pb-12">
+        <Header title="Wallet" />
+
         <!-- 1. Header -->
         <WalletHeader
             :network="Wallet.network"
@@ -60,6 +62,7 @@ import { useWallet } from '@/composables/useWallet'
 import { useNetwork } from '@/composables/useNetwork'
 
 // Components
+import Header from '@/components/Header.vue'
 import WalletHeader from '@/components/wallet/WalletHeader.vue'
 import BalanceCard from '@/components/wallet/BalanceCard.vue'
 import AssetList from '@/components/wallet/AssetList.vue'

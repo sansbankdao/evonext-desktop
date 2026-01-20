@@ -658,6 +658,11 @@ const emitUpdate = () => {
 async function connectWriteOnlyFromDiscovered() {
     const id = discoveredIdentity.value
     if (!id) return
+
+    // FIX: Explicitly resolve the DPNS username for saving to backend.
+    // If we rely on just 'username', it might contain the identityId.
+    const effectiveUsername = (id as any).dpnsUsername || (id as any).username || id.identityId
+
     try {
         await store.connectWriteOnlyFromDiscovered(
             {
@@ -665,7 +670,10 @@ async function connectWriteOnlyFromDiscovered() {
                 identityIdx: (id as any).identityIdx ?? 0,
                 balance: id.balance ?? null,
                 revision: (id as any).revision ?? null,
-                username: (id as any).username ?? id.identityId,
+
+                // FIX: Pass the resolved username here
+                username: effectiveUsername,
+
                 dpnsUsername: (id as any).dpnsUsername ?? null,
                 publicKeys: (id as any).publicKeys ?? null,
                 publicKeyIds: (id as any).publicKeyIds ?? null

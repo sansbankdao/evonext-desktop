@@ -111,7 +111,8 @@ export class SeedDiscovery extends BaseDiscovery {
                             identityIdx: currentIndex,
                             publicKeys: identityData.publicKeys || [],
                             balance: identityData.balance,
-                            username: identityId,
+                            // FIX: Use DPNS name if available, otherwise fallback to ID
+                            username: dpnsName || identityId,
                             dpnsUsername: dpnsName,
                             displayName: dpnsName || `Identity ${currentIndex}`,
                             revision: identityData.revision
