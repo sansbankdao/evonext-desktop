@@ -47,66 +47,6 @@
                     :is-loading="Wallet.isLoading"
                 />
             </div>
-
-            <!-- 4. DEBUG SECTION (Requested) -->
-            <div class="w-full bg-slate-900 rounded-xl border border-slate-700 overflow-hidden mt-8">
-                <div
-                    @click="showDebug = !showDebug"
-                    class="p-4 bg-slate-800 border-b border-slate-700 cursor-pointer flex justify-between items-center hover:bg-slate-700 transition-colors"
-                >
-                    <div class="flex items-center gap-2">
-                        <span class="text-red-400 font-mono font-bold">🛠 DEBUG DIAGNOSTICS</span>
-                    </div>
-                    <span class="text-xs text-slate-400">{{ showDebug ? 'Hide' : 'Show' }}</span>
-                </div>
-
-                <div v-if="showDebug" class="p-6 font-mono text-xs text-slate-300 space-y-4">
-                    <!-- Status Check -->
-                    <div class="grid grid-cols-2 gap-4 border-b border-slate-700 pb-4">
-                        <div>
-                            <span class="text-slate-500">Identity ID:</span>
-                            <span class="ml-2 text-white bg-slate-800 px-1 rounded">{{ Identity.identityId || 'MISSING' }}</span>
-                        </div>
-                        <div>
-                            <span class="text-slate-500">Network:</span>
-                            <span class="ml-2 text-emerald-400">{{ Wallet.network }}</span>
-                        </div>
-                        <div>
-                            <span class="text-slate-500">Store Txs Count:</span>
-                            <span class="ml-2 text-white">{{ Wallet.transactions.length }}</span>
-                        </div>
-                    </div>
-
-                    <!-- Manual Fetch Trigger -->
-                    <div class="flex gap-2">
-                        <button
-                            @click="runDiagnostics"
-                            class="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded transition-colors"
-                        >
-                            Run Token Fetch Diagnostic
-                        </button>
-                        <button
-                            @click="debugOutput = 'Cleared.'"
-                            class="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white rounded transition-colors"
-                        >
-                            Clear Log
-                        </button>
-                    </div>
-
-                    <!-- Raw Output -->
-                    <div class="bg-black p-4 rounded border border-slate-700 overflow-x-auto max-h-96 whitespace-pre-wrap">
-                        {{ debugOutput }}
-                    </div>
-
-                    <!-- Store Transactions Dump -->
-                    <div class="mt-4">
-                        <h4 class="font-bold text-slate-400 mb-2">Current Store Transactions (First 3):</h4>
-                        <div class="bg-black p-4 rounded border border-slate-700 overflow-x-auto whitespace-pre-wrap">
-                            {{ JSON.stringify(Wallet.transactions.slice(0, 3), null, 2) }}
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </main>
 </template>
@@ -118,11 +58,6 @@ import { useIdentityStore } from '@/stores/identity'
 import { useSystemStore } from '@/stores/system'
 import { useWallet } from '@/composables/useWallet'
 import { useNetwork } from '@/composables/useNetwork'
-
-// Debug Imports
-import { fetchTokenTransitions } from '@/stores/wallet/actions/api'
-import { transformTokenTransitions } from '@/stores/wallet/actions/transforms'
-import { DUSD_CONTRACT_ID_TESTNET, DUSD_DECIMAL_PLACES } from '@/constants'
 
 // Components
 import WalletHeader from '@/components/wallet/WalletHeader.vue'
@@ -137,8 +72,6 @@ const wallet = useWallet()
 const { ensure } = useNetwork()
 
 const isRefreshing = ref(false)
-const showDebug = ref(true) // Open by default for you
-const debugOutput = ref('Ready to run diagnostics...')
 
 const totalBalance = computed(() => {
     if (Identity.isConnected && Identity.balanceBigInt) {
@@ -150,43 +83,6 @@ const totalBalance = computed(() => {
     const dash = parseFloat(String(dashAsset?.balance || 0))
     return { dash, usd: dash * (System.currentDashPrice || 0) }
 })
-
-// --- Debug Logic ---
-const runDiagnostics = async () => {
-    debugOutput.value = "Running diagnostics...\n";
-
-    if (!Identity.identityId) {
-        debugOutput.value += "ERROR: No Identity ID found. Cannot fetch history.\n";
-        return;
-    }
-
-    try {
-        debugOutput.value += `1. Fetching DUSD Transitions for ${DUSD_CONTRACT_ID_TESTNET}...\n`;
-
-        // Manual Fetch
-        const rawData = await fetchTokenTransitions(
-            DUSD_CONTRACT_ID_TESTNET,
-            5,
-            Wallet.network
-        );
-
-        debugOutput.value += `2. API Response Success. Items found: ${rawData.length}\n`;
-        debugOutput.value += `3. Raw API Data (First Item):\n${JSON.stringify(rawData[0] || 'No items', null, 2)}\n\n`;
-
-        // Attempt Transform
-        const transformed = transformTokenTransitions(
-            rawData,
-            Identity.identityId,
-            'DUSD',
-            DUSD_DECIMAL_PLACES
-        );
-
-        debugOutput.value += `4. Transformed Data (First Item):\n${JSON.stringify(transformed[0] || 'No items', null, 2)}\n`;
-
-    } catch (e: any) {
-        debugOutput.value += `ERROR FETCHING TOKENS:\n${e.message}\n${JSON.stringify(e)}`;
-    }
-}
 
 const forceRefresh = async () => {
     if (isRefreshing.value) return

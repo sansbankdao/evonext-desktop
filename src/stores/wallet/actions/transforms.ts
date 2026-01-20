@@ -12,7 +12,7 @@ import {
 /* Import utilities. */
 import { atomicToDash, formatDashAmount, formatTokenAmount, truncateAddress } from './utils'
 /* Import types. */
-import type { ITransaction, IAsset, IdentityTransfer, TokenTransition } from '@/types'
+import type { ITransaction, IAsset } from '@/types'
 
 // Define token prices as constants
 const TOKEN_PRICES = {
@@ -152,7 +152,7 @@ export function transformIdentityTransfer(
 
     // 4. Determine Direction
     const isSent = rawSender === identityId
-    const isReceived = rawRecipient === identityId
+    // const isReceived = rawRecipient === identityId
 
     // 5. Safe Amount Parsing
     // If the API returns NO amount field (common for raw Identity txs), we mark it.
