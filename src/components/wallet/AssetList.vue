@@ -8,10 +8,12 @@
                 </svg>
                 My Assets
             </h2>
+
             <div class="flex items-center gap-2">
                 <span v-if="isLoading" class="text-xs font-bold text-amber-500 uppercase tracking-wide animate-pulse">Loading...</span>
             </div>
         </div>
+
         <div class="space-y-3 flex-1 overflow-y-auto pr-1 custom-scrollbar">
             <div
                 v-for="asset in filteredAssets"
@@ -28,20 +30,34 @@
                             :alt="asset.symbol"
                             class="w-8 h-8"
                         />
+
                         <svg v-else class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
+
                     <div>
-                        <p class="font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{{ asset.name }}</p>
-                        <p class="text-xs font-mono text-slate-500 dark:text-slate-400">{{ asset.symbol }}</p>
+                        <p class="font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                            {{ asset.name }}
+                        </p>
+
+                        <p class="text-xs font-mono text-slate-500 dark:text-slate-400">
+                            {{ asset.symbol }}
+                        </p>
                     </div>
                 </div>
+
                 <div class="text-right">
-                    <p class="font-bold text-slate-900 dark:text-white">{{ getNormalizedBalance(asset) }}</p>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">{{ formatCurrency(getAssetUsdValue(asset)) }}</p>
+                    <p class="font-bold text-slate-900 dark:text-white">
+                        {{ getNormalizedBalance(asset) }}
+                    </p>
+
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                        {{ formatCurrency(getAssetUsdValue(asset)) }}
+                    </p>
                 </div>
             </div>
+
             <div v-if="filteredAssets.length === 0 && !isLoading" class="flex flex-col items-center justify-center py-12 text-slate-400">
                 <p class="text-sm font-medium">No assets found</p>
             </div>
@@ -90,7 +106,7 @@ const getAssetUsdValue = (asset: IAsset) => {
         }
     }
 
-    return asset.usdValue || 0
+    return (asset.usdValue as number / 100_000_000_000) || 0
 }
 
 const getNormalizedBalance = (asset: IAsset) => {

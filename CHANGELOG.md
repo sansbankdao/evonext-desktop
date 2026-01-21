@@ -1,19 +1,18 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Introducing a Complete and Paginated Transaction History
+### Introducing a NEW Posts Manager
 
-This latest version of EvoNext introduces a full transaction history from Identity creation to present.
+This latest version of EvoNext introduces a rebuilt posting engine with 100% Yappr support.
 
 # Changelog
 
 ## Latest Features:
 
-- __Wallet:__ Display an iterable list of ALL Identity transactions.
+- __Posts:__ Rebuilt posting engine with Yappr contract(s) support.
 
 ## Bugfixes:
 
-- __Wallet:__ Remove hard-coded (assumed) values.
-- __UI:__ Fix stuck and broken processes for proper front-end display.
+- __Posts:__ Rebuilt all network (SDK) handlers.
 
 ## Notes:
 

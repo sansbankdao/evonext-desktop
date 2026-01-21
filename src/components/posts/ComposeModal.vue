@@ -176,7 +176,7 @@ const emit = defineEmits<{
 }>()
 
 // --- Composables & Stores ---
-const { createPost } = usePosts()
+const { createPost, updatePost } = usePosts()
 const { showSuccess, showError } = useNotification()
 
 // --- State ---
@@ -260,29 +260,44 @@ function clearRemix() {
 
 async function submit() {
     if (isSubmitting.value) return
-
+    // Validation
     if (!content.value.trim() && mediaUrls.value.length === 0) {
         showError('Post cannot be empty')
         return
     }
-
     isSubmitting.value = true
-
     try {
         if (props.postToEdit) {
-            // ... Update logic
+            // --- UPDATE LOGIC ---
+            const success = await updatePost(props.postToEdit.id, {
+                documentId: props.postToEdit.id,
+                content: content.value,
+                isSensitive: isSensitive.value,
+                language: selectedLanguage.value,
+                mediaUrl: mediaUrls.value
+            })
+            if (success) {
+                showSuccess('Post updated successfully')
+                // Retrieve the updated post from store to emit
+                const updated = usePosts().getPostById(props.postToEdit.id)
+                if (updated) emit('post-updated', updated)
+                close()
+            } else {
+                showError('Update failed to broadcast')
+            }
         } else {
-            // Construct options object dynamically
+            // --- CREATE LOGIC ---
             const postOptions = {
                 isSensitive: isSensitive.value,
                 language: selectedLanguage.value,
-                // Only add these keys if they have values
+                // Pass mediaUrls directly as string array
                 ...(mediaUrls.value.length > 0 && { mediaUrl: mediaUrls.value }),
-                ...(originalRemixPost.value?.id && { remix: originalRemixPost.value.id })
+                // Add remix reference if it exists
+                ...(originalRemixPost.value?.id && {
+                    remix: originalRemixPost.value.id
+                })
             }
-
             const newPost = await createPost(content.value, postOptions)
-
             if (newPost) {
                 showSuccess('Post broadcasted successfully')
                 emit('post-created', newPost)

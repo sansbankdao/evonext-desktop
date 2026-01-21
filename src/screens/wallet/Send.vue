@@ -30,6 +30,8 @@
                     <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-1">
                         Send Assets
                     </h1>
+
+
                     <p class="text-slate-500 dark:text-slate-400 text-sm">
                         Transfer Dash Platform assets or withdraw to Core.
                     </p>
@@ -187,7 +189,7 @@
                                 <span class="text-3xl font-bold text-slate-900 dark:text-white">
                                     {{ displayBalance }}
                                 </span>
-                                <span class="text-sm font-medium text-slate-500">
+                                <span class="flex pl-1 mb-2 pb-2 text-sm font-medium text-slate-500 uppercase">
                                     {{ displayLabel }}
                                 </span>
                             </div>
@@ -477,7 +479,7 @@ const displayBalance = computed(() => {
         const dash = rawBalance / 100_000_000_000
         return dash.toLocaleString(undefined, {
             minimumFractionDigits: 2,
-            maximumFractionDigits: 8
+            maximumFractionDigits: 6
         })
     }
 
@@ -487,11 +489,11 @@ const displayBalance = computed(() => {
             'dusd': DUSD_DECIMAL_PLACES,   // 6
             'sans': SANS_DECIMAL_PLACES     // 8
         }
-        const decimals = decimalsMap[selectedCurrency.value] || 8
+        const decimals = decimalsMap[selectedCurrency.value] || 6
         const normalized = rawBalance / (10 ** decimals)
         return normalized.toLocaleString(undefined, {
             minimumFractionDigits: 2,
-            maximumFractionDigits: 8
+            maximumFractionDigits: 6
         })
     }
 
@@ -499,10 +501,10 @@ const displayBalance = computed(() => {
     if (selectedCurrency.value === 'dash-coins') {
         // We assume the asset balance is in Credits (Raw Platform Units)
         // To get Dash, divide by 100,000,000,000
-        const normalized = rawBalance / 100_000_000_000
+        const normalized = rawBalance// / 100_000_000_000
         return normalized.toLocaleString(undefined, {
             minimumFractionDigits: 2,
-            maximumFractionDigits: 8
+            maximumFractionDigits: 6
         })
     }
 
@@ -513,8 +515,11 @@ const displayBalance = computed(() => {
 const displayLabel = computed(() => {
     const asset = selectedAsset.value
     if (!asset) return '---'
+    if (selectedCurrency.value === 'dash-coins') {
+        return 'Dash Coins'
+    }
     if (selectedCurrency.value === 'dash-credits') {
-        return 'DASH CREDITS'
+        return 'Dash Credits'
     }
     // Strip testnet 't' prefix for cleaner UI
     return asset.symbol.replace(/^t/i, '')

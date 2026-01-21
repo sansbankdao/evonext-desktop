@@ -63,7 +63,7 @@ export async function refreshBalances(
     // 5. Add Credits (Native Platform Asset)
     newAssets.push({
         id: 'credits',
-        name: 'Dash Credits',
+        name: 'Dash',
         symbol: 'CREDITS',
         decimals: 2,
         type: 'native',
