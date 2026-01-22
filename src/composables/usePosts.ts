@@ -27,7 +27,7 @@ export function usePosts() {
 
     // Computed Wrappers
     const isAuthenticated = computed(() => identityStore.isAuthenticated)
-    const currentUserId = computed(() => identityStore.identity?.id || '')
+    const currentUserId = computed(() => identityStore.identityId || '')
     const currentNetwork = computed(() => {
         const net = settingsStore.state.network
         return (net === 'mainnet' || net === 'testnet') ? net : 'testnet'

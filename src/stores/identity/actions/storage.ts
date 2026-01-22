@@ -76,7 +76,7 @@ export const storageActions = () => ({
     async saveToStorage(this: IIdentityState, networkOverride?: 'mainnet' | 'testnet') {
         const network = networkOverride || await this.getCurrentNetwork()
         // Standardize identifier check
-        const id = this.identity?.identityId || this.identityId
+        const id = this.identityId || this.identity?.identityId
         if (!id) {
             debugLogger.log(`[Storage] saveToStorage skipped: No active identity.`, 'warn')
             return

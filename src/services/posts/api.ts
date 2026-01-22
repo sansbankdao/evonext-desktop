@@ -202,7 +202,7 @@ export async function createPost(params: ICreatePostParams): Promise<IPost | nul
     const { network: currentNetwork } = useNetwork()
     const identityStore = useIdentityStore()
     const targetNetwork = currentNetwork.value as 'testnet' | 'mainnet'
-    const identityId = identityStore.identity?.id
+    const identityId = identityStore.identityId
     if (!identityId) throw new Error('Identity not found.')
 
     try {
@@ -259,7 +259,7 @@ export async function updatePost(postId: string, updates: IUpdatePostParams): Pr
     const { network: currentNetwork } = useNetwork()
     const identityStore = useIdentityStore()
     const targetNetwork = currentNetwork.value as 'testnet' | 'mainnet'
-    const identityId = identityStore.identity?.id
+    const identityId = identityStore.identityId
     if (!identityId) throw new Error('Identity not found.')
 
     try {

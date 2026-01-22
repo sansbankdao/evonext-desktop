@@ -64,7 +64,7 @@ import {
 const router = useRouter()
 const identityStore = useIdentityStore()
 
-const isConnected = computed(() => !!identityStore.identity?.id)
+const isConnected = computed(() => !!identityStore.identityId)
 
 const navLinks = ref([
     {

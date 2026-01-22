@@ -40,10 +40,10 @@ export const identityActions = () => ({
             if (store.publicKeys.length > 0) {
                 return store.publicKeys
             }
-            if (store.identity?.id) {
+            if (store.identityId) {
                 const identityComposable = useIdentity()
                 const details = await identityComposable.queryIdentityDetails(
-                    store.identity.id,
+                    store.identityId,
                     store.identity.identityIdx || 0
                 )
                 return details.publicKeys || []

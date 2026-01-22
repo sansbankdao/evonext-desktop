@@ -41,7 +41,8 @@ export async function refreshBalances(
     this.isLoading = true
 
     // 3. Resolve Identity ID (Matches storage.ts naming)
-    const identityId = identityStore.identity?.identityId || identityStore.identityId
+    const identityId = identityStore.identityId || identityStore.identity?.identityId
+
     if (!identityId) {
         console.error('[Wallet] Cannot refresh: No Identity ID found.')
         this.isLoading = false
@@ -192,7 +193,8 @@ export async function fetchRealTransactions(
     limit: number = 20
 ) {
     const identityStore = useIdentityStore()
-    const identityId = identityStore.identity?.identityId || identityStore.identityId
+    const identityId = identityStore.identityId || identityStore.identity?.identityId
+
     if (!identityId) return
 
     try {

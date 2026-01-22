@@ -33,7 +33,7 @@ const clipboard = navigator.clipboard!
 
 // We need the Identity ID to auto-load
 const currentIdentityId = computed(() => {
-  return identityStore.identity?.identityId || identityStore.identityId
+  return identityStore.identityId || identityStore.identity?.identityId
 })
 
 const displayAddress = computed(() => {
