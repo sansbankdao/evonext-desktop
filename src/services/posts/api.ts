@@ -245,7 +245,7 @@ export async function createPost(
     params: ICreatePostParams
 ): Promise<IPost | null> {
     const { network: currentNetwork } = useNetwork()
-    const { getAuthKey } = useWallet()
+    // const { getAuthKey } = useWallet()
 
     const identityStore = useIdentityStore()
 
@@ -261,11 +261,13 @@ export async function createPost(
             : EvoSDK.testnetTrusted()
 
         const keyData = await invoke<any>('load_private_keys', { network: targetNetwork })
-
+// alert(`KEY DATA: ${JSON.stringify(keyData, null, 2)}`)
+// alert(`IDENTITIES: ${JSON.stringify(keyData?.identities, null, 2)}`)
+// alert(`IDENTITY: ${JSON.stringify(keyData?.identities?.[identityId], null, 2)}`)
         const authKeyData = keyData?.identities?.[identityId]?.find((k: any) =>
             k.purpose === 0 && (k.securityLevel === 1 || k.securityLevel === 2)
         )
-
+// alert(`AUTH PRIV KEY: ${JSON.stringify(authKeyData, null, 2)}`)
         if (!authKeyData?.privateKey) throw new Error('Auth Key not found.')
 
         /* Set private key (WIF). */
@@ -287,8 +289,8 @@ export async function createPost(
 
         const entropyHex = binToHex(randomBytes(32))
 // const IDENTITY_IDX = 0 // FIXME PULL THIS FROM RUST IDENTITY.JSON
-        const authKey = getAuthKey(identityId)
-alert(`GET AUTH KEY: ${JSON.stringify(authKey)}`)
+// const authKey = getAuthKey(identityId)
+// alert(`GET AUTH KEY: ${JSON.stringify(authKey)}`)
 
         const payload = {
             contractId: YAPPR_CONTRACT_ID_TESTNET,
@@ -301,7 +303,7 @@ alert(`GET AUTH KEY: ${JSON.stringify(authKey)}`)
 
         // const document = await sdk.documents.create(
         //     YAPPR_CONTRACT_ID_TESTNET, 'post', data, identityId, BigInt(1))
-//         const document = await sdk.documents.create(payload)
+        const document = await sdk.documents.create(payload)
 // alert(`POSTED! ${JSON.stringify(document, null, 2)}`)
 
         // const identityContractNonce = (await sdk.identities

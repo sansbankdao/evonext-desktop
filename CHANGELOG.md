@@ -1,18 +1,18 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Introducing a NEW Posts Manager
+### Introducing a IMPROVED Post Manager
 
-This latest version of EvoNext introduces a rebuilt posting engine with 100% Yappr support.
+This latest version of EvoNext introduces a re-engineered post manager.
 
 # Changelog
 
 ## Latest Features:
 
-- __Posts:__ Rebuilt posting engine with Yappr contract(s) support.
+- __Posts:__ Rebuilt the posting engine to remove ALL unused functions.
 
 ## Bugfixes:
 
-- __Posts:__ Rebuilt all network (SDK) handlers.
+- __Posts:__ Remove unused functions.
 
 ## Notes:
 

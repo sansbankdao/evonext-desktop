@@ -23,47 +23,48 @@ import type { PrivateKeyEntry } from '@/types/identity'
 
 // Define Types Locally to avoid import errors
 interface DerivedKey {
-    keyIndex: number
-    purpose: string
-    securityLevel: string
-    privateKey: PrivateKeyWASM
-    publicKey: string
-    publicKeyHash: string
+    keyIndex: number;
+    purpose: string;
+    securityLevel: string;
+    // privateKey: PrivateKeyWASM
+    privateKey: string;
+    publicKey: string;
+    publicKeyHash: string;
 }
 
 interface KeyDerivationResult {
-    identityIndex: number
-    keys: DerivedKey[]
-    success: boolean
-    error?: string
+    identityIndex: number;
+    keys: DerivedKey[];
+    success: boolean;
+    error?: string;
 }
 
 interface KeychainEntry {
-    identityId: string
-    identityIdx: number
+    identityId: string;
+    identityIdx: number;
     keys: {
         [purpose: number]: {
             [securityLevel: number]: {
-                keyIdx: number
-                keyType: string
-                securityLevel: number
-                registered: boolean
-                registeredAt?: string
+                keyIdx: number;
+                keyType: string;
+                securityLevel: number;
+                registered: boolean;
+                registeredAt?: string;
             }
         }
     }
-    createdAt: string
-    updatedAt: string
+    createdAt: string;
+    updatedAt: string;
 }
 
 // New Type for the result of getTransferKey
 export interface KeyPair {
-    privateKey: string
-    keyId: number
+    privateKey: string;
+    keyId: number;
 }
 
-type ParsedPurpose = 0 | 1 | 2 | 3
-type ParsedSecurityLevel = 0 | 1 | 2 | 3
+type ParsedPurpose = 0 | 1 | 2 | 3;
+type ParsedSecurityLevel = 0 | 1 | 2 | 3;
 
 export function useKeyManagement() {
     const { ensure } = useNetwork()
@@ -286,24 +287,65 @@ export function useKeyManagement() {
     //     }
     // }
 
+    const getPrivateKeys = async (
+        identityId: string,
+        _queryRegistry: boolean = false
+    ): Promise<KeyDerivationResult> => {
+        loading.value = true
+        error.value = null
+
+        // const result = await getPrivateKeys(identityIdx)
+        const currentNetwork = await ensure()
+
+        const networkName = currentNetwork.toLowerCase() === 'mainnet' ? 'mainnet' : 'testnet'
+        log('info', `[KeyManagement] Fetching key for identity ${identityId} on network: ${networkName}`)
+
+        const keystoreData: any = await invoke('load_private_keys', {
+            network: networkName
+        })
+
+        const identity = keystoreData.identities[identityId]
+
+        const identityIdx = 0
+        const keys = identity.map((_key: any) => {
+            return {
+                keyIndex: _key.keyId,
+                purpose: parsePurpose(_key.purpose),
+                securityLevel: parseSecurityLevel(_key.securityLevel),
+                // privateKey: PrivateKeyWASM,
+                privateKey: _key.privateKey,
+                publicKey: _key.publicKey,
+                publicKeyHash: 'n/a',
+            }
+        })
+
+        const result: KeyDerivationResult = {
+            identityIndex: identityIdx,
+            keys,
+            success: true
+        }
+
+        return result
+    }
+
     const getKeyByPurpose = async (
         identityId: string,
         purpose: ParsedPurpose,
         securityLevel: ParsedSecurityLevel
-    ): Promise<PrivateKeyWASM | null> => {
+    ): Promise<string | null> => {
         try {
-            // const result = await getPrivateKeys(identityIdx)
-            const currentNetwork = await ensure()
+            const result = await getPrivateKeys(identityId)
+// alert(`GET PRIVATE KEYS: ${JSON.stringify(result.keys, null, 2)}`)
+            // const currentNetwork = await ensure()
 
-            const networkName = currentNetwork.toLowerCase() === 'mainnet' ? 'mainnet' : 'testnet'
-            log('info', `[KeyManagement] Fetching key for identity ${identityId} on network: ${networkName}`)
+            // const networkName = currentNetwork.toLowerCase() === 'mainnet' ? 'mainnet' : 'testnet'
+            // log('info', `[KeyManagement] Fetching key for identity ${identityId} on network: ${networkName}`)
 
-            const keystoreData: any = await invoke('load_private_keys', {
-                network: networkName
-            })
+            // const keystoreData: any = await invoke('load_private_keys', {
+            //     network: networkName
+            // })
 
-alert(`GET PRIVATE KEYS: ${JSON.stringify(keystoreData, null, 2)}`)
-const result = keystoreData
+
             if (!result.success || !result.keys) return null
 
             const purposeMap: Record<number, string> = {
@@ -329,6 +371,7 @@ const result = keystoreData
 
             return foundKey?.privateKey || null
         } catch (err) {
+alert(`ERROR: ${JSON.stringify(err)}`)
             log('error', 'Failed to get key by purpose:', err)
             return null
         }
@@ -337,7 +380,7 @@ const result = keystoreData
     const getAuthKey = async (identityId: string): Promise<string | null> => {
         try {
             const privateKey = await getKeyByPurpose(identityId, 0, 1) // OR getKeyByPurpose(identityId, 0, 2)
-            return privateKey?.WIF() || null
+            return privateKey || null
         } catch (err: any) {
             log('error', 'Failed to get auth key:', err)
             return null
@@ -348,7 +391,7 @@ const result = keystoreData
      * Returns the Master Key as PrivateKeyWASM.
      * Useful for operations requiring signing with the master key.
      */
-    const getMasterKey = async (identityId: string): Promise<PrivateKeyWASM | null> => {
+    const getMasterKey = async (identityId: string): Promise<string | null> => {
         try {
             return await getKeyByPurpose(identityId, 0, 0)
         } catch (err) {
@@ -379,7 +422,7 @@ const result = keystoreData
     const getEncryptionKey = async (identityId: string): Promise<string | null> => {
         try {
             const privateKey = await getKeyByPurpose(identityId, 2, 3)
-            return privateKey?.WIF() || null
+            return privateKey || null
         } catch (err: any) {
             log('error', 'Failed to get encryption key:', err)
             return null
