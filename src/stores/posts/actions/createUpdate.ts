@@ -34,7 +34,7 @@ export async function createNewPostAction(
     this.error = null
 
     const currentUserId = identityStore.identityId as string
-alert(`currentUserId: ${currentUserId}`)
+
     const d = new Date()
     const now = d.getTime() / 1000
 
@@ -91,7 +91,7 @@ alert(`currentUserId: ${currentUserId}`)
             ...(options?.hashtag && { hashtag: options.hashtag }),
             ...(options?.remix && { remix: options.remix })
         }
-alert(`createPostParams: ${JSON.stringify(createPostParams, null, 2)}`)
+
         const createdPost = await api.createPost(createPostParams)
 
         if (createdPost) {
@@ -109,7 +109,6 @@ alert(`createPostParams: ${JSON.stringify(createPostParams, null, 2)}`)
         return null
 
     } catch (error: any) {
-alert(`ERROR: ${JSON.stringify(error)}`)
         // Revert on error
         this.deletePostById(optimisticPost.id)
         this.error = error.message || 'Failed to create post'

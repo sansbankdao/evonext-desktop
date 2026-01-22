@@ -12,6 +12,7 @@ import { randomBytes } from '@evonext/crypto'
 import { binToHex } from '@evonext/utils'
 
 import { useNetwork } from '@/composables/useNetwork'
+import { useWallet } from '@/composables/useWallet'
 import { useIdentityStore } from '@/stores/identity'
 import { getContractId } from './utils'
 import { YAPPR_CONTRACT_ID_TESTNET } from '@/constants'
@@ -244,6 +245,8 @@ export async function createPost(
     params: ICreatePostParams
 ): Promise<IPost | null> {
     const { network: currentNetwork } = useNetwork()
+    const { getAuthKey } = useWallet()
+
     const identityStore = useIdentityStore()
 
     const targetNetwork = currentNetwork.value as 'testnet' | 'mainnet'
@@ -258,11 +261,15 @@ export async function createPost(
             : EvoSDK.testnetTrusted()
 
         const keyData = await invoke<any>('load_private_keys', { network: targetNetwork })
+
         const authKeyData = keyData?.identities?.[identityId]?.find((k: any) =>
             k.purpose === 0 && (k.securityLevel === 1 || k.securityLevel === 2)
         )
 
-        if (!authKeyData?.privateKeyWif) throw new Error('Auth Key not found.')
+        if (!authKeyData?.privateKey) throw new Error('Auth Key not found.')
+
+        /* Set private key (WIF). */
+        const privateKeyWif = authKeyData.privateKey
 
         const data = {
             content: params.content.trim(),
@@ -279,6 +286,9 @@ export async function createPost(
         postData.language = (params.language || 'en').substring(0, 2)
 
         const entropyHex = binToHex(randomBytes(32))
+// const IDENTITY_IDX = 0 // FIXME PULL THIS FROM RUST IDENTITY.JSON
+        // const authKey = getAuthKey(IDENTITY_IDX)
+// alert(`AUTH KEY-2: ${JSON.stringify(authKey)}`)
 
         const payload = {
             contractId: YAPPR_CONTRACT_ID_TESTNET,
@@ -286,13 +296,13 @@ export async function createPost(
             ownerId: identityId,
             data: postData,
             entropyHex,
-            privateKeyWif: privateKeyWIF
+            privateKeyWif,
         }
 
         // const document = await sdk.documents.create(
         //     YAPPR_CONTRACT_ID_TESTNET, 'post', data, identityId, BigInt(1))
         const document = await sdk.documents.create(payload)
-alert(`CREATE DOCUMENT: ${JSON.stringify(document)}`)
+alert(`POSTED! ${JSON.stringify(document, null, 2)}`)
 
         // const identityContractNonce = (await sdk.identities
         //         .getIdentityContractNonce(identityId, YAPPR_CONTRACT_ID_TESTNET)) + 1n
@@ -333,24 +343,32 @@ alert(`CREATE DOCUMENT: ${JSON.stringify(document)}`)
 
 export async function updatePost(postId: string, updates: IUpdatePostParams): Promise<boolean> {
     const { network: currentNetwork } = useNetwork()
+
     const identityStore = useIdentityStore()
+
     const targetNetwork = currentNetwork.value as 'testnet' | 'mainnet'
+
     const identityId = identityStore.identityId
 
     if (!identityId) throw new Error('Identity not found.')
 
     try {
         const sdk = new DashPlatformSDK({ network: targetNetwork })
+
         const keyData = await invoke<any>('load_private_keys', { network: targetNetwork })
+
         const authKeyData = keyData?.identities?.[identityId]?.find((k: any) =>
             k.purpose === 0 && (k.securityLevel === 1 || k.securityLevel === 2)
         )
+
         if (!authKeyData?.privateKeyWif) throw new Error('Auth Key not found.')
 
         const docs = await fetchDocumentsById(targetNetwork, YAPPR_CONTRACT_ID_TESTNET, [postId])
+
         if (!docs.length || !docs[0]) throw new Error('Post not found.')
 
         const nextRevision = BigInt((docs[0].revision || 1) + 1)
+
         const data = {
             content: updates.content?.trim(),
             language: (updates.language || 'en').substring(0, 2),
@@ -359,6 +377,7 @@ export async function updatePost(postId: string, updates: IUpdatePostParams): Pr
         }
 
         const document = await sdk.documents.create(YAPPR_CONTRACT_ID_TESTNET, 'post', data, identityId, nextRevision)
+
         document.id = ensureBase58(postId)
 
         const identityContractNonce = (await sdk.identities.getIdentityContractNonce(identityId, YAPPR_CONTRACT_ID_TESTNET)) + 1n
