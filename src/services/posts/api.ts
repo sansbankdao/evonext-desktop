@@ -287,8 +287,8 @@ export async function createPost(
 
         const entropyHex = binToHex(randomBytes(32))
 // const IDENTITY_IDX = 0 // FIXME PULL THIS FROM RUST IDENTITY.JSON
-        // const authKey = getAuthKey(IDENTITY_IDX)
-// alert(`AUTH KEY-2: ${JSON.stringify(authKey)}`)
+        const authKey = getAuthKey(identityId)
+alert(`GET AUTH KEY: ${JSON.stringify(authKey)}`)
 
         const payload = {
             contractId: YAPPR_CONTRACT_ID_TESTNET,
@@ -301,8 +301,8 @@ export async function createPost(
 
         // const document = await sdk.documents.create(
         //     YAPPR_CONTRACT_ID_TESTNET, 'post', data, identityId, BigInt(1))
-        const document = await sdk.documents.create(payload)
-alert(`POSTED! ${JSON.stringify(document, null, 2)}`)
+//         const document = await sdk.documents.create(payload)
+// alert(`POSTED! ${JSON.stringify(document, null, 2)}`)
 
         // const identityContractNonce = (await sdk.identities
         //         .getIdentityContractNonce(identityId, YAPPR_CONTRACT_ID_TESTNET)) + 1n
@@ -341,7 +341,10 @@ alert(`POSTED! ${JSON.stringify(document, null, 2)}`)
     }
 }
 
-export async function updatePost(postId: string, updates: IUpdatePostParams): Promise<boolean> {
+export async function updatePost(
+    postId: string,
+    updates: IUpdatePostParams
+): Promise<boolean> {
     const { network: currentNetwork } = useNetwork()
 
     const identityStore = useIdentityStore()

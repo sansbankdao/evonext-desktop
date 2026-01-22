@@ -42,13 +42,13 @@ export interface KeyHashDerivationResult {
 }
 
 // Fix for getPrivateKeys.ts
-export type PrivateKeys = {
-    masterKey: PrivateKeyWASMInstance;
-    authCritical: PrivateKeyWASMInstance;
-    authHigh: PrivateKeyWASMInstance;
-    transferKey: PrivateKeyWASMInstance;
-    encryptionKey: PrivateKeyWASMInstance;
-}
+// export type PrivateKeys = {
+//     masterKey: PrivateKeyWASMInstance;
+//     authCritical: PrivateKeyWASMInstance;
+//     authHigh: PrivateKeyWASMInstance;
+//     transferKey: PrivateKeyWASMInstance;
+//     encryptionKey: PrivateKeyWASMInstance;
+// }
 
 export interface PlatformHttpResponse<T> {
     resultSet: T[];

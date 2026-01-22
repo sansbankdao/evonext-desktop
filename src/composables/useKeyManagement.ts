@@ -75,19 +75,13 @@ export function useKeyManagement() {
     const error = ref<string | null>(null)
 
     // Constants
-    const DEFAULT_KEYCHAIN = {
-        0: { // AUTHENTICATION (purpose 0)
-            0: { keyIdx: 0, keyType: 'ECDSA_HASH160', securityLevel: 0 }, // MASTER
-            1: { keyIdx: 1, keyType: 'ECDSA_HASH160', securityLevel: 1 }, // CRITICAL
-            2: { keyIdx: 2, keyType: 'ECDSA_HASH160', securityLevel: 2 }, // HIGH
-        },
-        1: { // TRANSFER (purpose 3) - Note: purpose 3 is TRANSFER, but stored here
-            1: { keyIdx: 3, keyType: 'ECDSA_HASH160', securityLevel: 1 }, // CRITICAL
-        },
-        2: { // ENCRYPTION (purpose 2)
-            3: { keyIdx: 4, keyType: 'ECDSA_SECP256K1', securityLevel: 3 }, // MEDIUM
-        }
-    } as const
+    // const EVONEXT_DEFAULT_KEYCHAIN = {
+    //         0: { keyIdx: 0, keyType: 'ECDSA_HASH160', securityLevel: 0 },   // AUTHENTICATION_MASTER
+    //         1: { keyIdx: 1, keyType: 'ECDSA_HASH160', securityLevel: 1 },   // AUTHENTICATION_CRITICAL
+    //         2: { keyIdx: 2, keyType: 'ECDSA_HASH160', securityLevel: 2 },   // AUTHENTICATION_HIGH
+    //         3: { keyIdx: 3, keyType: 'ECDSA_HASH160', securityLevel: 1 },   // TRANSFER_CRITICAL
+    //         4: { keyIdx: 4, keyType: 'ECDSA_SECP256K1', securityLevel: 3 }, // ENCRYPTION_MEDIUM (NOTE: Key type MUST be "ECDSA_SECP256K1")
+    // } as const
 
     const parsePurpose = (purpose: string | number): ParsedPurpose => {
         if (typeof purpose === 'string') {
@@ -231,74 +225,85 @@ export function useKeyManagement() {
         return PrivateKeyWASM.fromHex(binToHex(hdKey.privateKey), currentNetwork)
     }
 
-    const getPrivateKeys = async (
-        identityIdx: number,
-        _queryRegistry: boolean = false
-    ): Promise<KeyDerivationResult> => {
-        loading.value = true
-        error.value = null
-        try {
-            if (!mnemonic.value) {
-                await initialize()
-            }
+    // const getPrivateKeys = async (
+    //     identityIdx: number,
+    //     _queryRegistry: boolean = false
+    // ): Promise<KeyDerivationResult> => {
+    //     loading.value = true
+    //     error.value = null
+    //     try {
+    //         if (!mnemonic.value) {
+    //             await initialize()
+    //         }
 
-            if (!mnemonic.value) {
-                throw new Error('No mnemonic available')
-            }
+    //         if (!mnemonic.value) {
+    //             throw new Error('No mnemonic available')
+    //         }
 
-            log('debug', `Getting private keys for identity index: ${identityIdx}`)
-            const keys: DerivedKey[] = []
+    //         log('debug', `Getting private keys for identity index: ${identityIdx}`)
+    //         const keys: DerivedKey[] = []
 
-            const keyDefinitions = [
-                { keyIdx: 0, purpose: 0, purposeStr: 'AUTHENTICATION', securityLevel: 0, securityLevelStr: 'MASTER' },
-                { keyIdx: 1, purpose: 0, purposeStr: 'AUTHENTICATION', securityLevel: 1, securityLevelStr: 'CRITICAL' },
-                { keyIdx: 2, purpose: 0, purposeStr: 'AUTHENTICATION', securityLevel: 2, securityLevelStr: 'HIGH' },
-                { keyIdx: 3, purpose: 3, purposeStr: 'TRANSFER', securityLevel: 1, securityLevelStr: 'CRITICAL' },
-                { keyIdx: 4, purpose: 2, purposeStr: 'ENCRYPTION', securityLevel: 3, securityLevelStr: 'MEDIUM' }
-            ]
+    //         const keyDefinitions = [
+    //             { keyIdx: 0, purpose: 0, purposeStr: 'AUTHENTICATION', securityLevel: 0, securityLevelStr: 'MASTER' },
+    //             { keyIdx: 1, purpose: 0, purposeStr: 'AUTHENTICATION', securityLevel: 1, securityLevelStr: 'CRITICAL' },
+    //             { keyIdx: 2, purpose: 0, purposeStr: 'AUTHENTICATION', securityLevel: 2, securityLevelStr: 'HIGH' },
+    //             { keyIdx: 3, purpose: 3, purposeStr: 'TRANSFER', securityLevel: 1, securityLevelStr: 'CRITICAL' },
+    //             { keyIdx: 4, purpose: 2, purposeStr: 'ENCRYPTION', securityLevel: 3, securityLevelStr: 'MEDIUM' }
+    //         ]
 
-            for (const def of keyDefinitions) {
-                const privateKey = await deriveKey(identityIdx, def.keyIdx)
-                const publicKey = privateKey.getPublicKey()
-                const publicKeyHash = binToHex(hash160(publicKey.bytes()))
-                keys.push({
-                    keyIndex: def.keyIdx,
-                    purpose: def.purposeStr,
-                    securityLevel: def.securityLevelStr,
-                    privateKey,
-                    publicKey: binToHex(publicKey.bytes()),
-                    publicKeyHash
-                })
-            }
+    //         for (const def of keyDefinitions) {
+    //             const privateKey = await deriveKey(identityIdx, def.keyIdx)
+    //             const publicKey = privateKey.getPublicKey()
+    //             const publicKeyHash = binToHex(hash160(publicKey.bytes()))
+    //             keys.push({
+    //                 keyIndex: def.keyIdx,
+    //                 purpose: def.purposeStr,
+    //                 securityLevel: def.securityLevelStr,
+    //                 privateKey,
+    //                 publicKey: binToHex(publicKey.bytes()),
+    //                 publicKeyHash
+    //             })
+    //         }
 
-            const result: KeyDerivationResult = {
-                identityIndex: identityIdx,
-                keys,
-                success: true
-            }
-            log('debug', `Successfully derived keys for identity index: ${identityIdx}`)
-            return result
-        } catch (err: any) {
-            error.value = err.message || 'Failed to derive private keys'
-            log('error', 'Failed to derive private keys:', err)
-            return {
-                identityIndex: identityIdx,
-                keys: [],
-                success: false,
-                error: error.value || ''
-            }
-        } finally {
-            loading.value = false
-        }
-    }
+    //         const result: KeyDerivationResult = {
+    //             identityIndex: identityIdx,
+    //             keys,
+    //             success: true
+    //         }
+    //         log('debug', `Successfully derived keys for identity index: ${identityIdx}`)
+    //         return result
+    //     } catch (err: any) {
+    //         error.value = err.message || 'Failed to derive private keys'
+    //         log('error', 'Failed to derive private keys:', err)
+    //         return {
+    //             identityIndex: identityIdx,
+    //             keys: [],
+    //             success: false,
+    //             error: error.value || ''
+    //         }
+    //     } finally {
+    //         loading.value = false
+    //     }
+    // }
 
     const getKeyByPurpose = async (
-        identityIdx: number,
+        identityId: string,
         purpose: ParsedPurpose,
         securityLevel: ParsedSecurityLevel
     ): Promise<PrivateKeyWASM | null> => {
         try {
-            const result = await getPrivateKeys(identityIdx)
+            // const result = await getPrivateKeys(identityIdx)
+            const currentNetwork = await ensure()
+
+            const networkName = currentNetwork.toLowerCase() === 'mainnet' ? 'mainnet' : 'testnet'
+            log('info', `[KeyManagement] Fetching key for identity ${identityId} on network: ${networkName}`)
+
+            const keystoreData: any = await invoke('load_private_keys', {
+                network: networkName
+            })
+
+alert(`GET PRIVATE KEYS: ${JSON.stringify(keystoreData, null, 2)}`)
+const result = keystoreData
             if (!result.success || !result.keys) return null
 
             const purposeMap: Record<number, string> = {
@@ -329,9 +334,9 @@ export function useKeyManagement() {
         }
     }
 
-    const getAuthKey = async (identityIdx: number): Promise<string | null> => {
+    const getAuthKey = async (identityId: string): Promise<string | null> => {
         try {
-            const privateKey = await getKeyByPurpose(identityIdx, 0, 0)
+            const privateKey = await getKeyByPurpose(identityId, 0, 1) // OR getKeyByPurpose(identityId, 0, 2)
             return privateKey?.WIF() || null
         } catch (err: any) {
             log('error', 'Failed to get auth key:', err)
@@ -343,9 +348,9 @@ export function useKeyManagement() {
      * Returns the Master Key as PrivateKeyWASM.
      * Useful for operations requiring signing with the master key.
      */
-    const getMasterKey = async (identityIdx: number): Promise<PrivateKeyWASM | null> => {
+    const getMasterKey = async (identityId: string): Promise<PrivateKeyWASM | null> => {
         try {
-            return await getKeyByPurpose(identityIdx, 0, 0)
+            return await getKeyByPurpose(identityId, 0, 0)
         } catch (err) {
             log('error', 'Failed to get master key:', err)
             return null
@@ -371,9 +376,9 @@ export function useKeyManagement() {
         }
     }
 
-    const getEncryptionKey = async (identityIdx: number): Promise<string | null> => {
+    const getEncryptionKey = async (identityId: string): Promise<string | null> => {
         try {
-            const privateKey = await getKeyByPurpose(identityIdx, 2, 3)
+            const privateKey = await getKeyByPurpose(identityId, 2, 3)
             return privateKey?.WIF() || null
         } catch (err: any) {
             log('error', 'Failed to get encryption key:', err)
@@ -399,84 +404,84 @@ export function useKeyManagement() {
         }
     }
 
-    const saveKeychain = async (
-        identityId: string,
-        identityIdx: number,
-        publicKeys: IPublicKey[]
-    ): Promise<void> => {
-        try {
-            const stored = localStorage.getItem('evonext_keychain')
+    // const saveKeychain = async (
+    //     identityId: string,
+    //     identityIdx: number,
+    //     publicKeys: IPublicKey[]
+    // ): Promise<void> => {
+    //     try {
+    //         const stored = localStorage.getItem('evonext_keychain')
 
-            const keychains: Record<string, KeychainEntry> = stored ? JSON.parse(stored) : {}
+    //         const keychains: Record<string, KeychainEntry> = stored ? JSON.parse(stored) : {}
 
-            const entry: KeychainEntry = {
-                identityId,
-                identityIdx,
-                keys: {},
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            }
+    //         const entry: KeychainEntry = {
+    //             identityId,
+    //             identityIdx,
+    //             keys: {},
+    //             createdAt: new Date().toISOString(),
+    //             updatedAt: new Date().toISOString()
+    //         }
 
-            publicKeys.forEach(key => {
-                const purpose = parsePurpose(key.purpose)
-                const securityLevel = parseSecurityLevel(key.securityLevel)
+    //         publicKeys.forEach(key => {
+    //             const purpose = parsePurpose(key.purpose)
+    //             const securityLevel = parseSecurityLevel(key.securityLevel)
 
-                if (!entry.keys[purpose]) {
-                    entry.keys[purpose] = {}
-                }
+    //             if (!entry.keys[purpose]) {
+    //                 entry.keys[purpose] = {}
+    //             }
 
-                const purposeMap = DEFAULT_KEYCHAIN[purpose as keyof typeof DEFAULT_KEYCHAIN]
+    //             const purposeMap = DEFAULT_KEYCHAIN[purpose as keyof typeof DEFAULT_KEYCHAIN]
 
-                let keyIdx = -1
+    //             let keyIdx = -1
 
-                if (purposeMap) {
-                    for (const [defaultSecurityLevelStr, keyInfo] of Object.entries(purposeMap)) {
-                        const defaultSecurityLevel = parseInt(defaultSecurityLevelStr)
+    //             if (purposeMap) {
+    //                 for (const [defaultSecurityLevelStr, keyInfo] of Object.entries(purposeMap)) {
+    //                     const defaultSecurityLevel = parseInt(defaultSecurityLevelStr)
 
-                        if (defaultSecurityLevel === securityLevel) {
-                            keyIdx = (keyInfo as any).keyIdx
-                            break
-                        }
-                    }
-                }
+    //                     if (defaultSecurityLevel === securityLevel) {
+    //                         keyIdx = (keyInfo as any).keyIdx
+    //                         break
+    //                     }
+    //                 }
+    //             }
 
-                entry.keys[purpose][securityLevel] = {
-                    keyIdx: keyIdx !== -1 ? keyIdx : findBestMatch(key),
-                    keyType: key.keyType,
-                    securityLevel,
-                    registered: true,
-                    registeredAt: new Date().toISOString()
-                }
-            })
+    //             entry.keys[purpose][securityLevel] = {
+    //                 keyIdx: keyIdx !== -1 ? keyIdx : findBestMatch(key),
+    //                 keyType: key.keyType,
+    //                 securityLevel,
+    //                 registered: true,
+    //                 registeredAt: new Date().toISOString()
+    //             }
+    //         })
 
-            for (const [purposeStr, purposeMap] of Object.entries(DEFAULT_KEYCHAIN)) {
-                const purpose = parseInt(purposeStr)
+    //         for (const [purposeStr, purposeMap] of Object.entries(DEFAULT_KEYCHAIN)) {
+    //             const purpose = parseInt(purposeStr)
 
-                if (!entry.keys[purpose]) {
-                    entry.keys[purpose] = {}
-                }
+    //             if (!entry.keys[purpose]) {
+    //                 entry.keys[purpose] = {}
+    //             }
 
-                for (const [securityLevelStr, keyInfo] of Object.entries(purposeMap)) {
-                    const securityLevel = parseInt(securityLevelStr)
+    //             for (const [securityLevelStr, keyInfo] of Object.entries(purposeMap)) {
+    //                 const securityLevel = parseInt(securityLevelStr)
 
-                    if (!entry.keys[purpose][securityLevel]) {
-                        entry.keys[purpose][securityLevel] = {
-                            ...(keyInfo as any),
-                            registered: false
-                        }
-                    }
-                }
-            }
+    //                 if (!entry.keys[purpose][securityLevel]) {
+    //                     entry.keys[purpose][securityLevel] = {
+    //                         ...(keyInfo as any),
+    //                         registered: false
+    //                     }
+    //                 }
+    //             }
+    //         }
 
-            keychains[identityId] = entry
+    //         keychains[identityId] = entry
 
-            localStorage.setItem('evonext_keychain', JSON.stringify(keychains))
+    //         localStorage.setItem('evonext_keychain', JSON.stringify(keychains))
 
-            log('info', `Keychain saved for identity: ${identityId}`)
-        } catch (error) {
-            log('error', 'Failed to save keychain:', error)
-        }
-    }
+    //         log('info', `Keychain saved for identity: ${identityId}`)
+    //     } catch (error) {
+    //         log('error', 'Failed to save keychain:', error)
+    //     }
+    // }
 
     const getMissingKeys = async (identityId: string): Promise<{
         purpose: ParsedPurpose,
@@ -514,23 +519,23 @@ export function useKeyManagement() {
         return missing
     }
 
-    const findBestMatch = (key: IPublicKey): number => {
-        const purpose = parsePurpose(key.purpose)
+    // const findBestMatch = (key: IPublicKey): number => {
+    //     const purpose = parsePurpose(key.purpose)
 
-        const securityLevel = parseSecurityLevel(key.securityLevel)
+    //     const securityLevel = parseSecurityLevel(key.securityLevel)
 
-        if (purpose === 0) {
-            if (securityLevel === 0) return 0
-            if (securityLevel === 1) return 1
-            if (securityLevel === 2) return 2
-        } else if (purpose === 1 || purpose === 3) {
-            return 3
-        } else if (purpose === 2) {
-            return 4
-        }
+    //     if (purpose === 0) {
+    //         if (securityLevel === 0) return 0
+    //         if (securityLevel === 1) return 1
+    //         if (securityLevel === 2) return 2
+    //     } else if (purpose === 1 || purpose === 3) {
+    //         return 3
+    //     } else if (purpose === 2) {
+    //         return 4
+    //     }
 
-        return -1
-    }
+    //     return -1
+    // }
 
     /**
      * NOTE: This legacy method uses DashPlatformSDK directly via addTransferKey
@@ -560,7 +565,7 @@ export function useKeyManagement() {
     return {
         loading: computed(() => loading.value),
         error: computed(() => error.value),
-        getPrivateKeys,
+        // getPrivateKeys,
         getAuthKey,
         getTransferKey,
         getEncryptionKey,
@@ -570,7 +575,7 @@ export function useKeyManagement() {
         getTransferKeyFromFile,
         addTransferKey,
         loadKeychain,
-        saveKeychain,
+        // saveKeychain,
         getMissingKeys,
         parsePurpose,
         parseSecurityLevel,
