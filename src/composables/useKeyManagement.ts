@@ -1,15 +1,19 @@
 // src/composables/useKeyManagement.ts
 
 import { ref, computed } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
+
 import { EvoSDK } from '@dashevo/evo-sdk'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
-import { invoke } from '@tauri-apps/api/core'
+
 // @ts-ignore
 import { hash160 } from '@evonext/crypto'
 // @ts-ignore
 import { binToHex } from '@evonext/utils'
+
 import { useNetwork } from './useNetwork'
 import { log } from '@/utils/env'
+
 import type {
     IPublicKey,
     // PurposeType,
@@ -59,7 +63,7 @@ export interface KeyPair {
 }
 
 type ParsedPurpose = 0 | 1 | 2 | 3
-type ParsedSecurityLevel = 0 | 1 | 2 | 3 | 4
+type ParsedSecurityLevel = 0 | 1 | 2 | 3
 
 export function useKeyManagement() {
     const { ensure } = useNetwork()
@@ -171,6 +175,7 @@ export function useKeyManagement() {
                 if (b.securityLevel !== a.securityLevel) {
                     return b.securityLevel - a.securityLevel
                 }
+
                 return a.keyId - b.keyId
             })[0]
             console.log(`[KeyManagement] Found File Transfer Key for ${identityId}: ID ${bestKey?.keyId}`)
@@ -382,8 +387,11 @@ export function useKeyManagement() {
     ): Promise<KeychainEntry | null> => {
         try {
             const stored = localStorage.getItem('evonext_keychain')
+
             if (!stored) return null
+
             const keychains: Record<string, KeychainEntry> = JSON.parse(stored)
+
             return keychains[identityId] || null
         } catch (error) {
             log('error', 'Failed to load keychain:', error)
@@ -398,7 +406,9 @@ export function useKeyManagement() {
     ): Promise<void> => {
         try {
             const stored = localStorage.getItem('evonext_keychain')
+
             const keychains: Record<string, KeychainEntry> = stored ? JSON.parse(stored) : {}
+
             const entry: KeychainEntry = {
                 identityId,
                 identityIdx,
@@ -406,23 +416,30 @@ export function useKeyManagement() {
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             }
+
             publicKeys.forEach(key => {
                 const purpose = parsePurpose(key.purpose)
                 const securityLevel = parseSecurityLevel(key.securityLevel)
+
                 if (!entry.keys[purpose]) {
                     entry.keys[purpose] = {}
                 }
+
                 const purposeMap = DEFAULT_KEYCHAIN[purpose as keyof typeof DEFAULT_KEYCHAIN]
+
                 let keyIdx = -1
+
                 if (purposeMap) {
                     for (const [defaultSecurityLevelStr, keyInfo] of Object.entries(purposeMap)) {
                         const defaultSecurityLevel = parseInt(defaultSecurityLevelStr)
+
                         if (defaultSecurityLevel === securityLevel) {
                             keyIdx = (keyInfo as any).keyIdx
                             break
                         }
                     }
                 }
+
                 entry.keys[purpose][securityLevel] = {
                     keyIdx: keyIdx !== -1 ? keyIdx : findBestMatch(key),
                     keyType: key.keyType,
@@ -431,13 +448,17 @@ export function useKeyManagement() {
                     registeredAt: new Date().toISOString()
                 }
             })
+
             for (const [purposeStr, purposeMap] of Object.entries(DEFAULT_KEYCHAIN)) {
                 const purpose = parseInt(purposeStr)
+
                 if (!entry.keys[purpose]) {
                     entry.keys[purpose] = {}
                 }
+
                 for (const [securityLevelStr, keyInfo] of Object.entries(purposeMap)) {
                     const securityLevel = parseInt(securityLevelStr)
+
                     if (!entry.keys[purpose][securityLevel]) {
                         entry.keys[purpose][securityLevel] = {
                             ...(keyInfo as any),
@@ -446,8 +467,11 @@ export function useKeyManagement() {
                     }
                 }
             }
+
             keychains[identityId] = entry
+
             localStorage.setItem('evonext_keychain', JSON.stringify(keychains))
+
             log('info', `Keychain saved for identity: ${identityId}`)
         } catch (error) {
             log('error', 'Failed to save keychain:', error)
@@ -460,17 +484,23 @@ export function useKeyManagement() {
         keyType: string
     }[]> => {
         const entry = await loadKeychain(identityId, 0)
+
         if (!entry) return []
+
         const missing: {
             purpose: ParsedPurpose,
             securityLevel: ParsedSecurityLevel,
             keyType: string
         }[] = []
+
         for (const [purposeStr, purposeKeys] of Object.entries(entry.keys)) {
             const purpose = parseInt(purposeStr) as ParsedPurpose
+
             for (const [securityLevelStr, keyInfo] of Object.entries(purposeKeys)) {
                 const securityLevel = parseInt(securityLevelStr) as ParsedSecurityLevel
+
                 const info = keyInfo as any
+
                 if (!info.registered) {
                     missing.push({
                         purpose,
@@ -480,12 +510,15 @@ export function useKeyManagement() {
                 }
             }
         }
+
         return missing
     }
 
     const findBestMatch = (key: IPublicKey): number => {
         const purpose = parsePurpose(key.purpose)
+
         const securityLevel = parseSecurityLevel(key.securityLevel)
+
         if (purpose === 0) {
             if (securityLevel === 0) return 0
             if (securityLevel === 1) return 1
@@ -495,6 +528,7 @@ export function useKeyManagement() {
         } else if (purpose === 2) {
             return 4
         }
+
         return -1
     }
 
