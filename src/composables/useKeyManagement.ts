@@ -63,6 +63,7 @@ type ParsedSecurityLevel = 0 | 1 | 2 | 3 | 4
 
 export function useKeyManagement() {
     const { ensure } = useNetwork()
+
     // State
     const mnemonic = ref<string>('')
     const isInitialized = ref(false)
@@ -134,8 +135,10 @@ export function useKeyManagement() {
     const getTransferKeyFromFile = async (identityId: string): Promise<KeyPair | null> => {
         try {
             const currentNetwork = await ensure()
+
             const networkName = currentNetwork.toLowerCase() === 'mainnet' ? 'mainnet' : 'testnet'
             log('info', `[KeyManagement] Fetching key for identity ${identityId} on network: ${networkName}`)
+
             const keystoreData: any = await invoke('load_private_keys', {
                 network: networkName
             })
@@ -143,22 +146,26 @@ export function useKeyManagement() {
                 console.warn(`[KeyManagement] No keystore found for network ${networkName}`)
                 return null
             }
+
             const identitiesMap = keystoreData.identities
             if (!identitiesMap || !identitiesMap[identityId]) {
                 console.warn(`[KeyManagement] Identity ${identityId} not found in file`)
                 return null
             }
+
             const identityKeys: PrivateKeyEntry[] = identitiesMap[identityId]
             if (!identityKeys || identityKeys.length === 0) {
                 console.warn(`[KeyManagement] No keys found for ${identityId}`)
                 return null
             }
+
             // Filter for TRANSFER keys (Purpose 3)
             const transferKeys = identityKeys.filter((k: PrivateKeyEntry) => k.purpose === 3)
             if (transferKeys.length === 0) {
                 console.error(`[KeyManagement] No Transfer keys (purpose: 3) found for identity ${identityId}`)
                 return null
             }
+
             // Select the best Transfer key (Highest Security > Higher ID)
             const bestKey = transferKeys.sort((a, b) => {
                 if (b.securityLevel !== a.securityLevel) {
@@ -167,6 +174,7 @@ export function useKeyManagement() {
                 return a.keyId - b.keyId
             })[0]
             console.log(`[KeyManagement] Found File Transfer Key for ${identityId}: ID ${bestKey?.keyId}`)
+
             return {
                 privateKey: bestKey?.privateKey || '',
                 keyId: bestKey?.keyId || -1
@@ -187,6 +195,7 @@ export function useKeyManagement() {
         if (!mnemonic.value) {
             await initialize()
         }
+
         if (!mnemonic.value) {
             throw new Error('Mnemonic not available for derivation')
         }
@@ -227,12 +236,14 @@ export function useKeyManagement() {
             if (!mnemonic.value) {
                 await initialize()
             }
+
             if (!mnemonic.value) {
                 throw new Error('No mnemonic available')
             }
 
             log('debug', `Getting private keys for identity index: ${identityIdx}`)
             const keys: DerivedKey[] = []
+
             const keyDefinitions = [
                 { keyIdx: 0, purpose: 0, purposeStr: 'AUTHENTICATION', securityLevel: 0, securityLevelStr: 'MASTER' },
                 { keyIdx: 1, purpose: 0, purposeStr: 'AUTHENTICATION', securityLevel: 1, securityLevelStr: 'CRITICAL' },
@@ -296,7 +307,6 @@ export function useKeyManagement() {
                 1: 'CRITICAL',
                 2: 'HIGH',
                 3: 'MEDIUM',
-                4: 'LOW'
             }
 
             const purposeStr = purposeMap[purpose]
@@ -306,6 +316,7 @@ export function useKeyManagement() {
                 key.purpose === purposeStr &&
                 key.securityLevel === securityLevelStr
             )
+
             return foundKey?.privateKey || null
         } catch (err) {
             log('error', 'Failed to get key by purpose:', err)

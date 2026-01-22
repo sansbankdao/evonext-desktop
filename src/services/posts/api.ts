@@ -1,8 +1,16 @@
 // src/services/posts/api.ts
 
 import { invoke } from '@tauri-apps/api/core'
+
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
+import { EvoSDK } from '@dashevo/evo-sdk'
+
+// @ts-ignore
+import { randomBytes } from '@evonext/crypto'
+// @ts-ignore
+import { binToHex } from '@evonext/utils'
+
 import { useNetwork } from '@/composables/useNetwork'
 import { useIdentityStore } from '@/stores/identity'
 import { getContractId } from './utils'
@@ -103,7 +111,9 @@ export async function fetchPostsFromTauri(
     try {
         const { ownerId, orderBy, limit, contractId } = options
         const where: any[] = [["$createdAt", ">", 0]]
+
         if (ownerId) where.push(["$ownerId", "==", ensureBase58(ownerId)])
+
         const order = [["$createdAt", orderBy || 'desc']]
         const documents = await invoke<any[]>('get_posts', {
             dataContractId: contractId,
@@ -113,6 +123,7 @@ export async function fetchPostsFromTauri(
             limit: limit || 20,
             network
         })
+
         return (documents || []).map(normalizeDocument)
     } catch (error: any) {
         throw error
@@ -126,18 +137,26 @@ export async function fetchPostsFromDAPI(options?: {
 }): Promise<PostsFetchResult> {
     const { network } = useNetwork()
     const targetNetwork = network.value
+
     let direction: 'desc' | 'asc' = (options?.orderBy === 'oldest' || options?.orderBy === 'asc') ? 'asc' : 'desc'
+
     const documents = await fetchPostsFromTauri(targetNetwork, {
         ownerId: options?.ownerId as string,
         orderBy: direction,
         limit: options?.limit || 20,
         contractId: YAPPR_CONTRACT_ID_TESTNET
     })
+
     return { posts: documents as unknown as IPost[], hasNextPage: false }
 }
 
-export async function fetchDocumentsById(network: string, contractId: string, ids: string[]): Promise<IPostDocument[]> {
+export async function fetchDocumentsById(
+    network: string,
+    contractId: string,
+    ids: string[]
+): Promise<IPostDocument[]> {
     if (!ids.length) return []
+
     const documents = await invoke<any[]>('get_posts', {
         dataContractId: contractId,
         documentType: 'post',
@@ -145,15 +164,22 @@ export async function fetchDocumentsById(network: string, contractId: string, id
         limit: ids.length,
         network
     })
+
     return documents.map(normalizeDocument)
 }
 
 // --- DPNS & Profile Logic ---
 
-export async function fetchUserProfile(ownerId: string, networkOverride?: string): Promise<any | null> {
+export async function fetchUserProfile(
+    ownerId: string,
+    networkOverride?: string
+): Promise<any | null> {
     const { network } = useNetwork()
+
     const targetNetwork = networkOverride || network.value
+
     const contractId = getContractId('dashpay', targetNetwork)
+
     const profiles = await invoke<any[]>('get_posts', {
         dataContractId: contractId,
         documentType: 'profile',
@@ -161,13 +187,19 @@ export async function fetchUserProfile(ownerId: string, networkOverride?: string
         limit: 1,
         network: targetNetwork
     })
+
     return profiles?.length ? normalizeDocument(profiles[0]) : null
 }
 
-export async function fetchDPNSName(ownerId: string, networkOverride?: string): Promise<string | null> {
+export async function fetchDPNSName(
+    ownerId: string,
+    networkOverride?: string
+): Promise<string | null> {
     const { network } = useNetwork()
     const targetNetwork = networkOverride || network.value
+
     const contractId = getContractId('dpns', targetNetwork)
+
     const dpnsRecords = await invoke<any[]>('get_posts', {
         dataContractId: contractId,
         documentType: 'domain',
@@ -175,6 +207,7 @@ export async function fetchDPNSName(ownerId: string, networkOverride?: string): 
         limit: MAX_DPNS_NAMES_LIMIT,
         network: targetNetwork
     })
+
     if (dpnsRecords?.length) {
         const doc = dpnsRecords[0]
         return doc.label || doc.normalizedLabel || null
@@ -182,9 +215,13 @@ export async function fetchDPNSName(ownerId: string, networkOverride?: string): 
     return null
 }
 
-export async function fetchDPNSNames(ownerId: string, networkOverride?: string): Promise<string[] | null> {
+export async function fetchDPNSNames(
+    ownerId: string,
+    networkOverride?: string
+): Promise<string[] | null> {
     const { network } = useNetwork()
     const targetNetwork = networkOverride || network.value
+
     const contractId = getContractId('dpns', targetNetwork)
     const dpnsRecords = await invoke<any[]>('get_posts', {
         dataContractId: contractId,
@@ -193,24 +230,38 @@ export async function fetchDPNSNames(ownerId: string, networkOverride?: string):
         limit: MAX_DPNS_NAMES_LIMIT,
         network: targetNetwork
     })
+
     return dpnsRecords?.map((d: any) => d.label || d.normalizedLabel || null) || null
 }
 
 // --- Mutation Logic ---
 
-export async function createPost(params: ICreatePostParams): Promise<IPost | null> {
+interface IPostData {
+    content: string;
+    language?: string;
+}
+export async function createPost(
+    params: ICreatePostParams
+): Promise<IPost | null> {
     const { network: currentNetwork } = useNetwork()
     const identityStore = useIdentityStore()
+
     const targetNetwork = currentNetwork.value as 'testnet' | 'mainnet'
     const identityId = identityStore.identityId
+
     if (!identityId) throw new Error('Identity not found.')
 
     try {
-        const sdk = new DashPlatformSDK({ network: targetNetwork })
+        // const sdk = new DashPlatformSDK({ network: targetNetwork })
+        const sdk = targetNetwork === 'mainnet'
+            ? EvoSDK.mainnetTrusted()
+            : EvoSDK.testnetTrusted()
+
         const keyData = await invoke<any>('load_private_keys', { network: targetNetwork })
         const authKeyData = keyData?.identities?.[identityId]?.find((k: any) =>
             k.purpose === 0 && (k.securityLevel === 1 || k.securityLevel === 2)
         )
+
         if (!authKeyData?.privateKeyWif) throw new Error('Auth Key not found.')
 
         const data = {
@@ -221,27 +272,52 @@ export async function createPost(params: ICreatePostParams): Promise<IPost | nul
             ...(params.remix && { remix: params.remix })
         }
 
-        const document = await sdk.documents.create(YAPPR_CONTRACT_ID_TESTNET, 'post', data, identityId, BigInt(1))
-        const identityContractNonce = (await sdk.identities.getIdentityContractNonce(identityId, YAPPR_CONTRACT_ID_TESTNET)) + 1n
-        const stateTransition = await sdk.documents.createStateTransition(document, 'create', { identityContractNonce })
+        const postData: IPostData = {
+            content: params.content.trim(),
+        }
 
-        const privKey = PrivateKeyWASM.fromWIF(authKeyData.privateKeyWif)
-        const identity = await sdk.identities.getIdentityByIdentifier(identityId)
-        if (!identity) throw new Error('Identity fetch failed.')
+        postData.language = (params.language || 'en').substring(0, 2)
 
-        const publicKeyId = 1
-        const pubKey = identity.getPublicKeys()[publicKeyId]
-        if (!pubKey) throw new Error('Public key index 1 not found')
+        const entropyHex = binToHex(randomBytes(32))
 
-        stateTransition.sign(privKey, pubKey)
-        stateTransition.signaturePublicKeyId = publicKeyId
+        const payload = {
+            contractId: YAPPR_CONTRACT_ID_TESTNET,
+            type: 'post',
+            ownerId: identityId,
+            data: postData,
+            entropyHex,
+            privateKeyWif: privateKeyWIF
+        }
 
-        await sdk.stateTransitions.broadcast(stateTransition)
-        await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+        // const document = await sdk.documents.create(
+        //     YAPPR_CONTRACT_ID_TESTNET, 'post', data, identityId, BigInt(1))
+        const document = await sdk.documents.create(payload)
+alert(`CREATE DOCUMENT: ${JSON.stringify(document)}`)
+
+        // const identityContractNonce = (await sdk.identities
+        //         .getIdentityContractNonce(identityId, YAPPR_CONTRACT_ID_TESTNET)) + 1n
+
+        // const stateTransition = await sdk.documents
+        //     .createStateTransition(document, 'create', { identityContractNonce })
+
+        // const privKey = PrivateKeyWASM.fromWIF(authKeyData.privateKeyWif)
+        // const identity = await sdk.identities.getIdentityByIdentifier(identityId)
+        // if (!identity) throw new Error('Identity fetch failed.')
+
+        // const publicKeyId = 1
+        // const pubKey = identity.getPublicKeys()[publicKeyId]
+        // if (!pubKey) throw new Error('Public key index 1 not found')
+
+        // stateTransition.sign(privKey, pubKey)
+        // stateTransition.signaturePublicKeyId = publicKeyId
+
+        // await sdk.stateTransitions.broadcast(stateTransition)
+        // await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
 
         return {
             ...data,
-            id: stateTransition.hash(true), // skip_signature: true
+            // id: stateTransition.hash(true), // skip_signature: true
+            id: '', // skip_signature: true
             ownerId: identityId,
             createdAt: Math.floor(Date.now() / 1000),
             updatedAt: null,
@@ -260,6 +336,7 @@ export async function updatePost(postId: string, updates: IUpdatePostParams): Pr
     const identityStore = useIdentityStore()
     const targetNetwork = currentNetwork.value as 'testnet' | 'mainnet'
     const identityId = identityStore.identityId
+
     if (!identityId) throw new Error('Identity not found.')
 
     try {
