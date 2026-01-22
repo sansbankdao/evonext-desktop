@@ -12,7 +12,7 @@ import { randomBytes } from '@evonext/crypto'
 import { binToHex } from '@evonext/utils'
 
 import { useNetwork } from '@/composables/useNetwork'
-import { useWallet } from '@/composables/useWallet'
+// import { useWallet } from '@/composables/useWallet'
 import { useIdentityStore } from '@/stores/identity'
 import { getContractId } from './utils'
 import { YAPPR_CONTRACT_ID_TESTNET } from '@/constants'
@@ -304,6 +304,7 @@ export async function createPost(
         // const document = await sdk.documents.create(
         //     YAPPR_CONTRACT_ID_TESTNET, 'post', data, identityId, BigInt(1))
         const document = await sdk.documents.create(payload)
+console.log(document)
 // alert(`POSTED! ${JSON.stringify(document, null, 2)}`)
 
         // const identityContractNonce = (await sdk.identities
