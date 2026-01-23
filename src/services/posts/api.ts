@@ -290,7 +290,7 @@ export async function createPost(
         const entropyHex = binToHex(randomBytes(32))
 // const IDENTITY_IDX = 0 // FIXME PULL THIS FROM RUST IDENTITY.JSON
 // const authKey = getAuthKey(identityId)
-// alert(`GET AUTH KEY: ${JSON.stringify(authKey)}`)
+// alert(`ENTROPY: ${entropyHex}`)
 
         const payload = {
             contractId: YAPPR_CONTRACT_ID_TESTNET,
@@ -300,7 +300,7 @@ export async function createPost(
             entropyHex,
             privateKeyWif,
         }
-
+// alert(`PAYLOAD: ${JSON.stringify(payload, null, 2)}`)
         // const document = await sdk.documents.create(
         //     YAPPR_CONTRACT_ID_TESTNET, 'post', data, identityId, BigInt(1))
         const document = await sdk.documents.create(payload)

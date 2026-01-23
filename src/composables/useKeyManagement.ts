@@ -305,7 +305,7 @@ export function useKeyManagement() {
         })
 
         const identity = keystoreData.identities[identityId]
-
+// alert(`IDENTITY: ${JSON.stringify(identity, null, 2)}`)
         const identityIdx = 0
         const keys = identity.map((_key: any) => {
             return {
@@ -371,7 +371,7 @@ export function useKeyManagement() {
 
             return foundKey?.privateKey || null
         } catch (err) {
-alert(`ERROR: ${JSON.stringify(err)}`)
+// alert(`ERROR: ${JSON.stringify(err)}`)
             log('error', 'Failed to get key by purpose:', err)
             return null
         }

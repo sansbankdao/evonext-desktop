@@ -9,6 +9,7 @@
                 <svg v-if="!postToEdit" class="h-6 w-6 text-cyan-600 dark:text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
+
                 <!-- Pencil Icon for Edit -->
                 <svg v-else class="h-6 w-6 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -19,6 +20,7 @@
                 <h3 class="text-lg leading-6 font-medium text-slate-900 dark:text-slate-100" id="modal-title">
                     {{ postToEdit ? 'Update Post' : 'Create new post' }}
                 </h3>
+
                 <div class="mt-4 space-y-4">
 
                     <!-- Remix Badge (Context Only) -->
@@ -26,14 +28,17 @@
                         <svg class="w-5 h-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                         </svg>
+
                         <div class="flex-1 overflow-hidden">
                             <p class="text-sm font-medium text-purple-800 dark:text-purple-300">
                                 You are remixing <span class="font-bold">@{{ originalRemixPost.author?.username || 'unknown' }}</span>
                             </p>
+
                             <p class="text-xs text-purple-600 dark:text-purple-400 truncate mt-0.5">
                                 "{{ originalRemixPost.content }}"
                             </p>
                         </div>
+
                         <button
                             @click="clearRemix"
                             title="Cancel Remix"
@@ -58,6 +63,7 @@
                         <div v-if="mediaUrls.length > 0" class="mt-3 grid grid-cols-2 gap-2">
                             <div v-for="(url, index) in mediaUrls" :key="index" class="relative group aspect-video bg-black rounded-md overflow-hidden border border-slate-700">
                                 <img :src="url" class="w-full h-full object-cover" alt="Upload preview">
+
                                 <button
                                     @click="removeMedia(index)"
                                     class="absolute top-2 right-2 bg-red-600/80 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity z-10"
@@ -135,6 +141,7 @@
                                 </span>
                                 {{ isSubmitting ? 'Broadcasting...' : (postToEdit ? 'Update Post' : 'Post') }}
                             </button>
+
                             <button
                                 type="button"
                                 @click="close"
@@ -260,12 +267,15 @@ function clearRemix() {
 
 async function submit() {
     if (isSubmitting.value) return
+
     // Validation
     if (!content.value.trim() && mediaUrls.value.length === 0) {
         showError('Post cannot be empty')
         return
     }
+
     isSubmitting.value = true
+
     try {
         if (props.postToEdit) {
             // --- UPDATE LOGIC ---
@@ -297,10 +307,16 @@ async function submit() {
                     remix: originalRemixPost.value.id
                 })
             }
+// alert(`content.value: ${content.value}`)
             const newPost = await createPost(content.value, postOptions)
+// alert(`NEW POST: ${JSON.stringify(newPost)}`)
             if (newPost) {
                 showSuccess('Post broadcasted successfully')
+
+                isSubmitting.value = false
+
                 emit('post-created', newPost)
+
                 close()
             } else {
                 showError('Failed to verify post broadcast')

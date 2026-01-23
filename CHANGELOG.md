@@ -1,18 +1,18 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Introducing a IMPROVED Post Manager
+### Introducing a IMPROVED Private Key Manager
 
-This latest version of EvoNext introduces a re-engineered post manager.
+This latest version of EvoNext introduces a re-engineered post manager, with de-duplicated functions.
 
 # Changelog
 
 ## Latest Features:
 
-- __Posts:__ Rebuilt the posting engine to remove ALL unused functions.
+- __Keychain:__ Rebuilt the key manager, removing ALL unused code.
 
 ## Bugfixes:
 
-- __Posts:__ Remove unused functions.
+- __Keychain:__ Cleanup and remove the unused functions.
 
 ## Notes:
 
