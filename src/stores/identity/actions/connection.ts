@@ -8,39 +8,42 @@ import { usePlatform } from '@/composables/usePlatform'
 import type {
     ConnectionResult,
     IIdentityState,
-    DiscoveredIdentity,
+    // DiscoveredIdentity,
     IIdentity
 } from '@/types'
 
 /**
- * Helper to persist the active identity ID to the Rust backend settings.
+ * Persists the active identity ID as the Root Marker in Rust Storage.
  */
-async function persistActiveIdentity(identityId: string | null) {
+async function persistActiveIdentity(identityId: string | null, network: string) {
     try {
+        // We update the marker via the specialized Rust command
+        if (identityId) {
+            await invoke('update_active_identity_marker', {
+                network: network,
+                activeId: identityId
+            })
+        }
+
+        // Also update settings for generalized tracking
         const settings = await invoke<any>('load_settings').catch(() => null)
         if (settings) {
             settings.activeIdentityId = identityId
             await invoke('save_settings', { settings })
-            console.log(`[Source of Truth] backend updated with activeIdentityId: ${identityId}`)
         }
+        console.log(`[Source of Truth] Active Identity synced to Rust: ${identityId}`)
     } catch (e) {
-        console.error('Failed to persist active identity to Rust settings:', e)
+        console.error('Failed to persist active identity to Rust:', e)
     }
 }
 
 export const connectionActions = () => ({
-    /**
-     * Initialize the store from storage (called on app start)
-     */
     async initFromStorage(this: IIdentityState) {
         return ErrorBoundary.wrap(async () => {
              await this.loadFromStorage()
         }, 'INIT_FROM_STORAGE_FAILED')
     },
 
-    /**
-     * Swapping between known identities
-     */
     async switchIdentity(
         this: IIdentityState,
         targetIdentityId: string
@@ -50,16 +53,15 @@ export const connectionActions = () => ({
             try {
                 const network = await this.getCurrentNetwork()
 
-                // 1. Check if this is a "Single Key" identity by looking in the keystore
                 const keystore: any = await invoke('load_private_keys', { network })
                 const localEntries = keystore?.identities?.[targetIdentityId] || []
-                const isSingleKeyIdentity = localEntries.some((e: any) => e.derivedFromMnemonic === false)
+                const isSingleKeyIdentity = localEntries.some(
+                    (e: any) => e.derivedFromMnemonic === false
+                )
 
                 if (isSingleKeyIdentity) {
-                    console.log(`[Switch] ${targetIdentityId} detected as Single Key identity.`)
-                    // Typically the first Auth key (Purpose 0) is the one used to connect
                     const authEntry = localEntries.find((e: any) => e.purpose === 0)
-                    if (!authEntry) throw new Error('No local authentication key found for this identity.')
+                    if (!authEntry) throw new Error('No local authentication key found.')
 
                     return await this.connectWithSingleKey(
                         authEntry.privateKey,
@@ -68,10 +70,9 @@ export const connectionActions = () => ({
                     )
                 }
 
-                // 2. Standard Mnemonic Flow
                 const mnemonicData = await this.loadMnemonic(network)
                 if (!mnemonicData?.seedPhrase) {
-                    throw new Error('No seed phrase found. Please connect with your seed phrase again.')
+                    throw new Error('No seed phrase found. Please reconnect.')
                 }
 
                 const discovered = await this.loadDiscoveredIdentities(network)
@@ -86,18 +87,12 @@ export const connectionActions = () => ({
                     targetIdentityId,
                     targetIdx
                 )
-            } catch(e: any) {
-                this.connectionError = e.message
-                return { success: false, error: e.message }
             } finally {
                 this.isConnecting = false
             }
         }, 'SWITCH_IDENTITY_FAILED')
     },
 
-    /**
-     * Connect via Seed (Standard Mnemonic Flow)
-     */
     async connectWithSeed(
         this: IIdentityState,
         seedPhrase: string,
@@ -113,7 +108,6 @@ export const connectionActions = () => ({
                 const { initialize, reset } = usePlatform()
                 reset()
 
-                // 1. Initialize Platform with the provided Seed
                 await initialize({
                     network,
                     wallet: {
@@ -122,10 +116,8 @@ export const connectionActions = () => ({
                     }
                 })
 
-                // 2. Persist mnemonic locally
                 await this.saveMnemonicToStore(network, seedPhrase)
 
-                // 3. Fetch Identity from network
                 const fetchResult = await DAPIService.getIdentityById(targetId, network)
                 if (!fetchResult.success || !fetchResult.data) {
                     throw new Error(fetchResult.error || `Failed to fetch identity ${targetId}`)
@@ -134,28 +126,27 @@ export const connectionActions = () => ({
                 const identityData = fetchResult.data
                 const publicKeys = identityData.publicKeys || []
 
-                // ============================================================
-                // CRITICAL FIX: Ghost Key Prevention
-                // ============================================================
+                // CHECK IF WE NEED TO RE-DERIVE KEYS (Source of Truth Check)
                 const keystore: any = await invoke('load_private_keys', { network })
                 const existingLocal = keystore?.identities?.[targetId] || []
-                const isManualIdentity = existingLocal.some((e: any) => e.derivedFromMnemonic === false)
+                const isManualIdentity = existingLocal.some(
+                    (e: any) => e.derivedFromMnemonic === false
+                )
 
                 if (!isManualIdentity) {
-                    const purposeMap: Record<string, number> = {
-                        AUTHENTICATION: 0, ENCRYPTION: 1, DECRYPTION: 2, TRANSFER: 3
-                    }
-                    const secMap: Record<string, number> = {
-                        MASTER: 0, CRITICAL: 1, HIGH: 2, MEDIUM: 3, LOW: 4
-                    }
-
                     const now = new Date().toISOString()
                     const privateKeyEntries: any[] = []
 
-                    // Only derive keys for IDs 0-5 (Standard Wallet Indices)
-                    for (const pk of publicKeys) {
-                        const keyId = Number(pk.id)
-                        if (keyId > 5) continue; // Skip non-standard/contract keys
+                    for (let i = 0; i < publicKeys.length; i++) {
+                        const pk = publicKeys[i]
+
+                        // FIX: Calculate ID based on position if property is missing
+                        const keyId = (pk.id !== undefined && pk.id !== null)
+                            ? Number(pk.id)
+                            : i
+
+                        // Wallet standard derivation limit
+                        if (keyId > 10) continue
 
                         try {
                             const res = await KeyDerivationService.getPrivateKeyWASM(
@@ -164,15 +155,13 @@ export const connectionActions = () => ({
                                 identityIndex,
                                 keyId
                             )
-                            const purposeStr = String(pk.purpose || 'AUTHENTICATION').toUpperCase()
-                            const secStr = String(pk.securityLevel || 'MASTER').toUpperCase()
 
                             privateKeyEntries.push({
                                 identityId: targetId,
                                 keyId: keyId,
-                                purpose: purposeMap[purposeStr] ?? 0,
-                                securityLevel: secMap[secStr] ?? 0,
-                                keyType: String(pk.keyType || pk.type || 'ECDSA_SECP256K1'),
+                                purpose: Number(pk.purpose ?? 0),
+                                securityLevel: Number(pk.securityLevel ?? 0),
+                                keyType: String(pk.keyType || pk.type || 'ECDSA_HASH160'),
                                 privateKey: res.privateKey.WIF(),
                                 publicKey: pk.data || '',
                                 derivedFromMnemonic: true,
@@ -180,17 +169,14 @@ export const connectionActions = () => ({
                                 lastUsed: now
                             })
                         } catch (e) {
-                            console.warn(`[Connect] Could not derive key ${keyId}:`, e)
+                            console.warn(`[Connect] Derivation failed for key ${keyId}`)
                         }
                     }
 
                     if (privateKeyEntries.length > 0) {
                         await this.saveKeys(network, targetId, privateKeyEntries)
                     }
-                } else {
-                    console.log(`[Connect] Identity ${targetId} is Manual. Skipping automatic derivation loop.`);
                 }
-                // ============================================================
 
                 const activeIdentity: IIdentity = {
                     identityId: targetId,
@@ -200,7 +186,7 @@ export const connectionActions = () => ({
                     publicKeys
                 }
 
-                // Update Pinia State
+                // Standardize Internal State
                 this.isAuthenticated = true
                 this.username = targetId
                 this.identityId = targetId
@@ -209,17 +195,14 @@ export const connectionActions = () => ({
                 this.balance = activeIdentity.balance
                 this.isConnected = true
 
+                // SYNC TO RUST IDENTITY MAP
                 await this.saveIdentityDataToStore(network, targetId, {
-                    identityId: targetId,
-                    identityIdx: identityIndex,
+                    ...activeIdentity,
                     username: this.username,
-                    balance: this.balance,
-                    revision: activeIdentity.revision,
-                    publicKeys: this.publicKeys
+                    active_identity_id: targetId // Sent to Rust to set the marker
                 })
 
-                await this.saveToStorage(network)
-                await persistActiveIdentity(targetId)
+                await persistActiveIdentity(targetId, network)
 
                 return { success: true, identityId: targetId, identity: activeIdentity }
             } catch (err: any) {
@@ -231,129 +214,79 @@ export const connectionActions = () => ({
         }, 'CONNECT_WITH_SEED_FAILED')
     },
 
-    /**
-     * Connect via Single Private Key
-     */
     async connectWithSingleKey(
         this: IIdentityState,
         privateKey: string,
         identityId: string,
-        network: 'mainnet' | 'testnet' = 'mainnet',
-        preloaded?: DiscoveredIdentity | null
+        network: 'mainnet' | 'testnet' = 'mainnet'
     ): Promise<ConnectionResult> {
         return ErrorBoundary.wrap(async () => {
             this.isConnecting = true
-            this.connectionError = null
             try {
                 const trimmedId = identityId.trim()
-                if (!trimmedId) throw new Error('Identity ID is required')
-
                 const { initialize, reset } = usePlatform()
                 reset()
 
                 await initialize({
                     network,
-                    wallet: {
-                        privateKey: privateKey,
-                        unsafeOptions: { skipSynchronizationBeforeHeight: 950000 }
-                    }
+                    wallet: { privateKey, unsafeOptions: { skipSynchronizationBeforeHeight: 950000 } }
                 })
 
-                let identityData: any | null = null
-                if (preloaded && preloaded.identityId === trimmedId) {
-                    identityData = {
-                        identityId: preloaded.identityId,
-                        balance: preloaded.balance ?? '0',
-                        revision: preloaded.revision ?? 0,
-                        publicKeys: preloaded.publicKeys || []
-                    }
-                } else {
-                    const fetchResult = await DAPIService.getIdentityById(trimmedId, network)
-                    if (!fetchResult.success || !fetchResult.data) {
-                        throw new Error(fetchResult.error || 'Failed to fetch identity details')
-                    }
-                    identityData = fetchResult.data
+                const fetchResult = await DAPIService.getIdentityById(trimmedId, network)
+                if (!fetchResult.success || !fetchResult.data) {
+                    throw new Error('Failed to fetch identity details')
                 }
 
+                const identityData = fetchResult.data
                 const publicKeys = identityData.publicKeys || []
-                const now = new Date().toISOString()
-                const firstAuthKey = publicKeys.find((pk: any) => (pk.purpose ?? pk.purposeNumber) === 0)
 
-                const privateKeyEntry = {
+                // Save Single Key Entry
+                const pkEntry = {
                     identityId: trimmedId,
-                    keyId: firstAuthKey?.id || 0,
+                    keyId: 0,
                     purpose: 0,
                     securityLevel: 0,
-                    keyType: String(firstAuthKey?.keyType || 'ECDSA_SECP256K1'),
-                    privateKey: privateKey,
-                    publicKey: firstAuthKey?.data || '',
+                    keyType: 'ECDSA_HASH160',
+                    privateKey,
+                    publicKey: '', // Rust Command enrich_keystore will derive this
                     derivedFromMnemonic: false,
-                    createdAt: now,
-                    lastUsed: now
+                    createdAt: new Date().toISOString(),
+                    lastUsed: new Date().toISOString()
                 }
 
-                await this.saveKeys(network, trimmedId, [privateKeyEntry])
-
-                const activeIdentity: IIdentity = {
-                    identityId: trimmedId,
-                    identityIdx: 0,
-                    balance: identityData.balance ? String(identityData.balance) : '0',
-                    revision: identityData.revision ? Number(identityData.revision) : 0,
-                    publicKeys
-                }
+                await this.saveKeys(network, trimmedId, [pkEntry])
 
                 this.isAuthenticated = true
                 this.username = trimmedId
                 this.identityId = trimmedId
-                this.identity = activeIdentity
-                this.publicKeys = publicKeys
-                this.balance = activeIdentity.balance
-                this.isConnected = this.isAuthenticated && !!this.identityId
-
-                await this.saveIdentityDataToStore(network, trimmedId, {
+                this.identity = {
                     identityId: trimmedId,
                     identityIdx: 0,
-                    username: this.username,
-                    balance: this.balance,
-                    revision: this.revision ?? activeIdentity.revision ?? 0,
-                    publicKeys: this.publicKeys
+                    balance: String(identityData.balance || '0'),
+                    revision: Number(identityData.revision || 0),
+                    publicKeys
+                }
+                this.publicKeys = publicKeys
+                this.balance = this.identity.balance
+                this.isConnected = true
+
+                await this.saveIdentityDataToStore(network, trimmedId, {
+                    ...this.identity,
+                    active_identity_id: trimmedId
                 })
 
-                await this.saveToStorage(network)
+                await persistActiveIdentity(trimmedId, network)
 
-                // SYNC TO RUST (The Source of Truth)
-                await persistActiveIdentity(trimmedId)
-
-                return { success: true, identityId: trimmedId, identity: activeIdentity }
-            } catch (err: any) {
-                this.connectionError = err.message || 'Failed to connect'
-                return { success: false, error: this.connectionError! }
+                return { success: true, identityId: trimmedId }
             } finally {
                 this.isConnecting = false
             }
         }, 'CONNECT_WITH_SINGLE_KEY_FAILED')
     },
 
-    /**
-     * Legacy Support for ConnectSeedForm
-     */
-    async connectWriteOnlyFromDiscovered(
-        this: IIdentityState,
-        identity: DiscoveredIdentity,
-        seedPhrase: string
-    ): Promise<ConnectionResult> {
-        const network = await this.getCurrentNetwork()
-        return this.connectWithSeed(
-            seedPhrase,
-            network,
-            identity.identityId,
-            identity.identityIdx
-        )
-    },
-
     async logout(this: IIdentityState) {
-        // Clear Rust persistence on logout
-        await persistActiveIdentity(null)
+        const network = await this.getCurrentNetwork()
+        await persistActiveIdentity(null, network)
         await this.clearStorage()
     },
 

@@ -241,58 +241,142 @@ interface IPostData {
     content: string;
     language?: string;
 }
+
+// export async function createPost(
+//     params: ICreatePostParams
+// ): Promise<IPost | null> {
+//     const { network: currentNetwork } = useNetwork()
+//     // const { getAuthKey } = useWallet()
+
+//     const identityStore = useIdentityStore()
+
+//     const targetNetwork = currentNetwork.value as 'testnet' | 'mainnet'
+//     const identityId = identityStore.identityId
+
+//     if (!identityId) throw new Error('Identity not found.')
+
+//     try {
+//         // const sdk = new DashPlatformSDK({ network: targetNetwork })
+//         const sdk = targetNetwork === 'mainnet'
+//             ? EvoSDK.mainnetTrusted()
+//             : EvoSDK.testnetTrusted()
+
+//         const keyData = await invoke<any>('load_private_keys', { network: targetNetwork })
+// // alert(`KEY DATA: ${JSON.stringify(keyData, null, 2)}`)
+// // alert(`IDENTITIES: ${JSON.stringify(keyData?.identities, null, 2)}`)
+// // alert(`IDENTITY: ${JSON.stringify(keyData?.identities?.[identityId], null, 2)}`)
+//         const authKeyData = keyData?.identities?.[identityId]?.find((k: any) =>
+//             k.purpose === 0 && (k.securityLevel === 1 || k.securityLevel === 2)
+//         )
+// // alert(`AUTH PRIV KEY: ${JSON.stringify(authKeyData, null, 2)}`)
+//         if (!authKeyData?.privateKey) throw new Error('Auth Key not found.')
+
+//         /* Set private key (WIF). */
+//         const privateKeyWif = authKeyData.privateKey
+
+//         const data = {
+//             content: params.content.trim(),
+//             language: (params.language || 'en').substring(0, 2),
+//             ...(params.isSensitive && { sensitive: true }),
+//             ...(params.mediaUrl?.[0] && { mediaUrl: params.mediaUrl[0] }),
+//             ...(params.remix && { remix: params.remix })
+//         }
+
+//         const postData: IPostData = {
+//             content: params.content.trim(),
+//         }
+
+//         postData.language = (params.language || 'en').substring(0, 2)
+
+//         const entropyHex = binToHex(randomBytes(32))
+// // const IDENTITY_IDX = 0 // FIXME PULL THIS FROM RUST IDENTITY.JSON
+// // const authKey = getAuthKey(identityId)
+// // alert(`ENTROPY: ${entropyHex}`)
+
+//         const payload = {
+//             contractId: YAPPR_CONTRACT_ID_TESTNET,
+//             type: 'post',
+//             ownerId: identityId,
+//             data: postData,
+//             entropyHex,
+//             privateKeyWif,
+//         }
+// // alert(`PAYLOAD: ${JSON.stringify(payload, null, 2)}`)
+//         // const document = await sdk.documents.create(
+//         //     YAPPR_CONTRACT_ID_TESTNET, 'post', data, identityId, BigInt(1))
+//         const document = await sdk.documents.create(payload)
+// console.log(document)
+// // alert(`POSTED! ${JSON.stringify(document, null, 2)}`)
+
+//         // const identityContractNonce = (await sdk.identities
+//         //         .getIdentityContractNonce(identityId, YAPPR_CONTRACT_ID_TESTNET)) + 1n
+
+//         // const stateTransition = await sdk.documents
+//         //     .createStateTransition(document, 'create', { identityContractNonce })
+
+//         // const privKey = PrivateKeyWASM.fromWIF(authKeyData.privateKeyWif)
+//         // const identity = await sdk.identities.getIdentityByIdentifier(identityId)
+//         // if (!identity) throw new Error('Identity fetch failed.')
+
+//         // const publicKeyId = 1
+//         // const pubKey = identity.getPublicKeys()[publicKeyId]
+//         // if (!pubKey) throw new Error('Public key index 1 not found')
+
+//         // stateTransition.sign(privKey, pubKey)
+//         // stateTransition.signaturePublicKeyId = publicKeyId
+
+//         // await sdk.stateTransitions.broadcast(stateTransition)
+//         // await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+
+//         return {
+//             ...data,
+//             // id: stateTransition.hash(true), // skip_signature: true
+//             id: '', // skip_signature: true
+//             ownerId: identityId,
+//             createdAt: Math.floor(Date.now() / 1000),
+//             updatedAt: null,
+//             contractId: YAPPR_CONTRACT_ID_TESTNET,
+//             author: identityStore.identity as any,
+//             likes: 0, remixes: 0, replies: 0, views: 0
+//         } as unknown as IPost
+//     } catch (error: any) {
+//         console.error('[API] createPost Error:', error)
+//         throw error
+//     }
+// }
 export async function createPost(
     params: ICreatePostParams
 ): Promise<IPost | null> {
     const { network: currentNetwork } = useNetwork()
-    // const { getAuthKey } = useWallet()
-
     const identityStore = useIdentityStore()
-
     const targetNetwork = currentNetwork.value as 'testnet' | 'mainnet'
     const identityId = identityStore.identityId
-
     if (!identityId) throw new Error('Identity not found.')
-
     try {
-        // const sdk = new DashPlatformSDK({ network: targetNetwork })
+        // 1. Use ONLY EvoSDK (matching your Modal's success path)
         const sdk = targetNetwork === 'mainnet'
             ? EvoSDK.mainnetTrusted()
             : EvoSDK.testnetTrusted()
-
+        // 2. Ensure SDK is connected before proceeding
+        await sdk.connect();
+        // 3. Load Keys (Removed all alerts)
         const keyData = await invoke<any>('load_private_keys', { network: targetNetwork })
-// alert(`KEY DATA: ${JSON.stringify(keyData, null, 2)}`)
-// alert(`IDENTITIES: ${JSON.stringify(keyData?.identities, null, 2)}`)
-// alert(`IDENTITY: ${JSON.stringify(keyData?.identities?.[identityId], null, 2)}`)
         const authKeyData = keyData?.identities?.[identityId]?.find((k: any) =>
             k.purpose === 0 && (k.securityLevel === 1 || k.securityLevel === 2)
         )
-// alert(`AUTH PRIV KEY: ${JSON.stringify(authKeyData, null, 2)}`)
         if (!authKeyData?.privateKey) throw new Error('Auth Key not found.')
-
-        /* Set private key (WIF). */
         const privateKeyWif = authKeyData.privateKey
-
-        const data = {
+        const entropyHex = binToHex(randomBytes(32))
+        // 4. Data Construction
+        const postData = {
             content: params.content.trim(),
             language: (params.language || 'en').substring(0, 2),
             ...(params.isSensitive && { sensitive: true }),
             ...(params.mediaUrl?.[0] && { mediaUrl: params.mediaUrl[0] }),
             ...(params.remix && { remix: params.remix })
         }
-
-        const postData: IPostData = {
-            content: params.content.trim(),
-        }
-
-        postData.language = (params.language || 'en').substring(0, 2)
-
-        const entropyHex = binToHex(randomBytes(32))
-// const IDENTITY_IDX = 0 // FIXME PULL THIS FROM RUST IDENTITY.JSON
-// const authKey = getAuthKey(identityId)
-// alert(`ENTROPY: ${entropyHex}`)
-
         const payload = {
+            id: '', // skip_signature: true
             contractId: YAPPR_CONTRACT_ID_TESTNET,
             type: 'post',
             ownerId: identityId,
@@ -300,37 +384,12 @@ export async function createPost(
             entropyHex,
             privateKeyWif,
         }
-// alert(`PAYLOAD: ${JSON.stringify(payload, null, 2)}`)
-        // const document = await sdk.documents.create(
-        //     YAPPR_CONTRACT_ID_TESTNET, 'post', data, identityId, BigInt(1))
+        // 5. Submit Document
+        // Note: We use await here. If it hangs, check the console for WASM errors.
         const document = await sdk.documents.create(payload)
-console.log(document)
-// alert(`POSTED! ${JSON.stringify(document, null, 2)}`)
-
-        // const identityContractNonce = (await sdk.identities
-        //         .getIdentityContractNonce(identityId, YAPPR_CONTRACT_ID_TESTNET)) + 1n
-
-        // const stateTransition = await sdk.documents
-        //     .createStateTransition(document, 'create', { identityContractNonce })
-
-        // const privKey = PrivateKeyWASM.fromWIF(authKeyData.privateKeyWif)
-        // const identity = await sdk.identities.getIdentityByIdentifier(identityId)
-        // if (!identity) throw new Error('Identity fetch failed.')
-
-        // const publicKeyId = 1
-        // const pubKey = identity.getPublicKeys()[publicKeyId]
-        // if (!pubKey) throw new Error('Public key index 1 not found')
-
-        // stateTransition.sign(privKey, pubKey)
-        // stateTransition.signaturePublicKeyId = publicKeyId
-
-        // await sdk.stateTransitions.broadcast(stateTransition)
-        // await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
-
+        // 6. Return standard post object for UI
         return {
-            ...data,
-            // id: stateTransition.hash(true), // skip_signature: true
-            id: '', // skip_signature: true
+            ...postData,
             ownerId: identityId,
             createdAt: Math.floor(Date.now() / 1000),
             updatedAt: null,
@@ -339,7 +398,7 @@ console.log(document)
             likes: 0, remixes: 0, replies: 0, views: 0
         } as unknown as IPost
     } catch (error: any) {
-        console.error('[API] createPost Error:', error)
+        console.error('[API] createPost Internal Error:', error)
         throw error
     }
 }

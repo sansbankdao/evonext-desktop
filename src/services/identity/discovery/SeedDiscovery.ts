@@ -70,12 +70,10 @@ export class SeedDiscovery extends BaseDiscovery {
 
         while ((gapCount < activeGapLimit) || (currentIndex < minSearch)) {
             if (this.isCancelled) break
-
             let foundForIndex = false
 
             for (let keyIndex = 0; keyIndex <= maxKeyIndex; keyIndex++) {
                 if (this.isCancelled) break
-
                 try {
                     this.updateProgress({
                         currentIdentityIndex: Math.min(currentIndex, this.scanLimit),
@@ -96,7 +94,13 @@ export class SeedDiscovery extends BaseDiscovery {
 
                     const pubKeyBytes = privateKey.getPublicKey().bytes()
                     const pubKeyHash = binToHex(hash160(pubKeyBytes))
-                    const uniqueResult = await DAPIService.queryIdentityByHash(pubKeyHash, network, true)
+
+                    // Check for identity by master key hash
+                    const uniqueResult = await DAPIService.queryIdentityByHash(
+                        pubKeyHash,
+                        network,
+                        true
+                    )
                     const result = uniqueResult.success
                         ? uniqueResult
                         : await DAPIService.queryIdentityByHash(pubKeyHash, network, false)
@@ -111,7 +115,6 @@ export class SeedDiscovery extends BaseDiscovery {
                             identityIdx: currentIndex,
                             publicKeys: identityData.publicKeys || [],
                             balance: identityData.balance,
-                            // FIX: Use DPNS name if available, otherwise fallback to ID
                             username: dpnsName || identityId,
                             dpnsUsername: dpnsName,
                             displayName: dpnsName || `Identity ${currentIndex}`,
@@ -119,11 +122,10 @@ export class SeedDiscovery extends BaseDiscovery {
                         }
 
                         results.push(discovered)
-
                         gapCount = 0
-
                         foundForIndex = true
 
+                        // DERIVE AND SAVE ALL REGISTERED KEYS TO RUST KEYSTORE
                         await this.saveDerivedKeysToStorage(
                             seedPhrase,
                             network,
@@ -134,15 +136,13 @@ export class SeedDiscovery extends BaseDiscovery {
                         break
                     }
                 } catch (error) {
-                    // ignore key derivation errors
+                    continue
                 }
             }
-            if (!foundForIndex) {
-                gapCount++
-            }
-
+            if (!foundForIndex) gapCount++
             currentIndex++
         }
+
         this.updateProgress({
             currentIdentityIndex: this.scanLimit,
             totalIdentities: this.scanLimit,
@@ -153,6 +153,7 @@ export class SeedDiscovery extends BaseDiscovery {
 
         return results
     }
+
     private async saveDerivedKeysToStorage(
         seedPhrase: string,
         network: 'mainnet' | 'testnet',
@@ -168,36 +169,40 @@ export class SeedDiscovery extends BaseDiscovery {
 
             for (let i = 0; i < publicKeys.length; i++) {
                 const publicKey = publicKeys[i]
-                const keyIndex = publicKey.id
 
-                if (keyIndex === undefined || keyIndex === null) continue
+                // FALLBACK: If publicKey.id is missing, use the array index
+                const keyIndex = (publicKey.id !== undefined && publicKey.id !== null)
+                    ? Number(publicKey.id)
+                    : i
 
                 try {
-                    const derivationResult = await KeyDerivationService.getPrivateKeyWASM(
+                    const res = await KeyDerivationService.getPrivateKeyWASM(
                         seedPhrase,
                         network,
                         identityIdx,
                         keyIndex
                     )
 
-                    const derivedPubHex = binToHex(derivationResult.privateKey.getPublicKey().bytes())
+                    const derivedPubHex = binToHex(res.privateKey.getPublicKey().bytes())
 
                     privateKeyEntries.push({
                         identityId: identityId,
-                        keyId: publicKey.id,
-                        purpose: publicKey.purpose,
-                        securityLevel: publicKey.securityLevel,
-                        keyType: publicKey.keyType || 'ecdsa',
-                        privateKey: derivationResult.privateKey.WIF(),
+                        keyId: keyIndex,
+                        purpose: Number(publicKey.purpose ?? 0),
+                        securityLevel: Number(publicKey.securityLevel ?? 0),
+                        keyType: String(publicKey.keyType ?? 'ECDSA_HASH160'),
+                        privateKey: res.privateKey.WIF(),
                         publicKey: derivedPubHex,
                         derivedFromMnemonic: true,
                         createdAt: now,
                         lastUsed: now
                     })
-                } catch {
+                } catch (err) {
+                    console.warn(`[SeedDiscovery] Derivation failed for key ${keyIndex}`, err)
                     continue
                 }
             }
+
             if (privateKeyEntries.length > 0) {
                 await this.store.saveKeys(network, identityId, privateKeyEntries)
                 return true
