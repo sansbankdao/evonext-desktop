@@ -15,19 +15,15 @@ export function useKeyManagement() {
     const { ensure } = useNetwork()
     const loading = ref(false)
     const error = ref<string | null>(null)
-    /**
-     * Internal: Maps Rust purpose/security types to human strings if needed
-     */
     const purposeMap: Record<number, string> = {
         0: 'AUTHENTICATION', 1: 'ENCRYPTION', 2: 'DECRYPTION', 3: 'TRANSFER'
     }
     const securityMap: Record<number, string> = {
         0: 'MASTER', 1: 'CRITICAL', 2: 'HIGH', 3: 'MEDIUM', 4: 'LOW'
     }
-    /**
-     * Reads the Keystore from Rust and returns
-     * all keys registered for a specific Identity ID.
-     */
+    const initialize = async (): Promise<void> => {
+        await ensure()
+    }
     const getPrivateKeys = async (identityId: string): Promise<PrivateKeyEntry[]> => {
         loading.value = true
         error.value = null
@@ -50,9 +46,6 @@ export function useKeyManagement() {
             loading.value = false
         }
     }
-    /**
-     * Generic finder for keys based on purpose and security level.
-     */
     const getKeyByPurpose = async (
         identityId: string,
         purpose: ParsedPurpose,
@@ -70,16 +63,12 @@ export function useKeyManagement() {
         return found?.privateKey || null
     }
     const getAuthKey = async (identityId: string): Promise<string | null> => {
-        // Find Critical or High Auth key
         return await getKeyByPurpose(identityId, 0, 1)
             || await getKeyByPurpose(identityId, 0, 2)
     }
     const getMasterKey = async (identityId: string): Promise<string | null> => {
         return await getKeyByPurpose(identityId, 0, 0)
     }
-    /**
-     * Specifically used by the Platform SDK for signing State Transitions.
-     */
     const getTransferKey = async (identityId: string): Promise<KeyPair | null> => {
         const keys = await getPrivateKeys(identityId)
         const transferKey = keys.find(k => k.purpose === 3)
@@ -95,6 +84,12 @@ export function useKeyManagement() {
     const getEncryptionKey = async (identityId: string): Promise<string | null> => {
         return await getKeyByPurpose(identityId, 2, 3)
     }
+    const deriveKey = async (
+        _identityIdx: number,
+        _keyIdx: number
+    ): Promise<any> => {
+        throw new Error('deriveKey is deprecated. Keys must be derived during connect phase.')
+    }
     return {
         loading: computed(() => loading.value),
         error: computed(() => error.value),
@@ -104,6 +99,8 @@ export function useKeyManagement() {
         getEncryptionKey,
         getKeyByPurpose,
         getMasterKey,
+        initialize,
+        deriveKey,
         purposeMap,
         securityMap
     }

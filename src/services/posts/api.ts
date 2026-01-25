@@ -237,10 +237,10 @@ export async function fetchDPNSNames(
 
 // --- Mutation Logic ---
 
-interface IPostData {
-    content: string;
-    language?: string;
-}
+// interface IPostData {
+//     content: string;
+//     language?: string;
+// }
 
 // export async function createPost(
 //     params: ICreatePostParams
@@ -386,7 +386,8 @@ export async function createPost(
         }
         // 5. Submit Document
         // Note: We use await here. If it hangs, check the console for WASM errors.
-        const document = await sdk.documents.create(payload)
+        const createdDocument = await sdk.documents.create(payload)
+console.log('CREATED DOCUMENT', createdDocument)
         // 6. Return standard post object for UI
         return {
             ...postData,

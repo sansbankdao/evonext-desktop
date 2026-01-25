@@ -3,7 +3,7 @@
 import { defineStore } from 'pinia'
 import { useIdentityState } from './state'
 import { useIdentityGetters } from './getters'
-import { storageActions, identitiesMapActions } from './actions/storage'
+// import { storageActions } from './actions/storage'
 import { connectionActions } from './actions/connection'
 import { balanceActions } from './actions/balance'
 import { identityActions } from './actions/identity'
@@ -12,13 +12,12 @@ import { unifiedActions } from './actions/unified'
 
 // Combine all actions
 const useIdentityActions = {
-    ...storageActions(),
+    // ...storageActions(),
     ...connectionActions(),
     ...identityActions(),
     ...balanceActions(),
     ...discoveredIdentitiesActions(),
     ...unifiedActions(), // This includes the new syncIdentityToBackend
-    ...identitiesMapActions(),
 }
 
 export const useIdentityStore = defineStore('identity', {
