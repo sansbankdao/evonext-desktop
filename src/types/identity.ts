@@ -257,6 +257,7 @@ export interface DiscoveryResult {
     success: boolean;
     identities: any[];
     debug: any;
+    error?: string;
 }
 
 export interface DiscoveryOptions {

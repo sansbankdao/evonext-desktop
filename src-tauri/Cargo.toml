@@ -2,7 +2,7 @@
 
 [package]
 name = "evonext"
-version = "26.1.24"
+version = "26.1.27"
 description = "Free and Fearless Social — Connect with early-stage Founders and Creators — plus, the hottest collection of Mini Apps designed to streamline your workflow and simplify everyday tasks."
 authors = ["Sansbank DAO developers"]
 edition = "2021"
