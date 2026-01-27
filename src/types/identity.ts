@@ -252,3 +252,20 @@ export interface IPrivateKeyEntry {
 
 // Explicit Export for your existing code usage
 export type PrivateKeyEntry = IPrivateKeyEntry
+
+export interface DiscoveryResult {
+    success: boolean;
+    identities: any[];
+    debug: any;
+}
+
+export interface DiscoveryOptions {
+    network: 'mainnet' | 'testnet';
+    maxIdentityIndex?: number;
+    data: DiscoveryResult;
+    maxKeyIndex?: number;
+}
+
+export interface SeedDiscoveryOptions{
+    // TBD
+}

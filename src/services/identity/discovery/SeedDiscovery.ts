@@ -3,8 +3,12 @@
 import { BaseDiscovery } from './BaseDiscovery'
 import { DAPIService } from './DAPIService'
 import { KeyDerivationService } from '../keyDerivation.service'
-import type { DiscoveredIdentity } from '@/types'
-import type { IIdentityActions } from '@/types'
+import type {
+    DiscoveredIdentity,
+    IIdentityActions,
+    DiscoveryOptions,
+    DiscoveryResult,
+} from '@/types'
 // @ts-ignore
 import { hash160 } from '@evonext/crypto'
 // @ts-ignore
@@ -12,23 +16,34 @@ import { binToHex } from '@evonext/utils'
 
 export type ProgressCallback = (details: any) => void
 
-export interface SeedDiscoveryOptions {
-    network?: 'mainnet' | 'testnet'
-    minIndexSearch?: number
-    gapLimit?: number
-    maxKeyIndex?: number
-}
-
 export class SeedDiscovery extends BaseDiscovery {
     private isCancelled = false
-    private GAP_LIMIT = 5
-    private progressCallback: ProgressCallback | null = null
-    private scanLimit = 0
     private store: IIdentityActions
+    private progressCallback: ProgressCallback | null = null
 
     constructor(store: IIdentityActions) {
         super()
         this.store = store
+    }
+
+    // Correctly implement the abstract method to match DiscoveryResult interface
+    async discover(input: string, options?: DiscoveryOptions): Promise<DiscoveryResult> {
+        const network = options?.network || 'testnet'
+        try {
+            const identities = await this.discoverFromSeed(input, network, options)
+            return {
+                success: true,
+                identities: identities,
+                debug: { step: 'completed', network }
+            }
+        } catch (err: any) {
+            return {
+                success: false,
+                error: err.message || 'Seed discovery failed',
+                identities: [],
+                debug: { step: 'error', error: err.message }
+            }
+        }
     }
 
     cancel(): void {
@@ -37,11 +52,6 @@ export class SeedDiscovery extends BaseDiscovery {
 
     setProgressCallback(callback: ProgressCallback): void {
         this.progressCallback = callback
-    }
-
-    async discover(input: string, options?: any): Promise<any> {
-        const network = options?.network || 'mainnet'
-        return this.discoverFromSeed(input, network, options)
     }
 
     protected updateProgress(details: any) {
@@ -54,163 +64,95 @@ export class SeedDiscovery extends BaseDiscovery {
 
     async discoverFromSeed(
         seedPhrase: string,
-        network: 'mainnet' | 'testnet' = 'mainnet',
-        options?: SeedDiscoveryOptions
+        network: 'mainnet' | 'testnet',
+        options?: any
     ): Promise<DiscoveredIdentity[]> {
         this.isCancelled = false
         const results: DiscoveredIdentity[] = []
-        let gapCount = 0
         let currentIndex = 0
+        const searchLimit = options?.maxIdentityIndex ?? 5
 
-        const minSearch = options?.minIndexSearch ?? 5
-        const activeGapLimit = options?.gapLimit ?? this.GAP_LIMIT
-        const maxKeyIndex = options?.maxKeyIndex ?? 5
-        const maxSearchRange = minSearch + activeGapLimit
-        this.scanLimit = maxSearchRange
-
-        while ((gapCount < activeGapLimit) || (currentIndex < minSearch)) {
+        while (currentIndex < searchLimit) {
             if (this.isCancelled) break
-            let foundForIndex = false
 
-            for (let keyIndex = 0; keyIndex <= maxKeyIndex; keyIndex++) {
-                if (this.isCancelled) break
-                try {
-                    this.updateProgress({
-                        currentIdentityIndex: Math.min(currentIndex, this.scanLimit),
-                        totalIdentities: this.scanLimit,
-                        currentKeyIndex: keyIndex,
-                        totalKeysPerIdentity: maxKeyIndex + 1,
-                        scannedCount: currentIndex,
-                        foundCount: results.length,
-                        message: `Scanning Identity #${currentIndex}`
-                    })
+            this.updateProgress({
+                currentIdentityIndex: currentIndex,
+                totalIdentities: searchLimit,
+                message: `Scanning Identity Index ${currentIndex}...`
+            })
 
-                    const { privateKey } = await KeyDerivationService.getPrivateKeyWASM(
-                        seedPhrase,
-                        network,
-                        currentIndex,
-                        keyIndex
-                    )
+            try {
+                const { privateKey } = await KeyDerivationService.getPrivateKeyWASM(
+                    seedPhrase, network, currentIndex, 0
+                )
+                const pubKeyHash = binToHex(hash160(privateKey.getPublicKey().bytes()))
 
-                    const pubKeyBytes = privateKey.getPublicKey().bytes()
-                    const pubKeyHash = binToHex(hash160(pubKeyBytes))
+                const result = await DAPIService.queryIdentityByHash(pubKeyHash, network, true)
 
-                    // Check for identity by master key hash
-                    const uniqueResult = await DAPIService.queryIdentityByHash(
-                        pubKeyHash,
-                        network,
-                        true
-                    )
-                    const result = uniqueResult.success
-                        ? uniqueResult
-                        : await DAPIService.queryIdentityByHash(pubKeyHash, network, false)
+                if (result.success && result.data) {
+                    const id = result.data.identityId
+                    const dpns = await DAPIService.getDPNSUsername(id, network)
 
-                    if (result.success && result.data) {
-                        const identityData = result.data
-                        const identityId = identityData.identityId || identityData.id
-                        const dpnsName = await DAPIService.getDPNSUsername(identityId, network)
-
-                        const discovered: DiscoveredIdentity = {
-                            identityId: identityId,
-                            identityIdx: currentIndex,
-                            publicKeys: identityData.publicKeys || [],
-                            balance: identityData.balance,
-                            username: dpnsName || identityId,
-                            dpnsUsername: dpnsName,
-                            displayName: dpnsName || `Identity ${currentIndex}`,
-                            revision: identityData.revision
-                        }
-
-                        results.push(discovered)
-                        gapCount = 0
-                        foundForIndex = true
-
-                        // DERIVE AND SAVE ALL REGISTERED KEYS TO RUST KEYSTORE
-                        await this.saveDerivedKeysToStorage(
-                            seedPhrase,
-                            network,
-                            currentIndex,
-                            identityId,
-                            identityData.publicKeys || []
-                        )
-                        break
+                    const discovered: DiscoveredIdentity = {
+                        identityId: id,
+                        identityIdx: currentIndex,
+                        publicKeys: result.data.publicKeys || [],
+                        balance: result.data.balance,
+                        username: dpns || id,
+                        dpnsUsername: dpns,
+                        displayName: dpns || `Identity ${currentIndex}`,
+                        revision: result.data.revision
                     }
-                } catch (error) {
-                    continue
+
+                    results.push(discovered)
+
+                    await this.saveDerivedKeys(seedPhrase, network, currentIndex, id, discovered.publicKeys)
                 }
+            } catch (e) {
+                // Identity not found at this index
             }
-            if (!foundForIndex) gapCount++
             currentIndex++
         }
 
         this.updateProgress({
-            currentIdentityIndex: this.scanLimit,
-            totalIdentities: this.scanLimit,
-            scannedCount: currentIndex,
-            foundCount: results.length,
+            currentIdentityIndex: searchLimit,
+            totalIdentities: searchLimit,
             message: `Found ${results.length} identities.`
         })
 
         return results
     }
 
-    private async saveDerivedKeysToStorage(
-        seedPhrase: string,
-        network: 'mainnet' | 'testnet',
-        identityIdx: number,
-        identityId: string,
-        publicKeys: any[]
-    ): Promise<boolean> {
-        try {
-            if (!identityId || !publicKeys || publicKeys.length === 0) return false
+    private async saveDerivedKeys(phrase: string, net: any, idx: number, id: string, keys: any[]) {
+        const entries = []
+        const now = new Date().toISOString()
 
-            const now = new Date().toISOString()
-            const privateKeyEntries: any[] = []
+        for (let i = 0; i < keys.length; i++) {
+            try {
+                const kId = (keys[i].id !== undefined && keys[i].id !== null) ? Number(keys[i].id) : i
+                if (kId > 10) continue
 
-            for (let i = 0; i < publicKeys.length; i++) {
-                const publicKey = publicKeys[i]
+                const res = await KeyDerivationService.getPrivateKeyWASM(phrase, net, idx, kId)
 
-                // FALLBACK: If publicKey.id is missing, use the array index
-                const keyIndex = (publicKey.id !== undefined && publicKey.id !== null)
-                    ? Number(publicKey.id)
-                    : i
-
-                try {
-                    const res = await KeyDerivationService.getPrivateKeyWASM(
-                        seedPhrase,
-                        network,
-                        identityIdx,
-                        keyIndex
-                    )
-
-                    const derivedPubHex = binToHex(res.privateKey.getPublicKey().bytes())
-
-                    privateKeyEntries.push({
-                        identityId: identityId,
-                        keyId: keyIndex,
-                        purpose: Number(publicKey.purpose ?? 0),
-                        securityLevel: Number(publicKey.securityLevel ?? 0),
-                        keyType: String(publicKey.keyType ?? 'ECDSA_HASH160'),
-                        privateKey: res.privateKey.WIF(),
-                        publicKey: derivedPubHex,
-                        derivedFromMnemonic: true,
-                        createdAt: now,
-                        lastUsed: now
-                    })
-                } catch (err) {
-                    console.warn(`[SeedDiscovery] Derivation failed for key ${keyIndex}`, err)
-                    continue
-                }
+                entries.push({
+                    identityId: id,
+                    keyId: kId,
+                    purpose: Number(keys[i].purpose ?? 0),
+                    securityLevel: Number(keys[i].securityLevel ?? 0),
+                    keyType: String(keys[i].keyType || keys[i].type || 'ECDSA_HASH160'),
+                    privateKey: res.privateKey.WIF(),
+                    publicKey: keys[i].data || '',
+                    derivedFromMnemonic: true,
+                    createdAt: now,
+                    lastUsed: now
+                })
+            } catch (e) {
+                continue
             }
+        }
 
-            if (privateKeyEntries.length > 0) {
-                await this.store.saveKeys(network, identityId, privateKeyEntries)
-                return true
-            }
-            return false
-        } catch (err) {
-            console.error(`[SeedDiscovery] Failed to save keys:`, err)
-            return false
+        if (entries.length > 0) {
+            await this.store.saveKeys(net, id, entries)
         }
     }
 }

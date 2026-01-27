@@ -17,12 +17,12 @@ export const storageActions = () => ({
         if (!targetId || targetId === 'undefined') return
         const payload = {
             identity_id: targetId,
-            identity_idx: Number(data.identityIdx ?? 0),
+            identity_idx: Number(data.identityIdx ?? data.identity_idx ?? 0),
             username: data.username ?? targetId,
             dpns_username: data.dpnsUsername ?? data.username ?? null,
             balance: String(data.balance ?? '0'),
             revision: String(data.revision ?? '0'),
-            public_keys: data.publicKeys ?? [],
+            public_keys: data.publicKeys ?? data.public_keys ?? [],
             created_at: new Date().toISOString(),
             active_identity_id: data.active_identity_id || targetId
         }
@@ -41,7 +41,7 @@ export const storageActions = () => ({
         keys: any[]
     ): Promise<void> {
         try {
-            if (!keys.length) return
+            if (!keys || !keys.length) return
             await invoke('save_private_keys', {
                 network,
                 identityId: targetId,
@@ -76,11 +76,11 @@ export const storageActions = () => ({
                 this.isAuthenticated = true
                 this.isConnected = true
                 this.identity = {
-                    identityId: this.identityId as string,
+                    identityId: this.identityId || '',
                     identityIdx: data.identity_idx ?? 0,
-                    balance: this.balance,
-                    revision: this.revision,
-                    publicKeys: this.publicKeys
+                    balance: this.balance || '0',
+                    revision: this.revision || 0,
+                    publicKeys: this.publicKeys || []
                 }
             }
         } catch (err) {
@@ -100,6 +100,7 @@ export const storageActions = () => ({
             })
             if (identity && identity.balance) {
                 this.balance = String(identity.balance)
+                if (this.identity) this.identity.balance = this.balance
             }
         } catch (err) {
             console.error('Failed to fetch balance:', err)
@@ -212,7 +213,7 @@ export const storageActions = () => ({
             username: this.username ?? id,
             balance: this.balance ?? this.identity?.balance ?? '0',
             revision: this.revision ?? this.identity?.revision ?? 0,
-            publicKeys: Array.isArray(this.publicKeys) && this.publicKeys.length > 0
+            publicKeys: (Array.isArray(this.publicKeys) && this.publicKeys.length > 0)
                 ? this.publicKeys
                 : []
         }

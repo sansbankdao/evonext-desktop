@@ -68,12 +68,6 @@ export interface DerivedKey {
     path: string; // Derivation path (e.g., m/9'/1'/0'/0/0)
 }
 
-export interface DiscoveryOptions {
-    network: 'mainnet' | 'testnet';
-    maxIdentityIndex?: number;
-    maxKeyIndex?: number;
-}
-
 export interface AssociatedKey {
     purpose: string;
     securityLevel: string;

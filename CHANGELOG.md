@@ -1,18 +1,18 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Introducing a IMPROVED Private Key Manager
+### Introducing a COMPLETE Private Key Manager System
 
-This latest version of EvoNext introduces a re-engineered post manager, with de-duplicated functions.
+This latest version of EvoNext introduces a completed private key management system for discovering and securely storing your private keys for multiple Identities.
 
 # Changelog
 
 ## Latest Features:
 
-- __Keychain:__ Rebuilt the key manager, removing ALL unused code.
+- __Keychain:__ Complete cleanup up the private key management system.
 
 ## Bugfixes:
 
-- __Keychain:__ Cleanup and remove the unused functions.
+- __Keychain:__ Cleanup and remove ALL remaining unused functions.
 
 ## Notes:
 

@@ -10,7 +10,7 @@ export {
 } from './keyDerivation.service'
 export { DAPIService } from './discovery/DAPIService'
 export { KeyDiscovery } from './discovery/KeyDiscovery'
-export { SeedDiscovery, type ProgressCallback, type SeedDiscoveryOptions } from './discovery/SeedDiscovery'
+export { SeedDiscovery, type ProgressCallback } from './discovery/SeedDiscovery'
 export { type ScanProgress } from './types'
 export {
     IdentityManager,
