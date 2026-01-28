@@ -11,9 +11,6 @@ importers:
       '@dashevo/evo-sdk':
         specifier: 3.0.0-dev.11
         version: 3.0.0-dev.11
-      '@evonext/crypto':
-        specifier: 25.11.25
-        version: 25.11.25
       '@evonext/platform':
         specifier: 25.11.23
         version: 25.11.23
@@ -88,7 +85,7 @@ importers:
         specifier: 2.4.6
         version: 2.4.6
       appium:
-        specifier: ^3.1.2
+        specifier: 3.1.2
         version: 3.1.2
       autoprefixer:
         specifier: 10.4.20
@@ -437,9 +434,6 @@ packages:
 
   '@ethersproject/random@5.7.0':
     resolution: {integrity: sha512-19WjScqRA8IIeWclFme75VMXSBvi4e6InrUNuaR4s5pTF2qNhcGdCUwdxUVGtDDqC00sDLCO93jPQoDUH4HVmQ==}
-
-  '@evonext/crypto@25.11.25':
-    resolution: {integrity: sha512-KjrSDL3OADoUcn8MMGJWwjZwWEqeNdIbTfN/YeCBVb0tu8UsEGIKQe3SPTkqTXU6WI6IW5NHWpv4D/MSWzDZVg==}
 
   '@evonext/platform@25.11.23':
     resolution: {integrity: sha512-wCR3t0hG387G5QVI9EJPUdwEGUNkkD464IlvVk65Hwxh86GBO7xSXnIm40BcXcOxPvYRrURxOxakLO/nOaL6Zg==}
@@ -2545,10 +2539,6 @@ packages:
   secure-ls@1.2.6:
     resolution: {integrity: sha512-g8vUSKl6elSfyAUHodybnNkuZW+mUYEOWj4SZIDg+xoQ1dq5ddktBoOFrtxQBUl88ZyAJOtGWQ1PRaOxkTAuZQ==}
 
-  secure-ls@2.0.0:
-    resolution: {integrity: sha512-Wgtnw0QSm0v7gVKv11nOoeyGS65EThGXnBB7jfd4IhZd2eq3B4AMPcXAL5qJ1h55+Qolun7TONTwX7H5m6e2pQ==}
-    engines: {node: '>=8.0'}
-
   select-hose@2.0.0:
     resolution: {integrity: sha512-mEugaLK+YfkijB4fx0e6kImuJdCIt2LxCRcbEYPqRGCs4F2ogyfZU5IAZRdjCP8JPq2AtdNoC/Dux63d9Kiryg==}
 
@@ -3440,18 +3430,6 @@ snapshots:
     dependencies:
       '@ethersproject/bytes': 5.8.0
       '@ethersproject/logger': 5.8.0
-
-  '@evonext/crypto@25.11.25':
-    dependencies:
-      '@ethersproject/random': 5.7.0
-      '@evonext/utils': 25.11.25
-      bn.js: 5.2.1
-      bs58: 6.0.0
-      crypto-js: 4.2.0
-      elliptic: 6.5.5
-      lodash: 4.17.21
-      scrypt-js: 3.0.1
-      secure-ls: 2.0.0
 
   '@evonext/platform@25.11.23':
     dependencies:
@@ -5589,11 +5567,6 @@ snapshots:
   secure-ls@1.2.6:
     dependencies:
       crypto-js: 3.3.0
-      lz-string: 1.5.0
-
-  secure-ls@2.0.0:
-    dependencies:
-      crypto-js: 4.2.0
       lz-string: 1.5.0
 
   select-hose@2.0.0:

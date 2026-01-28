@@ -5,11 +5,9 @@ import { invoke } from '@tauri-apps/api/core'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 import { EvoSDK } from '@dashevo/evo-sdk'
-
-// @ts-ignore
-import { randomBytes } from '@evonext/crypto'
 // @ts-ignore
 import { binToHex } from '@evonext/utils'
+import { randomBytes } from '@/services/crypto'
 
 import { useNetwork } from '@/composables/useNetwork'
 // import { useWallet } from '@/composables/useWallet'

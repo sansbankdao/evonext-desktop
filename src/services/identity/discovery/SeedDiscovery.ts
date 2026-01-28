@@ -10,9 +10,8 @@ import type {
     DiscoveryResult
 } from '@/types'
 // @ts-ignore
-import { hash160 } from '@evonext/crypto'
-// @ts-ignore
 import { binToHex } from '@evonext/utils'
+import { hash160 } from '@/services/crypto'
 
 export type ProgressCallback = (details: any) => void
 export class SeedDiscovery extends BaseDiscovery {

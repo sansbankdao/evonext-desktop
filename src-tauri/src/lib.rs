@@ -25,6 +25,10 @@ pub fn run() {
             commands::asset_commands::save_assets,
             commands::asset_commands::delete_assets,
 
+            // Crypto Commands
+            commands::crypto_commands::hash160,
+            commands::crypto_commands::random_bytes,
+
             // Identity Keys (Keystore)
             commands::identity_commands::load_private_keys,
             commands::identity_commands::save_private_keys,

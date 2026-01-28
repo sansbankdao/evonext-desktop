@@ -1,16 +1,19 @@
 // src/services/identity/discovery/KeyDiscovery.ts
 
-import { BaseDiscovery } from './BaseDiscovery'
-import { DAPIService } from './DAPIService'
-import { KeyDerivationService } from '../keyDerivation.service'
-import type { DiscoveredIdentity } from '@/types'
-import type { IIdentityActions } from '@/types'
 // @ts-ignore
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 // @ts-ignore
 import { binToHex, hexToBin } from '@evonext/utils'
-// @ts-ignore
-import { hash160 } from '@evonext/crypto'
+
+import { hash160 } from '@/services/crypto'
+
+import { BaseDiscovery } from './BaseDiscovery'
+import { DAPIService } from './DAPIService'
+
+import { KeyDerivationService } from '../keyDerivation.service'
+
+import type { DiscoveredIdentity } from '@/types'
+import type { IIdentityActions } from '@/types'
 import type {
     DiscoveryResult,
     DiscoveryOptions,

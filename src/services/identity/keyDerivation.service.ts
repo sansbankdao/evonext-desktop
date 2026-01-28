@@ -3,21 +3,21 @@
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 // @ts-ignore
-import { hash160 } from '@evonext/crypto'
-// @ts-ignore
 import { binToHex, hexToBin } from '@evonext/utils'
+
+import { hash160 } from '@/services/crypto'
 
 import type { DerivedKey, KeyDerivationResult } from '@/types'
 
-export type KeyType = 'WIF' | 'HEX_PRIVATE' | 'COMPRESSED_PUBKEY' | 'UNCOMPRESSED_PUBKEY' | 'UNKNOWN'
+export type KeyType = 'WIF' | 'HEX_PRIVATE' | 'COMPRESSED_PUBKEY' | 'UNCOMPRESSED_PUBKEY' | 'UNKNOWN';
 
 export interface DerivationResult {
-    hashes: string[]
-    keyType: KeyType
+    hashes: string[];
+    keyType: KeyType;
     debug?: {
-        error?: string
-        input?: string
-        reason?: string
+        error?: string;
+        input?: string;
+        reason?: string;
     }
 }
 
@@ -159,7 +159,7 @@ export class KeyDerivationService {
                         const privateKey = PrivateKeyWASM.fromHex(binToHex(privateKeyBuffer), network)
 
                         // Calculate public key hash
-                        const publicKeyHash = binToHex(hash160(publicKeyBuffer))
+                        const publicKeyHash = binToHex(hash160(publicKeyBuffer as Uint8Array))
 
                         keys.push({
                             keyIndex: keyInfo.index,

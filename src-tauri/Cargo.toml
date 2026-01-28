@@ -39,6 +39,7 @@ ts-rs = { version = "11", features = ["serde-compat"] }
 
 # Crypto
 sha2 = "0.10"
+rand = "0.9.2"
 ripemd = "0.1"
 bitcoin = "0.32.8"
 

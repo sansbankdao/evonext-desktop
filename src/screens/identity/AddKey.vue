@@ -190,8 +190,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { invoke } from '@tauri-apps/api/core'
 import { EvoSDK } from '@dashevo/evo-sdk'
 // import { PrivateKeyWASM } from 'pshenmic-dpp'
-// @ts-ignore
-import { hash160 } from '@evonext/crypto'
+import { hash160 } from '@/services/crypto'
 // @ts-ignore
 import { binToHex } from '@evonext/utils'
 import Header from '@/components/Header.vue'
