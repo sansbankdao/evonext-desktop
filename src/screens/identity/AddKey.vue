@@ -2,6 +2,7 @@
 <template>
     <main>
         <Header title="Add Identity Key" />
+
         <section class="bg-gray-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
                 <div class="space-y-8">
@@ -14,6 +15,7 @@
                             <span class="font-medium">Back to Manage Keys</span>
                         </RouterLink>
                     </div>
+
                     <!-- Page Header -->
                     <div class="space-y-4">
                         <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
@@ -23,6 +25,7 @@
                             Add a new public key to your identity for specific purposes or security levels.
                         </p>
                     </div>
+
                     <!-- Loading State -->
                     <div v-if="loading" class="text-center py-12">
                         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
@@ -30,6 +33,7 @@
                             Loading identity details...
                         </p>
                     </div>
+
                     <!-- No Identities Fallback -->
                     <div v-else-if="!currentIdentity" class="rounded-xl bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-2 border-amber-400/30 p-8 text-center">
                         <h3 class="text-xl font-semibold text-amber-800 dark:text-amber-300 mb-2">
@@ -39,6 +43,7 @@
                             Return to Identity List
                         </RouterLink>
                     </div>
+
                     <!-- Identity & Key Configuration -->
                     <template v-else>
                         <!-- Selected Identity Details -->
@@ -48,32 +53,39 @@
                                     <div class="size-16 rounded-full bg-gradient-to-r from-slate-400 to-slate-500 flex items-center justify-center text-white text-xl font-bold">
                                         {{ (currentIdentity.username || currentIdentity.identityId).charAt(0).toUpperCase() }}
                                     </div>
+
                                     <div>
                                         <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">
                                             {{ currentIdentity.username || 'Unnamed Identity' }}
                                         </h2>
+
                                         <p class="text-sm text-slate-500 dark:text-slate-400 font-mono">
                                             {{ currentIdentity.identityId.slice(0, 8) }}...{{ currentIdentity.identityId.slice(-8) }}
                                         </p>
                                     </div>
                                 </div>
+
                                 <div class="text-right">
                                     <div class="text-sm font-medium text-slate-500 dark:text-slate-400">Revision</div>
+
                                     <div class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ currentIdentity.revision }}</div>
                                 </div>
                             </div>
                         </div>
+
                         <!-- Key Configuration Form -->
                         <div class="bg-white dark:bg-slate-800 rounded-xl border-2 border-slate-200 dark:border-slate-700 p-8 shadow-lg">
                             <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6 border-b border-slate-200 dark:border-slate-700 pb-4">
                                 Key Configuration
                             </h3>
+
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                 <!-- Purpose Selection -->
                                 <div class="space-y-2">
                                     <label class="block text-sm font-bold text-slate-700 dark:text-slate-300">
                                         Purpose
                                     </label>
+
                                     <select
                                         v-model="selectedPurpose"
                                         class="w-full rounded-lg bg-slate-50 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-600 px-4 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
@@ -82,15 +94,18 @@
                                             {{ p.label }}
                                         </option>
                                     </select>
+
                                     <p class="text-xs text-slate-500 dark:text-slate-400">
                                         {{ getPurposeDescription(selectedPurpose) }}
                                     </p>
                                 </div>
+
                                 <!-- Security Level Selection -->
                                 <div class="space-y-2">
                                     <label class="block text-sm font-bold text-slate-700 dark:text-slate-300">
                                         Security Level
                                     </label>
+
                                     <select
                                         v-model="selectedSecurityLevel"
                                         class="w-full rounded-lg bg-slate-50 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-600 px-4 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
@@ -99,16 +114,19 @@
                                             {{ l.label }}
                                         </option>
                                     </select>
+
                                     <p class="text-xs text-slate-500 dark:text-slate-400">
                                         {{ getSecurityLevelDescription(selectedSecurityLevel) }}
                                     </p>
                                 </div>
                             </div>
+
                             <!-- Key Type Selection -->
                             <div class="mb-8 space-y-2">
                                 <label class="block text-sm font-bold text-slate-700 dark:text-slate-300">
                                     Key Type
                                 </label>
+
                                 <div class="grid grid-cols-2 gap-4">
                                     <button
                                         type="button"
@@ -123,6 +141,7 @@
                                         <div class="font-bold text-slate-900 dark:text-slate-100">ECDSA HASH160</div>
                                         <div class="text-xs text-slate-500 dark:text-slate-400">Standard for Dash identities</div>
                                     </button>
+
                                     <button
                                         type="button"
                                         @click="keyType = 'ECDSA_SECP256K1'"
@@ -133,16 +152,23 @@
                                                 : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                                         ]"
                                     >
-                                        <div class="font-bold text-slate-900 dark:text-slate-100">ECDSA SECP256K1</div>
-                                        <div class="text-xs text-slate-500 dark:text-slate-400">Used for Encryption</div>
+                                        <div class="font-bold text-slate-900 dark:text-slate-100">
+                                            ECDSA SECP256K1
+                                        </div>
+
+                                        <div class="text-xs text-slate-500 dark:text-slate-400">
+                                            Used for Encryption
+                                        </div>
                                     </button>
                                 </div>
                             </div>
+
                             <!-- Validation Status -->
                             <div v-if="keyExists" class="mb-6 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 p-4 flex items-start gap-3">
                                 <svg class="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
+
                                 <div>
                                     <h4 class="font-bold text-red-800 dark:text-red-300">Key Already Exists</h4>
                                     <p class="text-sm text-red-700 dark:text-red-400 mt-1">
@@ -150,6 +176,7 @@
                                     </p>
                                 </div>
                             </div>
+
                             <!-- Action -->
                             <div class="flex items-center gap-4">
                                 <button
@@ -161,20 +188,26 @@
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                     </svg>
+
                                     <span v-if="!isAdding">Add {{ getPurposeLabel(selectedPurpose) }} Key</span>
                                     <span v-else>Adding Key...</span>
                                 </button>
                             </div>
                         </div>
+
                         <!-- Info Section -->
                         <div class="rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6">
                             <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100 mb-2 uppercase tracking-wider">
                                 About Adding Keys
                             </h3>
+
                             <ul class="space-y-2 text-sm text-slate-600 dark:text-slate-400 list-disc list-inside">
                                 <li>Adding a key requires a small fee in credits.</li>
+
                                 <li>You cannot add a MASTER key if one already exists.</li>
+
                                 <li>Keys must be signed by the new key itself (to prove ownership) and an existing MASTER or high-security AUTHENTICATION key.</li>
+
                                 <li><strong>Supported Keys:</strong> We currently support adding standard HD-derived keys (Indices 0-5).</li>
                             </ul>
                         </div>
@@ -184,6 +217,7 @@
         </section>
     </main>
 </template>
+
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -229,7 +263,6 @@ const SECURITY_LEVELS = [
     { value: 1 as SecurityLevelType, label: 'CRITICAL (1)' },
     { value: 2 as SecurityLevelType, label: 'HIGH (2)' },
     { value: 3 as SecurityLevelType, label: 'MEDIUM (3)' },
-    { value: 4 as SecurityLevelType, label: 'LOW (4)' }
 ]
 
 // --- Logic ---
@@ -248,6 +281,7 @@ const getKeyIndex = (purpose: PurposeType, level: SecurityLevelType): number => 
 // Check if selected key config already exists
 const keyExists = computed(() => {
     if (!currentIdentity.value) return false
+
     return currentIdentity.value.publicKeys.some(pk =>
         pk.purpose === selectedPurpose.value &&
         pk.securityLevel === selectedSecurityLevel.value
@@ -264,12 +298,15 @@ const fetchIdentity = async () => {
     try {
         loading.value = true
         const identityId = String(route.params.id)
+
         // Try loading from local map first for speed/details
         const settings = await invoke<any>('load_settings').catch(() => null)
         const network = settings?.network === 'testnet' ? 'testnet' : 'mainnet'
         const identityMap = await invoke<Record<string, any>>('load_identities_map', { network })
+
         if (identityMap && identityMap[identityId]) {
             const data = identityMap[identityId]
+
             // Normalize to IIdentity
             currentIdentity.value = {
                 identityId: data.identityId,
@@ -294,7 +331,9 @@ const fetchIdentity = async () => {
 
 const addKey = async () => {
     if (!currentIdentity.value || !isValidSelection.value) return
+
     const identity = currentIdentity.value
+
     const idx = getKeyIndex(selectedPurpose.value, selectedSecurityLevel.value)
 
     try {
@@ -360,28 +399,30 @@ const updateIdentity = async (
     const sdk: any = network === 'mainnet'
         ? EvoSDK.mainnetTrusted()
         : EvoSDK.testnetTrusted();
-    console.log(`[UpdateIdentity] Connecting to ${network}...`);
+    console.log(`[UpdateIdentity] Connecting to ${network}...`)
     await sdk.connect()
-    console.log('[UpdateIdentity] Connected to Platform');
+    console.log('[UpdateIdentity] Connected to Platform')
 
     try {
-        console.log('[UpdateIdentity] Updating identity:', identityId);
-        console.log('[UpdateIdentity] Adding', addPublicKeys.length, 'keys, disabling', disablePublicKeyIds.length, 'keys');
+        console.log('[UpdateIdentity] Updating identity:', identityId)
+        console.log('[UpdateIdentity] Adding', addPublicKeys.length, 'keys, disabling', disablePublicKeyIds.length, 'keys')
 
         // Format keys for SDK
-        const formattedAddKeys = addPublicKeys.map(key => {
+        const formattedAddKeys = addPublicKeys.map(async (key) => {
             const isHash160Type = key.keyType === 'ECDSA_HASH160'
+
             if (isHash160Type && key.publicKeyHex) {
                 // For HASH160 type, compute hash160 and pass as 'data' (Base64)
-                const pubKeyBytes = new Uint8Array(key.publicKeyHex.match(/.{1,2}/g)?.map((byte: string) => parseInt(byte, 16)) || []);
-                const hash160Bytes = hash160(pubKeyBytes);
-                const dataBase64 = btoa(String.fromCharCode(...hash160Bytes));
+                const pubKeyBytes = new Uint8Array(key.publicKeyHex.match(/.{1,2}/g)?.map((byte: string) => parseInt(byte, 16)) || [])
+                const hash160Bytes = await hash160(pubKeyBytes)
+                const dataBase64 = btoa(String.fromCharCode(...hash160Bytes))
+
                 return {
                     keyId: key.keyId,
                     keyType: key.keyType,
                     purpose: key.purpose,
                     securityLevel: key.securityLevel,dataBase64,
-                };
+                }
             } else {
                 // For SECP256K1 and other types, pass publicKeyHex directly
                 return {
@@ -390,11 +431,11 @@ const updateIdentity = async (
                     purpose: key.purpose,
                     securityLevel: key.securityLevel,
                     publicKeyHex: key.publicKeyHex
-                };
+                }
             }
-        });
+        })
 
-        console.log('[UpdateIdentity] Formatted keys to add:', JSON.stringify(formattedAddKeys, null, 2));
+        console.log('[UpdateIdentity] Formatted keys to add:', JSON.stringify(formattedAddKeys, null, 2))
 
         // Call update on the EvoSDK
         // Pass stringified JSON as expected by the snippet
@@ -406,23 +447,24 @@ const updateIdentity = async (
                 ? disablePublicKeyIds
                 : undefined,
         })
+        console.log('[UpdateIdentity] Update successful')
 
-        console.log('[UpdateIdentity] Update successful');
-        return { success: true };
+        return { success: true }
     } catch (error: any) {
-        console.error('[UpdateIdentity] Identity update error:', error);
+        console.error('[UpdateIdentity] Identity update error:', error)
         const errorMessage = (error && typeof error === 'object' && 'message' in error)
             ? String((error).message)
-            : (error instanceof Error ? error.message : String(error));
+            : (error instanceof Error ? error.message : String(error))
         return {
             success: false,
             error: errorMessage,
-        };
+        }
     }
 }
 
 // Helpers
 const getPurposeLabel = (p: number) => PURPOSES.find(x => x.value === p)?.label || `Purpose ${p}`
+
 const getSecurityLevelLabel = (l: number) => SECURITY_LEVELS.find(x => x.value === l)?.label || `Level ${l}`
 
 const getPurposeDescription = (p: number) => {

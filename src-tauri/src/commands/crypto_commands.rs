@@ -7,7 +7,8 @@ use tauri::{command, AppHandle, Runtime};
 
 #[command]
 pub async fn hash160<R: Runtime>(
-    _app: AppHandle<R>,Vec<u8>,
+    _app: AppHandle<R>,
+    data: Vec<u8>,
 ) -> Result<Vec<u8>, String> {
     // Calculate SHA256
     let mut sha256_hasher = Sha256::new();
@@ -26,6 +27,6 @@ pub async fn random_bytes<R: Runtime>(
     length: usize,
 ) -> Result<Vec<u8>, String> {
     let mut bytes = vec![0u8; length];
-    rand::thread_rng().fill_bytes(&mut bytes);
+    rand::rng().fill_bytes(&mut bytes);
     Ok(bytes)
 }
