@@ -27,13 +27,52 @@ export default defineConfig(async () => ({
     },
     build: {
         sourcemap: false,
-        // Limits to help avoid OOM on constrained runners
-        chunkSizeWarningLimit: 1000,
+        // NOTE: Limits to help avoid OOM on constrained runners.
+        chunkSizeWarningLimit: 3000,
         rollupOptions: {
-            // Drastically reduce parallel file operations (default is 20)
-            // This prevents memory spikes on macOS/CI environments
+            // NOTE: Drastically reduce parallel file operations (default is 20).
+            // This prevents memory spikes on macOS/CI environments.
             maxParallelFileOps: 2,
             cache: false,
+            output: {
+                manualChunks(id) {
+                    // @dashevo/evo-sdk chunk
+                    if (id.includes('node_modules/@dashevo/evo-sdk')) {
+                        return 'vendor-evo-sdk'
+                    }
+
+                    // monaco-editor chunk
+                    if (id.includes('node_modules/monaco-editor')) {
+                        if (id.includes('language') || id.includes('worker')) {
+                            return 'vendor-monaco-workers'
+                        }
+                        return 'vendor-monaco'
+                    }
+
+                    // crypto chunk
+                    if (id.includes('node_modules/@evonext/')) {
+                        return 'vendor-evonext'
+                    }
+
+                    // Vue and core chunk
+                    if (id.includes('node_modules/vue') ||
+                        id.includes('node_modules/@vue/') ||
+                        id.includes('node_modules/pinia') ||
+                        id.includes('node_modules/vue-router')) {
+                        return 'vendor-vue'
+                    }
+
+                    // Tauri chunk
+                    if (id.includes('node_modules/@tauri-apps/')) {
+                        return 'vendor-tauri'
+                    }
+
+                    // NOTE: All remaining node_modules chunk.
+                    if (id.includes('node_modules/')) {
+                        return 'vendor'
+                    }
+                }
+            }
         },
     },
     clearScreen: false,
