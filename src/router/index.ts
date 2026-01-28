@@ -1,131 +1,171 @@
 // src/router/index.ts
 
 /* Import modules. */
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
 import { useNetwork } from '@/composables'
 import { useLicense } from '@/composables'
 import { useIdentityStore } from '@/stores/identity'
 
-/* Import your layout and screens. */
+/* Import your layout. */
 import AppLayout from '@/layouts/AppLayout.vue'
-import Home from '@/screens/Home.vue'
 
-import About from '@/screens/About.vue'
-import Apps from '@/screens/Apps.vue'
-
-import Asset from '@/screens/Asset.vue'
-import AssetManage from '@/screens/asset/Manage.vue'
-
-import Bootstrap from '@/screens/Bootstrap.vue'
-import Community from '@/screens/Community.vue'
-import Connect from '@/screens/Connect.vue'
-import Disconnect from '@/screens/Disconnect.vue'
-import Explorer from '@/screens/Explorer.vue'
-import Favorites from '@/screens/Favorites.vue'
-
-import Identity from '@/screens/Identity.vue'
-import IdentityRegister from '@/screens/identity/Register.vue'
-import IdentityKeys from '@/screens/identity/ManageKeys.vue'
-import IdentityAddKey from '@/screens/identity/AddKey.vue'
-
-import Launcher from '@/screens/Launcher.vue'
-import LauncherSimple from '@/screens/launcher/Simple.vue'
-import LauncherProject from '@/screens/launcher/Project.vue'
-import LauncherPlatform from '@/screens/launcher/Platform.vue'
-
-import Portfolio from '@/screens/Portfolio.vue'
-import PortfolioManage from '@/screens/portfolio/Manage.vue'
-
-import Posts from '@/screens/Posts.vue'
-import Settings from '@/screens/Settings.vue'
-import Stakeline from '@/screens/Stakeline.vue'
-import Studio from '@/screens/Studio.vue'
-
-import WalletOverview from '@/screens/wallet/Overview.vue'
-import WalletDeposit from '@/screens/wallet/Deposit.vue'
-import WalletSend from '@/screens/wallet/Send.vue'
-import WalletSwap from '@/screens/wallet/Swap.vue'
-import WalletAssetDetails from '@/screens/wallet/AssetDetails.vue'
-import WalletTransactionDetails from '@/screens/wallet/TransactionDetails.vue'
-
-/* Initialize routes with meta for premium protection. */
-const routes = [
+/* Initialize routes with lazy loading. */
+const routes: RouteRecordRaw[] = [
     {
         path: '/',
         component: AppLayout,
         children: [
-            { path: '', component: Home },
-            { path: 'about', component: About },
             {
-                path: 'apps', component: Apps,
+                path: '',
+                component: () => import('@/screens/Home.vue')
+            },
+            {
+                path: 'about',
+                component: () => import('@/screens/About.vue')
+            },
+            {
+                path: 'apps',
+                component: () => import('@/screens/Apps.vue'),
                 meta: { requiresPremium: true }
             },
 
             // Assets
-            { path: 'asset', component: Asset },
             {
-                path: 'asset/manage', component: AssetManage,
+                path: 'asset',
+                component: () => import('@/screens/Asset.vue')
+            },
+            {
+                path: 'asset/manage',
+                component: () => import('@/screens/asset/Manage.vue'),
                 meta: { requiresPremium: true }
             },
 
-            { path: 'bootstrap', component: Bootstrap },
             {
-                path: 'community', component: Community,
+                path: 'bootstrap',
+                component: () => import('@/screens/Bootstrap.vue')
+            },
+            {
+                path: 'community',
+                component: () => import('@/screens/Community.vue'),
                 meta: { requiresPremium: true }
             },
-            { path: 'explorer', component: Explorer },
             {
-                path: 'favorites', component: Favorites,
+                path: 'explorer',
+                component: () => import('@/screens/Explorer.vue')
+            },
+            {
+                path: 'favorites',
+                component: () => import('@/screens/Favorites.vue'),
                 meta: { requiresPremium: true }
             },
 
             // Asset/Token Launcher
-            { path: 'launcher', component: Launcher },
-            { path: 'launcher/simple', component: LauncherSimple },
             {
-                path: 'launcher/project', component: LauncherProject,
+                path: 'launcher',
+                component: () => import('@/screens/Launcher.vue')
+            },
+            {
+                path: 'launcher/simple',
+                component: () => import('@/screens/launcher/Simple.vue')
+            },
+            {
+                path: 'launcher/project',
+                component: () => import('@/screens/launcher/Project.vue'),
                 meta: { requiresPremium: true }
             },
             {
-                path: 'launcher/platform', component: LauncherPlatform,
+                path: 'launcher/platform',
+                component: () => import('@/screens/launcher/Platform.vue'),
                 meta: { requiresPremium: true }
             },
 
             // Identity
-            { path: 'identity', component: Identity },
-            { path: 'identity/register', component: IdentityRegister },
-            { path: 'identity/:id/keys', component: IdentityKeys, name: 'IdentityKeys' },
-            { path: 'identity/:id/keys/add', component: IdentityAddKey, name: 'IdentityAddKey' },
+            {
+                path: 'identity',
+                component: () => import('@/screens/Identity.vue')
+            },
+            {
+                path: 'identity/register',
+                component: () => import('@/screens/identity/Register.vue')
+            },
+            {
+                path: 'identity/:id/keys',
+                component: () => import('@/screens/identity/ManageKeys.vue'),
+                name: 'IdentityKeys'
+            },
+            {
+                path: 'identity/:id/keys/add',
+                component: () => import('@/screens/identity/AddKey.vue'),
+                name: 'IdentityAddKey'
+            },
 
             // Portfolio
-            { path: 'portfolio', component: Portfolio },
             {
-                path: 'portfolio/manage', component: PortfolioManage,
+                path: 'portfolio',
+                component: () => import('@/screens/Portfolio.vue')
+            },
+            {
+                path: 'portfolio/manage',
+                component: () => import('@/screens/portfolio/Manage.vue'),
                 meta: { requiresPremium: true }
             },
 
             // Posts
-            { path: 'posts', component: Posts },
+            {
+                path: 'posts',
+                component: () => import('@/screens/Posts.vue')
+            },
 
             // Settings
-            { path: 'settings', component: Settings },
-            { path: 'stakeline', component: Stakeline },
-            { path: 'studio', component: Studio },
+            {
+                path: 'settings',
+                component: () => import('@/screens/Settings.vue')
+            },
+            {
+                path: 'stakeline',
+                component: () => import('@/screens/Stakeline.vue')
+            },
+            {
+                path: 'studio',
+                component: () => import('@/screens/Studio.vue')
+            },
 
             // Wallet
-            { path: 'wallet', component: WalletOverview },
-            { path: 'wallet/deposit', component: WalletDeposit },
-            { path: 'wallet/send', component: WalletSend },
             {
-                path: 'wallet/swap', component: WalletSwap,
+                path: 'wallet',
+                component: () => import('@/screens/wallet/Overview.vue')
+            },
+            {
+                path: 'wallet/deposit',
+                component: () => import('@/screens/wallet/Deposit.vue')
+            },
+            {
+                path: 'wallet/send',
+                component: () => import('@/screens/wallet/Send.vue')
+            },
+            {
+                path: 'wallet/swap',
+                component: () => import('@/screens/wallet/Swap.vue'),
                 meta: { requiresPremium: true }
             },
-            { path: 'wallet/asset/:symbol', component: WalletAssetDetails },
-            { path: 'wallet/transaction/:id', component: WalletTransactionDetails },
+            {
+                path: 'wallet/asset/:symbol',
+                component: () => import('@/screens/wallet/AssetDetails.vue')
+            },
+            {
+                path: 'wallet/transaction/:id',
+                component: () => import('@/screens/wallet/TransactionDetails.vue')
+            },
 
             // Connection
-            { path: 'connect', component: Connect },
-            { path: 'disconnect', component: Disconnect },
+            {
+                path: 'connect',
+                component: () => import('@/screens/Connect.vue')
+            },
+            {
+                path: 'disconnect',
+                component: () => import('@/screens/Disconnect.vue')
+            }
         ]
     }
 ]
