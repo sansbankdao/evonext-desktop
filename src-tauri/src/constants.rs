@@ -95,21 +95,13 @@ pub const STORE_SAVE_SUCCESS: &str = "Data saved successfully.";
 // -----------------------------------------------------------------------------
 // DYNAMIC HELPERS
 // -----------------------------------------------------------------------------
-// use crate::dapi::types::Network;
+use crate::dapi::types::Network;
 
-///// Returns the correct DUSD contract ID for the specified network.
-// pub fn get_dusd_contract_id(network: Network) -> &'static str {
-//     match network {
-//         Network::Mainnet => DUSD_CONTRACT_ID_MAINNET,
-//         Network::Testnet => DUSD_CONTRACT_ID_TESTNET,
-//     }
-// }
-
-///// Returns the correct EvoNext contract ID for the specified network.
-///// This is used by documents::get_posts to ensure we hit the right contract.
-// pub fn get_evonext_contract_id(network: Network) -> &'static str {
-//     match network {
-//         Network::Mainnet => EVONEXT_CONTRACT_ID_MAINNET,
-//         Network::Testnet => EVONEXT_CONTRACT_ID_TESTNET,
-//     }
-// }
+/// Returns the correct EvoNext contract ID for the specified network.
+/// This is used by documents::get_posts to ensure we hit the right contract.
+pub fn get_evonext_contract_id(network: Network) -> &'static str {
+    match network {
+        Network::Mainnet => EVONEXT_CONTRACT_ID_MAINNET,
+        Network::Testnet => EVONEXT_CONTRACT_ID_TESTNET,
+    }
+}

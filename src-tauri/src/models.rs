@@ -153,21 +153,21 @@ pub struct ProfileSettings {
     pub bio: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct DiscoveredIdentity {
-    pub identity_id: String,
-    pub identity_idx: u32,
-    pub dpns_username: Option<String>,
-    pub balance: Option<String>,
-    pub key_type: String,
-    pub discovered_key: Option<String>,
-    pub discovered_at: String,
-}
+// #[derive(Serialize, Deserialize, Clone, Debug)]
+// #[serde(rename_all = "camelCase")]
+// pub struct DiscoveredIdentity {
+//     pub identity_id: String,
+//     pub identity_idx: u32,
+//     pub dpns_username: Option<String>,
+//     pub balance: Option<String>,
+//     pub key_type: String,
+//     pub discovered_key: Option<String>,
+//     pub discovered_at: String,
+// }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct DiscoveredIdentitiesStore {
-    pub identities: HashMap<String, DiscoveredIdentity>,
-    pub last_scan: Option<String>,
-}
+// #[derive(Serialize, Deserialize, Clone, Debug, Default)]
+// #[serde(rename_all = "camelCase")]
+// pub struct DiscoveredIdentitiesStore {
+//     pub identities: HashMap<String, DiscoveredIdentity>,
+//     pub last_scan: Option<String>,
+// }
