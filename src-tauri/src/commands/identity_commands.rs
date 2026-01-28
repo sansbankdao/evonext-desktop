@@ -257,7 +257,7 @@ fn load_identity_map_internal(app: &AppHandle, network: &str) -> Result<Identity
 
     println!("[Rust] Reading identity file: {}", filename);
 
-    if let Ok(Some(val)) = manager.load::<JsonValue>(filename.clone(), "identities") {
+    if let Ok(Some(val)) = manager.load::<JsonValue>(filename, "identities") {
         if let Some(obj) = val.as_object() {
             let mut identity_map = HashMap::new();
 

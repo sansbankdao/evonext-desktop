@@ -109,7 +109,7 @@ pub fn discover_assets(
 
     // Load existing map, update the specific identity entry, and save
     let mut asset_map: AssetStoreMap = manager
-        .load(filename.clone(), "assets")
+        .load(filename, "assets")
         .unwrap_or_default()
         .unwrap_or_default();
 
@@ -195,7 +195,7 @@ pub async fn fetch_identity_tokens(
     let filename = get_network_file(&network, "assets")?;
 
     let mut asset_map: AssetStoreMap = manager
-        .load(filename.clone(), "assets")
+        .load(filename, "assets")
         .unwrap_or_default()
         .unwrap_or_default();
 
@@ -246,7 +246,7 @@ pub fn save_assets(
     let filename = get_network_file(&network, "assets")?;
 
     let mut asset_map: AssetStoreMap = manager
-        .load(filename.clone(), "assets")
+        .load(filename, "assets")
         .unwrap_or_default()
         .unwrap_or_default();
 

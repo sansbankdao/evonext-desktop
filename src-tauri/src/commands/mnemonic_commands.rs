@@ -32,7 +32,7 @@ pub fn save_mnemonic(
     let filename = get_network_file(&network, "safu")?;
 
     // Load existing keystore to preserve keys
-    let mut keystore = match manager.load::<PrivateKeyStore>(filename.clone(), "keystore") {
+    let mut keystore = match manager.load::<PrivateKeyStore>(filename, "keystore") {
         Ok(Some(store)) => store,
         _ => PrivateKeyStore::default(),
     };
@@ -56,7 +56,7 @@ pub fn delete_mnemonic(app_handle: AppHandle<Wry>, network: String) -> Result<()
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
 
-    let mut keystore = match manager.load::<PrivateKeyStore>(filename.clone(), "keystore") {
+    let mut keystore = match manager.load::<PrivateKeyStore>(filename, "keystore") {
         Ok(Some(store)) => store,
         Ok(None) => return Ok(()),
         Err(e) => return Err(e.to_string()),
