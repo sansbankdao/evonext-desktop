@@ -2,7 +2,6 @@
 
 import type { DashPlatformSDK } from 'dash-platform-sdk'
 import type { PrivateKeyWASM } from 'pshenmic-dpp'
-import type { DiscoveredIdentity } from '.'
 
 export interface DashPlatformSDKInstance extends DashPlatformSDK {
     // Add any missing methods here
@@ -97,13 +96,6 @@ export interface TauriCommandResponse<T = any> {
 
 
 // --- ADDED ON 2026.01.27
-
-export interface IdentityLookupResult {
-    success: boolean;
-    identity?: DiscoveredIdentity;
-    error?: string;
-    debug?: any;
-}
 
 export interface KeyDerivationResult {
     identityIndex: number;

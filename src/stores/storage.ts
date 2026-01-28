@@ -1,22 +1,57 @@
 // src/stores/storage.ts
 
+import { defineStore } from 'pinia'
+import { reactive } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
-import {
-    type IIdentityState,
-    type RustDiscoveredIdentitiesStore,
-    type DiscoveredIdentity
+import type {
+    IIdentityStateProps, // Updated to use the props-only interface
+    RustDiscoveredIdentitiesStore,
+    DiscoveredIdentity,
+    IIdentity
 } from '@/types'
 import { debugLogger } from '@/utils/debugLogger'
-
-export const storageActions = () => ({
-    async saveIdentityDataToStore(
-        this: IIdentityState,
+export const useStorageStore = defineStore('storage', () => {
+    const state = reactive<IIdentityStateProps>({
+        username: null,
+        identityId: null,
+        identityIdx: undefined,
+        displayName: null,
+        identity: null,
+        balance: null,
+        balanceBigInt: undefined,
+        dashBigInt: undefined,
+        publicKeys: [],
+        revision: null,
+        isAuthenticated: false,
+        premiumAccess: false,
+        connectionError: null,
+        isConnected: false,
+        isConnecting: false,
+        lastConnected: null,
+        discoveryProgress: null,
+        identitiesMap: {}
+    })
+    const loadSettings = async (): Promise<any> => {
+        try {
+            return await invoke('load_settings')
+        } catch {
+            return null
+        }
+    }
+    const getCurrentNetwork = async (): Promise<'mainnet' | 'testnet'> => {
+        try {
+            const settings = await loadSettings()
+            return settings?.network === 'testnet' ? 'testnet' : 'mainnet'
+        } catch {
+            return 'mainnet'
+        }
+    }
+    const saveIdentityDataToStore = async (
         network: 'mainnet' | 'testnet',
         targetId: string,
         data: any
-    ): Promise<void> {
+    ): Promise<void> => {
         if (!targetId || targetId === 'undefined') return
-
         const payload = {
             identity_id: targetId,
             identity_idx: Number(data.identityIdx ?? data.identity_idx ?? 0),
@@ -28,7 +63,6 @@ export const storageActions = () => ({
             created_at: new Date().toISOString(),
             active_identity_id: data.active_identity_id || targetId
         }
-
         try {
             await invoke('save_identity_unified', { network, payload })
             debugLogger.log(`[Storage] Identity ${targetId} synced to Rust`, 'info')
@@ -36,13 +70,12 @@ export const storageActions = () => ({
             debugLogger.log(`[Storage] Rust Sync Error: ${err}`, 'error')
             throw err
         }
-    },
-    async saveKeys(
-        this: IIdentityState,
+    }
+    const saveKeys = async (
         network: 'mainnet' | 'testnet',
         targetId: string,
         keys: any[]
-    ): Promise<void> {
+    ): Promise<void> => {
         try {
             if (!keys || !keys.length) return
             await invoke('save_private_keys', {
@@ -55,133 +88,118 @@ export const storageActions = () => ({
             debugLogger.log(`[Storage] Keystore Sync Error: ${err}`, 'error')
             throw err
         }
-    },
-    async loadFromStorage(this: IIdentityState) {
+    }
+    const loadFromStorage = async (): Promise<void> => {
         try {
-            const network = await this.getCurrentNetwork()
+            const network = await getCurrentNetwork()
             const loadedMap = await invoke<Record<string, any>>(
                 'load_identities_map',
                 { network }
             )
-
             if (!loadedMap || Object.keys(loadedMap).length === 0) return
-
             const availableIds = Object.keys(loadedMap).filter(k => !k.startsWith('__'))
             const persistedActiveId = loadedMap['__active_identity_id']
             const targetId = (persistedActiveId && availableIds.includes(persistedActiveId))
                 ? persistedActiveId
                 : availableIds[0]
             const data = loadedMap[targetId]
-
             if (data) {
-                this.identityId = data.identity_id || targetId
-                this.username = data.username || data.identity_id
-                this.balance = data.balance || '0'
-                this.revision = Number(data.revision || 0)
-                this.publicKeys = data.public_keys || []
-                this.isAuthenticated = true
-                this.isConnected = true
-                this.identity = {
-                    identityId: this.identityId || '',
+                state.identityId = data.identity_id || targetId
+                state.username = data.username || data.identity_id
+                state.balance = data.balance || '0'
+                state.revision = Number(data.revision || 0)
+                state.publicKeys = data.public_keys || []
+                state.isAuthenticated = true
+                state.isConnected = true
+                state.identity = {
+                    identityId: state.identityId || '',
                     identityIdx: data.identity_idx ?? 0,
-                    balance: this.balance || '0',
-                    revision: this.revision || 0,
-                    publicKeys: this.publicKeys || []
-                }
+                    balance: state.balance || '0',
+                    revision: state.revision || 0,
+                    publicKeys: state.publicKeys || []
+                } as IIdentity
             }
         } catch (err) {
             debugLogger.log(`[Storage] loadFromStorage Error: ${err}`, 'error')
         }
-    },
-    async initFromStorage(this: IIdentityState) {
-        await this.loadFromStorage()
-    },
-    async fetchBalance(this: IIdentityState) {
+    }
+    const initFromStorage = async (): Promise<void> => {
+        await loadFromStorage()
+    }
+    const fetchBalance = async (): Promise<void> => {
         try {
-            const network = await this.getCurrentNetwork()
-
-            if (!this.identityId) return
-
+            const network = await getCurrentNetwork()
+            if (!state.identityId) return
             const identity = await invoke<any>('get_identity_info', {
-                identityId: this.identityId,
+                identityId: state.identityId,
                 network
             })
-
             if (identity && identity.balance) {
-                this.balance = String(identity.balance)
-                if (this.identity) this.identity.balance = this.balance
+                state.balance = String(identity.balance)
+                if (state.identity) state.identity.balance = state.balance
             }
         } catch (err) {
             console.error('Failed to fetch balance:', err)
         }
-    },
-    async syncIdentityToBackend(this: IIdentityState, network: string) {
-        if (!this.identityId) return
-
-        await this.saveIdentityDataToStore((network as 'mainnet' | 'testnet'), this.identityId, {
-            identityId: this.identityId,
-            identityIdx: this.identity?.identityIdx ?? 0,
-            username: this.username || this.identityId,
-            balance: this.balance || '0',
-            revision: this.revision || 0,
-            publicKeys: this.publicKeys || [],
-            active_identity_id: this.identityId
+    }
+    const syncIdentityToBackend = async (network: string): Promise<void> => {
+        if (!state.identityId) return
+        await saveIdentityDataToStore((network as 'mainnet' | 'testnet'), state.identityId, {
+            identityId: state.identityId,
+            identityIdx: state.identity?.identityIdx ?? 0,
+            username: state.username || state.identityId,
+            balance: state.balance || '0',
+            revision: state.revision || 0,
+            publicKeys: state.publicKeys || [],
+            active_identity_id: state.identityId
         })
-    },
-    async resetStoreState(this: IIdentityState) {
-        this.username = null
-        this.identityId = null
-        this.identity = null
-        this.balance = null
-        this.revision = null
-        this.isAuthenticated = false
-        this.publicKeys = []
-        this.isConnected = false
-    },
-    async clearStorage(this: IIdentityState) {
+    }
+    const resetStoreState = (): void => {
+        state.username = null
+        state.identityId = null
+        state.identity = null
+        state.balance = null
+        state.revision = null
+        state.isAuthenticated = false
+        state.publicKeys = []
+        state.isConnected = false
+    }
+    const clearStorage = async (): Promise<void> => {
         try {
-            const network = await this.getCurrentNetwork()
-            const id = this.identityId || ''
+            const network = await getCurrentNetwork()
+            const id = state.identityId || ''
             await invoke('delete_private_keys', { network, identityId: id })
             await invoke('delete_identity_data', { network, identityId: id })
             await invoke('delete_mnemonic', { network })
             await invoke('clear_discovered_identities', { network })
-            this.resetStoreState()
+            resetStoreState()
         } catch (err: any) {
             throw err
         }
-    },
-    async saveMnemonicToStore(this: IIdentityState, network: 'mainnet' | 'testnet', seedPhrase: string): Promise<void> {
+    }
+    const saveMnemonicToStore = async (
+        network: 'mainnet' | 'testnet',
+        seedPhrase: string
+    ): Promise<void> => {
         await invoke('save_mnemonic', { network, payload: { seedPhrase } })
-    },
-    async loadMnemonic(this: IIdentityState, network: 'mainnet' | 'testnet'): Promise<{ seedPhrase: string } | null> {
+    }
+    const loadMnemonic = async (
+        network: 'mainnet' | 'testnet'
+    ): Promise<{ seedPhrase: string } | null> => {
         try {
             return await invoke<{ seedPhrase: string } | null>('load_mnemonic', { network })
         } catch {
             return null
         }
-    },
-    async loadSettings(this: IIdentityState): Promise<any> {
-        try {
-            return await invoke('load_settings')
-        } catch {
-            return null
-        }
-    },
-    async getCurrentNetwork(this: IIdentityState): Promise<'mainnet' | 'testnet'> {
-        try {
-            const settings = await this.loadSettings()
-            return settings?.network === 'testnet' ? 'testnet' : 'mainnet'
-        } catch {
-            return 'mainnet'
-        }
-    },
-    async saveDiscoveredIdentities(this: IIdentityState, identities: DiscoveredIdentity[], network: 'mainnet' | 'testnet', keyType: 'seed' | 'private'): Promise<{ success: boolean; savedCount: number; error?: string }> {
+    }
+    const saveDiscoveredIdentities = async (
+        identities: DiscoveredIdentity[],
+        network: 'mainnet' | 'testnet',
+        keyType: 'seed' | 'private'
+    ): Promise<{ success: boolean; savedCount: number; error?: string }> => {
         try {
             const valid = identities.filter(id => id.identityId && id.identityId.trim().length > 0)
-
             if (valid.length === 0) return { success: false, savedCount: 0, error: 'No valid identities' }
-
             const rustIdentities = valid.map(identity => ({
                 identity_id: identity.identityId,
                 identity_idx: identity.identityIdx || 0,
@@ -191,50 +209,73 @@ export const storageActions = () => ({
                 discovered_key: null,
                 discovered_at: new Date().toISOString()
             }))
-
-            const result = await invoke<number>('save_discovered_identities', { network, discoveredIdentities: rustIdentities })
-
+            const result = await invoke<number>('save_discovered_identities', {
+                network,
+                discoveredIdentities: rustIdentities
+            })
             return { success: true, savedCount: result }
         } catch (err: any) {
             return { success: false, savedCount: 0, error: err.message }
         }
-    },
-    async loadDiscoveredIdentities(this: IIdentityState, network: 'mainnet' | 'testnet'): Promise<RustDiscoveredIdentitiesStore | null> {
+    }
+    const loadDiscoveredIdentities = async (
+        network: 'mainnet' | 'testnet'
+    ): Promise<RustDiscoveredIdentitiesStore | null> => {
         try {
-            return await invoke<RustDiscoveredIdentitiesStore | null>('load_discovered_identities', { network })
+            return await invoke<RustDiscoveredIdentitiesStore | null>(
+                'load_discovered_identities',
+                { network }
+            )
         } catch {
             return null
         }
-    },
-    async clearDiscoveredIdentities(this: IIdentityState, network: 'mainnet' | 'testnet'): Promise<{ success: boolean; error?: string }> {
+    }
+    const clearDiscoveredIdentities = async (
+        network: 'mainnet' | 'testnet'
+    ): Promise<{ success: boolean; error?: string }> => {
         try {
             await invoke('clear_discovered_identities', { network })
             return { success: true }
         } catch (err: any) {
             return { success: false, error: err.message }
         }
-    },
-    async saveToStorage(this: IIdentityState, networkOverride?: 'mainnet' | 'testnet') {
-        const network = networkOverride || await this.getCurrentNetwork()
-
-        const id = this.identityId || this.identity?.identityId
-
+    }
+    const saveToStorage = async (networkOverride?: 'mainnet' | 'testnet'): Promise<void> => {
+        const network = networkOverride || await getCurrentNetwork()
+        const id = state.identityId || state.identity?.identityId
         if (!id) {
             debugLogger.log(`[Storage] saveToStorage skipped: No active identity.`, 'warn')
             return
         }
-
         const identityForSave = {
             identityId: id,
-            identityIdx: this.identity?.identityIdx ?? 0,
-            username: this.username ?? id,
-            balance: this.balance ?? this.identity?.balance ?? '0',
-            revision: this.revision ?? this.identity?.revision ?? 0,
-            publicKeys: (Array.isArray(this.publicKeys) && this.publicKeys.length > 0)
-                ? this.publicKeys
+            identityIdx: state.identity?.identityIdx ?? 0,
+            username: state.username ?? id,
+            balance: state.balance ?? state.identity?.balance ?? '0',
+            revision: state.revision ?? state.identity?.revision ?? 0,
+            publicKeys: (Array.isArray(state.publicKeys) && state.publicKeys.length > 0)
+                ? state.publicKeys
                 : []
         }
-
-        await this.saveIdentityDataToStore(network, id, identityForSave)
+        await saveIdentityDataToStore(network, id, identityForSave)
+    }
+    return {
+        state,
+        saveIdentityDataToStore,
+        saveKeys,
+        loadFromStorage,
+        initFromStorage,
+        fetchBalance,
+        syncIdentityToBackend,
+        resetStoreState,
+        clearStorage,
+        saveMnemonicToStore,
+        loadMnemonic,
+        loadSettings,
+        getCurrentNetwork,
+        saveDiscoveredIdentities,
+        loadDiscoveredIdentities,
+        clearDiscoveredIdentities,
+        saveToStorage
     }
 })

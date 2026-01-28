@@ -225,7 +225,10 @@ export interface IdentityLookupResult {
     success: boolean;
     identity?: DiscoveredIdentity;
     error?: string;
+    debug?: any;
 }
+
+
 
 export interface IdentityDiscoveryDetails {
     detectedKeyType: string;
@@ -367,4 +370,25 @@ export interface AssociatedKey {
 export interface DiscoveryDetails {
     detectedKeyType: string | null;
     associatedKeys: AssociatedKey[];
+}
+
+export interface IIdentityStateProps {
+    username: string | null
+    identityId: string | null
+    identityIdx?: number | undefined
+    displayName: string | null
+    identity: IIdentity | null
+    balance: number | string | null | undefined
+    balanceBigInt?: bigint | undefined
+    dashBigInt?: bigint | undefined
+    publicKeys: IPublicKey[]
+    revision: number | null
+    isAuthenticated: boolean
+    premiumAccess: boolean
+    connectionError: string | null
+    isConnected: boolean
+    isConnecting: boolean
+    lastConnected: number | null
+    discoveryProgress?: DiscoveryProgress | null
+    identitiesMap: IIdentityStoreMap
 }

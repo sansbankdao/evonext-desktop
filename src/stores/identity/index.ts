@@ -3,7 +3,6 @@
 import { defineStore } from 'pinia'
 import { useIdentityState } from './state'
 import { useIdentityGetters } from './getters'
-// import { storageActions } from './actions/storage'
 import { connectionActions } from './actions/connection'
 import { balanceActions } from './actions/balance'
 import { identityActions } from './actions/identity'
@@ -12,7 +11,6 @@ import { unifiedActions } from './actions/unified'
 
 // Combine all actions
 const useIdentityActions = {
-    // ...storageActions(),
     ...connectionActions(),
     ...identityActions(),
     ...balanceActions(),

@@ -7,7 +7,7 @@ import { hash160 } from '@evonext/crypto'
 // @ts-ignore
 import { binToHex, hexToBin } from '@evonext/utils'
 
-import type { DerivedKey, KeyDerivationResult } from './types'
+import type { DerivedKey, KeyDerivationResult } from '@/types'
 
 export type KeyType = 'WIF' | 'HEX_PRIVATE' | 'COMPRESSED_PUBKEY' | 'UNCOMPRESSED_PUBKEY' | 'UNKNOWN'
 
