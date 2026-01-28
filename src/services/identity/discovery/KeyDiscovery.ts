@@ -14,7 +14,7 @@ import { hash160 } from '@evonext/crypto'
 import type {
     DiscoveryResult,
     DiscoveryOptions,
-} from '../types'
+} from '@/types'
 
 export class KeyDiscovery extends BaseDiscovery {
     private store: IIdentityActions
@@ -26,7 +26,7 @@ export class KeyDiscovery extends BaseDiscovery {
 
     async discover(
         input: string,
-        options: DiscoveryOptions = { network: 'testnet' }
+        options: DiscoveryOptions = { data: { success: false }, node: {}, network: 'testnet' }
     ): Promise<DiscoveryResult> {
         return this.discoverFromKey(input, options)
     }

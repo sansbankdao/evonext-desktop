@@ -13,6 +13,7 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { check } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
 
+import { useStorageStore } from '@/stores/storage'
 import { useSystemStore } from '@/stores/system'
 import { useIdentityStore } from '@/stores/identity'
 import { useWalletStore } from '@/stores/wallet'
@@ -21,6 +22,7 @@ import { useSettingsStore } from '@/stores/settings'
 import { BootstrapService } from '@/services/BootstrapService'
 
 const System = useSystemStore()
+const Storage = useStorageStore()
 const Identity = useIdentityStore()
 const Wallet = useWalletStore()
 const Settings = useSettingsStore()
@@ -98,7 +100,7 @@ onMounted(async () => {
     await BootstrapService.init()
 
     // Initialize identity from storage
-    await Identity.initFromStorage()
+    await Storage.initFromStorage()
 
     // Initialize wallet (sets user identity for balance fetching)
     // if (Wallet.assets.length === 0) {

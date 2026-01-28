@@ -1,4 +1,4 @@
-// src/stores/identity/action/storage.ts
+// src/stores/storage.ts
 
 import { invoke } from '@tauri-apps/api/core'
 import {
@@ -7,6 +7,7 @@ import {
     type DiscoveredIdentity
 } from '@/types'
 import { debugLogger } from '@/utils/debugLogger'
+
 export const storageActions = () => ({
     async saveIdentityDataToStore(
         this: IIdentityState,
@@ -15,6 +16,7 @@ export const storageActions = () => ({
         data: any
     ): Promise<void> {
         if (!targetId || targetId === 'undefined') return
+
         const payload = {
             identity_id: targetId,
             identity_idx: Number(data.identityIdx ?? data.identity_idx ?? 0),
@@ -26,6 +28,7 @@ export const storageActions = () => ({
             created_at: new Date().toISOString(),
             active_identity_id: data.active_identity_id || targetId
         }
+
         try {
             await invoke('save_identity_unified', { network, payload })
             debugLogger.log(`[Storage] Identity ${targetId} synced to Rust`, 'info')
@@ -60,13 +63,16 @@ export const storageActions = () => ({
                 'load_identities_map',
                 { network }
             )
+
             if (!loadedMap || Object.keys(loadedMap).length === 0) return
+
             const availableIds = Object.keys(loadedMap).filter(k => !k.startsWith('__'))
             const persistedActiveId = loadedMap['__active_identity_id']
             const targetId = (persistedActiveId && availableIds.includes(persistedActiveId))
                 ? persistedActiveId
                 : availableIds[0]
             const data = loadedMap[targetId]
+
             if (data) {
                 this.identityId = data.identity_id || targetId
                 this.username = data.username || data.identity_id
@@ -93,11 +99,14 @@ export const storageActions = () => ({
     async fetchBalance(this: IIdentityState) {
         try {
             const network = await this.getCurrentNetwork()
+
             if (!this.identityId) return
+
             const identity = await invoke<any>('get_identity_info', {
                 identityId: this.identityId,
                 network
             })
+
             if (identity && identity.balance) {
                 this.balance = String(identity.balance)
                 if (this.identity) this.identity.balance = this.balance
@@ -108,6 +117,7 @@ export const storageActions = () => ({
     },
     async syncIdentityToBackend(this: IIdentityState, network: string) {
         if (!this.identityId) return
+
         await this.saveIdentityDataToStore((network as 'mainnet' | 'testnet'), this.identityId, {
             identityId: this.identityId,
             identityIdx: this.identity?.identityIdx ?? 0,
@@ -169,7 +179,9 @@ export const storageActions = () => ({
     async saveDiscoveredIdentities(this: IIdentityState, identities: DiscoveredIdentity[], network: 'mainnet' | 'testnet', keyType: 'seed' | 'private'): Promise<{ success: boolean; savedCount: number; error?: string }> {
         try {
             const valid = identities.filter(id => id.identityId && id.identityId.trim().length > 0)
+
             if (valid.length === 0) return { success: false, savedCount: 0, error: 'No valid identities' }
+
             const rustIdentities = valid.map(identity => ({
                 identity_id: identity.identityId,
                 identity_idx: identity.identityIdx || 0,
@@ -179,7 +191,9 @@ export const storageActions = () => ({
                 discovered_key: null,
                 discovered_at: new Date().toISOString()
             }))
+
             const result = await invoke<number>('save_discovered_identities', { network, discoveredIdentities: rustIdentities })
+
             return { success: true, savedCount: result }
         } catch (err: any) {
             return { success: false, savedCount: 0, error: err.message }
@@ -202,11 +216,14 @@ export const storageActions = () => ({
     },
     async saveToStorage(this: IIdentityState, networkOverride?: 'mainnet' | 'testnet') {
         const network = networkOverride || await this.getCurrentNetwork()
+
         const id = this.identityId || this.identity?.identityId
+
         if (!id) {
             debugLogger.log(`[Storage] saveToStorage skipped: No active identity.`, 'warn')
             return
         }
+
         const identityForSave = {
             identityId: id,
             identityIdx: this.identity?.identityIdx ?? 0,
@@ -217,6 +234,7 @@ export const storageActions = () => ({
                 ? this.publicKeys
                 : []
         }
+
         await this.saveIdentityDataToStore(network, id, identityForSave)
     }
 })

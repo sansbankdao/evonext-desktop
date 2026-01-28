@@ -11,9 +11,9 @@ export {
 export { DAPIService } from './discovery/DAPIService'
 export { KeyDiscovery } from './discovery/KeyDiscovery'
 export { SeedDiscovery, type ProgressCallback } from './discovery/SeedDiscovery'
-export { type ScanProgress } from './types'
+export { type ScanProgress } from '@/types'
 export {
     IdentityManager,
     getIdentityManager,
 } from './discovery/IdentityManager'
-export * from './types'
+export * from '@/types'

@@ -2,6 +2,7 @@
 
 import type { DashPlatformSDK } from 'dash-platform-sdk'
 import type { PrivateKeyWASM } from 'pshenmic-dpp'
+import type { DiscoveredIdentity } from '.'
 
 export interface DashPlatformSDKInstance extends DashPlatformSDK {
     // Add any missing methods here
@@ -92,4 +93,31 @@ export interface TauriCommandResponse<T = any> {
     result?: T;
     // Allow flexible response shapes
     [key: string]: any;
+}
+
+
+// --- ADDED ON 2026.01.27
+
+export interface IdentityLookupResult {
+    success: boolean;
+    identity?: DiscoveredIdentity;
+    error?: string;
+    debug?: any;
+}
+
+export interface KeyDerivationResult {
+    identityIndex: number;
+    keys: DerivedKey[];
+    success: boolean;
+    error?: string;
+}
+
+export interface DerivedKey {
+    keyIndex: number;
+    purpose: string;
+    securityLevel: string;
+    privateKey: any; // PrivateKeyWASM instance
+    publicKey: string; // hex
+    publicKeyHash: string; // hex
+    path: string; // Derivation path (e.g., m/9'/1'/0'/0/0)
 }

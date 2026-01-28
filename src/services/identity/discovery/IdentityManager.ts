@@ -10,33 +10,27 @@ import type {
     DiscoveryResult,
     DiscoveryOptions,
     AssociatedKey,
-} from '../types'
+} from '@/types'
 import type { KeyHashDerivationResult, IIdentityActions } from '@/types'
-
 export class IdentityManager {
     private keyDiscovery: KeyDiscovery
     private seedDiscovery: SeedDiscovery
-
     constructor(private store: IIdentityActions) {
         this.keyDiscovery = new KeyDiscovery(this.store)
         this.seedDiscovery = new SeedDiscovery(this.store)
     }
-
     setProgressCallback(callback: ProgressCallback) {
         this.seedDiscovery.setProgressCallback(callback)
     }
-
     clearProgressCallback() {
         this.seedDiscovery.setProgressCallback(() => {})
     }
-
     cancelSeedDiscovery() {
         this.seedDiscovery.cancel()
     }
-
     async discoverFromKey(
         keyInput: string,
-        options: DiscoveryOptions = { network: 'testnet' }
+        options: DiscoveryOptions = { data: { success: false }, network: 'testnet' }
     ): Promise<DiscoveryResult> {
         if (!keyInput || typeof keyInput !== 'string' || keyInput.trim().length === 0) {
             return {
@@ -49,7 +43,6 @@ export class IdentityManager {
                 debug: { step: 'input_validation', network: options.network }
             }
         }
-
         try {
             return await this.keyDiscovery.discover(keyInput, options)
         } catch (error: any) {
@@ -64,13 +57,9 @@ export class IdentityManager {
             }
         }
     }
-
     async discoverFromSeed(
         seedPhrase: string,
-        options: DiscoveryOptions & { maxIdentityIndex?: number } = {
-            network: 'testnet',
-            maxIdentityIndex: 5
-        }
+        options: DiscoveryOptions
     ): Promise<DiscoveryResult> {
         if (!seedPhrase || typeof seedPhrase !== 'string' || seedPhrase.trim().length === 0) {
             return {
@@ -83,9 +72,7 @@ export class IdentityManager {
                 debug: { step: 'input_validation', network: options.network }
             }
         }
-
         const words = seedPhrase.trim().split(/\s+/)
-
         if (words.length !== 12 && words.length !== 24) {
             return {
                 success: false,
@@ -97,7 +84,6 @@ export class IdentityManager {
                 debug: { step: 'seed_validation', network: options.network }
             }
         }
-
         try {
             const seedOptions = {
                 network: options.network,
@@ -105,13 +91,11 @@ export class IdentityManager {
                 gapLimit: 5,
                 maxKeyIndex: 5
             }
-
             const identities = await this.seedDiscovery.discoverFromSeed(
                 seedPhrase,
                 options.network,
                 seedOptions
             )
-
             return {
                 success: true,
                 identities,
@@ -132,10 +116,9 @@ export class IdentityManager {
             }
         }
     }
-
     async discover(
         input: string,
-        options: DiscoveryOptions = { network: 'testnet' }
+        options: DiscoveryOptions = { node: {}, network: 'testnet' }
     ): Promise<DiscoveryResult> {
         if (!input || typeof input !== 'string' || input.trim().length === 0) {
             return {
@@ -148,17 +131,13 @@ export class IdentityManager {
                 debug: { step: 'input_validation', network: options.network }
             }
         }
-
         const trimmedInput = input.trim()
         const words = trimmedInput.split(/\s+/)
-
         if (words.length === 12 || words.length === 24) {
             return this.discoverFromSeed(trimmedInput, { ...options, maxIdentityIndex: 5 })
         }
-
         return this.discoverFromKey(trimmedInput, options)
     }
-
     async getDPNSUsername(
         identityId: string,
         network: 'mainnet' | 'testnet' = 'testnet'
@@ -170,7 +149,6 @@ export class IdentityManager {
             return null
         }
     }
-
     async getIdentityById(
         identityId: string,
         network: 'mainnet' | 'testnet' = 'testnet'
@@ -219,18 +197,15 @@ export class IdentityManager {
             }
         }
     }
-
     detectKeyFormat(keyInput: string): { format: KeyType; description: string } {
         return KeyDerivationService.detectKeyFormat(keyInput)
     }
-
     async deriveKeyHashes(
         keyInput: string,
         network: 'mainnet' | 'testnet' = 'testnet'
     ): Promise<KeyHashDerivationResult> {
         return KeyDerivationService.deriveAllPossibleHashes(keyInput, network)
     }
-
     // Helpers
     private formatBalance(balance: any): string {
         if (balance === undefined || balance === null) return '0'
@@ -238,7 +213,6 @@ export class IdentityManager {
         if (typeof balance === 'string') return balance
         try { return balance.toString() } catch { return '0' }
     }
-
     private extractAssociatedKeys(publicKeys: any[]): AssociatedKey[] {
         if (!Array.isArray(publicKeys) || publicKeys.length === 0) {
             return []
@@ -251,7 +225,6 @@ export class IdentityManager {
             data: key.data || key.dataB64 || ''
         }))
     }
-
     private getKeyPurposeDisplay(purpose: string | number): string {
         const p = typeof purpose === 'string' ? purpose.toUpperCase() : String(purpose)
         const purposeMap: Record<string, string> = {
@@ -266,7 +239,6 @@ export class IdentityManager {
         }
         return purposeMap[p] || String(purpose)
     }
-
     private getSecurityLevelDisplay(securityLevel: string | number): string {
         const s = typeof securityLevel === 'string' ? securityLevel.toUpperCase() : String(securityLevel)
         const levelMap: Record<string, string> = {
@@ -283,15 +255,12 @@ export class IdentityManager {
         }
         return levelMap[s] || String(securityLevel)
     }
-
     cleanup() {
         this.cancelSeedDiscovery()
         KeyDerivationService.cleanup()
     }
 }
-
 let identityManagerSingleton: IdentityManager | null = null
-
 export function getIdentityManager(store?: any): IdentityManager {
     if (!identityManagerSingleton) {
         if(!store) console.warn('[IdentityManager] Initialized without store. Persistence may fail.')

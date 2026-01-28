@@ -136,7 +136,7 @@ export class RegistrationService {
 
         // Map keys to SDK format
         // Note: We use binToHex on the raw private key bytes
-        const identityKeys = derivedKeys.map((key, idx) => {
+        const identityKeys = derivedKeys.map((key: any, idx: number) => {
             const def = DEFAULT_KEY_DEFINITIONS[idx]!
             return {
                 keyType: def.type,
@@ -172,7 +172,7 @@ export class RegistrationService {
             // 2. Find the CRITICAL Authentication Key for signing the DPNS contract
             // We do NOT rely on index 1, we search the definitions.
             const criticalAuthKey = identityKeys.find(
-                k => k.purpose === KeyPurposeString.AUTHENTICATION && k.securityLevel === SecurityLevelString.CRITICAL
+                (key: any) => key.purpose === KeyPurposeString.AUTHENTICATION && key.securityLevel === SecurityLevelString.CRITICAL
             )
 
             if (!criticalAuthKey) {
@@ -180,7 +180,7 @@ export class RegistrationService {
             }
 
             // 3. Find the corresponding PRIVATE key to sign the transaction
-            const signingKey = derivedKeys.find((_k, idx) => {
+            const signingKey = derivedKeys.find((_key: any, idx: number) => {
                 const def = DEFAULT_KEY_DEFINITIONS[idx]!
                 return def.purpose === KeyPurposeString.AUTHENTICATION && def.level === SecurityLevelString.CRITICAL
             })

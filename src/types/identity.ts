@@ -3,6 +3,11 @@
 export type PurposeType = 0 | 1 | 2 | 3
 export type SecurityLevelType = 0 | 1 | 2 | 3 | 4
 
+// Extend DiscoveredIdentity with derived keys
+export interface DiscoveredIdentityWithKeys extends DiscoveredIdentity {
+    derivedKeys?: DerivedKeyInfo[];
+}
+
 export interface IPublicKey {
     type: number;
     keyType: string;
@@ -237,36 +242,129 @@ export interface IdentityDiscoveryDetails {
 // FIX: Renamed interface to avoid conflict with Rust struct name collision
 // and standardize naming (I prefix). Maps to 'PrivateKeyEntry' in exports.
 export interface IPrivateKeyEntry {
-    id: number
-    identityId: string
-    keyId: number
-    purpose: number
-    securityLevel: number
-    keyType: string
-    privateKey: string
-    publicKey: string
-    derivedFromMnemonic?: boolean
-    created_at?: string
-    last_used?: string
+    id: number;
+    identityId: string;
+    keyId: number;
+    purpose: number;
+    securityLevel: number;
+    keyType: string;
+    privateKey: string;
+    publicKey: string;
+    derivedFromMnemonic?: boolean;
+    created_at?: string;
+    last_used?: string;
 }
 
 // Explicit Export for your existing code usage
-export type PrivateKeyEntry = IPrivateKeyEntry
+export type PrivateKeyEntry = IPrivateKeyEntry;
 
-export interface DiscoveryResult {
-    success: boolean;
-    identities: any[];
-    debug: any;
-    error?: string;
+export interface QueryTrace {
+    step: number;
+    identityIndex: number;
+    keyIndex: number;
+    path: string;
+    publicKeyHash: string;
+    method: 'unique' | 'non-unique';
+    found: boolean;
+    id?: string;
 }
 
+export interface ScanProgress {
+    currentIdentityIndex: number;
+    currentKeyIndex: number;
+    totalIdentities: number;
+    totalKeysPerIdentity: number;
+    currentPublicKeyHash: string;
+    currentPath: string;
+    status: 'deriving' | 'scanning' | 'completed' | 'failed';
+    scannedCount: number;
+    foundCount: number;
+}
+
+// export interface DiscoveryResult {
+//     success: boolean;
+//     identities: any[];
+//     debug: any;
+//     error?: string;
+// }
+// Update DiscoveryResult to use the extended type
+export interface DiscoveryResult {
+    success: boolean
+    identities?: DiscoveredIdentityWithKeys[] | null  // Changed from DiscoveredIdentity[]
+    identity?: DiscoveredIdentityWithKeys | null      // Changed from DiscoveredIdentity
+    detectedKeyType?: string | null
+    associatedKeys?: AssociatedKey[] | null
+    error?: string
+    stack?: string
+    debug?: {
+        step?: string;
+        count?: number;
+        network?: string;
+        stack?: {};
+        trace?: QueryTrace[];
+        progressSnapshot?: ScanProgress | undefined;
+        error?: string;
+    }
+}
+
+// export interface DiscoveryOptions {
+//     network: 'mainnet' | 'testnet';
+//     maxIdentityIndex?: number;
+//     data: DiscoveryResult;
+//     maxKeyIndex?: number;
+//     node: any;
+// }
 export interface DiscoveryOptions {
     network: 'mainnet' | 'testnet';
     maxIdentityIndex?: number;
-    data: DiscoveryResult;
+    data?: {
+        success: boolean;
+        identities?: DiscoveredIdentityWithKeys[] | null;
+        identity?: DiscoveredIdentityWithKeys | null;
+        detectedKeyType?: string | null;
+        associatedKeys?: AssociatedKey[] | null;
+        error?: string;
+        stack?: string;
+        debug?: {
+            step?: string;
+            count?: number;
+            network?: string;
+            stack?: {};
+            trace?: QueryTrace[];
+            progressSnapshot?: ScanProgress | undefined;
+            error?: string;
+        }
+    }
     maxKeyIndex?: number;
+    node?: any;
 }
 
 export interface SeedDiscoveryOptions{
     // TBD
+}
+
+export interface DerivedKeyInfo {
+    keyId: number;
+    purpose: number;
+    securityLevel: number;
+    keyType: string;
+    privateKeyWIF: string;  // Private key in WIF format
+    publicKeyHex: string;   // Public key in hex
+    derivationPath: string;
+    createdAt?: string;
+    lastUsed?: string;
+}
+
+export interface AssociatedKey {
+    purpose: string;
+    securityLevel: string;
+    keyType: string;
+    data: string;
+    derivedFromInput: boolean;
+}
+
+// Create DiscoveryDetails interface
+export interface DiscoveryDetails {
+    detectedKeyType: string | null;
+    associatedKeys: AssociatedKey[];
 }

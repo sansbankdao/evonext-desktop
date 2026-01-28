@@ -101,12 +101,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSettingsStore } from '@/stores/settings'
+import { useStorageStore } from '@/stores/storage'
 import { useIdentityStore } from '@/stores/identity'
 import Header from '@/components/Header.vue'
 // import type { IIdentity } from '@/types'
 
 const router = useRouter()
 const settingsStore = useSettingsStore()
+const storageStore = useStorageStore()
 const identityStore = useIdentityStore()
 
 const error = ref('')
@@ -129,7 +131,7 @@ async function loadIdentityData() {
     try {
         error.value = ''
         // ✅ Just hydrate store → getters/computeds react automatically!
-        await identityStore.initFromStorage()
+        await storageStore.initFromStorage()
         // NO assignment needed! identityData computed updates instantly
     } catch (err: any) {
         error.value = err.message || 'Failed to load identity data'

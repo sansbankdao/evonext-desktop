@@ -1,18 +1,20 @@
 // src/services/BootstrapService.ts
 
 import { useIdentityStore } from '@/stores/identity'
+import { useStorageStore } from '@/stores/storage'
 import { useLicense } from '@/composables/useLicense'
 import { useWalletStore } from '@/stores/wallet'
 
 export const BootstrapService = {
     async init() {
         const Identity = useIdentityStore()
+        const Storage = useStorageStore()
         const Wallet = useWalletStore()
         const { refreshLicense } = useLicense()
 
         try {
             // 1. Restore identity session
-            await Identity.initFromStorage()
+            await Storage.initFromStorage()
 
             const id = Identity.identityId
 

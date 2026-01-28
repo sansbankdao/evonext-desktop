@@ -5,7 +5,7 @@ import type {
     AssociatedKey,
     DiscoveryOptions,
     DiscoveryResult,
-} from '../types'
+} from '@/types'
 
 export abstract class BaseDiscovery {
     protected network: 'mainnet' | 'testnet' = 'testnet'
@@ -95,8 +95,12 @@ export abstract class BaseDiscovery {
             success: false,
             error,
             debug: debug || this.createDebugInfo('error'),
-            identities: null,
-            identity: null,
+            identities: [],
+            identity: {
+                identityId: '',
+                identityIdx: 0,
+                publicKeys: []
+            },
             detectedKeyType: null,
             associatedKeys: null
         }
