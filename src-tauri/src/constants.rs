@@ -99,9 +99,11 @@ use crate::dapi::types::Network;
 
 /// Returns the correct EvoNext contract ID for the specified network.
 /// This is used by documents::get_posts to ensure we hit the right contract.
-pub fn get_evonext_contract_id(network: Network) -> &'static str {
-    match network {
-        Network::Mainnet => EVONEXT_CONTRACT_ID_MAINNET,
-        Network::Testnet => EVONEXT_CONTRACT_ID_TESTNET,
-    }
+#[allow(dead_code)]
+pub fn get_evonext_contract_id(_network: Network) -> &'static str {
+    // match network {
+    //     Network::Mainnet => EVONEXT_CONTRACT_ID_MAINNET,
+    //     Network::Testnet => EVONEXT_CONTRACT_ID_TESTNET,
+    // }
+    "AyWK6nDVfb8d1ZmkM5MmZZrThbUyWyso1aMeGuuVSfxf"
 }
