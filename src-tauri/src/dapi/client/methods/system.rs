@@ -17,13 +17,8 @@ impl DAPIClient {
     pub async fn get_current_epoch(
         &self,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_current_epoch_with_proof_info".to_string()
-        } else {
-            "get_current_epoch".to_string()
-        };
+        let method = "get_current_epoch".to_string();
 
         let params = vec![];
         self.request(method, params, network).await
@@ -36,13 +31,8 @@ impl DAPIClient {
         count: Option<u32>,
         ascending: Option<bool>,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_epochs_info_with_proof_info".to_string()
-        } else {
-            "get_epochs_info".to_string()
-        };
+        let method = "get_epochs_info".to_string();
 
         let mut params = vec![];
 
@@ -69,13 +59,8 @@ impl DAPIClient {
         count: Option<u32>,
         ascending: Option<bool>,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_finalized_epoch_infos_with_proof_info".to_string()
-        } else {
-            "get_finalized_epoch_infos".to_string()
-        };
+        let method = "get_finalized_epoch_infos".to_string();
 
         let mut params = vec![];
 
@@ -99,13 +84,8 @@ impl DAPIClient {
     pub async fn get_protocol_version_upgrade_state(
         &self,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_protocol_version_upgrade_state_with_proof_info".to_string()
-        } else {
-            "get_protocol_version_upgrade_state".to_string()
-        };
+        let method = "get_protocol_version_upgrade_state".to_string();
 
         let params = vec![];
         self.request(method, params, network).await
@@ -115,13 +95,8 @@ impl DAPIClient {
     pub async fn get_total_credits_in_platform(
         &self,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_total_credits_in_platform_with_proof_info".to_string()
-        } else {
-            "get_total_credits_in_platform".to_string()
-        };
+        let method = "get_total_credits_in_platform".to_string();
 
         let params = vec![];
         self.request(method, params, network).await
@@ -165,13 +140,8 @@ impl DAPIClient {
         end_time_ms: Option<u64>,
         limit: Option<u32>,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_vote_polls_by_end_date_with_proof_info".to_string()
-        } else {
-            "get_vote_polls_by_end_date".to_string()
-        };
+        let method = "get_vote_polls_by_end_date".to_string();
 
         let mut params = vec![];
 
@@ -242,7 +212,7 @@ impl DAPIClient {
         &self,
         network: Network,
     ) -> Result<Option<EpochInfo>, DAPIError> {
-        let epochs = self.get_current_epoch(network, false).await?;
+        let epochs = self.get_current_epoch(network).await?;
 
         for epoch_data in epochs {
             if let Some(raw_epoch) = epoch_data.get("epoch") {

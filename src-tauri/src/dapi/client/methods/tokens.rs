@@ -10,13 +10,8 @@ impl DAPIClient {
         &self,
         contract_id: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<TokenContractInfo>, DAPIError> {
-        let method = if with_proof {
-            "get_token_contract_info_with_proof_info".to_string()
-        } else {
-            "get_token_contract_info".to_string()
-        };
+        let method = "get_token_contract_info".to_string();
 
         let params = vec![Value::String(contract_id)];
         self.request(method, params, network).await
@@ -27,13 +22,8 @@ impl DAPIClient {
         &self,
         token_ids: Vec<String>,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_token_statuses_with_proof_info".to_string()
-        } else {
-            "get_token_statuses".to_string()
-        };
+        let method = "get_token_statuses".to_string();
 
         let token_ids_array: Vec<Value> = token_ids.into_iter().map(Value::String).collect();
         let params = vec![Value::Array(token_ids_array)];
@@ -45,13 +35,8 @@ impl DAPIClient {
         &self,
         token_id: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_token_total_supply_with_proof_info".to_string()
-        } else {
-            "get_token_total_supply".to_string()
-        };
+        let method = "get_token_total_supply".to_string();
 
         let params = vec![Value::String(token_id)];
         self.request(method, params, network).await
@@ -63,13 +48,8 @@ impl DAPIClient {
         identity_ids: Vec<String>,
         token_id: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_identities_token_balances_with_proof_info".to_string()
-        } else {
-            "get_identities_token_balances".to_string()
-        };
+        let method = "get_identities_token_balances".to_string();
 
         let identities_array: Vec<Value> = identity_ids.into_iter().map(Value::String).collect();
         let params = vec![Value::Array(identities_array), Value::String(token_id)];
@@ -80,9 +60,11 @@ impl DAPIClient {
     pub async fn get_dusd_token_info(
         &self,
         network: Network,
-        with_proof: bool,
     ) -> Result<Option<TokenContractInfo>, DAPIError> {
-        use crate::constants::{DUSD_CONTRACT_ID_MAINNET, DUSD_CONTRACT_ID_TESTNET};
+        use crate::constants::{
+            DUSD_CONTRACT_ID_MAINNET,
+            DUSD_CONTRACT_ID_TESTNET,
+        };
 
         let contract_id = match network {
             Network::Mainnet => DUSD_CONTRACT_ID_MAINNET,
@@ -90,7 +72,7 @@ impl DAPIClient {
         };
 
         let result = self
-            .get_token_contract_info(contract_id.to_string(), network, with_proof)
+            .get_token_contract_info(contract_id.to_string(), network)
             .await?;
         Ok(result.into_iter().next())
     }
@@ -99,7 +81,6 @@ impl DAPIClient {
     pub async fn get_sans_token_info(
         &self,
         network: Network,
-        with_proof: bool,
     ) -> Result<Option<TokenContractInfo>, DAPIError> {
         use crate::constants::{SANS_CONTRACT_ID_MAINNET, SANS_CONTRACT_ID_TESTNET};
 
@@ -109,7 +90,7 @@ impl DAPIClient {
         };
 
         let result = self
-            .get_token_contract_info(contract_id.to_string(), network, with_proof)
+            .get_token_contract_info(contract_id.to_string(), network)
             .await?;
         Ok(result.into_iter().next())
     }
@@ -118,7 +99,6 @@ impl DAPIClient {
     pub async fn get_evonext_token_info(
         &self,
         network: Network,
-        with_proof: bool,
     ) -> Result<Option<TokenContractInfo>, DAPIError> {
         use crate::constants::{EVONEXT_CONTRACT_ID_MAINNET, EVONEXT_CONTRACT_ID_TESTNET};
 
@@ -128,7 +108,7 @@ impl DAPIClient {
         };
 
         let result = self
-            .get_token_contract_info(contract_id.to_string(), network, with_proof)
+            .get_token_contract_info(contract_id.to_string(), network)
             .await?;
         Ok(result.into_iter().next())
     }
@@ -138,7 +118,6 @@ impl DAPIClient {
         &self,
         identity_id: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
         use crate::constants::{
             DUSD_CONTRACT_ID_MAINNET, DUSD_CONTRACT_ID_TESTNET, SANS_CONTRACT_ID_MAINNET,
@@ -153,7 +132,7 @@ impl DAPIClient {
         let token_ids = vec![dusd_id.to_string(), sans_id.to_string()];
 
         // Call the identity method directly on self
-        self.get_identity_token_balances(identity_id, token_ids, network, with_proof)
+        self.get_identity_token_balances(identity_id, token_ids, network)
             .await
     }
 
@@ -162,9 +141,8 @@ impl DAPIClient {
         &self,
         identity_id: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        self.get_common_token_balances(identity_id, network, with_proof)
+        self.get_common_token_balances(identity_id, network)
             .await
     }
 

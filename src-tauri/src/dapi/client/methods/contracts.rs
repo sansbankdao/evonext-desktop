@@ -10,13 +10,8 @@ impl DAPIClient {
         &self,
         contract_id: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "data_contract_fetch_with_proof_info".to_string()
-        } else {
-            "data_contract_fetch".to_string()
-        };
+        let method = "data_contract_fetch".to_string();
 
         let params = vec![Value::String(contract_id)];
 
@@ -31,13 +26,8 @@ impl DAPIClient {
         limit: Option<u32>,
         offset: Option<u32>,
         start_at_ms: Option<u64>,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_data_contract_history_with_proof_info".to_string()
-        } else {
-            "get_data_contract_history".to_string()
-        };
+        let method = "get_data_contract_history".to_string();
 
         let mut params = vec![Value::String(contract_id)];
 
@@ -66,13 +56,8 @@ impl DAPIClient {
         &self,
         contract_ids: Vec<String>,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_data_contracts_with_proof_info".to_string()
-        } else {
-            "get_data_contracts".to_string()
-        };
+        let method = "get_data_contracts".to_string();
 
         let ids_array: Vec<Value> = contract_ids.into_iter().map(Value::String).collect();
         let params = vec![Value::Array(ids_array)];
@@ -86,13 +71,8 @@ impl DAPIClient {
         contract_id: String,
         group_position: u32,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_group_info_with_proof_info".to_string()
-        } else {
-            "get_group_info".to_string()
-        };
+        let method = "get_group_info".to_string();
 
         let params = vec![
             Value::String(contract_id),
@@ -107,13 +87,8 @@ impl DAPIClient {
         &self,
         contract_id: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_group_infos_with_proof_info".to_string()
-        } else {
-            "get_group_infos".to_string()
-        };
+        let method = "get_group_infos".to_string();
 
         let params = vec![Value::String(contract_id)];
 
@@ -143,13 +118,8 @@ impl DAPIClient {
         data_contract_id: Option<String>,
         index_name: Option<String>,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_contested_resources_with_proof_info".to_string()
-        } else {
-            "get_contested_resources".to_string()
-        };
+        let method = "get_contested_resources".to_string();
 
         let mut params = vec![];
 

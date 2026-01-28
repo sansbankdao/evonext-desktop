@@ -10,13 +10,8 @@ impl DAPIClient {
         &self,
         username: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_dpns_username_by_name_with_proof_info".to_string()
-        } else {
-            "dpns_resolve_name".to_string()
-        };
+        let method = "dpns_resolve_name".to_string();
 
         let params = vec![Value::String(username)];
 
@@ -28,13 +23,8 @@ impl DAPIClient {
         &self,
         identity_id: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_dpns_usernames_with_proof_info".to_string()
-        } else {
-            "get_dpns_username".to_string()
-        };
+        let method = "get_dpns_username".to_string();
 
         let params = vec![Value::String(identity_id)];
 
@@ -46,13 +36,8 @@ impl DAPIClient {
         &self,
         identity_id: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_dpns_usernames_with_proof_info".to_string()
-        } else {
-            "get_dpns_usernames".to_string()
-        };
+        let method = "get_dpns_usernames".to_string();
 
         let params = vec![Value::String(identity_id)];
 
@@ -95,7 +80,8 @@ impl DAPIClient {
         username: String,
         network: Network,
     ) -> Result<bool, DAPIError> {
-        let result = self.resolve_dpns_name(username, network, false).await;
+        let result = self
+            .resolve_dpns_name(username, network).await;
 
         match result {
             Ok(records) => Ok(records.is_empty()), // Available if no records found
@@ -113,10 +99,9 @@ impl DAPIClient {
         &self,
         username: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Option<Value>, DAPIError> {
         let records = self
-            .resolve_dpns_name(username, network, with_proof)
+            .resolve_dpns_name(username, network)
             .await?;
 
         if records.is_empty() {
@@ -132,13 +117,12 @@ impl DAPIClient {
         &self,
         identity_ids: Vec<String>,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
         let mut results = Vec::new();
 
         for identity_id in identity_ids {
             match self
-                .get_dpns_username(identity_id.clone(), network, with_proof)
+                .get_dpns_username(identity_id.clone(), network)
                 .await
             {
                 Ok(domains) => {

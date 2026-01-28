@@ -10,13 +10,8 @@ impl DAPIClient {
         &self,
         identity_id: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "identity_fetch_with_proof_info".to_string()
-        } else {
-            "identity_fetch".to_string()
-        };
+        let method = "identity_fetch".to_string();
 
         let params = vec![Value::String(identity_id)];
         self.request::<Value>(method, params, network).await
@@ -27,13 +22,8 @@ impl DAPIClient {
         &self,
         identity_id: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_identity_balance_with_proof_info".to_string()
-        } else {
-            "get_identity_balance".to_string()
-        };
+        let method = "get_identity_balance".to_string();
 
         let params = vec![Value::String(identity_id)];
         self.request::<Value>(method, params, network).await
@@ -44,13 +34,8 @@ impl DAPIClient {
         &self,
         public_key_hash: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_identity_by_public_key_hash_with_proof_info".to_string()
-        } else {
-            "get_identity_by_public_key_hash".to_string()
-        };
+        let method = "get_identity_by_public_key_hash".to_string();
 
         let params = vec![Value::String(public_key_hash)];
         self.request::<Value>(method, params, network).await
@@ -61,13 +46,8 @@ impl DAPIClient {
         &self,
         identity_id: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_identity_nonce_with_proof_info".to_string()
-        } else {
-            "get_identity_nonce".to_string()
-        };
+        let method = "get_identity_nonce".to_string();
 
         let params = vec![Value::String(identity_id)];
         self.request::<Value>(method, params, network).await
@@ -79,13 +59,8 @@ impl DAPIClient {
         identity_id: String,
         contract_id: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_identity_contract_nonce_with_proof_info".to_string()
-        } else {
-            "get_identity_contract_nonce".to_string()
-        };
+        let method = "get_identity_contract_nonce".to_string();
 
         let params = vec![Value::String(identity_id), Value::String(contract_id)];
         self.request::<Value>(method, params, network).await
@@ -100,13 +75,8 @@ impl DAPIClient {
         limit: Option<u32>,
         offset: Option<u32>,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_identity_keys_with_proof_info".to_string()
-        } else {
-            "get_identity_keys".to_string()
-        };
+        let method = "get_identity_keys".to_string();
 
         let mut params = vec![Value::String(identity_id)];
         params.push(key_request_type.map(Value::String).unwrap_or(Value::Null));
@@ -139,13 +109,8 @@ impl DAPIClient {
         identity_id: String,
         token_ids: Vec<String>,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_identity_token_balances_with_proof_info".to_string()
-        } else {
-            "get_identity_token_balances".to_string()
-        };
+        let method = "get_identity_token_balances".to_string();
 
         let token_ids_array: Vec<Value> = token_ids.into_iter().map(Value::String).collect();
         let params = vec![Value::String(identity_id), Value::Array(token_ids_array)];
@@ -158,13 +123,8 @@ impl DAPIClient {
         &self,
         identity_ids: Vec<String>,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_identities_balances_with_proof_info".to_string()
-        } else {
-            "get_identities_balances".to_string()
-        };
+        let method = "get_identities_balances".to_string();
 
         let ids_array: Vec<Value> = identity_ids.into_iter().map(Value::String).collect();
         let params = vec![Value::Array(ids_array)];
@@ -177,13 +137,8 @@ impl DAPIClient {
         &self,
         identity_id: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_identity_balance_and_revision_with_proof_info".to_string()
-        } else {
-            "get_identity_balance_and_revision".to_string()
-        };
+        let method = "get_identity_balance_and_revision".to_string();
 
         let params = vec![Value::String(identity_id)];
         self.request::<Value>(method, params, network).await
@@ -196,13 +151,8 @@ impl DAPIClient {
         contract_id: String,
         purposes: Option<Vec<u32>>,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_identities_contract_keys_with_proof_info".to_string()
-        } else {
-            "get_identities_contract_keys".to_string()
-        };
+        let method = "get_identities_contract_keys".to_string();
 
         let mut params = vec![];
 

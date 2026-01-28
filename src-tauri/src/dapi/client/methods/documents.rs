@@ -68,13 +68,8 @@ impl DAPIClient {
         document_type: String,
         document_id: String,
         network: Network,
-        with_proof: bool,
     ) -> Result<Vec<Value>, DAPIError> {
-        let method = if with_proof {
-            "get_document_with_proof_info".to_string()
-        } else {
-            "get_document".to_string()
-        };
+        let method = "get_document".to_string();
 
         let params = vec![
             Value::String(data_contract_id),

@@ -128,7 +128,6 @@ pub async fn get_posts(
 #[tauri::command]
 pub async fn get_identity_info(
     identity_id: String,
-    with_proof: Option<bool>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
@@ -137,13 +136,12 @@ pub async fn get_identity_info(
     } else {
         Network::Testnet
     };
-    let with_proof = with_proof.unwrap_or(false);
     println!(
         "[DEBUG DAPI] get_identity_info network={}",
         current_network.as_str()
     );
     match client
-        .get_identity(identity_id, current_network, with_proof)
+        .get_identity(identity_id, current_network)
         .await
     {
         Ok(identities) => {
@@ -163,7 +161,6 @@ pub async fn get_identity_info(
 #[command]
 pub async fn get_identity_balance(
     identity_id: String,
-    with_proof: Option<bool>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
@@ -172,16 +169,11 @@ pub async fn get_identity_balance(
     } else {
         Network::Testnet
     };
-    let with_proof = with_proof.unwrap_or(false);
     println!(
         "[DEBUG DAPI] get_identity_balance network={}",
         current_network.as_str()
     );
-    let method = if with_proof {
-        "get_identity_balance_with_proof_info".to_string()
-    } else {
-        "get_identity_balance".to_string()
-    };
+    let method = "get_identity_balance".to_string();
     let params = vec![Value::String(identity_id)];
     match client
         .request::<Value>(method, params, current_network)
@@ -199,7 +191,6 @@ pub async fn get_identity_balance(
 pub async fn get_token_balances(
     identity_id: String,
     token_ids: Vec<String>,
-    with_proof: Option<bool>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
@@ -208,13 +199,12 @@ pub async fn get_token_balances(
     } else {
         Network::Testnet
     };
-    let with_proof = with_proof.unwrap_or(false);
     println!(
         "[DEBUG DAPI] get_token_balances network={}",
         current_network.as_str()
     );
     match client
-        .get_identity_token_balances(identity_id, token_ids, current_network, with_proof)
+        .get_identity_token_balances(identity_id, token_ids, current_network)
         .await
     {
         Ok(balances) => Ok(balances),
@@ -228,7 +218,6 @@ pub async fn get_token_balances(
 #[command]
 pub async fn resolve_dpns_name(
     username: String,
-    with_proof: Option<bool>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
@@ -237,13 +226,12 @@ pub async fn resolve_dpns_name(
     } else {
         Network::Testnet
     };
-    let with_proof = with_proof.unwrap_or(false);
     println!(
         "[DEBUG DAPI] resolve_dpns_name network={}",
         current_network.as_str()
     );
     match client
-        .resolve_dpns_name(username, current_network, with_proof)
+        .resolve_dpns_name(username, current_network)
         .await
     {
         Ok(result) => Ok(result),
@@ -257,7 +245,6 @@ pub async fn resolve_dpns_name(
 #[command]
 pub async fn get_dpns_username(
     identity_id: String,
-    with_proof: Option<bool>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
@@ -266,13 +253,12 @@ pub async fn get_dpns_username(
     } else {
         Network::Testnet
     };
-    let with_proof = with_proof.unwrap_or(false);
     println!(
         "[DEBUG DAPI] get_dpns_username network={}",
         current_network.as_str()
     );
     match client
-        .get_dpns_username(identity_id, current_network, with_proof)
+        .get_dpns_username(identity_id, current_network)
         .await
     {
         Ok(result) => Ok(result),
@@ -286,7 +272,6 @@ pub async fn get_dpns_username(
 #[command]
 pub async fn get_dpns_usernames(
     identity_id: String,
-    with_proof: Option<bool>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
@@ -295,13 +280,12 @@ pub async fn get_dpns_usernames(
     } else {
         Network::Testnet
     };
-    let with_proof = with_proof.unwrap_or(false);
     println!(
         "[DEBUG DAPI] get_dpns_usernames network={}",
         current_network.as_str()
     );
     match client
-        .get_dpns_usernames(identity_id, current_network, with_proof)
+        .get_dpns_usernames(identity_id, current_network)
         .await
     {
         Ok(result) => Ok(result),
@@ -340,7 +324,6 @@ pub async fn get_platform_status(network: Option<String>) -> Result<Vec<Value>, 
 #[command]
 pub async fn get_identities_balances(
     identity_ids: Vec<String>,
-    with_proof: Option<bool>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
@@ -349,16 +332,11 @@ pub async fn get_identities_balances(
     } else {
         Network::Testnet
     };
-    let with_proof = with_proof.unwrap_or(false);
     println!(
         "[DEBUG DAPI] get_identities_balances network={}",
         current_network.as_str()
     );
-    let method = if with_proof {
-        "get_identities_balances_with_proof_info".to_string()
-    } else {
-        "get_identities_balances".to_string()
-    };
+    let method = "get_identities_balances".to_string();
     let ids_array: Vec<Value> = identity_ids.into_iter().map(Value::String).collect();
     let params = vec![Value::Array(ids_array)];
     match client
@@ -376,7 +354,6 @@ pub async fn get_identities_balances(
 #[command]
 pub async fn get_data_contract_info(
     contract_id: String,
-    with_proof: Option<bool>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
@@ -385,16 +362,11 @@ pub async fn get_data_contract_info(
     } else {
         Network::Testnet
     };
-    let with_proof = with_proof.unwrap_or(false);
     println!(
         "[DEBUG DAPI] get_data_contract_info network={}",
         current_network.as_str()
     );
-    let method = if with_proof {
-        "data_contract_fetch_with_proof_info".to_string()
-    } else {
-        "data_contract_fetch".to_string()
-    };
+    let method = "data_contract_fetch".to_string();
     let params = vec![Value::String(contract_id)];
     match client
         .request::<Value>(method, params, current_network)
@@ -411,7 +383,6 @@ pub async fn get_data_contract_info(
 #[command]
 pub async fn get_token_contract_info(
     contract_id: String,
-    with_proof: Option<bool>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
@@ -420,16 +391,11 @@ pub async fn get_token_contract_info(
     } else {
         Network::Testnet
     };
-    let with_proof = with_proof.unwrap_or(false);
     println!(
         "[DEBUG DAPI] get_token_contract_info network={}",
         current_network.as_str()
     );
-    let method = if with_proof {
-        "get_token_contract_info_with_proof_info".to_string()
-    } else {
-        "get_token_contract_info".to_string()
-    };
+    let method = "get_token_contract_info".to_string();
     let params = vec![Value::String(contract_id)];
     match client
         .request::<Value>(method, params, current_network)
@@ -446,7 +412,6 @@ pub async fn get_token_contract_info(
 #[command]
 pub async fn get_token_statuses(
     token_ids: Vec<String>,
-    with_proof: Option<bool>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
@@ -455,16 +420,11 @@ pub async fn get_token_statuses(
     } else {
         Network::Testnet
     };
-    let with_proof = with_proof.unwrap_or(false);
     println!(
         "[DEBUG DAPI] get_token_statuses network={}",
         current_network.as_str()
     );
-    let method = if with_proof {
-        "get_token_statuses_with_proof_info".to_string()
-    } else {
-        "get_token_statuses".to_string()
-    };
+    let method = "get_token_statuses".to_string();
     let token_ids_array: Vec<Value> = token_ids.into_iter().map(Value::String).collect();
     let params = vec![Value::Array(token_ids_array)];
     match client
@@ -482,7 +442,6 @@ pub async fn get_token_statuses(
 #[command]
 pub async fn get_total_supply(
     token_id: String,
-    with_proof: Option<bool>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
@@ -491,16 +450,11 @@ pub async fn get_total_supply(
     } else {
         Network::Testnet
     };
-    let with_proof = with_proof.unwrap_or(false);
     println!(
         "[DEBUG DAPI] get_total_supply network={}",
         current_network.as_str()
     );
-    let method = if with_proof {
-        "get_token_total_supply_with_proof_info".to_string()
-    } else {
-        "get_token_total_supply".to_string()
-    };
+    let method = "get_token_total_supply".to_string();
     let params = vec![Value::String(token_id)];
     match client
         .request::<Value>(method, params, current_network)
@@ -516,7 +470,6 @@ pub async fn get_total_supply(
 
 #[command]
 pub async fn get_current_epoch(
-    with_proof: Option<bool>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
@@ -525,16 +478,11 @@ pub async fn get_current_epoch(
     } else {
         Network::Testnet
     };
-    let with_proof = with_proof.unwrap_or(false);
     println!(
         "[DEBUG DAPI] get_current_epoch network={}",
         current_network.as_str()
     );
-    let method = if with_proof {
-        "get_current_epoch_with_proof_info".to_string()
-    } else {
-        "get_current_epoch".to_string()
-    };
+    let method = "get_current_epoch".to_string();
     let params = vec![];
     match client
         .request::<Value>(method, params, current_network)
@@ -550,7 +498,6 @@ pub async fn get_current_epoch(
 
 #[command]
 pub async fn get_total_credits_in_platform(
-    with_proof: Option<bool>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
@@ -559,7 +506,6 @@ pub async fn get_total_credits_in_platform(
     } else {
         Network::Testnet
     };
-    let with_proof = with_proof.unwrap_or(false);
     println!(
         "[DEBUG DAPI] get_total_credits_in_platform network={}",
         current_network.as_str()

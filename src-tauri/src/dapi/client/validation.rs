@@ -16,7 +16,7 @@ impl MethodParamInfo {
     pub fn for_method(method: &str) -> Result<Self, DAPIError> {
         let info = match method {
             // Documents
-            "get_documents" | "get_documents_with_proof_info" => MethodParamInfo {
+            "get_documents" => MethodParamInfo {
                 required_params: vec!["dataContractId", "documentType"],
                 param_types: HashMap::from([
                     ("dataContractId", "string"),
@@ -29,7 +29,7 @@ impl MethodParamInfo {
                 ]),
             },
 
-            "get_document" | "get_document_with_proof_info" => MethodParamInfo {
+            "get_document" => MethodParamInfo {
                 required_params: vec!["dataContractId", "documentType", "documentId"],
                 param_types: HashMap::from([
                     ("dataContractId", "string"),
@@ -39,23 +39,22 @@ impl MethodParamInfo {
             },
 
             // Identity
-            "identity_fetch" | "identity_fetch_with_proof_info" => MethodParamInfo {
+            "identity_fetch" => MethodParamInfo {
                 required_params: vec!["identityId"],
                 param_types: HashMap::from([("identityId", "string")]),
             },
 
-            "get_identity_balance" | "get_identity_balance_with_proof_info" => MethodParamInfo {
+            "get_identity_balance" => MethodParamInfo {
                 required_params: vec!["identityId"],
                 param_types: HashMap::from([("identityId", "string")]),
             },
 
-            "get_identity_by_public_key_hash"
-            | "get_identity_by_public_key_hash_with_proof_info" => MethodParamInfo {
+            "get_identity_by_public_key_hash" => MethodParamInfo {
                 required_params: vec!["publicKeyHash"],
                 param_types: HashMap::from([("publicKeyHash", "string")]),
             },
 
-            "get_identity_token_balances" | "get_identity_token_balances_with_proof_info" => {
+            "get_identity_token_balances" => {
                 MethodParamInfo {
                     required_params: vec!["identityId", "tokenIds"],
                     param_types: HashMap::from([("identityId", "string"), ("tokenIds", "array")]),
@@ -63,12 +62,12 @@ impl MethodParamInfo {
             }
 
             // Contracts
-            "data_contract_fetch" | "data_contract_fetch_with_proof_info" => MethodParamInfo {
+            "data_contract_fetch" => MethodParamInfo {
                 required_params: vec!["contractId"],
                 param_types: HashMap::from([("contractId", "string")]),
             },
 
-            "get_data_contract_history" | "get_data_contract_history_with_proof_info" => {
+            "get_data_contract_history" => {
                 MethodParamInfo {
                     required_params: vec!["contractId"],
                     param_types: HashMap::from([
@@ -82,13 +81,12 @@ impl MethodParamInfo {
 
             // DPNS
             "dpns_resolve_name"
-            | "get_dpns_username_by_name"
-            | "get_dpns_username_by_name_with_proof_info" => MethodParamInfo {
+            | "get_dpns_username_by_name" => MethodParamInfo {
                 required_params: vec!["username"],
                 param_types: HashMap::from([("username", "string")]),
             },
 
-            "get_dpns_username" | "get_dpns_usernames" | "get_dpns_usernames_with_proof_info" => {
+            "get_dpns_username" | "get_dpns_usernames" => {
                 MethodParamInfo {
                     required_params: vec!["identityId"],
                     param_types: HashMap::from([("identityId", "string")]),
@@ -96,19 +94,19 @@ impl MethodParamInfo {
             }
 
             // Tokens
-            "get_token_contract_info" | "get_token_contract_info_with_proof_info" => {
+            "get_token_contract_info" => {
                 MethodParamInfo {
                     required_params: vec!["dataContractId"],
                     param_types: HashMap::from([("dataContractId", "string")]),
                 }
             }
 
-            "get_token_statuses" | "get_token_statuses_with_proof_info" => MethodParamInfo {
+            "get_token_statuses" => MethodParamInfo {
                 required_params: vec!["tokenIds"],
                 param_types: HashMap::from([("tokenIds", "array")]),
             },
 
-            "get_token_total_supply" | "get_token_total_supply_with_proof_info" => {
+            "get_token_total_supply" => {
                 MethodParamInfo {
                     required_params: vec!["tokenId"],
                     param_types: HashMap::from([("tokenId", "string")]),
@@ -121,12 +119,12 @@ impl MethodParamInfo {
                 param_types: HashMap::new(),
             },
 
-            "get_current_epoch" | "get_current_epoch_with_proof_info" => MethodParamInfo {
+            "get_current_epoch" => MethodParamInfo {
                 required_params: vec![],
                 param_types: HashMap::new(),
             },
 
-            "get_total_credits_in_platform" | "get_total_credits_in_platform_with_proof_info" => {
+            "get_total_credits_in_platform" => {
                 MethodParamInfo {
                     required_params: vec![],
                     param_types: HashMap::new(),
