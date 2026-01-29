@@ -22,7 +22,6 @@ export class DAPIService {
         console.log(`[DAPI] Calling ${method} with hash ${publicKeyHash} on ${network}`)
 
         try {
-            // FIX: Pass parameters as positional array for Tauri 2.0
             const response = await invoke<any>(method, {
                 publicKeyHash: publicKeyHash,
                 network: network
@@ -55,29 +54,28 @@ export class DAPIService {
                 }
 
                 // Check if it's a success response
-                if (wrapper?.success === true && wrapper?.result) {
-                    const result = wrapper.result
-                    console.log(`[DAPI] Success result for ${publicKeyHash}:`, result)
-                    // result should be an array of identities
-                    if (Array.isArray(result) && result.length > 0) {
-                        console.log(`[DAPI] Found ${result.length} identities for hash ${publicKeyHash}`)
-                        return {
-                            success: true,
-                            data: result[0],  // First identity in array
-                            searchType: unique ? 'unique' : 'non-unique',
-                            debug: wrapper
-                        }
-                    }
-                }
+                if (wrapper?.success === true) {
+                    let result = wrapper.result
 
-                // Handle case where wrapper is the identity data itself
-                if (wrapper?.id || wrapper?.identityId) {
-                    console.log(`[DAPI] Direct identity data found for ${publicKeyHash}`)
-                    return {
-                        success: true,
-                        data: wrapper,
-                        searchType: unique ? 'unique' : 'non-unique',
-                        debug: { directResponse: true }
+                    // FIX: If result is missing but success is true, check the wrapper itself
+                    // Sometimes the response is { success: true, identityId: ... } directly
+                    if (!result && (wrapper.identityId || wrapper.id)) {
+                        result = wrapper
+                    }
+                    console.log(`[DAPI] Result for ${publicKeyHash}:`, result)
+
+                    if (result) {
+                        // result can be an array of identities OR a single identity object
+                        const identityData = Array.isArray(result) ? (result.length > 0 ? result[0] : null) : result
+                        if (identityData) {
+                            console.log(`[DAPI] Found identity data for ${publicKeyHash}`)
+                            return {
+                                success: true,
+                                data: identityData,
+                                searchType: unique ? 'unique' : 'non-unique',
+                                debug: wrapper
+                            }
+                        }
                     }
                 }
             }
@@ -99,6 +97,7 @@ export class DAPIService {
             }
         }
     }
+
     static async getDPNSUsername(
         identityId: string,
         network: 'mainnet' | 'testnet'
@@ -111,6 +110,11 @@ export class DAPIService {
                 network: network
             })
             console.log(`[DAPI] DPNS response for ${identityId}:`, response)
+
+            // HANDLE RAW STRING RESPONSE (Rust returns "name.dash" directly)
+            if (typeof response === 'string') {
+                return response
+            }
 
             // Tauri returns [Result]
             if (Array.isArray(response) && response[0]) {
@@ -192,20 +196,26 @@ export class DAPIService {
                 }
             }
 
+            // FIX: Check for wrapper.result first
             if (wrapper?.success === true && wrapper?.result) {
                 const result = wrapper.result
                 console.log(`[DAPI] Success result for identity ${identityId}:`, result)
-                if (Array.isArray(result) && result.length > 0) {
+
+                const identityData = Array.isArray(result) ? (result.length > 0 ? result[0] : null) : result
+
+                if (identityData) {
                     return {
                         success: true,
-                        data: result[0],
+                        data: identityData,
                         searchType: 'none',
                         debug: wrapper
                     }
                 }
             }
 
-            if (wrapper?.id || wrapper?.identityId) {
+            // Fallback: Handle case where wrapper is the identity data itself
+            // Only use this if we haven't already extracted data from wrapper.result
+            if ((wrapper?.id || wrapper?.identityId) && !wrapper?.result) {
                 console.log(`[DAPI] Direct identity data found for ${identityId}`)
                 return {
                     success: true,

@@ -27,6 +27,11 @@ export class KeyDiscovery extends BaseDiscovery {
      */
     private safeBinToHex(bytes: any): string {
         if (!bytes) return ''
+        // Debug check: ensures you didn't forget an await
+        if (bytes instanceof Promise) {
+            console.error('[KeyDiscovery] Logic error: passed a Promise to safeBinToHex')
+            return ''
+        }
         try {
             // Ensure we are working with a standard JS Array or Uint8Array
             // Array.from() handles WASM-wrapped memory objects that might lack .reduce
@@ -86,7 +91,15 @@ export class KeyDiscovery extends BaseDiscovery {
             if (result.success && result.data) {
                 const identityData = result.data
                 const id = identityData.identityId || identityData.id
-                const dpnsName = await DAPIService.getDPNSUsername(id, network)
+
+                // Allow discovery to succeed even if DPNS fetch fails
+                let dpnsName = ''
+                try {
+                    dpnsName = await DAPIService.getDPNSUsername(id, network) || ''
+                } catch (e) {
+                    console.warn('[KeyDiscovery] Could not fetch DPNS name:', e)
+                }
+
                 const discoveredIdentity: DiscoveredIdentity = {
                     identityId: id,
                     identityIdx: 0,
@@ -98,12 +111,15 @@ export class KeyDiscovery extends BaseDiscovery {
 
                 // 3. If it was a private key, save it to secure storage
                 if (privateKeyInstance) {
-                    await this.saveDiscoveredKeyToStorage(
+                    const saved = await this.saveDiscoveredKeyToStorage(
                         network,
                         privateKeyInstance,
                         id,
                         identityData.publicKeys || []
                     )
+                    if (!saved) {
+                        console.warn('[KeyDiscovery] Key storage reported failure, but continuing discovery.')
+                    }
                 }
 
                 const associatedKeys = this.extractAssociatedKeys(discoveredIdentity.publicKeys)
@@ -154,10 +170,18 @@ export class KeyDiscovery extends BaseDiscovery {
     ): Promise<boolean> {
         try {
             if (!identityId || !publicKeys.length) return false
-            const derivedPubHex = this.safeBinToHex(privateKeyInstance.getPublicKey().bytes())
+
+            // 1. Get RAW bytes (33 bytes)
+            const pubBytes = privateKeyInstance.getPublicKey().bytes()
+
+            // 2. We MUST hash it because the Identity stores the HASH160 (20 bytes)
+            const hashedBytes = await hash160(pubBytes)
+            const derivedHashHex = this.safeBinToHex(hashedBytes).toLowerCase()
+
+            // 3. Match against the hash
             const matching = publicKeys.find((pk: any) => {
                 const dataHex = (pk.data || pk.dataB64 || '').toString().toLowerCase()
-                return dataHex === derivedPubHex.toLowerCase()
+                return dataHex === derivedHashHex
             })
 
             const entry = {
@@ -167,7 +191,9 @@ export class KeyDiscovery extends BaseDiscovery {
                 securityLevel: matching?.securityLevel ?? 0,
                 keyType: matching?.keyType || 'ecdsa',
                 privateKey: privateKeyInstance.WIF(),
-                publicKey: derivedPubHex,
+                // Store the HASHED version if we are saving derived data, or raw if needed.
+                // Typically derived from Mnemonic implies the public key, but here we derived from Hash.
+                publicKey: derivedHashHex,
                 derivedFromMnemonic: false,
                 createdAt: new Date().toISOString(),
                 lastUsed: new Date().toISOString()

@@ -247,22 +247,48 @@ pub async fn resolve_dpns_name(
 pub async fn get_dpns_username(
     identity_id: String,
     network: Option<String>,
-) -> Result<Vec<Value>, String> {
+) -> Result<Option<String>, String> {
+    // CHANGED RETURN TYPE: From Vec<Value> to Option<String>
+    // This fixes the serialization issue where a raw JSON string "name.dash" was
+    // failing to parse as a JSON Array of Objects.
+
     let client = get_dapi_client();
     let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet
     };
+
     println!(
         "[DEBUG DAPI] get_dpns_username network={}",
         current_network.as_str()
     );
+
     match client
         .get_dpns_username(identity_id, current_network)
         .await
     {
-        Ok(result) => Ok(result),
+        // The client returns a Vec<Value>. We inspect it here to extract the string.
+        Ok(result_vec) => {
+            if result_vec.is_empty() {
+                Ok(None)
+            } else {
+                // The DAPI response is expected to be a JSON string inside the array, e.g. ["name.dash"]
+                // or an object. We attempt to handle the string case directly.
+                let first = &result_vec[0];
+
+                if first.is_string() {
+                    // If it is a raw string, return it directly
+                    Ok(first.as_str().map(|s| s.to_string()))
+                } else {
+                    // If it is an object (unexpected but possible), serialize it back to string
+                    match serde_json::to_string(first) {
+                        Ok(s) => Ok(Some(s)),
+                        Err(_) => Ok(None)
+                    }
+                }
+            }
+        }
         Err(e) => {
             tracing::error!("Failed to get DPNS username: {}", e);
             Err(e.to_string())
