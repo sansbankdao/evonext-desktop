@@ -22,7 +22,7 @@ pub struct UnifiedCommandResult {
     pub payload: Option<JsonValue>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, TS)]
+#[derive(Serialize, Deserialize, Clone, Debug, TS, Default)]
 #[serde(rename_all = "camelCase")]
 #[ts(export, export_to = "../src/types/rust/")]
 pub struct SaveIdentityPayload {
@@ -304,14 +304,12 @@ mod tests {
             .build(mock_context(noop_assets()))
             .unwrap();
 
-        // Mock payload
-        let payload = SaveIdentityPayload {"sample".into(),
+        let payload = SaveIdentityPayload {
+            identity_id: "sample_id".into(),
+            ..Default::default() // This fills in the other 8 fields with 0 or ""
         };
 
-        // Call the actual command function
         let result = save_identity(app.handle().clone(), payload).await;
-
-        // If the AI broke the storage logic, this assertion fails
-        assert!(result.is_ok(), "Command failed: {:?}", result.err());
+        assert!(result.is_ok());
     }
 }

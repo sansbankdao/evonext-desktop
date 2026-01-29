@@ -237,3 +237,22 @@ src-tauri/
 - **"cargo metadata not found":** Ensure Rust is installed and in your PATH. Source ~/.cargo/env if necessary.
 - **Build errors on Linux:** Ensure system dependencies (libwebkit2gtk, etc.) are installed per Tauri docs.
 - **DAPI Connection Issues:** Check network configuration in src-tauri/src/config/ and ensure you are not blocked by a firewall.
+
+---
+
+The Instructions for Your AI Assistant
+
+Strict Protocol for AI Assistant:
+
+Contract Integrity: Never modify a Rust struct insrc-tauri/src/types/ without first confirming how it affects the TypeScript frontend.
+
+No Deletions: You are forbidden from deleting "unused" functions or fields unless specifically instructed. They may be used by the testing suite.
+
+Test-First: When adding a feature, first write a unit test in the relevant.rs file under amod tests block.
+
+Verification Loop: After any change, you MUST run./check.sh. If any step fails:
+1. You broke a contract or logic.
+2. Do not ask the user for help yet.
+3. Analyze the error and fix your regression.
+
+Submission: Only provide code solutions once./check.sh reports 100% success.

@@ -93,6 +93,15 @@ Use `source "$HOME/.cargo/env"` to immediately load cargo into PATH
 On Ubuntu, settings are stored at `~/.local/share/app.evonext`.
 
 
+## AI Recommendations
+
+1. Rely on `src/bindings.ts` as the ONLY source of truth for the Vue front-end.
+
+2. When you ask the AI to do something, use this prompt:
+> AI, implement `[Task Name]`.
+After you finish the Rust code, you must `runcargo run --bin export_types` and then `runpnpm exec tsc --noEmit` to ensure you haven't broken the frontend's connection to the backend.
+
+
 ## 🤝 Contributing
 
 Contributions, issues, and feature requests are welcome! Feel free to check the issues page.

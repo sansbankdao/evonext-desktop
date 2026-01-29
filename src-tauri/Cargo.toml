@@ -18,7 +18,7 @@ tauri-build = { version = "2.4.0", features = [] }
 chrono = { version = "0.4.43", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
-tauri = { version = "2.4.0", features = ["tray-icon", "image-png"] }
+tauri = { version = "2.4.0", features = ["tray-icon", "image-png", "test"] }
 tauri-plugin-dialog = { version = "2.6.0" }
 tauri-plugin-fs = { version = "2.4.5" }
 tauri-plugin-opener = { version = "2.5.3" }
@@ -51,11 +51,9 @@ hex = "0.4.3"
 sentry = "0.46.1"
 tauri-plugin-sentry = "0.5"
 
-# Anti-Regression Suite (Specta v2 for Tauri v2)
-# We use 'derive' on specta, 'typescript' on tauri-specta, and add specta-typescript
+# Anti-Regression Suite
 specta = { version = "2.0.0-rc.22", features = ["derive"] }
 tauri-specta = { version = "2.0.0-rc.20", features = ["typescript"] }
-specta-typescript = "0.0.7-rc.12"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
