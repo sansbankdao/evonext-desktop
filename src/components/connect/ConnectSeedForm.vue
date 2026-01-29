@@ -21,14 +21,30 @@
             @submit="handleDiscovery"
         />
 
-        <!-- 3. Result: Found Identity -->
+        <!-- 3. Discover Identity Button -->
+        <div v-if="validationState.isValid && !discoveredIdentity">
+            <button
+                type="button"
+                @click="handleDiscovery"
+                :disabled="isSearching"
+                class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-medium rounded-xl transition-all duration-200 hover:from-cyan-600 hover:to-cyan-700 hover:shadow-lg disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed"
+            >
+                <svg v-if="isSearching" class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>{{ isSearching ? 'Discovering...' : 'Discover Identity' }}</span>
+            </button>
+        </div>
+
+        <!-- 4. Result: Found Identity -->
         <IdentityCard
             v-if="discoveredIdentity"
             :identity="discoveredIdentity"
             @connect="connectWithIdentity"
         />
 
-        <!-- 4. Fallback: Manual ID -->
+        <!-- 5. Fallback: Manual ID -->
         <ManualIdentityInput
             v-else-if="showManualIdentity"
             v-model="manualIdentityId"
@@ -36,8 +52,8 @@
             @cancel="showManualIdentity = false"
         />
 
-        <!-- 5. Footer Link -->
-        <div v-else class="text-center">
+        <!-- 6. Footer Link -->
+        <div v-else-if="!isSearching" class="text-center">
             <button
                 @click="showManualIdentity = true"
                 class="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 underline"
@@ -50,9 +66,11 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useIdentityStore } from '@/stores/identity'
 import { useDebounce } from '@/composables/useDebounce'
 import { useMnemonicValidator } from '@/composables/useMnemonic'
+import { useNotification } from '@/composables/useNotification'
 import type { DiscoveredIdentity } from '@/types'
 
 // Components
@@ -75,6 +93,7 @@ interface Emits {
     (e: 'update:seedWords', words: string[]): void
     (e: 'update:manualIdentityId', value: string): void
     (e: 'submit'): void
+    (e: 'discover-identity'): void
     (e: 'validate', valid: boolean): void
     (e: 'use-manual-identity'): void
     (e: 'paste', words: string[]): void
@@ -88,6 +107,8 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>()
 
 const store = useIdentityStore()
+const router = useRouter()
+const { showSuccess, showError } = useNotification()
 const { validatePhrase, isValidWord } = useMnemonicValidator()
 
 // Local State
@@ -140,33 +161,45 @@ watch(debouncedPhrase, () => {
 // Actions
 const handleDiscovery = () => {
     if (validationState.value.isValid) {
-        emit('submit')
+        emit('discover-identity')
     }
 }
 
+/**
+ * Connect using the discovered identity and the seed phrase from the form.
+ * This is the correct flow that passes the seed phrase for key derivation.
+ */
 async function connectWithIdentity() {
-    const id = props.discoveredIdentity
-    if (!id) return
+    const identity = props.discoveredIdentity
+    if (!identity) {
+        showError('No identity selected')
+        return
+    }
 
-    // Fix applied previously: prioritize DPNS name
-    const effectiveUsername = (id as any).dpnsUsername || (id as any).username || id.identityId
+    // Get the seed phrase from the form
+    const seedPhrase = seedWords.value
+        .map(w => w.trim().toLowerCase())
+        .filter(w => w.length > 0)
+        .join(' ')
+
+    if (!seedPhrase || seedPhrase.split(' ').length < 12) {
+        showError('Invalid seed phrase')
+        return
+    }
 
     try {
-        await store.connectWriteOnlyFromDiscovered(
-            {
-                identityId: id.identityId,
-                identityIdx: (id as any).identityIdx ?? 0,
-                balance: id.balance ?? null,
-                revision: (id as any).revision ?? null,
-                username: effectiveUsername,
-                dpnsUsername: (id as any).dpnsUsername ?? null,
-                publicKeys: (id as any).publicKeys ?? null,
-                publicKeyIds: (id as any).publicKeyIds ?? null
-            },
-            props.network
-        )
-    } catch (e) {
+        const result = await store.connectWriteOnlyFromDiscovered(identity, seedPhrase)
+
+        if (result.success) {
+            const displayName = identity.dpnsUsername || identity.username || identity.identityId
+            showSuccess(`Connected as ${displayName}`)
+            router.push('/')
+        } else {
+            showError(result.error || 'Failed to connect')
+        }
+    } catch (e: any) {
         console.error('connectWithIdentity failed:', e)
+        showError(e?.message || 'Connection failed')
     }
 }
 </script>

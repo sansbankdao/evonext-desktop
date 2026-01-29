@@ -1,79 +1,156 @@
 // src/stores/identity/actions/connectWriteOnly.ts
 
 import { invoke } from '@tauri-apps/api/core'
+import { DAPIService } from '@/services/identity/discovery/DAPIService'
+import { KeyDerivationService } from '@/services/identity/keyDerivation.service'
+import type { ConnectionResult, DiscoveredIdentity, IIdentityState, IIdentity } from '@/types'
 
-type Network = 'mainnet' | 'testnet'
+async function persistActiveIdentityMarker(identityId: string | null, network: string) {
+    try {
+        if (identityId) {
+            await invoke('update_active_identity_marker', {
+                network: network,
+                activeId: identityId
+            })
+        }
+    } catch (e) {
+        console.error('Failed to persist active identity marker:', e)
+    }
+}
 
 export function connectWriteOnlyActions() {
     return {
+        /**
+         * Connect using a discovered identity and seed phrase.
+         * This derives all keys from the mnemonic and saves them to the keystore.
+         */
         async connectWriteOnlyFromDiscovered(
-            this: any,
-            discovered: {
-                identityId: string
-                identityIdx?: number
-                balance?: string | number | null
-                revision?: number | string | null
-                username?: string | null
-                dpnsUsername?: string | null
-                publicKeys?: any[] | null
-                publicKeyIds?: number[] | null
-            },
-            network: Network
-        ): Promise<void> {
-            if (!discovered || !discovered.identityId) {
+            this: IIdentityState,
+            identity: DiscoveredIdentity,
+            seedPhrase: string
+        ): Promise<ConnectionResult> {
+            if (!identity || !identity.identityId) {
                 this.connectionError = 'No discovered identity to connect'
-                throw new Error(this.connectionError)
+                return { success: false, error: this.connectionError }
             }
 
-            const payload: any = {
-                identity_id: discovered.identityId,
-                identity_idx: discovered.identityIdx ?? 0,
-                username: discovered.username ?? discovered.identityId,
-                balance: discovered.balance == null ? null : String(discovered.balance),
-                revision: discovered.revision ?? null,
-                created_at: new Date().toISOString(),
-                is_authenticated: true
+            if (!seedPhrase || seedPhrase.trim().length === 0) {
+                this.connectionError = 'Seed phrase is required'
+                return { success: false, error: this.connectionError }
             }
 
-            if (Array.isArray(discovered.publicKeys)) {
-                payload.public_keys = discovered.publicKeys
-            }
-            if (Array.isArray(discovered.publicKeyIds) && discovered.publicKeyIds.length > 0) {
-                payload.public_key_ids = discovered.publicKeyIds
-            }
-
-            const ok = await invoke<boolean>('save_identity_data_untyped', {
-                network,
-                payload
-            }).catch((e: any) => {
-                const msg = e?.message || String(e)
-                console.error('[connectWriteOnly] invoke failed:', msg)
-                return false
-            })
-
-            if (!ok) {
-                this.connectionError = 'Failed to connect (write identity)'
-                this.isConnected = false
-                throw new Error(this.connectionError)
-            }
-
-            // Update store fields used by Header and the rest of the app
-            this.identityId = payload.identity_id
-            this.username = payload.username
-            this.identity = {
-                id: payload.identity_id,
-                idx: payload.identity_idx,
-                username: payload.username
-            }
-            this.publicKeys = discovered.publicKeys ?? []
-            this.revision =
-                typeof payload.revision === 'number'
-                    ? payload.revision
-                    : Number(payload.revision || 0)
-            this.isAuthenticated = true
-            this.isConnected = true
-            this.lastConnected = payload.created_at
+            this.isConnecting = true
             this.connectionError = null
+
+            try {
+                // Determine network from settings
+                const network = await this.getCurrentNetwork()
+                const identityIndex = identity.identityIdx ?? 0
+
+                // Fetch fresh identity data from DAPI to get public keys
+                const fetchResult = await DAPIService.getIdentityById(identity.identityId, network)
+
+                let publicKeys = identity.publicKeys || []
+                let balance = identity.balance
+                let revision = identity.revision
+
+                if (fetchResult.success && fetchResult.data) {
+                    publicKeys = fetchResult.data.publicKeys || publicKeys
+                    balance = fetchResult.data.balance ?? balance
+                    revision = fetchResult.data.revision ?? revision
+                }
+
+                // Derive private keys from seed phrase for each public key
+                const now = new Date().toISOString()
+                const privateKeyEntries: any[] = []
+
+                for (let i = 0; i < publicKeys.length; i++) {
+                    const pk = publicKeys[i]
+                    const keyId = (pk?.id !== undefined && pk.id !== null) ? Number(pk.id) : i
+
+                    // Skip high key IDs (likely not derived from standard path)
+                    if (keyId > 10) continue
+
+                    try {
+                        const res = await KeyDerivationService.getPrivateKeyWASM(
+                            seedPhrase,
+                            network,
+                            identityIndex,
+                            keyId
+                        )
+
+                        privateKeyEntries.push({
+                            identityId: identity.identityId,
+                            keyId: keyId,
+                            purpose: Number(pk?.purpose ?? 0),
+                            securityLevel: Number(pk?.securityLevel ?? 0),
+                            keyType: String(pk?.keyType || pk?.type || 'ECDSA_HASH160'),
+                            privateKey: res.privateKey.WIF(),
+                            publicKey: pk?.data || '',
+                            derivedFromMnemonic: true,
+                            createdAt: now,
+                            lastUsed: now
+                        })
+                    } catch (e) {
+                        console.warn(`[connectWriteOnly] KeyId ${keyId} derivation skipped:`, e)
+                    }
+                }
+
+                // Save derived keys to keystore
+                if (privateKeyEntries.length > 0) {
+                    await this.saveKeys(network, identity.identityId, privateKeyEntries)
+                }
+
+                // Save mnemonic for future use
+                await this.saveMnemonicToStore(network, seedPhrase)
+
+                // Build the active identity object
+                const activeIdentity: IIdentity = {
+                    identityId: identity.identityId,
+                    identityIdx: identityIndex,
+                    balance: balance != null ? String(balance) : '0',
+                    revision: typeof revision === 'number' ? revision : Number(revision || 0),
+                    publicKeys: publicKeys,
+                    username: identity.dpnsUsername || identity.username || identity.identityId,
+                    displayName: identity.displayName || identity.dpnsUsername || undefined
+                }
+
+                // Update store state
+                this.isAuthenticated = true
+                this.username = activeIdentity.username || null
+                this.identityId = identity.identityId
+                this.identity = activeIdentity
+                this.publicKeys = publicKeys
+                this.balance = activeIdentity.balance
+                this.revision = activeIdentity.revision ?? null
+                this.isConnected = true
+                this.lastConnected = Date.now()
+                this.connectionError = null
+
+                // Persist identity data to disk
+                await this.saveIdentityDataToStore(network, identity.identityId, {
+                    ...activeIdentity,
+                    active_identity_id: identity.identityId
+                })
+
+                // Mark as active identity
+                await persistActiveIdentityMarker(identity.identityId, network)
+
+                return {
+                    success: true,
+                    identityId: identity.identityId,
+                    identity: activeIdentity
+                }
+
+            } catch (err: any) {
+                const errorMsg = err?.message || String(err) || 'Failed to connect'
+                console.error('[connectWriteOnly] Error:', errorMsg)
+                this.connectionError = errorMsg
+                this.isConnected = false
+                return { success: false, error: errorMsg }
+            } finally {
+                this.isConnecting = false
+            }
         }
     }
 }

@@ -32,7 +32,9 @@
                             v-model:wordCount="seedWordCount"
                             v-model:seedWords="seedWords"
                             v-model:manual-identity-id="manualIdentityId"
+                            :discovered-identity="selectedSeedIdentity"
                             :is-searching="isSearchingSeed"
+                            :network="currentNetwork"
                             @paste="handlePaste"
                             @discover-identity="startSeedDiscovery"
                             @submit="handleConnect"
@@ -101,8 +103,8 @@
                             </div>
                         </div>
 
-                        <!-- Seed Discovery Results -->
-                        <div v-if="seedDiscoveryResults.length > 0" class="mt-4 space-y-3">
+                        <!-- Seed Discovery Results (Multiple Identities) -->
+                        <div v-if="seedDiscoveryResults.length > 1" class="mt-4 space-y-3">
                             <div class="flex items-center justify-between mb-2">
                                 <h3 class="text-sm font-bold text-slate-700 dark:text-slate-300">
                                     Found {{ seedDiscoveryResults.length }} Identit{{ seedDiscoveryResults.length === 1 ? 'y' : 'ies' }}
@@ -193,8 +195,8 @@
                         </div>
                     </div>
 
-                    <!-- Connect Button -->
-                    <div class="pt-6">
+                    <!-- Connect Button (for private key flow) -->
+                    <div v-if="connectionMethod === 'privateKey'" class="pt-6">
                         <button
                             type="submit"
                             :disabled="!isFormValid || isConnecting || isDiscovering"
@@ -218,8 +220,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useConnect } from '@/composables/useConnect'
+import { useNetwork } from '@/composables/useNetwork'
 import Header from '@/components/Header.vue'
 import ConnectMethodTabs from '@/components/connect/ConnectMethodTabs.vue'
 import SecurityWarning from '@/components/connect/SecurityWarning.vue'
@@ -228,6 +231,10 @@ import ConnectErrorDisplay from '@/components/connect/ConnectErrorDisplay.vue'
 import KeyDiscoveryForm from '@/components/connect/KeyDiscoveryForm.vue'
 
 const showDebug = ref(false)
+const { network, ensure } = useNetwork()
+
+// Initialize network on mount
+const currentNetwork = computed(() => network.value)
 
 const {
     // State
@@ -276,7 +283,8 @@ const handleGlobalSubmit = () => {
     handleConnect()
 }
 
-onMounted(() => {
+onMounted(async () => {
+    await ensure()
     initialize()
 })
 

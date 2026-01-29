@@ -8,6 +8,7 @@ import { balanceActions } from './actions/balance'
 import { identityActions } from './actions/identity'
 import { discoveredIdentitiesActions } from './actions/discovered'
 import { unifiedActions } from './actions/unified'
+import { connectWriteOnlyActions } from './actions/connectWriteOnly'
 
 // Combine all actions
 const useIdentityActions = {
@@ -15,7 +16,8 @@ const useIdentityActions = {
     ...identityActions(),
     ...balanceActions(),
     ...discoveredIdentitiesActions(),
-    ...unifiedActions(), // This includes the new syncIdentityToBackend
+    ...unifiedActions(),
+    ...connectWriteOnlyActions(),
 }
 
 export const useIdentityStore = defineStore('identity', {
