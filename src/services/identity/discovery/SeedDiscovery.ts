@@ -14,14 +14,17 @@ import { binToHex } from '@evonext/utils'
 import { hash160 } from '@/services/crypto'
 
 export type ProgressCallback = (details: any) => void
+
 export class SeedDiscovery extends BaseDiscovery {
     private isCancelled = false
     private store: IIdentityActions
     private progressCallback: ProgressCallback | null = null
+
     constructor(store: IIdentityActions) {
         super()
         this.store = store
     }
+
     // Correctly implement the abstract method to match DiscoveryResult interface
     async discover(input: string, options?: DiscoveryOptions): Promise<DiscoveryResult> {
         const network = options?.network || 'testnet'
@@ -44,13 +47,16 @@ export class SeedDiscovery extends BaseDiscovery {
             }
         }
     }
+
     cancel(): void {
         console.log(`[SeedDiscovery] Discovery cancelled`)
         this.isCancelled = true
     }
+
     setProgressCallback(callback: ProgressCallback): void {
         this.progressCallback = callback
     }
+
     protected updateProgress(details: any) {
         console.log(`[SeedDiscovery] Progress:`, details)
         if (this.progressCallback) {
@@ -59,6 +65,7 @@ export class SeedDiscovery extends BaseDiscovery {
         const event = new CustomEvent('discovery:progress', { detail: details })
         window.dispatchEvent(event)
     }
+
     async discoverFromSeed(
         seedPhrase: string,
         network: 'mainnet' | 'testnet',
@@ -68,37 +75,61 @@ export class SeedDiscovery extends BaseDiscovery {
         const results: DiscoveredIdentity[] = []
         let currentIndex = 0
         const searchLimit = options?.maxIdentityIndex ?? 5
+
         console.log(`[SeedDiscovery] Starting discovery for seed phrase (first 10 chars): ${seedPhrase.substring(0, 10)}...`)
         console.log(`[SeedDiscovery] Network: ${network}, Search limit: ${searchLimit}`)
+
         while (currentIndex < searchLimit) {
             if (this.isCancelled) {
                 console.log(`[SeedDiscovery] Discovery cancelled at index ${currentIndex}`)
                 break
             }
+
             this.updateProgress({
                 currentIdentityIndex: currentIndex,
                 totalIdentities: searchLimit,
                 message: `Scanning Identity Index ${currentIndex}...`
             })
+
             try {
                 console.log(`[SeedDiscovery] Deriving key for identity index ${currentIndex}, key index 0`)
+
                 // Get private key for identity index, key index 0 (master key)
                 const { privateKey } = await KeyDerivationService.getPrivateKeyWASM(
                     seedPhrase, network, currentIndex, 0
                 )
+
                 // Get public key bytes and hash
                 const pubKeyBytes = privateKey.getPublicKey().bytes()
                 const pubKeyHash = binToHex(await hash160(pubKeyBytes))
                 console.log(`[SeedDiscovery] Derived pubKeyHash for index ${currentIndex}: ${pubKeyHash}`)
+
                 // Query DAPI for identity by hash
                 console.log(`[SeedDiscovery] Querying DAPI for hash ${pubKeyHash}`)
-                const result = await DAPIService.queryIdentityByHash(pubKeyHash, network, true)
-                console.log(`[SeedDiscovery] DAPI result for index ${currentIndex}:`, result)
+
+                // 1. Try Unique Search
+                let result = await DAPIService.queryIdentityByHash(pubKeyHash, network, true)
+                console.log(`[SeedDiscovery] DAPI Unique result for index ${currentIndex}:`, result)
+
+                // 2. If Unique fails, try Non-Unique Search (The fix)
+                if (!result.success || !result.data) {
+                    console.log(`[SeedDiscovery] Unique search failed, trying Non-Unique...`)
+                    result = await DAPIService.queryIdentityByHash(pubKeyHash, network, false)
+                    console.log(`[SeedDiscovery] DAPI Non-Unique result for index ${currentIndex}:`, result)
+                }
+
                 if (result.success && result.data) {
                     const id = result.data.identityId || result.data.id
                     console.log(`[SeedDiscovery] Found identity ${id} at index ${currentIndex}`)
-                    const dpns = await DAPIService.getDPNSUsername(id, network)
-                    console.log(`[SeedDiscovery] DPNS username for ${id}:`, dpns)
+
+                    // Allow DPNS to fail without breaking discovery
+                    let dpns = ''
+                    try {
+                        dpns = await DAPIService.getDPNSUsername(id, network) || ''
+                    } catch (e) {
+                        console.warn(`[SeedDiscovery] Failed to fetch DPNS for ${id}:`, e)
+                    }
+
                     const discovered: DiscoveredIdentity = {
                         identityId: id,
                         identityIdx: currentIndex,
@@ -109,30 +140,37 @@ export class SeedDiscovery extends BaseDiscovery {
                         displayName: dpns || `Identity ${currentIndex}`,
                         revision: result.data.revision
                     }
+
                     results.push(discovered)
                     console.log(`[SeedDiscovery] Saving derived keys for ${id}`)
                     await this.saveDerivedKeys(seedPhrase, network, currentIndex, id, discovered.publicKeys)
                 } else {
-                    console.log(`[SeedDiscovery] No identity found at index ${currentIndex}:`, result.error)
+                    console.log(`[SeedDiscovery] No identity found at index ${currentIndex}`)
                 }
+
             } catch (e: any) {
                 // Identity not found at this index
                 console.log(`[SeedDiscovery] Error at index ${currentIndex}:`, e.message)
             }
+
             currentIndex++
         }
+
         this.updateProgress({
             currentIdentityIndex: searchLimit,
             totalIdentities: searchLimit,
             message: `Found ${results.length} identities.`
         })
+
         console.log(`[SeedDiscovery] Discovery complete. Found ${results.length} identities`)
         return results
     }
+
     private async saveDerivedKeys(phrase: string, net: any, idx: number, id: string, keys: any[]) {
         console.log(`[SeedDiscovery] Saving ${keys.length} keys for identity ${id}`)
         const entries = []
         const now = new Date().toISOString()
+
         for (let i = 0; i < keys.length; i++) {
             try {
                 const kId = (keys[i].id !== undefined && keys[i].id !== null) ? Number(keys[i].id) : i
@@ -140,13 +178,17 @@ export class SeedDiscovery extends BaseDiscovery {
                     console.log(`[SeedDiscovery] Skipping key ID ${kId} > 10`)
                     continue
                 }
+
                 console.log(`[SeedDiscovery] Deriving private key for key ID ${kId}`)
                 const res = await KeyDerivationService.getPrivateKeyWASM(phrase, net, idx, kId)
+
                 // Get the public key from the private key to verify it matches
                 const derivedPubKey = binToHex(res.privateKey.getPublicKey().bytes())
                 const keyData = keys[i].data
+
                 console.log(`[SeedDiscovery] Derived pubkey: ${derivedPubKey.substring(0, 16)}...`)
                 console.log(`[SeedDiscovery] Key data from DAPI: ${keyData}`)
+
                 entries.push({
                     identityId: id,
                     keyId: kId,
@@ -159,12 +201,14 @@ export class SeedDiscovery extends BaseDiscovery {
                     createdAt: now,
                     lastUsed: now
                 })
+
                 console.log(`[SeedDiscovery] Added key entry for ID ${kId}`)
             } catch (e: any) {
                 console.error(`[SeedDiscovery] Failed to derive key ${i}:`, e.message)
                 continue
             }
         }
+
         if (entries.length > 0) {
             console.log(`[SeedDiscovery] Saving ${entries.length} key entries to store`)
             await this.store.saveKeys(net, id, entries)
