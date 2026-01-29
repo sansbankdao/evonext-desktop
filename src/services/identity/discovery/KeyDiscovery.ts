@@ -12,24 +12,35 @@ import { DAPIService } from './DAPIService'
 
 import { KeyDerivationService } from '../keyDerivation.service'
 
-import type { DiscoveredIdentity } from '@/types'
-import type { IIdentityActions } from '@/types'
-import type {
-    DiscoveryResult,
-    DiscoveryOptions,
-} from '@/types'
+import type { DiscoveredIdentity, IIdentityActions, DiscoveryResult, DiscoveryOptions } from '@/types'
 
 export class KeyDiscovery extends BaseDiscovery {
     private store: IIdentityActions
-
     constructor(store: IIdentityActions) {
         super()
         this.store = store
     }
 
+    /**
+     * Helper to safely convert bytes to hex, ensuring the input is a standard array
+     * This prevents "bytes.reduce is not a function" errors
+     */
+    private safeBinToHex(bytes: any): string {
+        if (!bytes) return ''
+        try {
+            // Ensure we are working with a standard JS Array or Uint8Array
+            // Array.from() handles WASM-wrapped memory objects that might lack .reduce
+            const buffer = Array.from(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes))
+            return binToHex(buffer)
+        } catch (err) {
+            console.error('[KeyDiscovery] Hex conversion failed:', err)
+            return ''
+        }
+    }
+
     async discover(
         input: string,
-        options: DiscoveryOptions = { data: { success: false }, node: {}, network: 'testnet' }
+        options: DiscoveryOptions = { network: 'testnet' }
     ): Promise<DiscoveryResult> {
         return this.discoverFromKey(input, options)
     }
@@ -41,84 +52,43 @@ export class KeyDiscovery extends BaseDiscovery {
         try {
             const clean = keyInput.trim()
             const format = KeyDerivationService.detectKeyFormat(clean)
-            console.log(`[KeyDiscovery] Starting discovery for key on ${options.network}`)
+            const network = options.network || 'testnet'
+            console.log(`[KeyDiscovery] Starting discovery for ${format.format} on ${network}`)
+            let publicKeyHash: string = ''
+            let privateKeyInstance: PrivateKeyWASM | null = null
 
-            // Public Key Path
-            const isPub =
-                format.format === 'COMPRESSED_PUBKEY' ||
-                format.format === 'UNCOMPRESSED_PUBKEY'
+            // 1. Resolve Public Key Hash based on input type
+            const isPub = format.format === 'COMPRESSED_PUBKEY' || format.format === 'UNCOMPRESSED_PUBKEY'
             if (isPub) {
                 const pubBytes = hexToBin(clean.toLowerCase())
-                const publicKeyHash = binToHex(hash160(pubBytes))
-                const uniqueResult = await DAPIService.queryIdentityByHash(publicKeyHash, options.network, true)
-                const resultToUse = uniqueResult.success
-                    ? uniqueResult
-                    : await DAPIService.queryIdentityByHash(publicKeyHash, options.network, false)
-
-                if (resultToUse.success && resultToUse.data) {
-                    const identityData = resultToUse.data
-
-                    const dpnsName = await DAPIService.getDPNSUsername(
-                        identityData.identityId || identityData.id,
-                        options.network
-                    )
-
-                    const discoveredIdentity: DiscoveredIdentity = {
-                        identityId: identityData.identityId || identityData.id || '',
-                        identityIdx: 0,
-                        balance: this.formatBalance(identityData.balance),
-                        revision: identityData.revision || 0,
-                        publicKeys: identityData.publicKeys || [],
-                        dpnsUsername: dpnsName
-                    }
-
-                    const associatedKeys = this.extractAssociatedKeys(discoveredIdentity.publicKeys)
-
-                    return this.createSuccessResult(
-                        discoveredIdentity,
-                        null,
-                        format.format,
-                        associatedKeys,
-                        { step: 'public_key_search', keyType: format.format }
-                    )
+                const hashed = hash160(pubBytes)
+                publicKeyHash = this.safeBinToHex(hashed)
+            } else {
+                privateKeyInstance = this.getPrivateKeyInstance(clean, network)
+                if (!privateKeyInstance) {
+                    return this.createErrorResult(`Unsupported or invalid private key format.`)
                 }
-                return this.createErrorResult(
-                    'No identity found for this public key.',
-                    { step: 'public_key_search_failed', keyType: format.format }
-                )
+                const publicKeyBytes = privateKeyInstance.getPublicKey().bytes()
+                const hashed = hash160(publicKeyBytes)
+                publicKeyHash = this.safeBinToHex(hashed)
             }
 
-            // Private Key Path
-            const privateKey: PrivateKeyWASM | null =
-                this.getPrivateKeyInstance(clean, options.network)
-
-            if (!privateKey) {
-                return this.createErrorResult(
-                    `Unsupported key format.`,
-                    { step: 'private_key_derivation_failed', network: options.network }
-                )
+            if (!publicKeyHash) {
+                throw new Error("Failed to derive public key hash from input")
             }
 
-            const publicKey = privateKey.getPublicKey()
-            const publicKeyBytes = publicKey.bytes()
-            const publicKeyHash = binToHex(hash160(publicKeyBytes))
-            const uniqueResult = await DAPIService.queryIdentityByHash(publicKeyHash, options.network, true)
-
-            // Use unique or fallback to non-unique
-            const result = uniqueResult.success && uniqueResult.data
+            // 2. Query DAPI
+            const uniqueResult = await DAPIService.queryIdentityByHash(publicKeyHash, network, true)
+            const result = (uniqueResult.success && uniqueResult.data)
                 ? uniqueResult
                 : await DAPIService.queryIdentityByHash(publicKeyHash, options.network, false)
 
             if (result.success && result.data) {
                 const identityData = result.data
-
-                const dpnsName = await DAPIService.getDPNSUsername(
-                    identityData.identityId || identityData.id,
-                    options.network
-                )
-
+                const id = identityData.identityId || identityData.id
+                const dpnsName = await DAPIService.getDPNSUsername(id, network)
                 const discoveredIdentity: DiscoveredIdentity = {
-                    identityId: identityData.identityId || identityData.id || '',
+                    identityId: id,
                     identityIdx: 0,
                     balance: this.formatBalance(identityData.balance),
                     revision: identityData.revision || 0,
@@ -126,27 +96,28 @@ export class KeyDiscovery extends BaseDiscovery {
                     dpnsUsername: dpnsName
                 }
 
-                await this.saveDiscoveredKeyToStorage(
-                    options.network,
-                    privateKey,
-                    identityData.identityId || identityData.id,
-                    identityData.publicKeys || []
-                )
+                // 3. If it was a private key, save it to secure storage
+                if (privateKeyInstance) {
+                    await this.saveDiscoveredKeyToStorage(
+                        network,
+                        privateKeyInstance,
+                        id,
+                        identityData.publicKeys || []
+                    )
+                }
 
                 const associatedKeys = this.extractAssociatedKeys(discoveredIdentity.publicKeys)
-
                 return this.createSuccessResult(
                     discoveredIdentity,
                     null,
                     format.format,
                     associatedKeys,
-                    { step: 'search_success', keyType: format.format }
+                    { step: 'search_success', keyType: format.format, hash: publicKeyHash }
                 )
             }
-
             return this.createErrorResult(
-                'No identity found.',
-                { step: 'search_failed', network: options.network }
+                'No identity found associated with this key.',
+                { step: 'search_failed', network, hash: publicKeyHash }
             )
         } catch (error: any) {
             return this.handleError(error, 'Key Discovery')
@@ -159,7 +130,6 @@ export class KeyDiscovery extends BaseDiscovery {
     ): PrivateKeyWASM | null {
         try {
             const cleanKey = keyInput.trim()
-
             const format = KeyDerivationService.detectKeyFormat(cleanKey)
 
             if (format.format === 'WIF') {
@@ -169,9 +139,9 @@ export class KeyDiscovery extends BaseDiscovery {
             if (format.format === 'HEX_PRIVATE') {
                 return PrivateKeyWASM.fromHex(cleanKey.toLowerCase(), network)
             }
-
             return null
         } catch (error) {
+            console.error('[KeyDiscovery] Instance creation failed:', error)
             return null
         }
     }
@@ -183,19 +153,14 @@ export class KeyDiscovery extends BaseDiscovery {
         publicKeys: any[]
     ): Promise<boolean> {
         try {
-            if (!identityId || !publicKeys || publicKeys.length === 0) return false
-
-            const now = new Date().toISOString()
-            const derivedPubHex = binToHex(privateKeyInstance.getPublicKey().bytes())
-
+            if (!identityId || !publicKeys.length) return false
+            const derivedPubHex = this.safeBinToHex(privateKeyInstance.getPublicKey().bytes())
             const matching = publicKeys.find((pk: any) => {
                 const dataHex = (pk.data || pk.dataB64 || '').toString().toLowerCase()
-                return dataHex && dataHex === derivedPubHex.toLowerCase()
+                return dataHex === derivedPubHex.toLowerCase()
             })
 
-            const entries: any[] = []
-
-            entries.push({
+            const entry = {
                 identityId,
                 keyId: matching?.id ?? 0,
                 purpose: matching?.purpose ?? 0,
@@ -204,12 +169,11 @@ export class KeyDiscovery extends BaseDiscovery {
                 privateKey: privateKeyInstance.WIF(),
                 publicKey: derivedPubHex,
                 derivedFromMnemonic: false,
-                createdAt: now,
-                lastUsed: now
-            })
+                createdAt: new Date().toISOString(),
+                lastUsed: new Date().toISOString()
+            }
 
-            await this.store.saveKeys(network, identityId, entries)
-
+            await this.store.saveKeys(network, identityId, [entry])
             return true
         } catch (err) {
             console.error(`[KeyDiscovery] Failed to save keys:`, err)

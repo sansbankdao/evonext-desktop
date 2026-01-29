@@ -251,7 +251,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-    'update:manualIdentityId': [value: string]
+    'update:manual-identity-id': [value: string]
     'discover-identity': [key: string]
     'reset-discovery': []
     'use-manual-identity': []
@@ -303,7 +303,7 @@ const handleReset = () => {
 }
 
 const handleManualIdentityIdInput = () => {
-    emit('update:manualIdentityId', localManualIdentityId.value)
+    emit('update:manual-identity-id', localManualIdentityId.value)
 }
 
 const handleUseManualIdentityClick = () => {
@@ -340,7 +340,7 @@ watch(() => props.manualIdentityId, (newId) => {
 watch(() => props.discoveredIdentity, (identity) => {
     if (identity?.identityId && identity.identityId !== localManualIdentityId.value) {
         localManualIdentityId.value = identity.identityId
-        emit('update:manualIdentityId', identity.identityId)
+        emit('update:manual-identity-id', identity.identityId)
     }
 })
 </script>
