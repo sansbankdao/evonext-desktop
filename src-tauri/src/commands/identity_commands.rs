@@ -45,6 +45,7 @@ pub struct SaveIdentityPayload {
 // =====================================================
 
 #[tauri::command]
+#[specta::specta]
 pub async fn save_identity_unified(
     app: AppHandle,
     network: String,
@@ -134,6 +135,7 @@ pub async fn delete_identity_data(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn save_identity_data(
     app: AppHandle,
     network: String,
@@ -289,4 +291,27 @@ pub async fn save_imported_key(
     let _ = enrich_keystore_for_identity(app, network, identity_id).await;
 
     Ok(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tauri::test::{mock_builder, mock_context, noop_assets};
+
+    #[tokio::test]
+    async fn test_save_identity_regression() {
+        let app = mock_builder()
+            .build(mock_context(noop_assets()))
+            .unwrap();
+
+        // Mock payload
+        let payload = SaveIdentityPayload {"sample".into(),
+        };
+
+        // Call the actual command function
+        let result = save_identity(app.handle().clone(), payload).await;
+
+        // If the AI broke the storage logic, this assertion fails
+        assert!(result.is_ok(), "Command failed: {:?}", result.err());
+    }
 }

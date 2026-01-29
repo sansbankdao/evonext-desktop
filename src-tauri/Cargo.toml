@@ -7,8 +7,8 @@ description = "Free and Fearless Social — Connect with early-stage Founders an
 authors = ["Sansbank DAO developers"]
 edition = "2021"
 build = "build.rs"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+# This tells Tauri/Cargo to run the main app by default
+default-run = "evonext"
 
 [build-dependencies]
 tauri-build = { version = "2.4.0", features = [] }
@@ -51,6 +51,19 @@ hex = "0.4.3"
 sentry = "0.46.1"
 tauri-plugin-sentry = "0.5"
 
+# Anti-Regression Suite (Specta v2 for Tauri v2)
+# We use 'derive' on specta, 'typescript' on tauri-specta, and add specta-typescript
+specta = { version = "2.0.0-rc.22", features = ["derive"] }
+tauri-specta = { version = "2.0.0-rc.20", features = ["typescript"] }
+specta-typescript = "0.0.7-rc.12"
+
 [features]
-# This section is used for custom features. You can leave it as is.
 custom-protocol = ["tauri/custom-protocol"]
+
+[[bin]]
+name = "evonext"
+path = "src/main.rs"
+
+[[bin]]
+name = "export_types"
+path = "src/export_types.rs"
