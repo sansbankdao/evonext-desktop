@@ -4,6 +4,7 @@ use tauri::Manager;
 
 mod commands;
 mod dapi;
+mod identity;
 mod models;
 mod menu;
 mod constants;

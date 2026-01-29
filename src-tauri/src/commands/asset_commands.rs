@@ -210,7 +210,7 @@ pub async fn fetch_identity_tokens(
 
     if let Some(mut identity_data) = identities_map.get(&identity_id).cloned() {
         let total_balance: u128 = assets.iter().filter_map(|a| a.balance.map(|b| b as u128)).sum();
-        identity_data.balance = Some(total_balance.to_string());
+        identity_data.balance = Some(total_balance.as_str().parse::<u64>().unwrap_or(0).to_string());
         save_identity_data(app, network, identity_data).await
             .map_err(|e| format!("Failed to sync identity: {}", e))?;
     }

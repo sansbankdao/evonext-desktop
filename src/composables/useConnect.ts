@@ -222,19 +222,25 @@ export function useConnect() {
 
     const handleConnect = async () => {
         if (store.isConnecting) return
-        try {
-            // SOURCE OF TRUTH: Read network from Rust settings immediately before connection
-            // This guarantees consistency even if the settings file changed since discovery.
-            const network = await ensure()
 
+        // CRITICAL FIX:
+        // We MUST capture the 'network' from the Rust source of truth BEFORE
+        // any async resets (which might default to Mainnet).
+        const network = await ensure()
+
+        try {
             const module = await import('@/composables/usePlatform')
             const { reset: resetPlatform } = module.usePlatform()
             await resetPlatform()
 
+            // FORCE: We explicitly pass the `network` we just read to the store actions.
+            // This prevents them from falling back to a global default or previous state.
             if (connectionMethod.value === 'seed') {
                 const identity = selectedSeedIdentity.value
                 if (!identity) throw new Error('No identity selected')
                 const seedPhrase = seedWords.value.join(' ')
+
+                // We pass `network` explicitly here.
                 await store.connectWithSeed(
                     seedPhrase,
                     network,
@@ -248,10 +254,12 @@ export function useConnect() {
                 if (!id) throw new Error('Missing identity id')
                 const privateKey = privateKeyInput.value?.trim()
                 if (!privateKey) throw new Error('Missing private key')
+
+                // We pass `network` explicitly here.
                 await store.connectWithSingleKey(
                     privateKey,
                     id,
-                    network,
+                    network, // <--- This enforces Testnet, overriding the 'mainnet' default
                     discoveredIdentity.value
                 )
             }
