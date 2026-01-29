@@ -1,6 +1,6 @@
 // src-tauri/src/commands/identity_details_commands.rs
 
-use crate::models::{IdentityData, IdentityPublicKey};
+use crate::models::{IIdentityData, IIdentityPublicKey};
 use crate::utils::{network_file::get_network_file, StoreManager};
 use tauri::{AppHandle, Wry};
 
@@ -9,16 +9,17 @@ pub fn update_identity_with_sdk_data(
     app_handle: AppHandle<Wry>,
     network: String,
     identity_id: String,
-    public_keys: Vec<IdentityPublicKey>,
+    public_keys: Vec<IIdentityPublicKey>,
     revision: u64,
     public_key_ids: Vec<u32>,
 ) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
+
     let filename = get_network_file(&network, "identity")?;
 
     // Add explicit type annotation here
-    let existing_data: Option<IdentityData> = manager
-        .load::<IdentityData>(filename, "identity")
+    let existing_data: Option<IIdentityData> = manager
+        .load::<IIdentityData>(filename, "identity")
         .map_err(|e| e.to_string())?;
 
     match existing_data {
@@ -42,6 +43,7 @@ pub fn update_identity_with_sdk_data(
                 ))
             }
         }
+
         None => Err("No identity data found to update".to_string()),
     }
 }
@@ -50,12 +52,13 @@ pub fn update_identity_with_sdk_data(
 pub fn get_identity_public_keys(
     app_handle: AppHandle<Wry>,
     network: String,
-) -> Result<Option<Vec<IdentityPublicKey>>, String> {
+) -> Result<Option<Vec<IIdentityPublicKey>>, String> {
     let manager = StoreManager::new(&app_handle);
+
     let filename = get_network_file(&network, "identity")?;
 
     // Add explicit type annotation here
-    match manager.load::<IdentityData>(filename, "identity") {
+    match manager.load::<IIdentityData>(filename, "identity") {
         Ok(Some(identity_data)) => Ok(identity_data.public_keys),
         Ok(None) => {
             println!("No identity data found for {}.", network);
@@ -74,11 +77,12 @@ pub fn delete_identity_public_keys(
     network: String,
 ) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
+
     let filename = get_network_file(&network, "identity")?;
 
     // Add explicit type annotation here
-    let existing_data: Option<IdentityData> = manager
-        .load::<IdentityData>(filename, "identity")
+    let existing_data: Option<IIdentityData> = manager
+        .load::<IIdentityData>(filename, "identity")
         .map_err(|e| e.to_string())?;
 
     match existing_data {
@@ -89,10 +93,11 @@ pub fn delete_identity_public_keys(
             manager
                 .save(filename, "identity", &identity_data)
                 .map_err(|e| e.to_string())?;
-
             println!("Identity public keys cleared successfully for {}.", network);
+
             Ok(())
         }
+
         None => Err("No identity data found to clear public keys".to_string()),
     }
 }

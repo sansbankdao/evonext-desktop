@@ -1,6 +1,6 @@
 // src-tauri/src/commands/mnemonic_commands.rs
 
-use crate::models::{IMnemonic, PrivateKeyStore};
+use crate::models::{IMnemonic, IPrivateKeyStore};
 use crate::utils::{network_file::get_network_file, StoreManager};
 use tauri::{AppHandle, Wry};
 
@@ -10,9 +10,10 @@ pub fn load_mnemonic(
     network: String,
 ) -> Result<Option<IMnemonic>, String> {
     let manager = StoreManager::new(&app_handle);
+
     let filename = get_network_file(&network, "safu")?;
 
-    match manager.load::<PrivateKeyStore>(filename, "keystore") {
+    match manager.load::<IPrivateKeyStore>(filename, "keystore") {
         Ok(Some(keystore)) => Ok(keystore.mnemonic),
         Ok(None) => Ok(None),
         Err(e) => {
@@ -29,12 +30,13 @@ pub fn save_mnemonic(
     payload: IMnemonic,
 ) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
+
     let filename = get_network_file(&network, "safu")?;
 
     // Load existing keystore to preserve keys
-    let mut keystore = match manager.load::<PrivateKeyStore>(filename, "keystore") {
+    let mut keystore = match manager.load::<IPrivateKeyStore>(filename, "keystore") {
         Ok(Some(store)) => store,
-        _ => PrivateKeyStore::default(),
+        _ => IPrivateKeyStore::default(),
     };
 
     keystore.mnemonic = Some(payload);
@@ -44,6 +46,7 @@ pub fn save_mnemonic(
             println!("Mnemonic saved successfully to keystore for {}.", network);
             Ok(())
         }
+
         Err(e) => {
             println!("Failed to save mnemonic for {}: {}", network, e);
             Err(e.to_string())
@@ -54,9 +57,10 @@ pub fn save_mnemonic(
 #[tauri::command]
 pub fn delete_mnemonic(app_handle: AppHandle<Wry>, network: String) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
+
     let filename = get_network_file(&network, "safu")?;
 
-    let mut keystore = match manager.load::<PrivateKeyStore>(filename, "keystore") {
+    let mut keystore = match manager.load::<IPrivateKeyStore>(filename, "keystore") {
         Ok(Some(store)) => store,
         Ok(None) => return Ok(()),
         Err(e) => return Err(e.to_string()),
@@ -72,6 +76,7 @@ pub fn delete_mnemonic(app_handle: AppHandle<Wry>, network: String) -> Result<()
             );
             Ok(())
         }
+
         Err(e) => {
             println!("Failed to delete mnemonic for {}: {}", network, e);
             Err(e.to_string())

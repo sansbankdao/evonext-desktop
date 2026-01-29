@@ -16,8 +16,10 @@ pub fn load_settings(app_handle: AppHandle<Wry>) -> Result<Option<IAppSettings>,
             } else {
                 println!("No settings found, returning None.");
             }
+
             Ok(data)
         }
+
         Err(e) => {
             println!("Failed to load settings: {}", e);
             Err(e.to_string())
@@ -34,6 +36,7 @@ pub fn save_settings(app_handle: AppHandle<Wry>, settings: IAppSettings) -> Resu
             println!("Settings saved successfully.");
             Ok(())
         }
+
         Err(e) => {
             println!("Failed to save settings: {}", e);
             Err(e.to_string())
@@ -50,6 +53,7 @@ pub fn delete_settings(app_handle: AppHandle<Wry>) -> Result<(), String> {
             println!("Settings deleted successfully.");
             Ok(())
         }
+
         Err(e) => {
             println!("Failed to delete settings: {}", e);
             Err(e.to_string())

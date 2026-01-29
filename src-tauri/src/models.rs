@@ -10,15 +10,15 @@ pub struct IAppSettings {
     pub network: String,
     pub theme: String,
     #[serde(default)]
-    pub notifications: NotificationSettings,
+    pub notifications: INotificationSettings,
     #[serde(default)]
-    pub profile: ProfileSettings,
+    pub profile: IProfileSettings,
     pub active_identity_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct AssetDefinition {
+pub struct IAssetDefinition {
     pub identity_id: String,
     pub name: String,
     pub symbol: String,
@@ -32,8 +32,8 @@ pub struct AssetDefinition {
 }
 
 // IAssets is now a type alias for a list of assets
-pub type IAssets = Vec<AssetDefinition>;
-pub type AssetStoreMap = HashMap<String, Vec<AssetDefinition>>;
+pub type IAssets = Vec<IAssetDefinition>;
+pub type IAssetStoreMap = HashMap<String, Vec<IAssetDefinition>>;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -48,7 +48,7 @@ pub struct ILicense {
 }
 
 // Map of Identity IDs to their respective License data
-pub type LicenseStoreMap = HashMap<String, ILicense>;
+pub type ILicenseStoreMap = HashMap<String, ILicense>;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -58,7 +58,7 @@ pub struct IMnemonic {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct PrivateKeyEntry {
+pub struct IPrivateKeyEntry {
     pub identity_id: String,
     pub key_id: u32,
     pub purpose: u32,
@@ -73,9 +73,9 @@ pub struct PrivateKeyEntry {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct PrivateKeyStore {
+pub struct IPrivateKeyStore {
     pub mnemonic: Option<IMnemonic>,
-    pub identities: HashMap<String, Vec<PrivateKeyEntry>>,
+    pub identities: HashMap<String, Vec<IPrivateKeyEntry>>,
 }
 
 fn de_u64_from_str_or_num<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
@@ -103,15 +103,15 @@ where
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct IdentityData {
+pub struct IIdentityData {
     pub username: String,
     pub identity_id: String,
     pub identity_idx: u32,
     pub balance: Option<String>,
     pub is_authenticated: bool,
-    pub public_keys: Option<Vec<IdentityPublicKey>>,
+    pub public_keys: Option<Vec<IIdentityPublicKey>>,
     #[serde(default, deserialize_with = "de_u64_from_str_or_num")]
     pub revision: Option<u64>,
     pub created_at: Option<String>,
@@ -120,7 +120,7 @@ pub struct IdentityData {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct IdentityPublicKey {
+pub struct IIdentityPublicKey {
     pub id: u32,
     #[serde(rename = "type")]
     pub type_: String,
@@ -133,7 +133,7 @@ pub struct IdentityPublicKey {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct NotificationSettings {
+pub struct INotificationSettings {
     #[serde(default)]
     pub messages: bool,
     #[serde(default)]
@@ -144,7 +144,7 @@ pub struct NotificationSettings {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct ProfileSettings {
+pub struct IProfileSettings {
     #[serde(default)]
     pub display_name: String,
     #[serde(default)]
@@ -155,7 +155,7 @@ pub struct ProfileSettings {
 
 // #[derive(Serialize, Deserialize, Clone, Debug)]
 // #[serde(rename_all = "camelCase")]
-// pub struct DiscoveredIdentity {
+// pub struct IDiscoveredIdentity {
 //     pub identity_id: String,
 //     pub identity_idx: u32,
 //     pub dpns_username: Option<String>,
@@ -167,7 +167,7 @@ pub struct ProfileSettings {
 
 // #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 // #[serde(rename_all = "camelCase")]
-// pub struct DiscoveredIdentitiesStore {
+// pub struct IDiscoveredIdentitiesStore {
 //     pub identities: HashMap<String, DiscoveredIdentity>,
 //     pub last_scan: Option<String>,
 // }
