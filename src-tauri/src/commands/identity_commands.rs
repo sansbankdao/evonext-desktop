@@ -167,7 +167,7 @@ pub async fn enrich_keystore_for_identity(
         // B. Match local key against on-chain data to enrich Purpose/SecurityLevel
         if !entry.public_key.is_empty() {
             let pub_bytes = hex::decode(&entry.public_key).unwrap_or_default();
-            let hash160 = hash160_hex(&pub_bytes);
+            let hash160 = hash160(&pub_bytes);
             if let Some(pks) = &identity.public_keys {
                 for pk in pks {
                     let matches_full = pk.data.eq_ignore_ascii_case(&entry.public_key);
@@ -367,16 +367,25 @@ fn normalize_public_key(default_id: u32, raw: &JsonValue) -> Option<IdentityPubl
             .map(|s| s.to_string()),
     })
 }
+
 fn derive_compressed_pubkey_hex_from_wif(wif: &str) -> Option<String> {
+    println!("[RUST-DEBUG-CRYPTO] derive_compressed_pubkey_hex_from_wif: wif_len={}", wif.len());
     let pk = PrivateKey::from_wif(wif).ok()?;
     let secp = Secp256k1::new();
-    Some(hex::encode(pk.public_key(&secp).inner.serialize()))
+    let res = hex::encode(pk.public_key(&secp).inner.serialize());
+    println!("[RUST-DEBUG-CRYPTO] derive_compressed_pubkey_hex_from_wif: result={}", res);
+    Some(res)
 }
-fn hash160_hex(data: &[u8]) -> String {
+
+fn hash160(data: &[u8]) -> String {
+    println!("[RUST-DEBUG-CRYPTO] hash160: input_len={}", data.len());
     let sha = Sha256::digest(data);
     let ripe = Ripemd160::digest(sha);
-    hex::encode(ripe)
+    let res = hex::encode(ripe);
+    println!("[RUST-DEBUG-CRYPTO] hash160: result={}", res);
+    return res;
 }
+
 fn load_keystore_internal(app: &AppHandle, network: &str) -> Result<PrivateKeyStore, String> {
     let manager = StoreManager::new(app);
     let filename = get_network_file(network, "safu")?;
@@ -385,6 +394,7 @@ fn load_keystore_internal(app: &AppHandle, network: &str) -> Result<PrivateKeySt
         .map_err(|e| e.to_string())?
         .unwrap_or_default())
 }
+
 fn save_keystore_internal(
     app: &AppHandle,
     network: &str,

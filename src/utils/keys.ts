@@ -9,6 +9,6 @@ export const generateKeyId = (key: IPublicKey, index: number): string => {
     const fingerprint = `${purpose}:${securityLevel}:${key.keyType}:${index}`
 
     // Optional: Hash it for shorter/more consistent IDs
-    // return binToHex(hash160(new TextEncoder().encode(fingerprint)))
+    // return binToHex(await hash160(new TextEncoder().encode(fingerprint)))
     return fingerprint // Simple string is fine for Vue key
 }

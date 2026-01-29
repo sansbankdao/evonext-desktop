@@ -12,6 +12,7 @@ pub async fn dapi_request(
     params: HashMap<String, Value>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
+    println!("[RUST-DEBUG] dapi_request: method={}, params={:?}", method, params);
     let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
@@ -532,6 +533,7 @@ pub async fn get_identity_by_public_key_hash(
     public_key_hash: String,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
+    println!("[RUST-DEBUG] get_identity_by_public_key_hash: hash={}", public_key_hash);
     let client = get_dapi_client();
     let network_value = network.unwrap_or_else(|| "testnet".to_string());
     let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
@@ -582,6 +584,7 @@ pub async fn get_identity_by_non_unique_public_key_hash(
     public_key_hash: String,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
+    println!("[RUST-DEBUG] get_identity_by_non_unique_public_key_hash: hash={}", public_key_hash);
     let client = get_dapi_client();
     let network_value = network.unwrap_or_else(|| "testnet".to_string());
     let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
@@ -635,6 +638,7 @@ pub async fn get_identity_by_id(
     identity_id: String,
     network: Option<String>,
 ) -> Result<serde_json::Value, String> {
+    println!("[RUST-DEBUG] get_identity_by_id: id={}", identity_id);
     let client = get_dapi_client();
     let network_value = network.unwrap_or_else(|| "testnet".to_string());
     let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);

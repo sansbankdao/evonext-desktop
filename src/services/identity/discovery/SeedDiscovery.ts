@@ -88,7 +88,7 @@ export class SeedDiscovery extends BaseDiscovery {
                 )
                 // Get public key bytes and hash
                 const pubKeyBytes = privateKey.getPublicKey().bytes()
-                const pubKeyHash = binToHex(hash160(pubKeyBytes))
+                const pubKeyHash = binToHex(await hash160(pubKeyBytes))
                 console.log(`[SeedDiscovery] Derived pubKeyHash for index ${currentIndex}: ${pubKeyHash}`)
                 // Query DAPI for identity by hash
                 console.log(`[SeedDiscovery] Querying DAPI for hash ${pubKeyHash}`)

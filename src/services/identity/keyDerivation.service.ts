@@ -71,13 +71,13 @@ export class KeyDerivationService {
 
             if (keyFormat.format === 'WIF') {
                 const pk = PrivateKeyWASM.fromWIF(cleanKey)
-                hashes = [binToHex(hash160(pk.getPublicKey().bytes()))]
+                hashes = [binToHex(await hash160(pk.getPublicKey().bytes()))]
             } else if (keyFormat.format === 'HEX_PRIVATE') {
                 const pk = PrivateKeyWASM.fromHex(cleanKey.toLowerCase(), network)
-                hashes = [binToHex(hash160(pk.getPublicKey().bytes()))]
+                hashes = [binToHex(await hash160(pk.getPublicKey().bytes()))]
             } else if (keyFormat.format.includes('PUBKEY')) {
                 const bytes = hexToBin(cleanKey.toLowerCase())
-                hashes = [binToHex(hash160(bytes))]
+                hashes = [binToHex(await hash160(bytes))]
             }
 
             return { hashes, keyType: keyFormat.format, debug: { input: 'REDACTED' } }
@@ -86,13 +86,13 @@ export class KeyDerivationService {
         }
     }
 
-    static derivePrivateKeyFromWIF(wif: string): PrivateKeyWASM {
+    static async derivePrivateKeyFromWIF(wif: string): Promise<PrivateKeyWASM> {
         try {
             const pk = PrivateKeyWASM.fromWIF(wif)
             // Verify the private key
             const pubKey = pk.getPublicKey()
             const pubKeyBytes = pubKey.bytes()
-            const pubKeyHash = binToHex(hash160(pubKeyBytes))
+            const pubKeyHash = binToHex(await hash160(pubKeyBytes))
 
             console.log(`[KeyDerivation] Generated PrivateKeyWASM from WIF`)
             console.log(`   Public key: ${binToHex(pubKeyBytes).substring(0, 16)}...`)
@@ -204,7 +204,7 @@ export class KeyDerivationService {
 
         if (format.format === 'WIF') {
             // Direct WIF instantiation
-            const privateKey = this.derivePrivateKeyFromWIF(source)
+            const privateKey = await this.derivePrivateKeyFromWIF(source)
             return { privateKey, sourceType: 'WIF' }
         }
         else if (format.format === 'UNKNOWN' && (source.split(/\s+/).length === 12 || source.split(/\s+/).length === 24)) {

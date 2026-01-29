@@ -61,7 +61,7 @@ export class KeyDiscovery extends BaseDiscovery {
             const isPub = format.format === 'COMPRESSED_PUBKEY' || format.format === 'UNCOMPRESSED_PUBKEY'
             if (isPub) {
                 const pubBytes = hexToBin(clean.toLowerCase())
-                const hashed = hash160(pubBytes)
+                const hashed = await hash160(pubBytes)
                 publicKeyHash = this.safeBinToHex(hashed)
             } else {
                 privateKeyInstance = this.getPrivateKeyInstance(clean, network)
@@ -69,7 +69,7 @@ export class KeyDiscovery extends BaseDiscovery {
                     return this.createErrorResult(`Unsupported or invalid private key format.`)
                 }
                 const publicKeyBytes = privateKeyInstance.getPublicKey().bytes()
-                const hashed = hash160(publicKeyBytes)
+                const hashed = await hash160(publicKeyBytes)
                 publicKeyHash = this.safeBinToHex(hashed)
             }
 
