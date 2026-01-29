@@ -4,7 +4,7 @@ use tauri::AppHandle;
 use serde_json::Value;
 use reqwest;
 
-use crate::models::{AssetDefinition, AssetStoreMap, IAssets};
+use crate::models::{AssetDefinition, AssetStoreMap, IAssets, IdentityData};
 use crate::utils::{StoreManager, network_file::get_network_file};
 use crate::commands::identity_commands::{load_identities_map, save_identity_data};
 
@@ -107,7 +107,7 @@ pub fn discover_assets(
         }
     }
 
-    // Load existing map, update the specific identity entry, and save
+    // Load existing map, update specific identity entry, and save
     let mut asset_map: AssetStoreMap = manager
         .load(filename, "assets")
         .unwrap_or_default()
@@ -175,6 +175,12 @@ pub async fn fetch_identity_tokens(
                 continue;
             }
 
+            let decimals = item
+                .get("decimals")
+                .and_then(|v| v.as_u64())
+                .map(|val| val as u8)
+                .unwrap_or(8);
+
             let balance_str = get_str("balance").unwrap_or_else(|| "0".to_string());
             let balance = balance_str.parse::<u64>().unwrap_or(0);
 
@@ -183,7 +189,7 @@ pub async fn fetch_identity_tokens(
                 name: symbol.clone(),
                 symbol,
                 asset_id: Some(contract_id),
-                decimals: item.get("decimals").and_then(|v| v.as_u64()).map(|v| v as u8),
+                decimals: Some(decimals),
                 balance: Some(balance),
                 network: Some(network.clone()),
             });
@@ -205,13 +211,25 @@ pub async fn fetch_identity_tokens(
         .map_err(|e| format!("Failed to save assets: {}", e))?;
 
     // Sync balance back to identity store
+    // 1. Load identities map
     let identities_map = load_identities_map(app.clone(), network.clone()).await
         .map_err(|e| format!("Failed to load identities: {}", e))?;
 
-    if let Some(mut identity_data) = identities_map.get(&identity_id).cloned() {
+    // 2. Find specific identity
+    if let Some(identity_obj) = identities_map.get(&identity_id) {
+        // 3. Deserialize IdentityData from JsonValue
+        let mut identity_data: IdentityData = serde_json::from_value(identity_obj.clone())
+            .map_err(|e| format!("Failed to parse identity data: {}", e))?;
+
+        // 4. Update Balance
         let total_balance: u128 = assets.iter().filter_map(|a| a.balance.map(|b| b as u128)).sum();
-        identity_data.balance = Some(total_balance.as_str().parse::<u64>().unwrap_or(0).to_string());
-        save_identity_data(app, network, identity_data).await
+        identity_data.balance = Some(total_balance.to_string());
+
+        // 5. Serialize back to Value and save
+        let updated_identity_value = serde_json::to_value(&identity_data)
+            .map_err(|e| format!("Failed to serialize identity data: {}", e))?;
+
+        save_identity_data(app, network.clone(), updated_identity_value).await
             .map_err(|e| format!("Failed to sync identity: {}", e))?;
     }
 
