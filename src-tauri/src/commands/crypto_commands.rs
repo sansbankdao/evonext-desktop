@@ -7,7 +7,7 @@ use rand::RngCore;
 
 #[tauri::command]
 pub async fn hash160<R: Runtime>(
-    app_handle: AppHandle<R>,
+    _app_handle: AppHandle<R>,
     data: Vec<u8>,
 ) -> Result<Vec<u8>, String> {
     println!("[RUST-DEBUG] hash160 invoked.");
@@ -34,7 +34,7 @@ pub async fn hash160<R: Runtime>(
 
 #[command]
 pub async fn random_bytes<R: Runtime>(
-    app_handle: AppHandle<R>,
+    _app_handle: AppHandle<R>,
     length: usize,
 ) -> Result<Vec<u8>, String> {
     println!("[RUST-DEBUG] random_bytes called for length: {}", length);
