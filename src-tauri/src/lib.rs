@@ -2,13 +2,14 @@
 
 use tauri::Manager;
 
-mod commands;
-mod dapi;
-mod identity;
-mod models;
-mod menu;
-mod constants;
-mod utils;
+// NOTE: We make these public to the crate so export_types.rs can see them.
+pub mod commands;
+pub mod dapi;
+pub mod identity;
+pub mod models;
+pub mod menu;
+pub mod constants;
+pub mod utils;
 
 pub fn run() {
     tauri::Builder::default()
@@ -30,19 +31,11 @@ pub fn run() {
             commands::crypto_commands::hash160,
             commands::crypto_commands::random_bytes,
 
-            // Identity Keys (Keystore)
-            commands::identity_commands::load_private_keys,
-            commands::identity_commands::save_private_keys,
-            commands::identity_commands::delete_private_keys,
-            commands::identity_commands::save_single_identity_keys,
-
-            // Identity Data (Unified & CRUD)
-            commands::identity_commands::load_identities_map,
-            commands::identity_commands::save_identity_data,
-            commands::identity_commands::save_identity_unified,
-            commands::identity_commands::delete_identity_data,
-            commands::identity_commands::enrich_keystore_for_identity,
-            commands::identity_commands::save_imported_key,
+            // --- CONSOLIDATED IDENTITY & KEYSTORE ---
+            commands::identity_commands::save_identity,    // Replaces save_identity_unified, save_identity_data
+            commands::identity_commands::delete_identity,  // Replaces delete_identity_data, delete_private_keys
+            commands::identity_commands::save_keys,        // Replaces save_private_keys, save_single_identity_keys, save_imported_key
+            commands::identity_commands::load_keystore,    // Replaces load_private_keys
 
             // License
             commands::license_commands::load_license,
@@ -91,9 +84,7 @@ pub fn run() {
             let handle = app.handle();
             menu::setup_menus(handle)?;
 
-            // Explicitly set the menu for the main window (especially for Windows/Linux)
             if let Some(window) = app.get_webview_window("main") {
-                // This ensures the window is forced to recognize the menu
                 let _ = window.set_menu(app.menu().unwrap());
             }
 

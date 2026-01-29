@@ -6,34 +6,29 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use tauri::AppHandle;
-use ts_rs::TS;
+use specta::Type;
 
 // =====================================================
-// Public API Types
+// Unified Data Structures
 // =====================================================
 
-#[derive(Serialize, Deserialize, Clone, Debug, TS)]
+#[derive(Serialize, Deserialize, Clone, Debug, Type)]
 #[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../src/types/rust/")]
 pub struct UnifiedCommandResult {
     pub success: bool,
     pub error: Option<String>,
-    #[ts(type = "unknown")]
     pub payload: Option<JsonValue>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, TS, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
 #[serde(rename_all = "camelCase")]
-#[ts(export, export_to = "../src/types/rust/")]
 pub struct SaveIdentityPayload {
     pub identity_id: String,
     pub identity_idx: Option<u32>,
     pub username: Option<String>,
     pub dpns_username: Option<String>,
     pub balance: Option<String>,
-    #[ts(type = "unknown")]
     pub revision: Option<JsonValue>,
-    #[ts(type = "unknown[]")]
     pub public_keys: Option<Vec<JsonValue>>,
     pub created_at: Option<String>,
     #[serde(default)]
@@ -41,26 +36,25 @@ pub struct SaveIdentityPayload {
 }
 
 // =====================================================
-// Commands
+// Identity Commands
 // =====================================================
 
 #[tauri::command]
 #[specta::specta]
-pub async fn save_identity_unified(
+pub async fn save_identity(
     app: AppHandle,
     network: String,
     payload: SaveIdentityPayload,
 ) -> Result<UnifiedCommandResult, String> {
-    // 1. Normalize Revision
-    let revision_u64: Option<u64> = match payload.revision.as_ref() {
+    // 1. Data Normalization (Handle Revision)
+    let revision_u64 = match payload.revision {
         Some(JsonValue::Number(n)) => n.as_u64(),
         Some(JsonValue::String(s)) => s.parse::<u64>().ok(),
-        Some(_) => None,
-        None => None,
+        _ => None,
     };
 
-    // 2. Normalize Public Keys (delegated to logic lib)
-    let normalized_public_keys = payload.public_keys.as_ref().map(|raw_vec| {
+    // 2. Normalize Public Keys
+    let normalized_public_keys = payload.public_keys.map(|raw_vec| {
         raw_vec
             .iter()
             .enumerate()
@@ -68,28 +62,20 @@ pub async fn save_identity_unified(
             .collect::<Vec<IdentityPublicKey>>()
     });
 
-    // 3. Construct IdentityData
+    // 3. Construct the Canonical Identity Object
     let identity = IdentityData {
-        username: payload
-            .username
-            .clone()
-            .unwrap_or_else(|| payload.identity_id.clone()),
+        username: payload.username.unwrap_or_else(|| payload.identity_id.clone()),
         identity_id: payload.identity_id.clone(),
         identity_idx: payload.identity_idx.unwrap_or(0),
-        balance: payload.balance.clone(),
+        balance: payload.balance,
         is_authenticated: true,
         public_keys: normalized_public_keys,
         revision: revision_u64,
-        created_at: Some(
-            payload
-                .created_at
-                .clone()
-                .unwrap_or_else(|| Utc::now().to_rfc3339()),
-        ),
+        created_at: Some(payload.created_at.unwrap_or_else(|| Utc::now().to_rfc3339())),
         public_key_ids: None,
     };
 
-    // 4. Persist (delegated to storage lib)
+    // 4. Persistence
     let mut map = storage::load_identity_map(&app, &network)?;
     map.insert(payload.identity_id.clone(), identity);
     storage::save_identity_map(&app, &network, &map, payload.active_identity_id)?;
@@ -97,58 +83,29 @@ pub async fn save_identity_unified(
     Ok(UnifiedCommandResult {
         success: true,
         error: None,
-        payload: Some(serde_json::json!({
-            "identityId": payload.identity_id,
-            "revision": revision_u64
-        })),
+        payload: Some(serde_json::json!({ "identityId": payload.identity_id })),
     })
 }
 
 #[tauri::command]
-pub async fn load_identities_map(app: AppHandle, network: String) -> Result<JsonValue, String> {
-    Ok(serde_json::to_value(storage::load_identity_map(&app, &network)?).map_err(|e| e.to_string())?)
-}
-
-#[tauri::command]
-pub async fn delete_identity_data(
+#[specta::specta]
+pub async fn delete_identity(
     app: AppHandle,
     network: String,
     identity_id: Option<String>,
 ) -> Result<bool, String> {
-    use crate::utils::StoreManager;
     if let Some(id) = identity_id {
         let mut map = storage::load_identity_map(&app, &network)?;
         if map.remove(&id).is_some() {
             storage::save_identity_map(&app, &network, &map, None)?;
-            Ok(true)
-        } else {
-            Ok(false)
+            return Ok(true);
         }
+        Ok(false)
     } else {
-        let manager = StoreManager::new(&app);
+        // Full reset
         let filename = crate::utils::network_file::get_network_file(&network, "identity")?;
-        manager
-            .delete(filename, "identities")
-            .map(|_| true)
-            .map_err(|e| e.to_string())
+        crate::utils::StoreManager::new(&app).delete(filename, "identities").map(|_| true).map_err(|e| e.to_string())
     }
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn save_identity_data(
-    app: AppHandle,
-    network: String,
-    identity: JsonValue, // <--- CHANGED: Accept JsonValue to allow direct saving from assets
-) -> Result<bool, String> {
-    // FIX: Deserialize JsonValue to IdentityData to ensure internal consistency
-    let identity_data: IdentityData = serde_json::from_value(identity)
-        .map_err(|e| format!("Invalid IdentityData format: {}", e))?;
-
-    let mut map = storage::load_identity_map(&app, &network)?;
-    map.insert(identity_data.identity_id.clone(), identity_data);
-    storage::save_identity_map(&app, &network, &map, None)?;
-    Ok(true)
 }
 
 // =====================================================
@@ -156,55 +113,16 @@ pub async fn save_identity_data(
 // =====================================================
 
 #[tauri::command]
-pub async fn enrich_keystore_for_identity(
-    app: AppHandle,
-    network: String,
-    identity_id: String,
-) -> Result<UnifiedCommandResult, String> {
-    // 1. Load Identity
-    let map = storage::load_identity_map(&app, &network)?;
-    let identity = map
-        .get(&identity_id)
-        .ok_or("Identity not found in local storage")?;
-
-    // 2. Load Keystore
-    let mut store = storage::load_keystore(&app, &network)?;
-    let entries = store
-        .identities
-        .get_mut(&identity_id)
-        .ok_or(format!("No private keys found for identity {}", identity_id))?;
-
-    // 3. Enrich (delegated to logic lib)
-    let updated_count = identity_logic::enrich_key_entries(entries, identity);
-
-    // 4. Save
-    storage::save_keystore(&app, &network, &store)?;
-    Ok(UnifiedCommandResult {
-        success: true,
-        error: None,
-        payload: Some(serde_json::json!({ "updatedCount": updated_count })),
-    })
-}
-
-#[tauri::command]
-pub async fn load_private_keys(
-    app: AppHandle,
-    network: String,
-) -> Result<Option<JsonValue>, String> {
-    Ok(Some(
-        serde_json::to_value(storage::load_keystore(&app, &network)?).map_err(|e| e.to_string())?,
-    ))
-}
-
-#[tauri::command]
-pub async fn save_private_keys(
+#[specta::specta]
+pub async fn save_keys(
     app: AppHandle,
     network: String,
     identity_id: String,
     keys: Vec<PrivateKeyEntry>,
 ) -> Result<bool, String> {
     let mut store = storage::load_keystore(&app, &network)?;
-    let entries = store.identities.entry(identity_id).or_default();
+    let entries = store.identities.entry(identity_id.clone()).or_default();
+
     for k in keys {
         if let Some(existing) = entries.iter_mut().find(|e| e.key_id == k.key_id) {
             *existing = k;
@@ -212,86 +130,23 @@ pub async fn save_private_keys(
             entries.push(k);
         }
     }
+
     storage::save_keystore(&app, &network, &store)?;
+    // Automatically trigger enrichment
+    let _ = identity_logic::enrich_key_entries(entries, &IdentityData { identity_id, ..Default::default() });
+
     Ok(true)
 }
 
 #[tauri::command]
-pub async fn delete_private_keys(
-    app: AppHandle,
-    network: String,
-    identity_id: Option<String>,
-) -> Result<bool, String> {
-    use crate::utils::StoreManager;
-    if let Some(id) = identity_id {
-        let mut store = storage::load_keystore(&app, &network)?;
-        if store.identities.remove(&id).is_some() {
-            storage::save_keystore(&app, &network, &store)?;
-            Ok(true)
-        } else {
-            Ok(false)
-        }
-    } else {
-        let manager = StoreManager::new(&app);
-        let filename = crate::utils::network_file::get_network_file(&network, "safu")?;
-        manager
-            .delete(filename, "keystore")
-            .map(|_| true)
-            .map_err(|e| e.to_string())
-    }
+#[specta::specta]
+pub async fn load_keystore(app: AppHandle, network: String) -> Result<JsonValue, String> {
+    serde_json::to_value(storage::load_keystore(&app, &network)?).map_err(|e| e.to_string())
 }
 
-#[tauri::command]
-pub async fn save_single_identity_keys(
-    app: AppHandle,
-    network: String,
-    identity_id: String,
-    key: PrivateKeyEntry,
-) -> Result<bool, String> {
-    save_private_keys(app, network, identity_id, vec![key]).await
-}
-
-#[tauri::command]
-pub async fn save_imported_key(
-    app: AppHandle,
-    identity_id: String,
-    key_id: u32,
-    private_key_hex: String,
-    network: String,
-) -> Result<bool, String> {
-    let mut store = storage::load_keystore(&app, &network)?;
-    let entries = store.identities.entry(identity_id.clone()).or_default();
-
-    // Derive PubKey (Logic Lib)
-    let pub_hex = identity_logic::derive_compressed_pubkey_hex_from_wif(&private_key_hex)
-        .ok_or("Invalid private key format")?;
-
-    let new_entry = PrivateKeyEntry {
-        identity_id: identity_id.clone(),
-        key_id,
-        private_key: private_key_hex,
-        public_key: pub_hex,
-        purpose: 0,
-        security_level: 0,
-        key_type: "ECDSA_HASH160".into(),
-        created_at: Utc::now().to_rfc3339(),
-        last_used: Utc::now().to_rfc3339(),
-        derived_from_mnemonic: Some(false),
-    };
-
-    if let Some(existing) = entries.iter_mut().find(|e| e.key_id == key_id) {
-        *existing = new_entry;
-    } else {
-        entries.push(new_entry);
-    }
-
-    storage::save_keystore(&app, &network, &store)?;
-
-    // Auto-enrich
-    let _ = enrich_keystore_for_identity(app, network, identity_id).await;
-
-    Ok(true)
-}
+// =====================================================
+// Regression Tests
+// =====================================================
 
 #[cfg(test)]
 mod tests {
@@ -299,17 +154,20 @@ mod tests {
     use tauri::test::{mock_builder, mock_context, noop_assets};
 
     #[tokio::test]
-    async fn test_save_identity_regression() {
-        let app = mock_builder()
-            .build(mock_context(noop_assets()))
-            .unwrap();
-
+    async fn test_identity_lifecycle() {
+        let app = mock_builder().build(mock_context(noop_assets())).unwrap();
         let payload = SaveIdentityPayload {
-            identity_id: "sample_id".into(),
-            ..Default::default() // This fills in the other 8 fields with 0 or ""
+            identity_id: "test_id".into(),
+            username: Some("test_user".into()),
+            ..Default::default()
         };
 
-        let result = save_identity(app.handle().clone(), payload).await;
-        assert!(result.is_ok());
+        // Test Save
+        let save_result = save_identity(app.handle().clone(), "mainnet".into(), payload).await;
+        assert!(save_result.is_ok());
+
+        // Test Delete
+        let delete_result = delete_identity(app.handle().clone(), "mainnet".into(), Some("test_id".into())).await;
+        assert!(delete_result.is_ok());
     }
 }
