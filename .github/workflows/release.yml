@@ -91,7 +91,7 @@ jobs:
           rm -rf node_modules/.vite || true
           rm -rf src/types/rust_generated.ts || true
           rm -rf src-tauri/src/types/rust_generated.ts || true
-          pnpm store prune
+          pnpm store prune || true  # Key fix: Ignore errors if store dir missing (e.g., first run in container)
 
       - name: Ensure types directory (root)
         run: mkdir -p src/types
@@ -116,12 +116,12 @@ jobs:
           cd ..
 
       - name: Generate Rust Types (The Bridge)
-        run: pnpm type:gen  # Removed --verbose to avoid node flag error
+        run: pnpm type:gen
         env:
           CI: true
 
       - name: Build Tauri Application
-        run: pnpm tauri build --verbose  # Keep verbose only on tauri build for troubleshooting
+        run: pnpm tauri build --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -163,7 +163,8 @@ jobs:
           rm -rf node_modules/.vite || true
           rm -rf src/types/rust_generated.ts || true
           rm -rf src-tauri/src/types/rust_generated.ts || true
-          pnpm store prune
+          pnpm store prune || true  # Ignore errors if store missing
+
       - name: Ensure types directory (root)
         run: mkdir -p src/types
       - name: Install frontend dependencies
@@ -183,7 +184,7 @@ jobs:
           cargo build --bin export_types --release
           cd ..
       - name: Generate Rust Types (The Bridge)
-        run: pnpm type:gen  # Removed --verbose
+        run: pnpm type:gen
         env:
           CI: true
       - name: Build Tauri Application
@@ -222,7 +223,7 @@ jobs:
           if (Test-Path node_modules\.vite) { Remove-Item -Recurse -Force node_modules\.vite }
           if (Test-Path src\types\rust_generated.ts) { Remove-Item src\types\rust_generated.ts }
           if (Test-Path src-tauri\src\types\rust_generated.ts) { Remove-Item src-tauri\src\types\rust_generated.ts }
-          pnpm store prune
+          pnpm store prune  # No || true needed; Windows host has store or handles gracefully
         shell: powershell
       - name: Ensure types directory (root)
         run: New-Item -ItemType Directory -Force -Path src\types
@@ -243,8 +244,8 @@ jobs:
           cd ..
         shell: powershell
       - name: Generate Rust Types (The Bridge)
-        run: pnpm type:gen  # Removed --verbose; use shell: bash if issues persist
-        shell: bash  # Bash for consistent cd behavior on Windows
+        run: pnpm type:gen
+        shell: bash
         env:
           CI: true
       - name: Build Application
