@@ -45,19 +45,30 @@ pub fn discover_assets(
                     item.get(key).and_then(|v| v.as_str()).map(|s| s.to_string())
                 };
 
+                // RESTORED: Localization logic
                 let symbol = item
                     .get("localizations")
                     .and_then(|l| l.get("en"))
                     .and_then(|en| en.get("singularForm"))
                     .and_then(|s| s.as_str())
                     .map(|s| s.to_string())
+                    .or_else(|| {
+                        item.get("localizations")
+                            .and_then(|l| l.get("en"))
+                            .and_then(|en| en.get("pluralForm"))
+                            .and_then(|s| s.as_str())
+                            .map(|s| s.to_string())
+                    })
                     .unwrap_or_else(|| "UNKNOWN".to_string());
 
+                if symbol == "UNKNOWN" || symbol.is_empty() { continue; }
+
+                // RESTORED: contract identifier logic
                 let contract_id = get_str("dataContractIdentifier")
                     .or_else(|| get_str("identifier"))
                     .unwrap_or_else(|| "".to_string());
 
-                if symbol == "UNKNOWN" || contract_id.is_empty() { continue; }
+                if contract_id.is_empty() { continue; }
 
                 let decimals = item.get("decimals").and_then(|v| v.as_u64()).map(|val| val as u8).unwrap_or(8);
                 let balance = get_str("balance").and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
@@ -96,21 +107,44 @@ pub async fn fetch_identity_tokens<R: Runtime>(
 
     let url = format!("{}/identity/{}/tokens?page=1&limit=10&order=asc", base_url, identity_id);
     let response = reqwest::get(&url).await.map_err(|e| e.to_string())?;
+
+    if !response.status().is_success() {
+        return Err(format!("Explorer status error: {}", response.status()));
+    }
+
     let json_response: Value = response.json().await.map_err(|e| e.to_string())?;
 
     let mut assets: IAssets = Vec::new();
     if let Some(Value::Array(items)) = json_response.get("resultSet") {
         for item in items {
-            let symbol = item.get("localizations").and_then(|l| l.get("en")).and_then(|en| en.get("singularForm")).and_then(|v| v.as_str()).map(|s| s.to_string()).unwrap_or_else(|| "UKN".into());
-            let contract_id = item.get("identifier").and_then(|v| v.as_str()).map(|s| s.to_string()).unwrap_or_default();
-            let balance = item.get("balance").and_then(|v| v.as_str()).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+            let get_str = |key: &str| -> Option<String> {
+                item.get(key).and_then(|v| v.as_str()).map(|s| s.to_string())
+            };
+
+            // RESTORED: Localization logic
+            let symbol = item
+                .get("localizations")
+                .and_then(|l| l.get("en"))
+                .and_then(|en| en.get("singularForm"))
+                .and_then(|s| s.as_str())
+                .map(|s| s.to_string())
+                .unwrap_or_else(|| "UNKNOWN".into());
+
+            let contract_id = get_str("dataContractIdentifier")
+                .or_else(|| get_str("identifier"))
+                .unwrap_or_default();
+
+            if symbol == "UNKNOWN" || contract_id.is_empty() { continue; }
+
+            let decimals = item.get("decimals").and_then(|v| v.as_u64()).map(|val| val as u8).unwrap_or(8);
+            let balance = get_str("balance").and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
 
             assets.push(IAssetDefinition {
                 identity_id: identity_id.clone(),
                 name: symbol.clone(),
                 symbol,
                 asset_id: Some(contract_id),
-                decimals: Some(8),
+                decimals: Some(decimals),
                 balance: Some(balance),
                 network: Some(network.clone()),
             });

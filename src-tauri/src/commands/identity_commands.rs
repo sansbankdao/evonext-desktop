@@ -1,8 +1,8 @@
 // src-tauri/src/commands/identity_commands.rs
 
 use crate::identity::{lib as identity_logic, storage};
-use crate::models::{IAnyValue, IIdentityData, IIdentityPublicKey, IPrivateKeyEntry};
-use crate::utils::StoreManager; // Correct public import
+use crate::models::{IIdentityData, IIdentityPublicKey, IPrivateKeyEntry, IAnyValue};
+use crate::utils::StoreManager;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
@@ -80,7 +80,7 @@ pub async fn save_identity<R: Runtime>(
     let mut map = storage::load_identity_map(&app, &network)?;
     map.insert(payload.identity_id.clone(), identity);
 
-    // Pass payload.active_identity_id directly to match Option<String>
+    // Pass payload.active_identity_id directly (Option<String>)
     storage::save_identity_map(&app, &network, &map, payload.active_identity_id)?;
 
     Ok(IUnifiedCommandResult {
@@ -154,4 +154,56 @@ pub async fn load_keystore<R: Runtime>(
     serde_json::to_value(data)
         .map(IAnyValue)
         .map_err(|e| e.to_string())
+}
+
+// =====================================================
+// Regression Tests
+// =====================================================
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tauri::test::{mock_builder, mock_context, noop_assets};
+    use tauri::Manager;
+
+    #[tokio::test]
+    async fn test_identity_lifecycle() {
+        // 1. Initialize the app with the required Store plugin
+        let app = mock_builder()
+            .plugin(tauri_plugin_store::Builder::default().build())
+            .build(mock_context(noop_assets()))
+            .unwrap();
+
+        // 2. Ensure any custom state needed by your storage logic is managed
+        // If your StoreManager needs specific setup, do it here.
+
+        let handle = app.handle();
+        let network = "mainnet".to_string();
+        let test_id = "test_identity_123".to_string();
+
+        let payload = ISaveIdentityPayload {
+            identity_id: test_id.clone(),
+            username: Some("tester".into()),
+            ..Default::default()
+        };
+
+        // 3. Test Save
+        let save_result = save_identity(
+            handle.clone(),
+            network.clone(),
+            payload
+        ).await;
+
+        assert!(save_result.is_ok(), "Save failed: {:?}", save_result.err());
+
+        // 4. Test Delete
+        let delete_result = delete_identity(
+            handle.clone(),
+            network.clone(),
+            Some(test_id)
+        ).await;
+
+        assert!(delete_result.is_ok());
+        assert!(delete_result.unwrap());
+    }
 }
