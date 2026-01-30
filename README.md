@@ -8,14 +8,17 @@
   <p>Plus, the hottest collection of Mini Apps designed to streamline your workflow and simplify everyday tasks.</p>
 
   <p>
-    <a href="https://github.com/your-username/evonext-desktop/releases/latest">
-      <img src="https://img.shields.io/github/v/release/your-username/evonext-desktop?style=for-the-badge" alt="Latest Release"/>
+    <a href="https://github.com/sansbankdao/evonext-desktop/releases/latest">
+      <img src="https://img.shields.io/github/v/release/sansbankdao/evonext-desktop?style=for-the-badge" alt="Latest Release"/>
     </a>
-    <a href="https://github.com/your-username/evonext-desktop/blob/main/LICENSE.md">
-      <img src="https://img.shields.io/github/license/your-username/evonext-desktop?style=for-the-badge" alt="License"/>
+    <a href="https://github.com/sansbankdao/evonext-desktop/blob/main/LICENSE.md">
+      <img src="https://img.shields.io/github/license/sansbankdao/evonext-desktop?style=for-the-badge" alt="License"/>
     </a>
-    <a href="https://github.com/your-username/evonext-desktop/actions/workflows/release.yml">
-      <img src="https://img.shields.io/github/actions/workflow/status/your-username/evonext-desktop/release.yml?style=for-the-badge" alt="Build Status"/>
+    <a href="https://github.com/sansbankdao/evonext-desktop/actions/workflows/release.yml">
+      <img src="https://img.shields.io/github/actions/workflow/status/sansbankdao/evonext-desktop/release.yml?style=for-the-badge" alt="Build Status"/>
+    </a>
+    <a href="https://codecov.io/gh/sansbankdao/evonext-desktop">
+      <img src="https://img.shields.io/codecov/c/github/sansbankdao/evonext-desktop?style=for-the-badge&logo=codecov" alt="Coverage Status"/>
     </a>
   </p>
 </div>
@@ -39,7 +42,7 @@ Built with **Tauri v2** and powered by the **Dash Platform**, EvoNext gives you 
 
 ## 🚀 Getting Started (for Users)
 
-1.  **Download the latest release:** Go to the [**Releases Page**](https://github.com/your-username/evonext-desktop/releases/latest).
+1.  **Download the latest release:** Go to the [**Releases Page**](https://github.com/sansbankdao/evonext-desktop/releases/latest).
 2.  **Find the right installer** for your operating system:
     *   **Windows:** Download the `.msi` file.
     *   **macOS:** Download the `.dmg` file.
@@ -63,7 +66,7 @@ Interested in contributing to EvoNext? We'd love your help! Here's how to get th
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/evonext-desktop.git
+    git clone https://github.com/sansbankdao/evonext-desktop.git
     cd evonext-desktop
 
 2.  **Install frontend dependencies:**
