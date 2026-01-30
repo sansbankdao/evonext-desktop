@@ -6,9 +6,17 @@ cd src-tauri
 cargo run --bin export_types
 cd ..
 
-# Add @ts-nocheck to the top of the generated file so TSC ignores unused variables
-# This is a one-liner that prepends the comment to the file
-sed -i '1s/^/\/\/ @ts-nocheck\n/' src/types/rust_generated.ts
+# Safety check: Prepend @ts-nocheck to the newly generated file
+GENERATED_FILE="src/types/rust_generated.ts"
+
+if [ -f "$GENERATED_FILE" ]; then
+    # Use a temporary file to safely prepend the comment
+    echo -e "// @ts-nocheck\n$(cat $GENERATED_FILE)" > "$GENERATED_FILE"
+    echo "✅ Applied @ts-nocheck to $GENERATED_FILE"
+else
+    echo "❌ Error: $GENERATED_FILE was not generated!"
+    exit 1
+fi
 
 echo "Step 2: Checking Rust Logic (The Enforcer)..."
 cd src-tauri

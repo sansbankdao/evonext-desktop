@@ -1,18 +1,18 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Introducing a COMPLETE Private Key Manager System
+### Introducing a COMPLETE End-to-End Testing Suite
 
-This latest version of EvoNext introduces a completed private key management system for discovering and securely storing your private keys for multiple Identities.
+This latest version of EvoNext is now operating with a professional-grade Tauri v2 testing and synchronization workflow.
 
 # Changelog
 
 ## Latest Features:
 
-- __Keychain:__ Complete cleanup up the private key management system.
+- __E2E Testing:__ Built direclty into the workflow is a "enterprise-grate" testing suite, to mitigate ANY and ALL regressions in development.
 
 ## Bugfixes:
 
-- __Keychain:__ Cleanup and remove ALL remaining unused functions.
+- __Tests:__ Now generating ALL types directly from the Rust logic.
 
 ## Notes:
 
