@@ -85,11 +85,42 @@ jobs:
           npm install -g pnpm@8
           pnpm --version
 
+      - name: Clean previous builds
+        run: |
+          rm -rf src-tauri/target || true
+          rm -rf node_modules/.vite || true
+          rm -rf src/types/rust_generated.ts || true
+          rm -rf src-tauri/src/types/rust_generated.ts || true
+          pnpm store prune
+
+      - name: Ensure types directory (root)
+        run: mkdir -p src/types
+
       - name: Install frontend dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
+        env:
+          CI: true
+
+      - name: Build export_types binary
+        run: |
+          cd src-tauri
+          cargo build --bin export_types --release
+          cd ..
 
       - name: Generate Rust Types (The Bridge)
-        run: pnpm type:gen
+        run: |
+          # Run directly from root for correct cwd
+          cd src-tauri && cargo run --bin export_types --release
+          cd ..
+        env:
+          CI: true
+
+      # If pnpm type:gen does more (e.g., validation), run it after; otherwise, remove this
+      - name: Run pnpm type:gen if needed
+        run: pnpm type:gen --verbose
+        if: always()
+        env:
+          CI: true
 
       - name: Build Tauri Application
         run: pnpm tauri build --verbose
@@ -98,6 +129,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           PATH: ${{ env.PATH }}:${{ env.CARGO_BIN }}
+          CI: true
 
       - name: Upload Linux Artifacts
         uses: softprops/action-gh-release@v2
@@ -119,23 +151,51 @@ jobs:
           node-version: 20
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
-      - name: Install x86_64-apple-darwin target for Universal Binaries
-        run: rustup target add x86_64-apple-darwin
+      - name: Install targets for Universal Binaries
+        run: |
+          rustup target add x86_64-apple-darwin
+          rustup target add aarch64-apple-darwin
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 8
+      - name: Clean previous builds
+        run: |
+          rm -rf src-tauri/target || true
+          rm -rf node_modules/.vite || true
+          rm -rf src/types/rust_generated.ts || true
+          rm -rf src-tauri/src/types/rust_generated.ts || true
+          pnpm store prune
+      - name: Ensure types directory (root)
+        run: mkdir -p src/types
       - name: Install frontend dependencies
-        run: pnpm install
-      - name: Generate Rust Types (The Bridge)
-        run: pnpm type:gen
-      - name: Build Universal macOS App
-        run: pnpm tauri build --target universal-apple-darwin
+        run: pnpm install --frozen-lockfile
         env:
-          # Increase Node heap to 4GB to prevent OOM during Universal Build
+          CI: true
+      - name: Build export_types binary
+        run: |
+          cd src-tauri
+          cargo build --bin export_types --release
+          cd ..
+      - name: Generate Rust Types (The Bridge)
+        run: |
+          # Run directly from root for correct cwd
+          cd src-tauri && cargo run --bin export_types --release
+          cd ..
+        env:
+          CI: true
+      - name: Run pnpm type:gen if needed
+        run: pnpm type:gen --verbose
+        if: always()
+        env:
+          CI: true
+      - name: Build Tauri Application
+        run: pnpm tauri build --target universal-apple-darwin --verbose
+        env:
           NODE_OPTIONS: --max-old-space-size=4096
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          CI: true
       - name: Upload macOS Artifact
         uses: softprops/action-gh-release@v2
         with:
@@ -153,20 +213,64 @@ jobs:
           node-version: 20
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
+      - name: Install target
+        run: rustup target add x86_64-pc-windows-msvc
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 8
+      - name: Clean previous builds
+        run: |
+          if (Test-Path src-tauri\target) { Remove-Item -Recurse -Force src-tauri\target }
+          if (Test-Path node_modules\.vite) { Remove-Item -Recurse -Force node_modules\.vite }
+          if (Test-Path src\types\rust_generated.ts) { Remove-Item src\types\rust_generated.ts }
+          if (Test-Path src-tauri\src\types\rust_generated.ts) { Remove-Item src-tauri\src\types\rust_generated.ts }
+          pnpm store prune
+        shell: powershell
+      - name: Ensure types directory (root)
+        run: New-Item -ItemType Directory -Force -Path src\types
+        shell: powershell
       - name: Install frontend dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
+        env:
+          CI: true
+      - name: Build export_types binary
+        run: |
+          cd src-tauri
+          cargo build --bin export_types --release
+          cd ..
+        shell: powershell
       - name: Generate Rust Types (The Bridge)
-        run: pnpm type:gen
+        run: |
+          # Run directly from root for correct cwd (PowerShell handles cd)
+          Push-Location src-tauri
+          cargo run --bin export_types --release
+          Pop-Location
+        shell: powershell
+        env:
+          CI: true
+      - name: Run pnpm type:gen if needed
+        run: pnpm type:gen --verbose
+        if: always()
+        env:
+          CI: true
+      # Workaround: If reader expects src-tauri/src/types/, copy it
+      - name: Copy types for compatibility (remove after fixing reader)
+        run: |
+          if (Test-Path src\types\rust_generated.ts) {
+            New-Item -ItemType Directory -Force -Path src-tauri\src\types
+            Copy-Item src\types\rust_generated.ts src-tauri\src\types\
+          }
+        shell: powershell
+        if: always()
       - name: Build Application
-        run: pnpm tauri build
+        run: pnpm tauri build --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          NODE_OPTIONS: --max-old-space-size=4096
+          CI: true
       - name: Upload Windows Artifacts
         uses: softprops/action-gh-release@v2
         with:
