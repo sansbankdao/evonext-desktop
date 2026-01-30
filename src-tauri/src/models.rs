@@ -13,7 +13,7 @@ use specta::Type;
 pub struct IAnyValue(pub serde_json::Value);
 
 impl ::specta::Type for IAnyValue {
-    fn inline(types: &mut ::specta::TypeMap, _generics: ::specta::Generics) -> ::specta::datatype::DataType {
+    fn inline(_types: &mut ::specta::TypeMap, _generics: ::specta::Generics) -> ::specta::datatype::DataType {
         ::specta::datatype::DataType::Any
     }
 }

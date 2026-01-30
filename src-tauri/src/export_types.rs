@@ -1,20 +1,38 @@
 // src-tauri/src/export_types.rs
 
-use tauri_specta::Typescript;
-use crate::commands::identity_commands::{ISaveIdentityPayload, IUnifiedCommandResult};
+use tauri_specta::{collect_types, Typescript};
+use evonext::models::*;
+use evonext::commands::identity_commands::{ISaveIdentityPayload, IUnifiedCommandResult};
 
 fn main() {
-    // In Specta v2 RC, we use the Builder pattern
     let out_path = "../src/types/rust_generated.ts";
 
-    tauri_specta::Builder::<tauri::Wry>::new()
-        .type_distribution(tauri_specta::TypeDistribution::NoExport)
-        .types(tauri_specta::collect_types![
+    // This is the correct v2-rc.20+ syntax
+    let builder = tauri_specta::Builder::<tauri::Wry>::new()
+        .types(collect_types![
+            // Payloads
             ISaveIdentityPayload,
-            IUnifiedCommandResult
-        ])
+            IUnifiedCommandResult,
+
+            // Core Data structs
+            IIdentityData,
+            IIdentityPublicKey,
+            IPrivateKeyEntry,
+            IMnemonic,
+
+            // Settings & Assets
+            IAppSettings,
+            IAssetDefinition,
+            ILicense,
+
+            // Complex Store Wrappers
+            IPrivateKeyStore,
+            IDiscoveredIdentitiesStore
+        ]);
+
+    builder
         .export(Typescript::default(), out_path)
         .expect("Failed to export types");
 
-    println!("✅ Types exported to {}", out_path);
+    println!("✅ Types successfully generated in {}", out_path);
 }

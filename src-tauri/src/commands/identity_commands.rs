@@ -165,7 +165,7 @@ pub async fn load_keystore<R: Runtime>(
 mod tests {
     use super::*;
     use tauri::test::{mock_builder, mock_context, noop_assets};
-    use tauri::Manager;
+    // use tauri::Manager;
 
     #[tokio::test]
     async fn test_identity_lifecycle() {
