@@ -1,12 +1,12 @@
 // src-tauri/src/commands/asset_commands.rs
 
-use tauri::AppHandle;
+use tauri::{AppHandle, Runtime};
 use serde_json::Value;
 use reqwest;
 
-use crate::models::{AssetDefinition, AssetStoreMap, IAssets, IdentityData};
+use crate::models::{IAssetDefinition, IAssetStoreMap, IAssets, IIdentityData};
 use crate::utils::{StoreManager, network_file::get_network_file};
-use crate::commands::identity_commands::{load_identities_map, save_identity_data};
+use crate::identity::storage::{load_identity_map, save_identity_map};
 
 #[tauri::command]
 pub fn discover_assets(
@@ -14,13 +14,10 @@ pub fn discover_assets(
     identity_id: String,
     network: String
 ) -> Result<IAssets, String> {
-    println!("🕵️♂️ [discover_assets] Starting discovery for identity: {}", identity_id);
-
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
     let mut new_assets: IAssets = Vec::new();
 
-    // Construct Explorer URL
     let base_url = if network.to_lowercase() == "mainnet" {
         "https://platform-explorer.pshenmic.dev"
     } else {
@@ -29,14 +26,10 @@ pub fn discover_assets(
 
     let explorer_url = format!("{}/identity/{}/tokens?page=1&limit=10", base_url, identity_id);
 
-    // Fetch Data (Blocking)
     let response_body = match reqwest::blocking::get(&explorer_url) {
         Ok(resp) => {
             if resp.status().is_success() {
-                match resp.text() {
-                    Ok(body) => body,
-                    Err(e) => return Err(format!("Network read error: {}", e)),
-                }
+                resp.text().map_err(|e| format!("Network read error: {}", e))?
             } else {
                 return Err(format!("API error: {}", resp.status()));
             }
@@ -45,13 +38,7 @@ pub fn discover_assets(
     };
 
     if !response_body.is_empty() {
-        // Parse JSON Response
-        let data: Value = match serde_json::from_str(&response_body) {
-            Ok(d) => d,
-            Err(e) => return Err(format!("JSON parse error: {}", e)),
-        };
-
-        // Extract "resultSet"
+        let data: Value = serde_json::from_str(&response_body).map_err(|e| e.to_string())?;
         if let Some(Value::Array(items)) = data.get("resultSet") {
             for item in items.iter() {
                 let get_str = |key: &str| -> Option<String> {
@@ -64,37 +51,18 @@ pub fn discover_assets(
                     .and_then(|en| en.get("singularForm"))
                     .and_then(|s| s.as_str())
                     .map(|s| s.to_string())
-                    .or_else(|| {
-                        item.get("localizations")
-                            .and_then(|l| l.get("en"))
-                            .and_then(|en| en.get("pluralForm"))
-                            .and_then(|s| s.as_str())
-                            .map(|s| s.to_string())
-                    })
                     .unwrap_or_else(|| "UNKNOWN".to_string());
-
-                if symbol == "UNKNOWN" || symbol.is_empty() {
-                    continue;
-                }
 
                 let contract_id = get_str("dataContractIdentifier")
                     .or_else(|| get_str("identifier"))
                     .unwrap_or_else(|| "".to_string());
 
-                if contract_id.is_empty() {
-                    continue;
-                }
+                if symbol == "UNKNOWN" || contract_id.is_empty() { continue; }
 
-                let decimals = item
-                    .get("decimals")
-                    .and_then(|v| v.as_u64())
-                    .map(|val| val as u8)
-                    .unwrap_or(8);
+                let decimals = item.get("decimals").and_then(|v| v.as_u64()).map(|val| val as u8).unwrap_or(8);
+                let balance = get_str("balance").and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
 
-                let balance_str = get_str("balance").unwrap_or_else(|| "0".to_string());
-                let balance = balance_str.parse::<u64>().unwrap_or(0);
-
-                new_assets.push(AssetDefinition {
+                new_assets.push(IAssetDefinition {
                     identity_id: identity_id.clone(),
                     name: symbol.clone(),
                     symbol,
@@ -107,12 +75,7 @@ pub fn discover_assets(
         }
     }
 
-    // Load existing map, update specific identity entry, and save
-    let mut asset_map: AssetStoreMap = manager
-        .load(filename, "assets")
-        .unwrap_or_default()
-        .unwrap_or_default();
-
+    let mut asset_map: IAssetStoreMap = manager.load(filename, "assets").unwrap_or_default().unwrap_or_default();
     asset_map.insert(identity_id, new_assets.clone());
     let _ = manager.save(filename, "assets", &asset_map);
 
@@ -120,13 +83,11 @@ pub fn discover_assets(
 }
 
 #[tauri::command]
-pub async fn fetch_identity_tokens(
-    app: AppHandle,
+pub async fn fetch_identity_tokens<R: Runtime>(
+    app: AppHandle<R>,
     identity_id: String,
     network: String,
 ) -> Result<IAssets, String> {
-    println!("🔍 [fetch_identity_tokens] Fetching tokens for ID: {}", identity_id);
-
     let base_url = match network.as_str() {
         "testnet" => "https://testnet.platform-explorer.pshenmic.dev",
         "mainnet" => "https://platform-explorer.pshenmic.dev",
@@ -134,102 +95,46 @@ pub async fn fetch_identity_tokens(
     };
 
     let url = format!("{}/identity/{}/tokens?page=1&limit=10&order=asc", base_url, identity_id);
-
-    let client = reqwest::Client::new();
-    let response = client
-        .get(&url)
-        .send()
-        .await
-        .map_err(|e| format!("Network request failed: {}", e))?;
-
-    if !response.status().is_success() {
-        return Err(format!("Explorer returned status: {}", response.status()));
-    }
-
-    let json_response: Value = response
-        .json()
-        .await
-        .map_err(|e| format!("Failed to parse JSON response: {}", e))?;
+    let response = reqwest::get(&url).await.map_err(|e| e.to_string())?;
+    let json_response: Value = response.json().await.map_err(|e| e.to_string())?;
 
     let mut assets: IAssets = Vec::new();
-
     if let Some(Value::Array(items)) = json_response.get("resultSet") {
         for item in items {
-            let get_str = |key: &str| -> Option<String> {
-                item.get(key).and_then(|v| v.as_str()).map(|s| s.to_string())
-            };
+            let symbol = item.get("localizations").and_then(|l| l.get("en")).and_then(|en| en.get("singularForm")).and_then(|v| v.as_str()).map(|s| s.to_string()).unwrap_or_else(|| "UKN".into());
+            let contract_id = item.get("identifier").and_then(|v| v.as_str()).map(|s| s.to_string()).unwrap_or_default();
+            let balance = item.get("balance").and_then(|v| v.as_str()).and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
 
-            let symbol = item
-                .get("localizations")
-                .and_then(|l| l.get("en"))
-                .and_then(|en| en.get("singularForm"))
-                .and_then(|s| s.as_str())
-                .map(|s| s.to_string())
-                .unwrap_or_else(|| "UNKNOWN".to_string());
-
-            let contract_id = get_str("dataContractIdentifier")
-                .or_else(|| get_str("identifier"))
-                .unwrap_or_else(|| "".to_string());
-
-            if symbol == "UNKNOWN" || contract_id.is_empty() {
-                continue;
-            }
-
-            let decimals = item
-                .get("decimals")
-                .and_then(|v| v.as_u64())
-                .map(|val| val as u8)
-                .unwrap_or(8);
-
-            let balance_str = get_str("balance").unwrap_or_else(|| "0".to_string());
-            let balance = balance_str.parse::<u64>().unwrap_or(0);
-
-            assets.push(AssetDefinition {
+            assets.push(IAssetDefinition {
                 identity_id: identity_id.clone(),
                 name: symbol.clone(),
                 symbol,
                 asset_id: Some(contract_id),
-                decimals: Some(decimals),
+                decimals: Some(8),
                 balance: Some(balance),
                 network: Some(network.clone()),
             });
         }
     }
 
-    // Save to Multi-Identity Asset Store
+    // 1. Save Assets
     let manager = StoreManager::new(&app);
     let filename = get_network_file(&network, "assets")?;
-
-    let mut asset_map: AssetStoreMap = manager
-        .load(filename, "assets")
-        .unwrap_or_default()
-        .unwrap_or_default();
-
+    let mut asset_map: IAssetStoreMap = manager.load(filename, "assets").unwrap_or_default().unwrap_or_default();
     asset_map.insert(identity_id.clone(), assets.clone());
-    manager
-        .save(filename, "assets", &asset_map)
-        .map_err(|e| format!("Failed to save assets: {}", e))?;
+    manager.save(filename, "assets", &asset_map).map_err(|e| e.to_string())?;
 
-    // Sync balance back to identity store
-    // 1. Load identities map
-    let identities_map = load_identities_map(app.clone(), network.clone()).await
+    // 2. Sync balance back to identity store
+    // Use singular 'load_identity_map' and NO .await
+    let mut identities_map = load_identity_map(&app, &network)
         .map_err(|e| format!("Failed to load identities: {}", e))?;
 
-    // 2. Find specific identity
-    if let Some(identity_obj) = identities_map.get(&identity_id) {
-        // 3. Deserialize IdentityData from JsonValue
-        let mut identity_data: IdentityData = serde_json::from_value(identity_obj.clone())
-            .map_err(|e| format!("Failed to parse identity data: {}", e))?;
-
-        // 4. Update Balance
+    if let Some(identity_data) = identities_map.get_mut(&identity_id) {
         let total_balance: u128 = assets.iter().filter_map(|a| a.balance.map(|b| b as u128)).sum();
         identity_data.balance = Some(total_balance.to_string());
 
-        // 5. Serialize back to Value and save
-        let updated_identity_value = serde_json::to_value(&identity_data)
-            .map_err(|e| format!("Failed to serialize identity data: {}", e))?;
-
-        save_identity_data(app, network.clone(), updated_identity_value).await
+        // Use singular 'save_identity_map' and NO .await
+        save_identity_map(&app, &network, &identities_map, None)
             .map_err(|e| format!("Failed to sync identity: {}", e))?;
     }
 
@@ -237,51 +142,27 @@ pub async fn fetch_identity_tokens(
 }
 
 #[tauri::command]
-pub fn load_assets(
-    app_handle: AppHandle,
-    identity_id: String,
-    network: String
-) -> Result<IAssets, String> {
+pub fn load_assets(app_handle: AppHandle, identity_id: String, network: String) -> Result<IAssets, String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
-
-    match manager.load::<AssetStoreMap>(filename, "assets") {
-        Ok(Some(map)) => {
-            Ok(map.get(&identity_id).cloned().unwrap_or_default())
-        }
+    match manager.load::<IAssetStoreMap>(filename, "assets") {
+        Ok(Some(map)) => Ok(map.get(&identity_id).cloned().unwrap_or_default()),
         _ => Ok(Vec::new()),
     }
 }
 
 #[tauri::command]
-pub fn save_assets(
-    app_handle: AppHandle,
-    identity_id: String,
-    network: String,
-    payload: IAssets
-) -> Result<(), String> {
+pub fn save_assets(app_handle: AppHandle, identity_id: String, network: String, payload: IAssets) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
-
-    let mut asset_map: AssetStoreMap = manager
-        .load(filename, "assets")
-        .unwrap_or_default()
-        .unwrap_or_default();
-
+    let mut asset_map: IAssetStoreMap = manager.load(filename, "assets").unwrap_or_default().unwrap_or_default();
     asset_map.insert(identity_id, payload);
-
-    match manager.save(filename, "assets", &asset_map) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e.to_string()),
-    }
+    manager.save(filename, "assets", &asset_map).map(|_| ()).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub fn delete_assets(app_handle: AppHandle, network: String) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
-    match manager.delete(filename, "assets") {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e.to_string()),
-    }
+    manager.delete(filename, "assets").map(|_| ()).map_err(|e| e.to_string())
 }

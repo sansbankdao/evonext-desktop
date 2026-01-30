@@ -3,7 +3,7 @@
 use serde::{de::DeserializeOwned, Serialize};
 use std::fmt;
 use std::path::PathBuf;
-use tauri::{AppHandle, Wry};
+use tauri::{AppHandle, Runtime}; // Import Runtime instead of Wry
 use tauri_plugin_store::StoreBuilder;
 
 #[derive(Debug)]
@@ -45,12 +45,12 @@ impl From<tauri_plugin_store::Error> for StoreError {
     }
 }
 
-pub struct StoreManager<'a> {
-    app_handle: &'a AppHandle<Wry>,
+pub struct StoreManager<'a, R: Runtime> {
+    app_handle: &'a AppHandle<R>,
 }
 
-impl<'a> StoreManager<'a> {
-    pub fn new(app_handle: &'a AppHandle<Wry>) -> Self {
+impl<'a, R: Runtime> StoreManager<'a, R> {
+    pub fn new(app_handle: &'a AppHandle<R>) -> Self {
         Self { app_handle }
     }
 
@@ -62,7 +62,8 @@ impl<'a> StoreManager<'a> {
         let path = file_path
             .as_ref()
             .parse::<PathBuf>()
-            .map_err(|e| StoreError::InvalidPath(e.to_string()))?;
+            .map_err(|_| StoreError::InvalidPath("Invalid path string".into()))?;
+        // tauri_plugin_store::StoreBuilder::new also supports Runtime R
         let store = StoreBuilder::new(self.app_handle, path).build()?;
         match store.get(key) {
             Some(value) => {
@@ -82,7 +83,7 @@ impl<'a> StoreManager<'a> {
         let path = file_path
             .as_ref()
             .parse::<PathBuf>()
-            .map_err(|e| StoreError::InvalidPath(e.to_string()))?;
+            .map_err(|_| StoreError::InvalidPath("Invalid path string".into()))?;
         let store = StoreBuilder::new(self.app_handle, path).build()?;
         let serialized = serde_json::to_value(data)?;
         store.set(key.to_string(), serialized);
@@ -94,7 +95,7 @@ impl<'a> StoreManager<'a> {
         let path = file_path
             .as_ref()
             .parse::<PathBuf>()
-            .map_err(|e| StoreError::InvalidPath(e.to_string()))?;
+            .map_err(|_| StoreError::InvalidPath("Invalid path string".into()))?;
         let store = StoreBuilder::new(self.app_handle, path).build()?;
         store.delete(key.to_string());
         store.save()?;

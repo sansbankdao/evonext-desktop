@@ -5,12 +5,15 @@ use crate::models::{IIdentityData, IPrivateKeyStore};
 use crate::utils::{network_file::get_network_file, StoreManager};
 use serde_json::Value;
 use std::collections::HashMap;
-use tauri::AppHandle;
+use tauri::{AppHandle, Runtime}; // Import Runtime
 
 /// Load the identity map from disk
-pub fn load_identity_map(app: &AppHandle, network: &str) -> Result<IdentityMap, String> {
+/// Generic <R: Runtime> allows this to work in production and tests
+pub fn load_identity_map<R: Runtime>(
+    app: &AppHandle<R>,
+    network: &str
+) -> Result<IdentityMap, String> {
     let manager = StoreManager::new(app);
-
     let filename = get_network_file(network, "identity")?;
 
     if let Ok(Some(val)) = manager.load::<Value>(filename, "identities") {
@@ -18,6 +21,7 @@ pub fn load_identity_map(app: &AppHandle, network: &str) -> Result<IdentityMap, 
             let mut identity_map = HashMap::new();
 
             for (key, value) in obj {
+                // Skip internal metadata keys
                 if key.starts_with("__") { continue; }
 
                 if let Ok(identity_data) = serde_json::from_value::<IIdentityData>(value.clone()) {
@@ -32,14 +36,13 @@ pub fn load_identity_map(app: &AppHandle, network: &str) -> Result<IdentityMap, 
 }
 
 /// Save the identity map to disk
-pub fn save_identity_map(
-    app: &AppHandle,
+pub fn save_identity_map<R: Runtime>(
+    app: &AppHandle<R>,
     network: &str,
     map: &IdentityMap,
     active_marker: Option<String>,
 ) -> Result<(), String> {
     let manager = StoreManager::new(app);
-
     let filename = get_network_file(network, "identity")?;
 
     let mut output_value = serde_json::to_value(map).map_err(|e| e.to_string())?;
@@ -54,9 +57,11 @@ pub fn save_identity_map(
 }
 
 /// Load the keystore from disk
-pub fn load_keystore(app: &AppHandle, network: &str) -> Result<IPrivateKeyStore, String> {
+pub fn load_keystore<R: Runtime>(
+    app: &AppHandle<R>,
+    network: &str
+) -> Result<IPrivateKeyStore, String> {
     let manager = StoreManager::new(app);
-
     let filename = get_network_file(network, "safu")?;
 
     Ok(manager
@@ -66,9 +71,12 @@ pub fn load_keystore(app: &AppHandle, network: &str) -> Result<IPrivateKeyStore,
 }
 
 /// Save the keystore to disk
-pub fn save_keystore(app: &AppHandle, network: &str, store: &IPrivateKeyStore) -> Result<(), String> {
+pub fn save_keystore<R: Runtime>(
+    app: &AppHandle<R>,
+    network: &str,
+    store: &IPrivateKeyStore
+) -> Result<(), String> {
     let manager = StoreManager::new(app);
-
     let filename = get_network_file(network, "safu")?;
 
     manager.save(filename, "keystore", store).map_err(|e| e.to_string())
