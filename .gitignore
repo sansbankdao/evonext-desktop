@@ -26,3 +26,6 @@ dist-ssr
 # Old .dat files
 *.dat
 !.gitkeep
+
+# Generated types from Rust
+src/types/rust_generated.ts
