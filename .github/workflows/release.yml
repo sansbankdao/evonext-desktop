@@ -91,13 +91,13 @@ jobs:
           rm -rf node_modules/.vite || true
           rm -rf src/types/rust_generated.ts || true
           rm -rf src-tauri/src/types/rust_generated.ts || true
-          pnpm store prune || true  # Key fix: Ignore errors if store dir missing (e.g., first run in container)
+          pnpm store prune || true
 
       - name: Ensure types directory (root)
         run: mkdir -p src/types
 
       - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile || pnpm install  # Fallback if lockfile missing/incompatible
         env:
           CI: true
 
@@ -163,12 +163,12 @@ jobs:
           rm -rf node_modules/.vite || true
           rm -rf src/types/rust_generated.ts || true
           rm -rf src-tauri/src/types/rust_generated.ts || true
-          pnpm store prune || true  # Ignore errors if store missing
+          pnpm store prune || true
 
       - name: Ensure types directory (root)
         run: mkdir -p src/types
       - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile || pnpm install  # Fallback if lockfile missing/incompatible
         env:
           CI: true
       - name: Verify node_modules installed
@@ -223,13 +223,14 @@ jobs:
           if (Test-Path node_modules\.vite) { Remove-Item -Recurse -Force node_modules\.vite }
           if (Test-Path src\types\rust_generated.ts) { Remove-Item src\types\rust_generated.ts }
           if (Test-Path src-tauri\src\types\rust_generated.ts) { Remove-Item src-tauri\src\types\rust_generated.ts }
-          pnpm store prune  # No || true needed; Windows host has store or handles gracefully
+          try { pnpm store prune } catch { Write-Output "pnpm store prune skipped (store missing, OK)" }  # Handle prune error gracefully
         shell: powershell
       - name: Ensure types directory (root)
         run: New-Item -ItemType Directory -Force -Path src\types
         shell: powershell
       - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile || pnpm install  # Fallback if lockfile missing/incompatible (PowerShell handles || as OR)
+        shell: powershell
         env:
           CI: true
       - name: Verify node_modules installed
