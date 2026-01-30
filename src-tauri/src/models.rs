@@ -12,10 +12,8 @@ use specta::Type;
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct IAnyValue(pub serde_json::Value);
 
-/// Manual implementation for Specta 2.0.0-rc.22
-/// DefOpts was removed in this version and replaced by Generics
 impl ::specta::Type for IAnyValue {
-    fn inline(types: &mut ::specta::TypeMap, generics: ::specta::Generics) -> ::specta::datatype::DataType {
+    fn inline(types: &mut ::specta::TypeMap, _generics: ::specta::Generics) -> ::specta::datatype::DataType {
         ::specta::datatype::DataType::Any
     }
 }
@@ -69,7 +67,7 @@ pub struct IAssetDefinition {
     pub name: String,
     pub symbol: String,
     pub balance: Option<u64>,
-    #[serde(default, rename = "asset_id")]
+    #[serde(default, rename = "assetId")]
     pub asset_id: Option<String>,
     #[serde(default)]
     pub decimals: Option<u8>,
@@ -81,25 +79,7 @@ pub type IAssets = Vec<IAssetDefinition>;
 pub type IAssetStoreMap = HashMap<String, Vec<IAssetDefinition>>;
 
 // =====================================================
-// License Models
-// =====================================================
-
-#[derive(Serialize, Deserialize, Clone, Debug, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct ILicense {
-    pub success: bool,
-    pub identity_id: String,
-    pub txid: String,
-    pub is_premium: bool,
-    pub created_at: i64,
-    pub expires_at: i64,
-    pub updated_at: Option<i64>,
-}
-
-pub type ILicenseStoreMap = HashMap<String, ILicense>;
-
-// =====================================================
-// Keystore Models
+// Keystore & Identity Models
 // =====================================================
 
 #[derive(Serialize, Deserialize, Clone, Debug, Type)]
@@ -130,10 +110,6 @@ pub struct IPrivateKeyStore {
     pub identities: HashMap<String, Vec<IPrivateKeyEntry>>,
 }
 
-// =====================================================
-// Identity Models
-// =====================================================
-
 fn de_u64_from_str_or_num<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
 where
     D: Deserializer<'de>,
@@ -148,9 +124,7 @@ where
     match NumOrStr::deserialize(deserializer)? {
         NumOrStr::Num(n) => Ok(Some(n)),
         NumOrStr::Str(s) => {
-            if s.is_empty() {
-                return Ok(None);
-            }
+            if s.is_empty() { return Ok(None); }
             s.parse::<u64>().map(Some).map_err(|_| {
                 D::Error::invalid_value(Unexpected::Str(&s), &"a u64 or stringified u64")
             })
@@ -178,6 +152,7 @@ pub struct IIdentityData {
     pub username: String,
     pub identity_id: String,
     pub identity_idx: u32,
+    pub dpns_username: Option<String>,
     pub balance: Option<String>,
     pub is_authenticated: bool,
     pub public_keys: Option<Vec<IIdentityPublicKey>>,
@@ -188,8 +163,22 @@ pub struct IIdentityData {
 }
 
 // =====================================================
-// Discovery Models
+// License & Discovery Results
 // =====================================================
+
+#[derive(Serialize, Deserialize, Clone, Debug, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ILicense {
+    pub success: bool,
+    pub identity_id: String,
+    pub txid: String,
+    pub is_premium: bool,
+    pub created_at: i64,
+    pub expires_at: i64,
+    pub updated_at: Option<i64>,
+}
+
+pub type ILicenseStoreMap = HashMap<String, ILicense>;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Type)]
 #[serde(rename_all = "camelCase")]
