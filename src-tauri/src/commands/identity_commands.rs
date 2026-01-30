@@ -68,6 +68,7 @@ pub async fn save_identity<R: Runtime>(
         username: payload.username.unwrap_or_else(|| payload.identity_id.clone()),
         identity_id: payload.identity_id.clone(),
         identity_idx: payload.identity_idx.unwrap_or(0),
+        dpns_username: payload.dpns_username,
         balance: payload.balance,
         is_authenticated: true,
         public_keys: normalized_public_keys,

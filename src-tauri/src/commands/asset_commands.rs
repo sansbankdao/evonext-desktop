@@ -4,7 +4,7 @@ use tauri::{AppHandle, Runtime};
 use serde_json::Value;
 use reqwest;
 
-use crate::models::{IAssetDefinition, IAssetStoreMap, IAssets, IIdentityData};
+use crate::models::{IAssetDefinition, IAssetStoreMap, IAssets};
 use crate::utils::{StoreManager, network_file::get_network_file};
 use crate::identity::storage::{load_identity_map, save_identity_map};
 

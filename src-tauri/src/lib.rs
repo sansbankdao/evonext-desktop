@@ -9,7 +9,6 @@ pub mod dapi;
 pub mod identity;
 pub mod menu;
 pub mod models;
-pub mod types;
 pub mod utils;
 
 pub fn run() {
