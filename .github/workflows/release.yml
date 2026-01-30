@@ -101,6 +101,14 @@ jobs:
         env:
           CI: true
 
+      - name: Verify node_modules installed
+        run: |
+          if [ ! -d "node_modules" ]; then
+            echo "node_modules missing after install!"
+            exit 1
+          fi
+          echo "node_modules verified."
+
       - name: Build export_types binary
         run: |
           cd src-tauri
@@ -108,22 +116,12 @@ jobs:
           cd ..
 
       - name: Generate Rust Types (The Bridge)
-        run: |
-          # Run directly from root for correct cwd
-          cd src-tauri && cargo run --bin export_types --release
-          cd ..
-        env:
-          CI: true
-
-      # If pnpm type:gen does more (e.g., validation), run it after; otherwise, remove this
-      - name: Run pnpm type:gen if needed
-        run: pnpm type:gen --verbose
-        if: always()
+        run: pnpm type:gen  # Removed --verbose to avoid node flag error
         env:
           CI: true
 
       - name: Build Tauri Application
-        run: pnpm tauri build --verbose
+        run: pnpm tauri build --verbose  # Keep verbose only on tauri build for troubleshooting
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -172,21 +170,20 @@ jobs:
         run: pnpm install --frozen-lockfile
         env:
           CI: true
+      - name: Verify node_modules installed
+        run: |
+          if [ ! -d "node_modules" ]; then
+            echo "node_modules missing after install!"
+            exit 1
+          fi
+          echo "node_modules verified."
       - name: Build export_types binary
         run: |
           cd src-tauri
           cargo build --bin export_types --release
           cd ..
       - name: Generate Rust Types (The Bridge)
-        run: |
-          # Run directly from root for correct cwd
-          cd src-tauri && cargo run --bin export_types --release
-          cd ..
-        env:
-          CI: true
-      - name: Run pnpm type:gen if needed
-        run: pnpm type:gen --verbose
-        if: always()
+        run: pnpm type:gen  # Removed --verbose
         env:
           CI: true
       - name: Build Tauri Application
@@ -234,6 +231,11 @@ jobs:
         run: pnpm install --frozen-lockfile
         env:
           CI: true
+      - name: Verify node_modules installed
+        run: |
+          if (!(Test-Path node_modules)) { Write-Error "node_modules missing after install!"; exit 1 }
+          Write-Output "node_modules verified."
+        shell: powershell
       - name: Build export_types binary
         run: |
           cd src-tauri
@@ -241,28 +243,10 @@ jobs:
           cd ..
         shell: powershell
       - name: Generate Rust Types (The Bridge)
-        run: |
-          # Run directly from root for correct cwd (PowerShell handles cd)
-          Push-Location src-tauri
-          cargo run --bin export_types --release
-          Pop-Location
-        shell: powershell
+        run: pnpm type:gen  # Removed --verbose; use shell: bash if issues persist
+        shell: bash  # Bash for consistent cd behavior on Windows
         env:
           CI: true
-      - name: Run pnpm type:gen if needed
-        run: pnpm type:gen --verbose
-        if: always()
-        env:
-          CI: true
-      # Workaround: If reader expects src-tauri/src/types/, copy it
-      - name: Copy types for compatibility (remove after fixing reader)
-        run: |
-          if (Test-Path src\types\rust_generated.ts) {
-            New-Item -ItemType Directory -Force -Path src-tauri\src\types
-            Copy-Item src\types\rust_generated.ts src-tauri\src\types\
-          }
-        shell: powershell
-        if: always()
       - name: Build Application
         run: pnpm tauri build --verbose
         env:
