@@ -4,6 +4,12 @@ import { vi, beforeEach } from 'vitest'
 import { mockIPC } from '@tauri-apps/api/mocks'
 import { setActivePinia, createPinia } from 'pinia'
 
+// Provide default env vars for tests
+process.env.VITE_DEFAULT_NETWORK = 'mainnet'
+process.env.VITE_DASHSWAP_ENDPOINT = 'http://localhost:3000'
+process.env.VITE_PLATFORM_HTTP_API_MAINNET = 'http://localhost:3000'
+process.env.VITE_PLATFORM_HTTP_API_TESTNET = 'http://localhost:3000'
+
 /**
  * Global Browser API Mocks
  *

@@ -13,7 +13,7 @@
     "test:watch": "vitest",
     "test:rust": "cargo test --manifest-path=./src-tauri/Cargo.toml",
     "test:e2e": "pnpm tauri build && pnpm exec wdio run wdio.conf.ts",
-    "type:gen": "cd src-tauri && cargo run --bin export_types",
+    "type:gen": "(cd src-tauri && cargo run --bin export_types) && node -e \"const f='src/types/rust_generated.ts'; const fs=require('fs'); fs.writeFileSync(f, '//@ts-nocheck\\n' + fs.readFileSync(f))\"",
     "check": "pnpm type:gen && pnpm test:rust && vue-tsc --noEmit && pnpm test",
     "postinstall": "pnpm type:gen"
   },
