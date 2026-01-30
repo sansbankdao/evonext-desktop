@@ -88,6 +88,9 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install
 
+      - name: Generate Rust Types (The Bridge)
+        run: pnpm type:gen
+
       - name: Build Tauri Application
         run: pnpm tauri build --verbose
         env:
@@ -124,6 +127,8 @@ jobs:
           version: 8
       - name: Install frontend dependencies
         run: pnpm install
+      - name: Generate Rust Types (The Bridge)
+        run: pnpm type:gen
       - name: Build Universal macOS App
         run: pnpm tauri build --target universal-apple-darwin
         env:
@@ -154,6 +159,8 @@ jobs:
           version: 8
       - name: Install frontend dependencies
         run: pnpm install
+      - name: Generate Rust Types (The Bridge)
+        run: pnpm type:gen
       - name: Build Application
         run: pnpm tauri build
         env:

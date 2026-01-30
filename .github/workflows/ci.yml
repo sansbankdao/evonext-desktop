@@ -1,4 +1,4 @@
-name: EvoNext E2E Tests
+name: EvoNext Full CI Suite
 
 on:
   push:
@@ -8,7 +8,6 @@ on:
 
 jobs:
   test:
-    # Run on Ubuntu, Mac, and Windows to be safe
     strategy:
       fail-fast: false
       matrix:
@@ -21,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v2
+        uses: pnpm/action-setup@v4 # Updated to v4
         with:
           version: 8
 
@@ -36,31 +35,29 @@ jobs:
 
       - name: Install Linux dependencies (Ubuntu only)
         if: matrix.platform == 'ubuntu-latest'
-        # Tauri needs these to build on Linux
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
-          # Install Xvfb (Virtual Display) to run the GUI app without a screen
-          sudo apt-get install -y xvfb
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb
 
       - name: Install Frontend dependencies
         run: pnpm install
 
-      - name: Install Appium (The Server)
-        run: pnpm add -D appium
+      - name: Run Full Integrity Check
+        # This runs: Type Gen -> Rust Tests -> TSC (Type Check) -> Vitest
+        run: pnpm check
+
+      # --- E2E Section ---
 
       - name: Install Tauri Driver (The Bridge)
         run: cargo install tauri-driver
 
-      - name: Build Tauri App
-        # We run 'check' on Linux to save time, but you can run 'build'
-        # Note: E2E tests usually need a build, not just a check
+      - name: Build App for E2E
         run: pnpm tauri build
 
       - name: Run E2E Tests
-        # On Linux, wrap the command with xvfb-run to provide a virtual screen
         env:
           CI: true
+        shell: bash
         run: |
           if [ "${{ matrix.platform }}" == "ubuntu-latest" ]; then
             xvfb-run --auto-servernum pnpm exec wdio run wdio.conf.ts
