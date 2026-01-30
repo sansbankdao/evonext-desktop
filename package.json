@@ -5,17 +5,19 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "pnpm type:gen && vite",
     "build": "pnpm type:gen && vue-tsc --noEmit && vite build",
+    "check": "pnpm type:gen && pnpm test:rust && vue-tsc --noEmit && pnpm test",
+    "coverage:clean": "rm -rf coverage/",
+    "coverage:merge": "pnpm coverage:clean && pnpm coverage:rust && pnpm coverage:frontend",
+    "dev": "pnpm type:gen && vite",
+    "postinstall": "pnpm type:gen",
     "preview": "vite preview",
     "tauri": "tauri",
     "test": "vitest run --coverage",
-    "test:watch": "vitest",
-    "test:rust": "cargo test --manifest-path=./src-tauri/Cargo.toml",
     "test:e2e": "pnpm tauri build && pnpm exec wdio run wdio.conf.ts",
-    "type:gen": "(cd src-tauri && cargo run --bin export_types) && node -e \"const f='src/types/rust_generated.ts'; const fs=require('fs'); fs.writeFileSync(f, '//@ts-nocheck\\n' + fs.readFileSync(f))\"",
-    "check": "pnpm type:gen && pnpm test:rust && vue-tsc --noEmit && pnpm test",
-    "postinstall": "pnpm type:gen"
+    "test:rust": "cargo test --manifest-path=./src-tauri/Cargo.toml",
+    "test:watch": "vitest",
+    "type:gen": "(cd src-tauri && cargo run --bin export_types) && node -e \"const f='src/types/rust_generated.ts'; const fs=require('fs'); fs.writeFileSync(f, '//@ts-nocheck\\n' + fs.readFileSync(f))\""
   },
   "dependencies": {
     "@dashevo/evo-sdk": "3.0.0-dev.11",
