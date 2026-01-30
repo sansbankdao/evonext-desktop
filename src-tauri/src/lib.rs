@@ -4,11 +4,12 @@ use tauri::Manager;
 
 // NOTE: We make these public to the crate so export_types.rs can see them.
 pub mod commands;
+pub mod constants;
 pub mod dapi;
 pub mod identity;
-pub mod models;
 pub mod menu;
-pub mod constants;
+pub mod models;
+pub mod types;
 pub mod utils;
 
 pub fn run() {

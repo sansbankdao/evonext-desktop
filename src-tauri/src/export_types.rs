@@ -1,12 +1,20 @@
 // src-tauri/src/export_types.rs
 
-use specta::collect_types;
-use tauri_specta::ts;
-use crate::types::rust::{IdentityData, SaveIdentityPayload};
+use tauri_specta::Typescript;
+use crate::commands::identity_commands::{ISaveIdentityPayload, IUnifiedCommandResult};
 
 fn main() {
-    ts::export(
-        collect_types![IdentityData, SaveIdentityPayload],
-        "../src/types/rust_generated.ts"
-    ).expect("Failed to export types");
+    // In Specta v2 RC, we use the Builder pattern
+    let out_path = "../src/types/rust_generated.ts";
+
+    tauri_specta::Builder::<tauri::Wry>::new()
+        .type_distribution(tauri_specta::TypeDistribution::NoExport)
+        .types(tauri_specta::collect_types![
+            ISaveIdentityPayload,
+            IUnifiedCommandResult
+        ])
+        .export(Typescript::default(), out_path)
+        .expect("Failed to export types");
+
+    println!("✅ Types exported to {}", out_path);
 }
