@@ -1,12 +1,16 @@
 #!/bin/bash
+set -e # Exit on any failure
 
-# 1. Regenerate Types (The Contract)
+echo "Step 1: Exporting Types (The Bridge)..."
 cd src-tauri
 cargo run --bin export_types
 
-# 2. Check Rust Logic (The Enforcer)
+echo "Step 2: Checking Rust Logic (The Enforcer)..."
 cargo test --lib
 
-# 3. Check Frontend Types (The Bridge)
+echo "Step 3: Verifying Frontend Integrity (The Bridge Check)..."
 cd ..
 pnpm exec tsc --noEmit
+
+echo "Step 4: Running Frontend Unit Tests (The UI Logic)..."
+pnpm exec vitest run

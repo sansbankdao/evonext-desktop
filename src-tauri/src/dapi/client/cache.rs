@@ -30,6 +30,7 @@ pub struct Cache {
     default_ttl: Duration,
 }
 
+#[allow(dead_code)]
 impl Cache {
     pub fn new(capacity: usize) -> Self {
         Self {

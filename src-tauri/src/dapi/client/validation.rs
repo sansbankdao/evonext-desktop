@@ -218,6 +218,7 @@ pub fn validate_dapi_params(
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn params_array_to_object(
     method: &str,
     params_array: Vec<Value>,

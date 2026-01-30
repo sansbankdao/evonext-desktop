@@ -1,38 +1,28 @@
 // src-tauri/src/export_types.rs
 
-use tauri_specta::{collect_types, Typescript};
-use evonext::models::*;
-use evonext::commands::identity_commands::{ISaveIdentityPayload, IUnifiedCommandResult};
+use tauri_specta::{collect_commands, Builder};
+// In RC.20, the Typescript exporter is located here:
+use tauri_specta::typescript::Typescript;
+
+// Import the commands from your library
+use evonext::commands::identity_commands;
 
 fn main() {
     let out_path = "../src/types/rust_generated.ts";
 
-    // This is the correct v2-rc.20+ syntax
-    let builder = tauri_specta::Builder::<tauri::Wry>::new()
-        .types(collect_types![
-            // Payloads
-            ISaveIdentityPayload,
-            IUnifiedCommandResult,
-
-            // Core Data structs
-            IIdentityData,
-            IIdentityPublicKey,
-            IPrivateKeyEntry,
-            IMnemonic,
-
-            // Settings & Assets
-            IAppSettings,
-            IAssetDefinition,
-            ILicense,
-
-            // Complex Store Wrappers
-            IPrivateKeyStore,
-            IDiscoveredIdentitiesStore
+    // You MUST provide <tauri::Wry> here to solve the E0283 "type annotations needed" error.
+    // This tells the compiler that the generic 'R' in your commands is tauri::Wry.
+    let builder = Builder::<tauri::Wry>::new()
+        .commands(collect_commands![
+            identity_commands::save_identity,
+            identity_commands::delete_identity,
+            identity_commands::save_keys,
+            identity_commands::load_keystore
         ]);
 
     builder
         .export(Typescript::default(), out_path)
         .expect("Failed to export types");
 
-    println!("✅ Types successfully generated in {}", out_path);
+    println!("✅ Bridge established: {}", out_path);
 }
