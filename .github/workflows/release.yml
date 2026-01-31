@@ -97,7 +97,7 @@ jobs:
         run: mkdir -p src/types
 
       - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile || pnpm install  # Fallback if lockfile missing/incompatible
+        run: pnpm install --frozen-lockfile || pnpm install
         env:
           CI: true
 
@@ -108,12 +108,6 @@ jobs:
             exit 1
           fi
           echo "node_modules verified."
-
-      - name: Build export_types binary
-        run: |
-          cd src-tauri
-          cargo build --bin export_types --release
-          cd ..
 
       - name: Generate Rust Types (The Bridge)
         run: pnpm type:gen
@@ -168,7 +162,7 @@ jobs:
       - name: Ensure types directory (root)
         run: mkdir -p src/types
       - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile || pnpm install  # Fallback if lockfile missing/incompatible
+        run: pnpm install --frozen-lockfile || pnpm install
         env:
           CI: true
       - name: Verify node_modules installed
@@ -178,15 +172,15 @@ jobs:
             exit 1
           fi
           echo "node_modules verified."
-      - name: Build export_types binary
-        run: |
-          cd src-tauri
-          cargo build --bin export_types --release
-          cd ..
       - name: Generate Rust Types (The Bridge)
         run: pnpm type:gen
         env:
           CI: true
+      - name: Clean export_types artifact (avoid bundling)
+        run: |
+          rm -f src-tauri/target/*-apple-darwin/release/export_types
+          rm -f src-tauri/target/universal-apple-darwin/release/export_types
+        continue-on-error: true
       - name: Build Tauri Application
         run: pnpm tauri build --target universal-apple-darwin --verbose
         env:
@@ -223,13 +217,14 @@ jobs:
           if (Test-Path node_modules\.vite) { Remove-Item -Recurse -Force node_modules\.vite }
           if (Test-Path src\types\rust_generated.ts) { Remove-Item src\types\rust_generated.ts }
           if (Test-Path src-tauri\src\types\rust_generated.ts) { Remove-Item src-tauri\src\types\rust_generated.ts }
-          try { pnpm store prune } catch { Write-Output "pnpm store prune skipped (store missing, OK)" }  # Handle prune error gracefully
+          try { pnpm store prune } catch { Write-Output "pnpm store prune skipped (store missing, OK)" }
         shell: powershell
       - name: Ensure types directory (root)
         run: New-Item -ItemType Directory -Force -Path src\types
         shell: powershell
       - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile || pnpm install  # Fallback if lockfile missing/incompatible (PowerShell handles || as OR)
+        run: |
+          try { pnpm install --frozen-lockfile } catch { pnpm install }
         shell: powershell
         env:
           CI: true
@@ -237,12 +232,6 @@ jobs:
         run: |
           if (!(Test-Path node_modules)) { Write-Error "node_modules missing after install!"; exit 1 }
           Write-Output "node_modules verified."
-        shell: powershell
-      - name: Build export_types binary
-        run: |
-          cd src-tauri
-          cargo build --bin export_types --release
-          cd ..
         shell: powershell
       - name: Generate Rust Types (The Bridge)
         run: pnpm type:gen
