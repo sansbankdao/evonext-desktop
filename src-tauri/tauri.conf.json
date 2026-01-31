@@ -42,8 +42,7 @@
       "icons/icon.ico"
     ],
     "resources": ["icons/icon.png"],
-    "createUpdaterArtifacts": true,
-    "externalBin": []
+    "createUpdaterArtifacts": true
   },
   "plugins": {
     "updater": {

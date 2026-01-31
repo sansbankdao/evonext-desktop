@@ -91,7 +91,6 @@ jobs:
           rm -rf node_modules/.vite || true
           rm -rf src/types/rust_generated.ts || true
           rm -rf src-tauri/src/types/rust_generated.ts || true
-          pnpm store prune || true
 
       - name: Ensure types directory (root)
         run: mkdir -p src/types
@@ -157,7 +156,6 @@ jobs:
           rm -rf node_modules/.vite || true
           rm -rf src/types/rust_generated.ts || true
           rm -rf src-tauri/src/types/rust_generated.ts || true
-          pnpm store prune || true
 
       - name: Ensure types directory (root)
         run: mkdir -p src/types
@@ -176,11 +174,12 @@ jobs:
         run: pnpm type:gen
         env:
           CI: true
-      - name: Clean export_types artifact (avoid bundling)
+      - name: Remove export_types artifact to prevent bundling
         run: |
-          rm -f src-tauri/target/*-apple-darwin/release/export_types
-          rm -f src-tauri/target/universal-apple-darwin/release/export_types
-        continue-on-error: true
+          rm -f src-tauri/target/release/export_types* || true
+          rm -f src-tauri/target/x86_64-apple-darwin/release/export_types* || true
+          rm -f src-tauri/target/aarch64-apple-darwin/release/export_types* || true
+          rm -f src-tauri/target/universal-apple-darwin/release/export_types* || true
       - name: Build Tauri Application
         run: pnpm tauri build --target universal-apple-darwin --verbose
         env:
@@ -217,7 +216,6 @@ jobs:
           if (Test-Path node_modules\.vite) { Remove-Item -Recurse -Force node_modules\.vite }
           if (Test-Path src\types\rust_generated.ts) { Remove-Item src\types\rust_generated.ts }
           if (Test-Path src-tauri\src\types\rust_generated.ts) { Remove-Item src-tauri\src\types\rust_generated.ts }
-          try { pnpm store prune } catch { Write-Output "pnpm store prune skipped (store missing, OK)" }
         shell: powershell
       - name: Ensure types directory (root)
         run: New-Item -ItemType Directory -Force -Path src\types
