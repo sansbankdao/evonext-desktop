@@ -4,7 +4,9 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'node:path'
 
-export default defineConfig(() => ({
+const internalHost = '127.0.0.1'
+
+export default defineConfig(async () => ({
     plugins: [vue()],
 
     resolve: {
@@ -24,24 +26,20 @@ export default defineConfig(() => ({
     },
     build: {
         sourcemap: false,
-        outDir: 'dist', // Ensure this matches tauri.conf.json
-        chunkSizeWarningLimit: 3000,
+        outDir: 'dist',
         rollupOptions: {
-            output: {
-                // Simple manual chunks are risky if file names change.
-                // Remove chunking or simplify it if issues persist.
-            }
+            cache: true, // Enables faster rebuilds
         },
     },
     clearScreen: false,
 
     server: {
-        host: '127.0.0.1',
+        host: internalHost,
         port: 1420,
         strictPort: true,
         hmr: {
             protocol: 'ws',
-            host: '127.0.0.1',
+            host: internalHost,
             port: 1421,
             overlay: true
         },
