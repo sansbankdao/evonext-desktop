@@ -82,13 +82,13 @@ pub type IAssetStoreMap = HashMap<String, Vec<IAssetDefinition>>;
 // Keystore & Identity Models
 // =====================================================
 
-#[derive(Serialize, Deserialize, Clone, Debug, Type)]
+#[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct IMnemonic {
     pub seed_phrase: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Type)]
+#[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct IPrivateKeyEntry {
     pub identity_id: String,
@@ -133,7 +133,7 @@ where
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Type)]
+#[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct IIdentityPublicKey {
     pub id: u32,
@@ -166,7 +166,7 @@ pub struct IIdentityData {
 // License & Discovery Results
 // =====================================================
 
-#[derive(Serialize, Deserialize, Clone, Debug, Type)]
+#[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ILicense {
     pub success: bool,
@@ -180,7 +180,7 @@ pub struct ILicense {
 
 pub type ILicenseStoreMap = HashMap<String, ILicense>;
 
-#[derive(Serialize, Deserialize, Clone, Debug, Type)]
+#[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct IDiscoveredIdentity {
     pub identity_id: String,

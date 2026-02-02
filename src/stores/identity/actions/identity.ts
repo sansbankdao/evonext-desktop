@@ -1,25 +1,62 @@
 // src/stores/identity/actions/identity.ts
 
+import { commands } from '@/types/rust_generated'
+import type { ISaveIdentityPayload, IPrivateKeyEntry } from '@/types/rust_generated'
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
 import { useIdentity } from '@/composables/useIdentity'
 
 export const identityActions = () => ({
-    // Delegating to the composable
+    /**
+     * Persist identity data to the Rust backend
+     */
+    async saveIdentity(network: string, payload: ISaveIdentityPayload) {
+        return ErrorBoundary.wrap(async () => {
+            const result = await commands.saveIdentity(network, payload)
+            if (result.status === 'error') {
+                throw new Error(result.error)
+            }
+            log('debug', `Identity ${payload.identityId} successfully saved to backend.`)
+            return result.data
+        }, 'SAVE_IDENTITY_FAILED')
+    },
+
+    /**
+     * Persist private keys to the Rust backend (safu store)
+     */
+    async saveKeys(network: string, identityId: string, keys: IPrivateKeyEntry[]) {
+        return ErrorBoundary.wrap(async () => {
+            const result = await commands.saveKeys(network, identityId, keys)
+            if (result.status === 'error') {
+                throw new Error(result.error)
+            }
+            log('debug', `Keystore for ${identityId} successfully updated.`)
+            return result.data
+        }, 'SAVE_KEYS_FAILED')
+    },
+
+    /**
+     * Remove an identity or clear the entire store from disk
+     */
+    async deleteIdentity(network: string, identityId: string | null = null) {
+        return ErrorBoundary.wrap(async () => {
+            const result = await commands.deleteIdentity(network, identityId)
+            if (result.status === 'error') {
+                throw new Error(result.error)
+            }
+            return result.data
+        }, 'DELETE_IDENTITY_FAILED')
+    },
+
+    // =====================================================
+    // Logic Delegated to Composables
+    // =====================================================
+
     async searchUserIdentities(this: any) {
         const identityComposable = useIdentity()
         return ErrorBoundary.wrap(async () => {
             return await identityComposable.searchUserIdentities()
         }, 'SEARCH_USER_IDENTITIES_FAILED')
-    },
-
-    // This method is now internal to useIdentity, but we keep a proxy here if other actions directly call it
-    // However, it should be removed if not used elsewhere in the store.
-    async getDpnsUsername(identityId: string): Promise<string | null> {
-        const identityComposable = useIdentity()
-        return ErrorBoundary.wrap(async () => {
-            return await identityComposable.getDpnsUsername(identityId)
-        }, 'GET_DPNS_USERNAME_FAILED')
     },
 
     async queryIdentityDetails(
@@ -37,35 +74,18 @@ export const identityActions = () => ({
     async getPublicKeys(this: any): Promise<any[]> {
         const store = this as any
         return ErrorBoundary.wrap(async () => {
-            if (store.publicKeys.length > 0) {
+            if (store.publicKeys && store.publicKeys.length > 0) {
                 return store.publicKeys
             }
             if (store.identityId) {
                 const identityComposable = useIdentity()
                 const details = await identityComposable.queryIdentityDetails(
                     store.identityId,
-                    store.identity.identityIdx || 0
+                    store.identity?.identityIdx || 0
                 )
-                return details.publicKeys || []
+                return details?.publicKeys || []
             }
             return []
         }, 'GET_PUBLIC_KEYS_FAILED')
-    },
-
-    // This logic is now handled inside the composable's queryIdentityDetails flow
-    async updateIdentityWithSdkData(
-        this: any,
-        _identityId: string,
-        _identityIdx: number,
-        _publicKeys: any[],
-        _revision: bigint
-    ): Promise<void> {
-        // No-op or trigger store update directly if needed,
-        // but the composable handles the store patching via logic
-        // const identityComposable = useIdentity()
-        // Accessing private method via 'any' if strictly necessary,
-        // but it's better to call the public wrapper that performs the update.
-        // For now, we rely on queryIdentityDetails to have updated the state.
-        log('debug', 'updateIdentityWithSdkData called on store - delegated to composable.')
     }
 })

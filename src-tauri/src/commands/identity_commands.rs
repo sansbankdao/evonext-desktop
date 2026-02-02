@@ -47,7 +47,7 @@ pub async fn save_identity<R: Runtime>(
     network: String,
     payload: ISaveIdentityPayload,
 ) -> Result<IUnifiedCommandResult, String> {
-    // 1. Data Normalization
+    // 1. Data Normalization for Revision
     let revision_u64 = match payload.revision {
         Some(IAnyValue(JsonValue::Number(n))) => n.as_u64(),
         Some(IAnyValue(JsonValue::String(s))) => s.parse::<u64>().ok(),
@@ -55,6 +55,7 @@ pub async fn save_identity<R: Runtime>(
     };
 
     // 2. Normalize Public Keys
+    // If public_keys is None, it remains None. If it is Some, we map it.
     let normalized_public_keys = payload.public_keys.map(|raw_vec| {
         raw_vec
             .iter()
@@ -81,7 +82,6 @@ pub async fn save_identity<R: Runtime>(
     let mut map = storage::load_identity_map(&app, &network)?;
     map.insert(payload.identity_id.clone(), identity);
 
-    // Pass payload.active_identity_id directly (Option<String>)
     storage::save_identity_map(&app, &network, &map, payload.active_identity_id)?;
 
     Ok(IUnifiedCommandResult {
@@ -137,8 +137,11 @@ pub async fn save_keys<R: Runtime>(
                 entries.push(k);
             }
         }
-        let dummy_id = IIdentityData { identity_id: identity_id.clone(), ..Default::default() };
-        identity_logic::enrich_key_entries(entries, &dummy_id);
+        // Enrich keys based on currently stored identity data to sync purpose/security levels
+        let current_identities = storage::load_identity_map(&app, &network)?;
+        if let Some(identity_data) = current_identities.get(&identity_id) {
+            identity_logic::enrich_key_entries(entries, identity_data);
+        }
     }
 
     storage::save_keystore(&app, &network, &keystore)?;
@@ -158,53 +161,69 @@ pub async fn load_keystore<R: Runtime>(
 }
 
 // =====================================================
-// Regression Tests
+// Anti-Regression Suite
 // =====================================================
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use tauri::test::{mock_builder, mock_context, noop_assets};
-    // use tauri::Manager;
 
     #[tokio::test]
-    async fn test_identity_lifecycle() {
-        // 1. Initialize the app with the required Store plugin
+    async fn test_save_identity_regression() {
         let app = mock_builder()
             .plugin(tauri_plugin_store::Builder::default().build())
             .build(mock_context(noop_assets()))
             .unwrap();
-
-        // 2. Ensure any custom state needed by your storage logic is managed
-        // If your StoreManager needs specific setup, do it here.
-
         let handle = app.handle();
-        let network = "mainnet".to_string();
-        let test_id = "test_identity_123".to_string();
 
         let payload = ISaveIdentityPayload {
-            identity_id: test_id.clone(),
-            username: Some("tester".into()),
+            identity_id: "test_reg_id".into(),
+            username: Some("test_user".into()),
+            public_keys: Some(vec![IAnyValue(serde_json::json!({
+                "id": 0,
+                "type": "ECDSA_SECP256K1",
+                "purpose": 0,
+                "securityLevel": 0,
+                "data": "00112233445566778899aabbccddeeff"
+            }))]),
             ..Default::default()
         };
 
-        // 3. Test Save
-        let save_result = save_identity(
-            handle.clone(),
-            network.clone(),
-            payload
-        ).await;
+        // 1. Execute Command
+        let result = save_identity(handle.clone(), "testnet".into(), payload).await.unwrap();
+        assert!(result.success);
 
-        assert!(save_result.is_ok(), "Save failed: {:?}", save_result.err());
+        // 2. Verify Storage Integrity
+        let map = storage::load_identity_map(handle, "testnet").unwrap();
+        let data = map.get("test_reg_id").expect("Identity was lost in storage cycle");
 
-        // 4. Test Delete
-        let delete_result = delete_identity(
-            handle.clone(),
-            network.clone(),
-            Some(test_id)
-        ).await;
+        assert_eq!(data.username, "test_user");
+        assert!(data.public_keys.is_some(), "Public keys dropped during normalization");
+        assert_eq!(data.public_keys.as_ref().unwrap()[0].data, "00112233445566778899aabbccddeeff");
+    }
 
-        assert!(delete_result.is_ok());
-        assert!(delete_result.unwrap());
+    #[tokio::test]
+    async fn test_keystore_persistence() {
+        let app = mock_builder()
+            .plugin(tauri_plugin_store::Builder::default().build())
+            .build(mock_context(noop_assets()))
+            .unwrap();
+        let handle = app.handle();
+
+        let keys = vec![IPrivateKeyEntry {
+            identity_id: "test_id".into(),
+            key_id: 5,
+            private_key: "secret".into(),
+            public_key: "pub".into(),
+            ..Default::default()
+        }];
+
+        let result = save_keys(handle.clone(), "testnet".into(), "test_id".into(), keys).await.unwrap();
+        assert!(result);
+
+        let loaded = load_keystore(handle.clone(), "testnet".into()).await.unwrap();
+        let val = loaded.0;
+        assert!(val.get("identities").unwrap().get("test_id").is_some());
     }
 }

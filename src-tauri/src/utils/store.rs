@@ -3,7 +3,7 @@
 use serde::{de::DeserializeOwned, Serialize};
 use std::fmt;
 use std::path::PathBuf;
-use tauri::{AppHandle, Runtime}; // Import Runtime instead of Wry
+use tauri::{AppHandle, Runtime, path::BaseDirectory, Manager};
 use tauri_plugin_store::StoreBuilder;
 
 #[derive(Debug)]
@@ -54,17 +54,21 @@ impl<'a, R: Runtime> StoreManager<'a, R> {
         Self { app_handle }
     }
 
+    fn resolve_path(&self, file_path: &str) -> Result<PathBuf, StoreError> {
+        self.app_handle
+            .path()
+            .resolve(file_path, BaseDirectory::AppData)
+            .map_err(|e| StoreError::InvalidPath(e.to_string()))
+    }
+
     pub fn load<T: DeserializeOwned>(
         &self,
         file_path: impl AsRef<str>,
         key: &str,
     ) -> Result<Option<T>, StoreError> {
-        let path = file_path
-            .as_ref()
-            .parse::<PathBuf>()
-            .map_err(|_| StoreError::InvalidPath("Invalid path string".into()))?;
-        // tauri_plugin_store::StoreBuilder::new also supports Runtime R
+        let path = self.resolve_path(file_path.as_ref())?;
         let store = StoreBuilder::new(self.app_handle, path).build()?;
+
         match store.get(key) {
             Some(value) => {
                 let data: T = serde_json::from_value(value.clone())?;
@@ -80,25 +84,22 @@ impl<'a, R: Runtime> StoreManager<'a, R> {
         key: &str,
         data: &T,
     ) -> Result<(), StoreError> {
-        let path = file_path
-            .as_ref()
-            .parse::<PathBuf>()
-            .map_err(|_| StoreError::InvalidPath("Invalid path string".into()))?;
+        let path = self.resolve_path(file_path.as_ref())?;
         let store = StoreBuilder::new(self.app_handle, path).build()?;
         let serialized = serde_json::to_value(data)?;
+
         store.set(key.to_string(), serialized);
         store.save()?;
+
+
         Ok(())
     }
-
     pub fn delete(&self, file_path: impl AsRef<str>, key: &str) -> Result<(), StoreError> {
-        let path = file_path
-            .as_ref()
-            .parse::<PathBuf>()
-            .map_err(|_| StoreError::InvalidPath("Invalid path string".into()))?;
+        let path = self.resolve_path(file_path.as_ref())?;
         let store = StoreBuilder::new(self.app_handle, path).build()?;
         store.delete(key.to_string());
         store.save()?;
+
         Ok(())
     }
 }
