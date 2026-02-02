@@ -66,7 +66,7 @@ pub struct IAssetDefinition {
     pub identity_id: String,
     pub name: String,
     pub symbol: String,
-    #[specta(type = Option<String>)] // Force String in TypeScript
+    #[specta(type = Option<String>)]
     pub balance: Option<u64>,
     #[serde(default, rename = "assetId")]
     pub asset_id: Option<String>,
@@ -78,6 +78,34 @@ pub struct IAssetDefinition {
 
 pub type IAssets = Vec<IAssetDefinition>;
 pub type IAssetStoreMap = HashMap<String, Vec<IAssetDefinition>>;
+
+// =====================================================
+// Helper Deserializers
+// =====================================================
+
+/// Handles conversion of String or Number into a u32 (for Revision)
+fn de_u32_from_str_or_num<'de, D>(deserializer: D) -> Result<u32, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum NumOrStr {
+        Num(u32),
+        Str(String),
+        Null,
+    }
+    match NumOrStr::deserialize(deserializer)? {
+        NumOrStr::Num(n) => Ok(n),
+        NumOrStr::Str(s) => {
+            if s.is_empty() { return Ok(0); }
+            s.parse::<u32>().map(Ok).unwrap_or_else(|_| {
+                Err(D::Error::invalid_value(Unexpected::Str(&s), &"a u32 or stringified u32"))
+            })
+        }
+        NumOrStr::Null => Ok(0),
+    }
+}
 
 // =====================================================
 // Keystore & Identity Models
@@ -111,29 +139,6 @@ pub struct IPrivateKeyStore {
     pub identities: HashMap<String, Vec<IPrivateKeyEntry>>,
 }
 
-fn de_u64_from_str_or_num<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    #[derive(Deserialize)]
-    #[serde(untagged)]
-    enum NumOrStr {
-        Num(u64),
-        Str(String),
-        Null,
-    }
-    match NumOrStr::deserialize(deserializer)? {
-        NumOrStr::Num(n) => Ok(Some(n)),
-        NumOrStr::Str(s) => {
-            if s.is_empty() { return Ok(None); }
-            s.parse::<u64>().map(Some).map_err(|_| {
-                D::Error::invalid_value(Unexpected::Str(&s), &"a u64 or stringified u64")
-            })
-        }
-        NumOrStr::Null => Ok(None),
-    }
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct IIdentityPublicKey {
@@ -150,16 +155,15 @@ pub struct IIdentityPublicKey {
 #[derive(Serialize, Deserialize, Clone, Debug, Default, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct IIdentityData {
-    pub username: String,
     pub identity_id: String,
-    pub identity_idx: u32,
+    pub username: String,
+    pub balance: String,
+    #[serde(default, deserialize_with = "de_u32_from_str_or_num")]
+    pub revision: u32,
+    pub public_keys: Vec<IIdentityPublicKey>,
+    pub identity_idx: Option<u32>,
     pub dpns_username: Option<String>,
-    pub balance: Option<String>,
     pub is_authenticated: bool,
-    pub public_keys: Option<Vec<IIdentityPublicKey>>,
-    #[serde(default, deserialize_with = "de_u64_from_str_or_num")]
-    #[specta(type = Option<String>)] // Force String in TypeScript
-    pub revision: Option<u64>,
     pub created_at: Option<String>,
     pub public_key_ids: Option<Vec<u32>>,
 }
@@ -175,11 +179,11 @@ pub struct ILicense {
     pub identity_id: String,
     pub txid: String,
     pub is_premium: bool,
-    #[specta(type = String)] // Force String in TypeScript
+    #[specta(type = String)]
     pub created_at: i64,
-    #[specta(type = String)] // Force String in TypeScript
+    #[specta(type = String)]
     pub expires_at: i64,
-    #[specta(type = Option<String>)] // Force String in TypeScript
+    #[specta(type = Option<String>)]
     pub updated_at: Option<i64>,
 }
 
@@ -189,9 +193,9 @@ pub type ILicenseStoreMap = HashMap<String, ILicense>;
 #[serde(rename_all = "camelCase")]
 pub struct IDiscoveredIdentity {
     pub identity_id: String,
-    pub identity_idx: u32,
+    pub balance: String,
+    pub identity_idx: Option<u32>,
     pub dpns_username: Option<String>,
-    pub balance: Option<String>,
     pub key_type: String,
     pub discovered_key: Option<String>,
     pub discovered_at: String,

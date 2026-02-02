@@ -13,31 +13,36 @@ import { useIdentity } from '@/composables/useIdentity'
 export const identityActions = () => ({
     /**
      * Persist identity data to the Rust backend and update store state.
+     * Normalizes inputs to ensure Rust-compatible types.
      */
-    async saveIdentity(this: any, network: string, payload: ISaveIdentityPayload) {
+    async saveIdentity(this: any, network: string, payload: any) {
         return ErrorBoundary.wrap(async () => {
-            const response = await commands.saveIdentity(network, payload)
+            // NORMALIZE: Ensure strict compliance with ISaveIdentityPayload
+            const sanitizedPayload: ISaveIdentityPayload = {
+                identityId: payload.identityId,
+                username: payload.username || payload.identityId || 'default_user',
+                identityIdx: payload.identityIdx ?? 0,
+                dpnsUsername: payload.dpnsUsername ?? null,
+                balance: payload.balance ?? null,
+                publicKeys: payload.publicKeys ?? [],
+                revision: payload.revision ?? null,
+                createdAt: payload.createdAt ?? new Date().toISOString(),
+                activeIdentityId: payload.activeIdentityId ?? payload.identityId
+            }
+
+            const response = await commands.saveIdentity(network, sanitizedPayload)
 
             if (response.status === 'error') {
                 throw new Error(response.error)
             }
 
-            // After successful backend save, patch the local state
-            // This ensures the UI updates globally across the app
+            // Sync state
             if (this.identities) {
                 const updatedIdentity: IIdentityData = {
-                    username: payload.username || payload.identityId,
-                    identityId: payload.identityId,
-                    identityIdx: payload.identityIdx || 0,
-                    dpnsUsername: payload.dpnsUsername,
-                    balance: payload.balance,
+                    ...sanitizedPayload,
                     isAuthenticated: true,
-                    publicKeys: payload.publicKeys, // Normalized in Rust, but we keep local sync
-                    revision: payload.revision,
-                    createdAt: payload.createdAt || new Date().toISOString(),
                     publicKeyIds: null
                 }
-
                 this.identities[payload.identityId] = updatedIdentity
 
                 if (payload.activeIdentityId || !this.identityId) {
@@ -45,35 +50,53 @@ export const identityActions = () => ({
                 }
             }
 
-            log('debug', `Identity ${payload.identityId} successfully saved and state patched.`)
+            log('debug', `Identity ${payload.identityId} saved and store patched.`)
             return response.data
         }, 'SAVE_IDENTITY_FAILED')
     },
 
     /**
-     * Persist private keys to the Rust backend (safu store)
+     * Persist private keys to the Rust backend (safu store).
+     * This is the "Bouncer" that fixes messy UI data (casing/nulls).
      */
-    async saveKeys(this: any, network: string, identityId: string, keys: IPrivateKeyEntry[]) {
+    async saveKeys(this: any, network: string, identityId: string, keys: any[]) {
         return ErrorBoundary.wrap(async () => {
-            const response = await commands.saveKeys(network, identityId, keys)
+            // NORMALIZE: Fix "missing field privateKey" and "invalid type null"
+            const normalizedKeys: IPrivateKeyEntry[] = keys.map(k => ({
+                identityId: identityId,
+                keyId: k.keyId ?? k.key_id ?? 0,
+                purpose: k.purpose ?? 3,
+                securityLevel: k.securityLevel ?? k.security_level ?? 0,
+                keyType: k.keyType ?? k.key_type ?? 'ECDSA_SECP256K1',
+                privateKey: k.privateKey ?? k.private_key, // Fix casing
+                publicKey: k.publicKey ?? k.public_key ?? '',
+                derivedFromMnemonic: k.derivedFromMnemonic ?? k.derived_from_mnemonic ?? true,
+                createdAt: k.createdAt ?? k.created_at ?? new Date().toISOString(),
+                lastUsed: new Date().toISOString()
+            }))
+
+            // Final check: Don't send empty keys to Rust
+            if (normalizedKeys.some(k => !k.privateKey)) {
+                throw new Error("Validation Error: Missing privateKey in payload")
+            }
+
+            const response = await commands.saveKeys(network, identityId, normalizedKeys)
 
             if (response.status === 'error') {
                 throw new Error(response.error)
             }
 
-            // Sync the local keystore state if your store tracks it
             if (this.keystore?.identities) {
-                this.keystore.identities[identityId] = keys
+                this.keystore.identities[identityId] = normalizedKeys
             }
 
-            log('debug', `Keystore for ${identityId} successfully updated in backend and store.`)
+            log('debug', `Keystore for ${identityId} successfully saved to backend.`)
             return response.data
         }, 'SAVE_KEYS_FAILED')
     },
 
     /**
      * Hydrate the store's keystore data from the backend.
-     * Essential for restoring state after app restart.
      */
     async loadKeystore(this: any, network: string) {
         return ErrorBoundary.wrap(async () => {
@@ -94,11 +117,8 @@ export const identityActions = () => ({
         return ErrorBoundary.wrap(async () => {
             const response = await commands.deleteIdentity(network, identityId)
 
-            if (response.status === 'error') {
-                throw new Error(response.error)
-            }
+            if (response.status === 'error') throw new Error(response.error)
 
-            // Update local state to remove the identity
             if (identityId && this.identities) {
                 delete this.identities[identityId]
                 if (this.identityId === identityId) {
@@ -113,15 +133,10 @@ export const identityActions = () => ({
         }, 'DELETE_IDENTITY_FAILED')
     },
 
-    // =====================================================
-    // Logic Delegated to Composables (with Store Sync)
-    // =====================================================
-
     async searchUserIdentities(this: any) {
         const identityComposable = useIdentity()
         return ErrorBoundary.wrap(async () => {
             const identities = await identityComposable.searchUserIdentities()
-            // Ensure the store is aware of newly discovered identities
             this.discoveredIdentities = identities
             return identities
         }, 'SEARCH_USER_IDENTITIES_FAILED')
@@ -131,24 +146,16 @@ export const identityActions = () => ({
         const identityComposable = useIdentity()
         return ErrorBoundary.wrap(async () => {
             const details = await identityComposable.queryIdentityDetails(identityId, identityIdx, sdk)
-
-            // Patch the core identity data with the results from the query
             if (this.identities && this.identities[identityId]) {
                 this.identities[identityId] = { ...this.identities[identityId], ...details }
             }
-
             return details
         }, 'QUERY_IDENTITY_DETAILS_FAILED')
     },
 
     async getPublicKeys(this: any): Promise<any[]> {
         return ErrorBoundary.wrap(async () => {
-            // Priority 1: Current Store State
-            if (this.publicKeys?.length > 0) {
-                return this.publicKeys
-            }
-
-            // Priority 2: Fetch via Composable if Identity exists
+            if (this.publicKeys?.length > 0) return this.publicKeys
             if (this.identityId) {
                 const identityComposable = useIdentity()
                 const details = await identityComposable.queryIdentityDetails(
@@ -157,7 +164,6 @@ export const identityActions = () => ({
                 )
                 return details?.publicKeys || []
             }
-
             return []
         }, 'GET_PUBLIC_KEYS_FAILED')
     }

@@ -5,7 +5,6 @@ use crate::models::{IIdentityData, IIdentityPublicKey, IPrivateKeyEntry, IAnyVal
 use crate::utils::StoreManager;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
 use tauri::{AppHandle, Runtime};
 use specta::Type;
 
@@ -25,12 +24,12 @@ pub struct IUnifiedCommandResult {
 #[serde(rename_all = "camelCase")]
 pub struct ISaveIdentityPayload {
     pub identity_id: String,
+    pub username: String,
+    pub balance: String,
+    pub revision: u32,
+    pub public_keys: Vec<IAnyValue>,
     pub identity_idx: Option<u32>,
-    pub username: Option<String>,
     pub dpns_username: Option<String>,
-    pub balance: Option<String>,
-    pub revision: Option<IAnyValue>,
-    pub public_keys: Option<Vec<IAnyValue>>,
     pub created_at: Option<String>,
     #[serde(default)]
     pub active_identity_id: Option<String>,
@@ -47,38 +46,30 @@ pub async fn save_identity<R: Runtime>(
     network: String,
     payload: ISaveIdentityPayload,
 ) -> Result<IUnifiedCommandResult, String> {
-    // 1. Data Normalization for Revision
-    let revision_u64 = match payload.revision {
-        Some(IAnyValue(JsonValue::Number(n))) => n.as_u64(),
-        Some(IAnyValue(JsonValue::String(s))) => s.parse::<u64>().ok(),
-        _ => None,
-    };
+    // 1. Normalize Public Keys
+    // Since public_keys is now Vec<IAnyValue> (not Option), we iterate directly
+    let normalized_public_keys = payload.public_keys
+        .iter()
+        .enumerate()
+        .filter_map(|(i, IAnyValue(v))| identity_logic::normalize_public_key(i as u32, v))
+        .collect::<Vec<IIdentityPublicKey>>();
 
-    // 2. Normalize Public Keys
-    // If public_keys is None, it remains None. If it is Some, we map it.
-    let normalized_public_keys = payload.public_keys.map(|raw_vec| {
-        raw_vec
-            .iter()
-            .enumerate()
-            .filter_map(|(i, IAnyValue(v))| identity_logic::normalize_public_key(i as u32, v))
-            .collect::<Vec<IIdentityPublicKey>>()
-    });
-
-    // 3. Construct the Canonical Identity Object
+    // 2. Construct the Canonical Identity Object
+    // Matching the exact structure of IIdentityData in models.rs
     let identity = IIdentityData {
-        username: payload.username.unwrap_or_else(|| payload.identity_id.clone()),
         identity_id: payload.identity_id.clone(),
-        identity_idx: payload.identity_idx.unwrap_or(0),
-        dpns_username: payload.dpns_username,
+        username: payload.username,
         balance: payload.balance,
-        is_authenticated: true,
+        revision: payload.revision,
         public_keys: normalized_public_keys,
-        revision: revision_u64,
+        identity_idx: payload.identity_idx,
+        dpns_username: payload.dpns_username,
+        is_authenticated: true,
         created_at: Some(payload.created_at.unwrap_or_else(|| Utc::now().to_rfc3339())),
         public_key_ids: None,
     };
 
-    // 4. Persistence
+    // 3. Persistence
     let mut map = storage::load_identity_map(&app, &network)?;
     map.insert(payload.identity_id.clone(), identity);
 
@@ -137,7 +128,7 @@ pub async fn save_keys<R: Runtime>(
                 entries.push(k);
             }
         }
-        // Enrich keys based on currently stored identity data to sync purpose/security levels
+
         let current_identities = storage::load_identity_map(&app, &network)?;
         if let Some(identity_data) = current_identities.get(&identity_id) {
             identity_logic::enrich_key_entries(entries, identity_data);
@@ -179,14 +170,16 @@ mod tests {
 
         let payload = ISaveIdentityPayload {
             identity_id: "test_reg_id".into(),
-            username: Some("test_user".into()),
-            public_keys: Some(vec![IAnyValue(serde_json::json!({
+            username: "test_user".into(),
+            balance: "1000".into(),
+            revision: 1,
+            public_keys: vec![IAnyValue(serde_json::json!({
                 "id": 0,
                 "type": "ECDSA_SECP256K1",
                 "purpose": 0,
                 "securityLevel": 0,
                 "data": "00112233445566778899aabbccddeeff"
-            }))]),
+            }))],
             ..Default::default()
         };
 
@@ -199,8 +192,8 @@ mod tests {
         let data = map.get("test_reg_id").expect("Identity was lost in storage cycle");
 
         assert_eq!(data.username, "test_user");
-        assert!(data.public_keys.is_some(), "Public keys dropped during normalization");
-        assert_eq!(data.public_keys.as_ref().unwrap()[0].data, "00112233445566778899aabbccddeeff");
+        assert!(!data.public_keys.is_empty(), "Public keys dropped during normalization");
+        assert_eq!(data.public_keys[0].data, "00112233445566778899aabbccddeeff");
     }
 
     #[tokio::test]
