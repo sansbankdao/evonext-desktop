@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4 # Updated to v4
+        uses: pnpm/action-setup@v4
         with:
           version: 8
 
@@ -43,16 +43,21 @@ jobs:
         run: pnpm install
 
       - name: Run Full Integrity Check
-        # This runs: Type Gen -> Rust Tests -> TSC (Type Check) -> Vitest
+        # If 'pnpm check' triggers cargo test, we ensure it runs with correct flags
         run: pnpm check
+        env:
+          # This helps some Windows test runners find the correct webview2 targets
+          WEBVIEW2_WIN32_PATH: ${{ github.workspace }}/src-tauri/target/debug
 
       # --- E2E Section ---
 
-      - name: Install Tauri Driver (The Bridge)
+      - name: Install Tauri Driver
         run: cargo install tauri-driver
 
       - name: Build App for E2E
-        run: pnpm tauri build
+        # Use --no-bundle to skip signing and installer generation
+        # Use --debug (implied by no flag, or explicit) to speed up CI
+        run: pnpm tauri build --no-bundle
 
       - name: Run E2E Tests
         env:
