@@ -1,9 +1,10 @@
 // src/types/identity.ts
 
+import type { IIdentityData } from '@/types/rust_generated'
+
 export type PurposeType = 0 | 1 | 2 | 3
 export type SecurityLevelType = 0 | 1 | 2 | 3 | 4
 
-// Extend DiscoveredIdentity with derived keys
 export interface DiscoveredIdentityWithKeys extends DiscoveredIdentity {
     derivedKeys?: DerivedKeyInfo[];
 }
@@ -54,35 +55,33 @@ export interface IUser {
 }
 
 export interface IIdentity {
-    id?: string | undefined;
+    id?: string;
     identityId: string;
     identityIdx: number;
-    balance?: number | string | null | undefined;
+    balance: string; // Synced with Rust
     publicKeys: IPublicKey[];
-    revision?: number | undefined;
-    username?: string | undefined;
-    avatarUrl?: string | undefined;
-    avatarHash?: string | undefined;
-    avatarFingerprint?: string | undefined;
-    displayName?: string | undefined;
-    publicMessage?: string | undefined;
-    publicKeyIds?: number[] | undefined;
-    isAuthenticated?: boolean | undefined;
-    createdAt?: number | undefined;
+    revision: number; // Synced with Rust
+    username?: string;
+    avatarUrl?: string;
+    displayName?: string;
+    publicMessage?: string;
+    publicKeyIds?: number[];
+    isAuthenticated?: boolean;
+    createdAt?: number;
 }
 
 export interface DiscoveredIdentity {
-    id?: string | undefined;
+    id?: string;
     identityId: string;
     identityIdx: number;
     publicKeys: IPublicKey[];
-    publicKeyIds?: number[] | undefined; // Added to match legacy component usage
-    balance?: number | string | null | undefined;
-    username?: string | undefined;
-    displayName?: string | undefined;
-    avatarUrl?: string | undefined;
-    revision?: number | undefined;
-    dpnsUsername?: string | null | undefined;
+    publicKeyIds?: number[];
+    balance?: string;
+    username?: string;
+    displayName?: string;
+    avatarUrl?: string;
+    revision?: number;
+    dpnsUsername?: string | null;
 }
 
 export interface RustDiscoveredIdentity {
@@ -112,8 +111,9 @@ export interface DiscoveryProgress {
     currentPath?: string;
 }
 
+// Map now uses the official Data Model from Specta
 export interface IIdentityStoreMap {
-    [key: string]: IIdentity;
+    [key: string]: IIdentityData;
 }
 
 export interface ConnectionResult {
@@ -139,7 +139,7 @@ export interface IIdentityActions {
     connectWithSingleKey: (privateKey: string, identityId: string, network: 'mainnet' | 'testnet', preloaded?: any) => Promise<ConnectionResult>;
     switchIdentity: (targetIdentityId: string) => Promise<ConnectionResult>;
 
-    // Restore legacy action required by ConnectSeedForm - CORRECTED ORDER
+    // Restore legacy action required by ConnectSeedForm
     connectWriteOnlyFromDiscovered: (identity: DiscoveredIdentity, seedPhrase: string) => Promise<ConnectionResult>;
 
     // Core Storage / Persistence
@@ -149,7 +149,7 @@ export interface IIdentityActions {
     clearStorage: () => Promise<void>;
     getCurrentNetwork: () => Promise<'mainnet' | 'testnet'>;
 
-    // Helpers (Internal or specialized) - Made Required
+    // Helpers (Internal or specialized)
     saveMnemonicToStore: (network: 'mainnet' | 'testnet', seedPhrase: string) => Promise<void>;
     loadMnemonic: (network: 'mainnet' | 'testnet') => Promise<{ seedPhrase: string } | null>;
     loadSettings: () => Promise<any>;
@@ -165,22 +165,22 @@ export interface IIdentityActions {
 export interface IIdentityState extends IIdentityActions {
     username: string | null;
     identityId: string | null;
-    identityIdx?: number | undefined;
+    identityIdx?: number;
     displayName: string | null;
     identity: IIdentity | null;
-    balance: number | string | null | undefined;
+    balance: string; // Enforce non-nullable string
     balanceBigInt?: bigint | undefined;
     dashBigInt?: bigint | undefined;
     publicKeys: IPublicKey[];
-    revision: number | null;
+    revision: number; // Enforce non-nullable number
     isAuthenticated: boolean;
     premiumAccess: boolean;
     connectionError: string | null;
     isConnected: boolean;
     isConnecting: boolean;
     lastConnected: number | null;
-    discoveryProgress?: DiscoveryProgress | null;
-    identitiesMap: IIdentityStoreMap;
+    discoveryProgress?: DiscoveryProgress | null | undefined;
+    identities: IIdentityStoreMap; // Renamed from identitiesMap
 }
 
 export interface SDKIdentityDetails {
@@ -199,7 +199,7 @@ export interface IdentitySearchOptions {
 export interface IdentitySearchResult {
     identities?: IIdentity[];
     username?: string;
-    balance?: number | string | null | undefined;
+    balance?: string;
     publicKeys?: IPublicKey[];
     error?: string;
 }
@@ -228,8 +228,6 @@ export interface IdentityLookupResult {
     debug?: any;
 }
 
-
-
 export interface IdentityDiscoveryDetails {
     detectedKeyType: string;
     keyDescription: string;
@@ -242,10 +240,7 @@ export interface IdentityDiscoveryDetails {
     }>;
 }
 
-// FIX: Renamed interface to avoid conflict with Rust struct name collision
-// and standardize naming (I prefix). Maps to 'PrivateKeyEntry' in exports.
 export interface IPrivateKeyEntry {
-    id: number;
     identityId: string;
     keyId: number;
     purpose: number;
@@ -258,7 +253,6 @@ export interface IPrivateKeyEntry {
     last_used?: string;
 }
 
-// Explicit Export for your existing code usage
 export type PrivateKeyEntry = IPrivateKeyEntry;
 
 export interface QueryTrace {
@@ -284,17 +278,10 @@ export interface ScanProgress {
     foundCount: number;
 }
 
-// export interface DiscoveryResult {
-//     success: boolean;
-//     identities: any[];
-//     debug: any;
-//     error?: string;
-// }
-// Update DiscoveryResult to use the extended type
 export interface DiscoveryResult {
     success: boolean
-    identities?: DiscoveredIdentityWithKeys[] | null  // Changed from DiscoveredIdentity[]
-    identity?: DiscoveredIdentityWithKeys | null      // Changed from DiscoveredIdentity
+    identities?: DiscoveredIdentityWithKeys[] | null
+    identity?: DiscoveredIdentityWithKeys | null
     detectedKeyType?: string | null
     associatedKeys?: AssociatedKey[] | null
     error?: string
@@ -310,40 +297,12 @@ export interface DiscoveryResult {
     }
 }
 
-// export interface DiscoveryOptions {
-//     network: 'mainnet' | 'testnet';
-//     maxIdentityIndex?: number;
-//     data: DiscoveryResult;
-//     maxKeyIndex?: number;
-//     node: any;
-// }
 export interface DiscoveryOptions {
     network: 'mainnet' | 'testnet';
     maxIdentityIndex?: number;
-    data?: {
-        success: boolean;
-        identities?: DiscoveredIdentityWithKeys[] | null;
-        identity?: DiscoveredIdentityWithKeys | null;
-        detectedKeyType?: string | null;
-        associatedKeys?: AssociatedKey[] | null;
-        error?: string;
-        stack?: string;
-        debug?: {
-            step?: string;
-            count?: number;
-            network?: string;
-            stack?: {};
-            trace?: QueryTrace[];
-            progressSnapshot?: ScanProgress | undefined;
-            error?: string;
-        }
-    }
+    data?: DiscoveryResult;
     maxKeyIndex?: number;
     node?: any;
-}
-
-export interface SeedDiscoveryOptions{
-    // TBD
 }
 
 export interface DerivedKeyInfo {
@@ -351,8 +310,8 @@ export interface DerivedKeyInfo {
     purpose: number;
     securityLevel: number;
     keyType: string;
-    privateKeyWIF: string;  // Private key in WIF format
-    publicKeyHex: string;   // Public key in hex
+    privateKeyWIF: string;
+    publicKeyHex: string;
     derivationPath: string;
     createdAt?: string;
     lastUsed?: string;
@@ -366,29 +325,7 @@ export interface AssociatedKey {
     derivedFromInput: boolean;
 }
 
-// Create DiscoveryDetails interface
 export interface DiscoveryDetails {
     detectedKeyType: string | null;
     associatedKeys: AssociatedKey[];
-}
-
-export interface IIdentityStateProps {
-    username: string | null
-    identityId: string | null
-    identityIdx?: number | undefined
-    displayName: string | null
-    identity: IIdentity | null
-    balance: number | string | null | undefined
-    balanceBigInt?: bigint | undefined
-    dashBigInt?: bigint | undefined
-    publicKeys: IPublicKey[]
-    revision: number | null
-    isAuthenticated: boolean
-    premiumAccess: boolean
-    connectionError: string | null
-    isConnected: boolean
-    isConnecting: boolean
-    lastConnected: number | null
-    discoveryProgress?: DiscoveryProgress | null
-    identitiesMap: IIdentityStoreMap
 }

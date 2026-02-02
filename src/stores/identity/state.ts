@@ -1,20 +1,22 @@
 // src/stores/identity/state.ts
 
 import type { IIdentityState } from '@/types'
+import type { IIdentityData } from '@/types/rust_generated'
 
 export const useIdentityState = (): IIdentityState => ({
     username: null,
     identityId: null,
+    identityIdx: 0,
     displayName: null,
 
     identity: null,
-    balance: null,
+    balance: '0',
 
     balanceBigInt: undefined,
     dashBigInt: undefined,
 
     publicKeys: [],
-    revision: null,
+    revision: 0,
 
     isAuthenticated: false,
     premiumAccess: false,
@@ -24,17 +26,14 @@ export const useIdentityState = (): IIdentityState => ({
     isConnected: false,
     lastConnected: null,
 
-    discoveryProgress: null,
+    discoveryProgress: undefined,
 
-    identitiesMap: {},
+    identities: {} as Record<string, IIdentityData>,
 
-    // --- Actions Stubs (Satisfy Typescript, overridden by Store Actions) ---
+    // --- Actions Stubs ---
     connectWithSeed: async () => ({ success: false, error: 'Not implemented' }),
     connectWithSingleKey: async () => ({ success: false, error: 'Not implemented' }),
-
-    // Stub for the legacy action required by ConnectSeedForm
     connectWriteOnlyFromDiscovered: async () => ({ success: false, error: 'Not implemented' }),
-
     logout: async () => {},
 
     saveDiscoveredIdentities: async () => ({ success: false, savedCount: 0 }),
@@ -48,20 +47,12 @@ export const useIdentityState = (): IIdentityState => ({
 
     getCurrentNetwork: async () => 'mainnet',
 
-    // Helper stubs now required by strict interface
     saveMnemonicToStore: async () => {},
     loadMnemonic: async () => null,
-    loadSettings: async () => {
-        // Implementation provided in storage.ts
-        // This matches the signature in IIdentityActions
-        return null
-    },
+    loadSettings: async () => null,
 
     saveIdentityDataToStore: async () => {},
-
-    // Added to satisfy IIdentityActions interface
     switchIdentity: async () => ({ success: false, error: 'Not implemented' }),
     resetStoreState: () => {},
-
     clearConnectionError: () => {}
 })

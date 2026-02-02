@@ -18,14 +18,15 @@ export const identityActions = () => ({
     async saveIdentity(this: any, network: string, payload: any) {
         return ErrorBoundary.wrap(async () => {
             // NORMALIZE: Ensure strict compliance with ISaveIdentityPayload
+            // Non-nullable fields now use strict fallbacks ('0' for balance, 0 for revision)
             const sanitizedPayload: ISaveIdentityPayload = {
                 identityId: payload.identityId,
                 username: payload.username || payload.identityId || 'default_user',
                 identityIdx: payload.identityIdx ?? 0,
                 dpnsUsername: payload.dpnsUsername ?? null,
-                balance: payload.balance ?? null,
+                balance: payload.balance ?? '0',
                 publicKeys: payload.publicKeys ?? [],
-                revision: payload.revision ?? null,
+                revision: payload.revision ?? 0,
                 createdAt: payload.createdAt ?? new Date().toISOString(),
                 activeIdentityId: payload.activeIdentityId ?? payload.identityId
             }
