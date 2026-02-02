@@ -7,7 +7,7 @@ on:
     branches: [ "master" ]
 
 jobs:
-  test:
+  guardian:
     strategy:
       fail-fast: false
       matrix:
