@@ -1,41 +1,52 @@
 // src/stores/identity/identity.test.ts
 
 import { setActivePinia, createPinia } from 'pinia'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useIdentityStore } from './index'
+import { commands } from '@/types/rust_generated'
+import type { IPrivateKeyEntry } from '@/types/rust_generated'
 
-describe('Identity Store', () => {
+vi.mock('@/types/rust_generated', () => ({
+    commands: {
+        saveIdentity: vi.fn(),
+        saveKeys: vi.fn(),
+        loadKeystore: vi.fn()
+    }
+}))
+
+describe('Identity Store Actions', () => {
     beforeEach(() => {
-        // Creates a fresh store state for every test
         setActivePinia(createPinia())
+        vi.clearAllMocks()
     })
 
-    it('initializes with a default empty state', () => {
+    it('correctly formats keys for the saveKeys command', async () => {
         const store = useIdentityStore()
+        const testId = 'test-identity-123'
 
-        // Verifying the state definitions from state.ts exist
-        expect(store.identityId).toBeDefined()
-        expect(store.publicKeys).toBeInstanceOf(Array)
-        expect(store.publicKeys).toHaveLength(0)
-    })
+        // This object matches your models.rs IPrivateKeyEntry exactly
+        const validKey: IPrivateKeyEntry = {
+            identityId: testId,
+            keyId: 0,
+            purpose: 3,
+            securityLevel: 0,
+            keyType: 'ECDSA_SECP256K1',
+            privateKey: 'secret_data',
+            publicKey: 'public_data',
+            derivedFromMnemonic: true,
+            createdAt: new Date().toISOString(),
+            lastUsed: new Date().toISOString()
+        }
 
-    it('returns public keys from state if they are already present', async () => {
-        const store = useIdentityStore()
+        // @ts-ignore
+        commands.saveKeys.mockResolvedValue({ status: 'success', data: null })
 
-        // 1. Manually seed the state (simulating keys already being loaded)
-        const mockKeys = [
-            { id: 1, data: 'key_data_1', purpose: 3 },
-            { id: 2, data: 'key_data_2', purpose: 2 }
-        ]
-        store.publicKeys = mockKeys
+        await store.saveKeys('testnet', testId, [validKey])
 
-        // 2. Call the action defined in identity.ts
-        // This action has an optimized path: if (store.publicKeys.length > 0) return store.publicKeys
-        const result = await store.getPublicKeys()
-
-        // 3. Assertions
-        expect(result).toEqual(mockKeys)
-        expect(result).toHaveLength(2)
-        expect(result[0].id).toBe(1)
+        expect(commands.saveKeys).toHaveBeenCalledWith(
+            'testnet',
+            testId,
+            expect.arrayContaining([expect.objectContaining({ keyId: 0 })])
+        )
     })
 })
