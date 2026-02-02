@@ -6,14 +6,21 @@ use std::path::Path;
 
 use tauri_specta::{collect_commands, Builder};
 use specta_typescript::Typescript;
+
 use evonext::commands::identity_commands;
+use evonext::models::{
+    IIdentityData,
+    IPrivateKeyStore,
+    IIdentityPublicKey,
+    IDiscoveredIdentity,
+    ILicense
+};
 
 fn main() {
-    // Robust path: Prefer root/src/types/ relative to project root
     let out_path_buf = match env::current_dir() {
         Ok(cwd) if cwd.ends_with("src-tauri") => cwd.parent().unwrap().join("src").join("types").join("rust_generated.ts"),
-        Ok(cwd) => cwd.join("src").join("types").join("rust_generated.ts"),  // If run from root
-        Err(_) => Path::new("..").join("..").join("src").join("types").join("rust_generated.ts"),  // Fallback for src-tauri/src cwd
+        Ok(cwd) => cwd.join("src").join("types").join("rust_generated.ts"),
+        Err(_) => Path::new("..").join("..").join("src").join("types").join("rust_generated.ts"),
     };
 
     let types_dir = out_path_buf.parent().unwrap();
@@ -24,17 +31,23 @@ fn main() {
 
     let out_path = out_path_buf.to_str().expect("Failed to convert path to string");
 
-    // Specify <tauri::Wry> on the builder
+    // Standard exporter - we handled the String conversion in models.rs
+    let ts_config = Typescript::default();
+
     let builder = Builder::<tauri::Wry>::new()
+        .typ::<IIdentityData>()
+        .typ::<IPrivateKeyStore>()
+        .typ::<IIdentityPublicKey>()
+        .typ::<IDiscoveredIdentity>()
+        .typ::<ILicense>()
         .commands(collect_commands![
-            // Use turbofish <tauri::Wry> on each command to solve E0283
             identity_commands::save_identity::<tauri::Wry>,
             identity_commands::delete_identity::<tauri::Wry>,
             identity_commands::save_keys::<tauri::Wry>,
             identity_commands::load_keystore::<tauri::Wry>
         ]);
 
-    if let Err(e) = builder.export(Typescript::default(), out_path) {
+    if let Err(e) = builder.export(ts_config, out_path) {
         eprintln!("Failed to export types to {}: {}", out_path, e);
         std::process::exit(1);
     }

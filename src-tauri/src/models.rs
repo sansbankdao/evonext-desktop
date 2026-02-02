@@ -66,6 +66,7 @@ pub struct IAssetDefinition {
     pub identity_id: String,
     pub name: String,
     pub symbol: String,
+    #[specta(type = Option<String>)] // Force String in TypeScript
     pub balance: Option<u64>,
     #[serde(default, rename = "assetId")]
     pub asset_id: Option<String>,
@@ -157,6 +158,7 @@ pub struct IIdentityData {
     pub is_authenticated: bool,
     pub public_keys: Option<Vec<IIdentityPublicKey>>,
     #[serde(default, deserialize_with = "de_u64_from_str_or_num")]
+    #[specta(type = Option<String>)] // Force String in TypeScript
     pub revision: Option<u64>,
     pub created_at: Option<String>,
     pub public_key_ids: Option<Vec<u32>>,
@@ -173,8 +175,11 @@ pub struct ILicense {
     pub identity_id: String,
     pub txid: String,
     pub is_premium: bool,
+    #[specta(type = String)] // Force String in TypeScript
     pub created_at: i64,
+    #[specta(type = String)] // Force String in TypeScript
     pub expires_at: i64,
+    #[specta(type = Option<String>)] // Force String in TypeScript
     pub updated_at: Option<i64>,
 }
 
