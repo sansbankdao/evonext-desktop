@@ -45,7 +45,6 @@ pub fn discover_assets(
                     item.get(key).and_then(|v| v.as_str()).map(|s| s.to_string())
                 };
 
-                // RESTORED: Localization logic
                 let symbol = item
                     .get("localizations")
                     .and_then(|l| l.get("en"))
@@ -63,7 +62,6 @@ pub fn discover_assets(
 
                 if symbol == "UNKNOWN" || symbol.is_empty() { continue; }
 
-                // RESTORED: contract identifier logic
                 let contract_id = get_str("dataContractIdentifier")
                     .or_else(|| get_str("identifier"))
                     .unwrap_or_else(|| "".to_string());
@@ -121,7 +119,6 @@ pub async fn fetch_identity_tokens<R: Runtime>(
                 item.get(key).and_then(|v| v.as_str()).map(|s| s.to_string())
             };
 
-            // RESTORED: Localization logic
             let symbol = item
                 .get("localizations")
                 .and_then(|l| l.get("en"))
@@ -151,23 +148,20 @@ pub async fn fetch_identity_tokens<R: Runtime>(
         }
     }
 
-    // 1. Save Assets
     let manager = StoreManager::new(&app);
     let filename = get_network_file(&network, "assets")?;
     let mut asset_map: IAssetStoreMap = manager.load(filename, "assets").unwrap_or_default().unwrap_or_default();
     asset_map.insert(identity_id.clone(), assets.clone());
     manager.save(filename, "assets", &asset_map).map_err(|e| e.to_string())?;
 
-    // 2. Sync balance back to identity store
-    // Use singular 'load_identity_map' and NO .await
     let mut identities_map = load_identity_map(&app, &network)
         .map_err(|e| format!("Failed to load identities: {}", e))?;
 
     if let Some(identity_data) = identities_map.get_mut(&identity_id) {
         let total_balance: u128 = assets.iter().filter_map(|a| a.balance.map(|b| b as u128)).sum();
-        identity_data.balance = Some(total_balance.to_string());
+        // FIXED: balance is now String, not Option<String>
+        identity_data.balance = total_balance.to_string();
 
-        // Use singular 'save_identity_map' and NO .await
         save_identity_map(&app, &network, &identities_map, None)
             .map_err(|e| format!("Failed to sync identity: {}", e))?;
     }

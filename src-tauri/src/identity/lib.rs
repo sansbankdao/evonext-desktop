@@ -80,18 +80,14 @@ pub fn normalize_public_key(default_id: u32, raw: &JsonValue) -> Option<IIdentit
 /// Derives a compressed public key hex from a WIF private key
 pub fn derive_compressed_pubkey_hex_from_wif(wif: &str) -> Option<String> {
     let pk = PrivateKey::from_wif(wif).ok()?;
-
     let secp = Secp256k1::new();
-
     Some(hex::encode(pk.public_key(&secp).inner.serialize()))
 }
 
 /// Calculates Hash160 of a byte array
 pub fn hash160_bytes(data: &[u8]) -> String {
     let sha = Sha256::digest(data);
-
     let ripe = Ripemd160::digest(sha);
-
     hex::encode(ripe)
 }
 
@@ -114,20 +110,16 @@ pub fn enrich_key_entries(
         // B. Match local key against on-chain data
         if !entry.public_key.is_empty() {
             let pub_bytes = hex::decode(&entry.public_key).unwrap_or_default();
-
             let hash160 = hash160_bytes(&pub_bytes);
 
-            if let Some(pks) = &identity.public_keys {
-                for pk in pks {
-                    let matches_full = pk.data.eq_ignore_ascii_case(&entry.public_key);
+            for pk in &identity.public_keys {
+                let matches_full = pk.data.eq_ignore_ascii_case(&entry.public_key);
+                let matches_hash160 = pk.data.eq_ignore_ascii_case(&hash160);
 
-                    let matches_hash160 = pk.data.eq_ignore_ascii_case(&hash160);
-
-                    if matches_full || matches_hash160 {
-                        entry.purpose = pk.purpose;
-                        entry.security_level = pk.security_level;
-                        entry.key_id = pk.id;
-                    }
+                if matches_full || matches_hash160 {
+                    entry.purpose = pk.purpose;
+                    entry.security_level = pk.security_level;
+                    entry.key_id = pk.id;
                 }
             }
         }

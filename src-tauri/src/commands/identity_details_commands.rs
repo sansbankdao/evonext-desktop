@@ -14,10 +14,8 @@ pub fn update_identity_with_sdk_data(
     public_key_ids: Vec<u32>,
 ) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
-
     let filename = get_network_file(&network, "identity")?;
 
-    // Add explicit type annotation here
     let existing_data: Option<IIdentityData> = manager
         .load::<IIdentityData>(filename, "identity")
         .map_err(|e| e.to_string())?;
@@ -25,8 +23,10 @@ pub fn update_identity_with_sdk_data(
     match existing_data {
         Some(mut identity_data) => {
             if identity_data.identity_id == identity_id {
-                identity_data.public_keys = Some(public_keys);
-                identity_data.revision = Some(revision);
+                // FIXED: Direct assignments (no Some() wrapper for required fields)
+                identity_data.public_keys = public_keys;
+                identity_data.revision = revision as u32; // Cast u64 to u32 for model
+
                 identity_data.public_key_ids = Some(public_key_ids);
                 identity_data.created_at = Some(chrono::Utc::now().to_rfc3339());
 
@@ -43,7 +43,6 @@ pub fn update_identity_with_sdk_data(
                 ))
             }
         }
-
         None => Err("No identity data found to update".to_string()),
     }
 }
@@ -54,12 +53,11 @@ pub fn get_identity_public_keys(
     network: String,
 ) -> Result<Option<Vec<IIdentityPublicKey>>, String> {
     let manager = StoreManager::new(&app_handle);
-
     let filename = get_network_file(&network, "identity")?;
 
-    // Add explicit type annotation here
     match manager.load::<IIdentityData>(filename, "identity") {
-        Ok(Some(identity_data)) => Ok(identity_data.public_keys),
+        // FIXED: Wrap the Vec in Some() to match the Result<Option<Vec<...>>> return type
+        Ok(Some(identity_data)) => Ok(Some(identity_data.public_keys)),
         Ok(None) => {
             println!("No identity data found for {}.", network);
             Ok(None)
@@ -77,17 +75,16 @@ pub fn delete_identity_public_keys(
     network: String,
 ) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
-
     let filename = get_network_file(&network, "identity")?;
 
-    // Add explicit type annotation here
     let existing_data: Option<IIdentityData> = manager
         .load::<IIdentityData>(filename, "identity")
         .map_err(|e| e.to_string())?;
 
     match existing_data {
         Some(mut identity_data) => {
-            identity_data.public_keys = None;
+            // FIXED: Set to empty vector instead of None
+            identity_data.public_keys = vec![];
             identity_data.public_key_ids = None;
 
             manager
@@ -97,7 +94,6 @@ pub fn delete_identity_public_keys(
 
             Ok(())
         }
-
         None => Err("No identity data found to clear public keys".to_string()),
     }
 }
