@@ -4,16 +4,26 @@ import { vi, beforeEach } from 'vitest'
 import { mockIPC } from '@tauri-apps/api/mocks'
 import { setActivePinia, createPinia } from 'pinia'
 
-// Provide default env vars for tests
-process.env.VITE_DEFAULT_NETWORK = 'mainnet'
-process.env.VITE_DASHSWAP_ENDPOINT = 'http://localhost:3000'
-process.env.VITE_PLATFORM_HTTP_API_MAINNET = 'http://localhost:3000'
-process.env.VITE_PLATFORM_HTTP_API_TESTNET = 'http://localhost:3000'
+/**
+ * 1. Global Console Suppression
+ * Prevents expected errors and warnings from cluttering the test output.
+ * If you need to debug a specific test, you can restore them locally.
+ */
+vi.spyOn(console, 'error').mockImplementation(() => {})
+vi.spyOn(console, 'warn').mockImplementation(() => {})
 
 /**
- * Global Browser API Mocks
- *
- * NOTE: Required for components that use responsive design or advanced UI.
+ * 2. Environment Variable Stubs
+ * Uses vi.stubEnv for better isolation between tests.
+ */
+vi.stubEnv('VITE_DEFAULT_NETWORK', 'mainnet')
+vi.stubEnv('VITE_DASHSWAP_ENDPOINT', 'http://localhost:3000')
+vi.stubEnv('VITE_PLATFORM_HTTP_API_MAINNET', 'http://localhost:3000')
+vi.stubEnv('VITE_PLATFORM_HTTP_API_TESTNET', 'http://localhost:3000')
+
+/**
+ * 3. Global Browser API Mocks
+ * Required for components that use responsive design or advanced UI.
  */
 Object.defineProperty(window, 'matchMedia', {
     writable: true,
@@ -21,8 +31,8 @@ Object.defineProperty(window, 'matchMedia', {
         matches: false,
         media: query,
         onchange: null,
-        addListener: vi.fn(), // Deprecated
-        removeListener: vi.fn(), // Deprecated
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
         addEventListener: vi.fn(),
         removeEventListener: vi.fn(),
         dispatchEvent: vi.fn(),
@@ -37,19 +47,22 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
 }))
 
 /**
- * Tauri IPC Mocking
- *
- * Allows Vitest to simulate responses from your Rust backend.
- * NOTE: Commands follow the naming in #[tauri::command] definitions.
+ * 4. Tauri IPC Mocking
+ * Simulates responses from the Rust backend.
+ * Updated to match the new strict types in models.rs.
  */
 const mockHandlers: Record<string, (args: any) => any> = {
     // Identity Commands
     "save_identity": (args) => {
-        console.log('[Mock IPC] save_identity:', args)
+        const { payload } = args;
+        // Verify mandatory fields exist in the mock logic
+        if (!payload.username || typeof payload.balance !== 'string') {
+            return { success: false, error: "Missing mandatory fields" }
+        }
         return {
             success: true,
             error: null,
-            payload: { identityId: args.payload.identityId }
+            payload: { identityId: payload.identityId }
         }
     },
 
@@ -69,16 +82,16 @@ const mockHandlers: Record<string, (args: any) => any> = {
         symbol: "DASH"
     }),
 
-    // Plugin: Store (Tauri v2 uses plugin namespaces)
-    "plugin:store|get": (args) => {
+    // Plugin: Store (Tauri v2)
+    "plugin:store|get": (args: any) => {
         if (args.key === 'settings') return { theme: 'dark' }
         return null
     },
     "plugin:store|set": () => null,
 
-    // Generic Logger (from your setup)
-    "log_operation": (args) => {
-        console.log('[Rust Log]:', args.message)
+    // Generic Logger
+    "log_operation": (args: any) => {
+        // Only log if explicitly needed for debugging
         return null
     }
 }
@@ -92,26 +105,23 @@ mockIPC((cmd, args) => {
 
     // Fallback for unhandled commands to help debug
     if (!cmd.startsWith('plugin:')) {
-        console.warn(`[Vitest] Unhandled Tauri Command: "${cmd}". Add it to mockHandlers in setup.ts`)
+        // Use the original console warn if you really need to see unhandled commands
+        // console.log(`[Vitest] Unhandled Tauri Command: "${cmd}"`)
     }
 
     return null
 })
 
 /**
- * Global Pinia Setup
- *
+ * 5. Global Pinia Setup
  * Automatically initializes a fresh Pinia instance before every test.
- * NOTE: Prevents state pollution between different test files.
  */
 beforeEach(() => {
     setActivePinia(createPinia())
 })
 
 /**
- * Helper for Mocking Dialogs/FS
- *
- * Stubs for tauri-plugin-dialog and fs.
+ * 6. Helper for Mocking Dialogs/FS Plugins
  */
 vi.mock('@tauri-apps/plugin-dialog', () => ({
     ask: vi.fn(() => Promise.resolve(true)),
