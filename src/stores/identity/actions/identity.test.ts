@@ -8,11 +8,13 @@ import { commands } from '@/types/rust_generated'
 vi.mock('@/types/rust_generated', () => ({
     commands: {
         saveIdentity: vi.fn(),
-        saveKeys: vi.fn()
+        saveKeys: vi.fn(),
+        loadKeystore: vi.fn(),
+        deleteIdentity: vi.fn()
     }
 }))
 
-describe('Identity Store - Persistence Normalization', () => {
+describe('Identity Store - Persistence & Normalization', () => {
     let store: any
 
     beforeEach(() => {
@@ -29,11 +31,10 @@ describe('Identity Store - Persistence Normalization', () => {
             derived_from_mnemonic: true
         }]
 
-        vi.mocked(commands.saveKeys).mockResolvedValue({ status: 'success', data: null } as any)
+        vi.mocked(commands.saveKeys).mockResolvedValue({ status: 'success', data: true } as any)
 
         await store.saveKeys('testnet', 'id_123', messyKeys)
 
-        // Verify the call to the Rust command used the correct camelCase
         const callArgs = vi.mocked(commands.saveKeys).mock.calls[0]
         const sentPayload = callArgs[2][0]
 
@@ -43,30 +44,28 @@ describe('Identity Store - Persistence Normalization', () => {
         expect(sentPayload).not.toHaveProperty('key_id')
     })
 
-    it('should throw an explicit error if validation fails before calling Rust', async () => {
-        const invalidKeys = [{ keyId: 0 }] // Missing privateKey
+    it('should return a failure object if validation fails (Missing Private Key)', async () => {
+        const invalidKeys = [{ keyId: 0 }]
 
-        await expect(
-            store.saveKeys('testnet', 'id_123', invalidKeys)
-        ).resolves.toMatchObject({
-            success: false,
-            error: expect.stringContaining('Missing privateKey')
-        })
+        // ErrorBoundary.wrap catches the throw and returns a success: false object
+        const result = await store.saveKeys('testnet', 'id_123', invalidKeys)
 
+        expect(result.success).toBe(false)
+        expect(result.error).toContain('Missing privateKey in payload')
         expect(commands.saveKeys).not.toHaveBeenCalled()
     })
 
     it('should sanitize the identity payload with strict fallbacks', async () => {
-        const partialPayload = { identityId: 'id_123' } // Missing username, balance, etc.
+        const partialPayload = { identityId: 'id_123' }
 
-        vi.mocked(commands.saveIdentity).mockResolvedValue({ status: 'success', data: null } as any)
+        vi.mocked(commands.saveIdentity).mockResolvedValue({ status: 'success', data: true } as any)
 
         await store.saveIdentity('testnet', partialPayload)
 
         const sentPayload = vi.mocked(commands.saveIdentity).mock.calls[0][1]
 
-        expect(sentPayload.username).toBe('id_123') // Fallback logic
-        expect(sentPayload.balance).toBe('0') // Strict string fallback
-        expect(sentPayload.revision).toBe(0) // Strict number fallback
+        expect(sentPayload.username).toBe('id_123')
+        expect(sentPayload.balance).toBe('0')
+        expect(sentPayload.revision).toBe(0)
     })
 })
