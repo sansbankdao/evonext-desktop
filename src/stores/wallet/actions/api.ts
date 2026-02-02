@@ -1,7 +1,7 @@
 // src/stores/wallet/actions/api.ts
 
 /* Import modules. */
-import { ErrorBoundary, NetworkError } from '@/utils/errors'
+import { ErrorBoundary, NetworkError, type ActionResponse } from '@/utils/errors'
 import { PLATFORM_HTTP_API_MAINNET, PLATFORM_HTTP_API_TESTNET } from '@/utils/env'
 import type { IdentityTransfer, TokenTransition } from '@/types'
 
@@ -12,13 +12,12 @@ export const fetchIdentityTransactions = async (
     identityId: string,
     limit: number = 20,
     network: string = 'testnet'
-): Promise<IdentityTransfer[]> => {
+): Promise<ActionResponse<IdentityTransfer[]>> => {
     return ErrorBoundary.wrap(async () => {
         const explorerUrl = network === 'mainnet'
             ? PLATFORM_HTTP_API_MAINNET
             : PLATFORM_HTTP_API_TESTNET
 
-        // This endpoint supports the BATCH type found in your logs
         const response = await fetch(`${explorerUrl}/identity/${identityId}/transactions?page=1&limit=${limit}&order=desc`)
 
         if (!response.ok) {
@@ -39,7 +38,7 @@ export const fetchIdentityTransactions = async (
 export const fetchIdentityTransfers = async (
     _identityId: string,
     _limit: number = 10
-): Promise<IdentityTransfer[]> => {
+): Promise<ActionResponse<IdentityTransfer[]>> => {
     return ErrorBoundary.wrap(async () => {
         return []
     }, 'FETCH_IDENTITY_TRANSFERS_FAILED')
@@ -52,7 +51,7 @@ export const fetchTokenTransitions = async (
     contractId: string,
     limit: number = 10,
     network: string = 'testnet'
-): Promise<TokenTransition[]> => {
+): Promise<ActionResponse<TokenTransition[]>> => {
     return ErrorBoundary.wrap(async () => {
         const explorerUrl = network === 'mainnet'
             ? PLATFORM_HTTP_API_MAINNET
@@ -76,7 +75,7 @@ export const fetchTokenBalance = async (
     identityId: string,
     contractId: string,
     network: string = 'testnet'
-): Promise<bigint> => {
+): Promise<ActionResponse<bigint>> => {
     return ErrorBoundary.wrap(async () => {
         const explorerUrl = network === 'mainnet'
             ? PLATFORM_HTTP_API_MAINNET

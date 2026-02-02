@@ -150,7 +150,7 @@ export const connectionActions = () => ({
                     revision: Number(identityData.revision || 0),
                     publicKeys
                 }
-                this.balance = this.identity.balance
+                this.balance = String(identityData.balance || '0')
                 this.isConnected = true
                 await this.saveIdentityDataToStore(network, trimmedId, {
                     ...this.identity,
