@@ -1,6 +1,6 @@
 // src/stores/identity/actions/get_key.ts
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 
 import type { PrivateKeyEntry } from '@/types/identity'
 

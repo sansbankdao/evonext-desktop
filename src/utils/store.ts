@@ -1,5 +1,5 @@
 // src/utils/store.ts
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 import { ErrorBoundary } from './errors'
 
 type StoreType =

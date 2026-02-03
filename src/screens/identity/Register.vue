@@ -190,7 +190,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 import Header from '@/components/Header.vue'
 import QrcodeVue from 'qrcode.vue'
 import { useIdentityStore } from '@/stores/identity'

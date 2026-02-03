@@ -1,7 +1,7 @@
 // src/composables/useBootstrap.ts
 
 import { ref } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
 

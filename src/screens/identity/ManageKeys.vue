@@ -205,7 +205,7 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 import Header from '@/components/Header.vue'
 // import { useIdentityStore } from '@/stores/identity'
 import { useNetwork } from '@/composables/useNetwork'

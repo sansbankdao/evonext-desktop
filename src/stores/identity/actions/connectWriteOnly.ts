@@ -1,6 +1,6 @@
 // src/stores/identity/actions/connectWriteOnly.ts
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 import { DAPIService } from '@/services/identity/discovery/DAPIService'
 import { KeyDerivationService } from '@/services/identity/keyDerivation.service'
 import type { ConnectionResult, DiscoveredIdentity, IIdentityState, IIdentity } from '@/types'

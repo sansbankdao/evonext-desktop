@@ -1,7 +1,7 @@
 // src/composables/useKeyManagement.ts
 
 import { ref, computed } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 import { useNetwork } from './useNetwork'
 import { log } from '@/utils/env'
 import type { PrivateKeyEntry } from '@/types/identity'

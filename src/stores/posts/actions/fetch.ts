@@ -10,7 +10,7 @@ import {
     YAPPR_CONTRACT_ID_TESTNET
 } from '@/constants'
 import { useSettingsStore } from '@/stores/settings'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 
 // Helper to get network
 function getCurrentNetwork() {

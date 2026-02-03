@@ -1,6 +1,6 @@
 // src/composables/useIdentity.ts
 import { computed, unref } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 import { useIdentityStore } from '@/stores/identity'
 import { useNetwork } from '@/composables/useNetwork'
 import { usePlatformSdk } from '@/composables/usePlatformSdk'

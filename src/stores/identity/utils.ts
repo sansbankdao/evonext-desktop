@@ -2,7 +2,7 @@
 
 // @ts-ignore
 import { binToHex } from '@evonext/utils'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import type { IIdentity, IPublicKey } from '@/types'
 

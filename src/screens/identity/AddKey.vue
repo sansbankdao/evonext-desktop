@@ -221,7 +221,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 import { EvoSDK } from '@dashevo/evo-sdk'
 // import { PrivateKeyWASM } from 'pshenmic-dpp'
 import { hash160 } from '@/services/crypto'

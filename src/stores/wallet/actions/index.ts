@@ -1,7 +1,7 @@
 // src/stores/wallet/actions/index.ts
 
 /* Import modules. */
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 import { useWalletStore } from '../index'
 import { useIdentityStore } from '@/stores/identity'
 import { useSystemStore } from '@/stores/system'

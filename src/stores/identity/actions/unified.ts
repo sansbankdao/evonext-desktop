@@ -1,6 +1,6 @@
 // src/stores/identity/actions/unified.ts
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 
 type Network = 'mainnet' | 'testnet'
 

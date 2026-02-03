@@ -1,6 +1,6 @@
 // src/services/crypto.ts
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 
 /**
  * Calculate hash160 (RIPEMD160(SHA256(data))) using Rust backend

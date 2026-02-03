@@ -89,7 +89,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 import { useConnect } from '@/composables/useConnect'
 import { useIdentityStore } from '@/stores/identity'
 import type { DiscoveredIdentity } from '@/types'

@@ -1,7 +1,7 @@
 // src/composables/useNetwork.ts
 
 import { computed, readonly, ref } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 
 export type Network = 'mainnet' | 'testnet'
 

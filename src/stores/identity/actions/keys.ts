@@ -1,6 +1,6 @@
 // src/stores/identity/actions/keys.ts
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 import { ErrorBoundary } from '@/utils/errors'
 import { getTransferKey } from './get_key'
 

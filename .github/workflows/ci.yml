@@ -45,7 +45,7 @@ jobs:
       - name: Run Rust Unit Tests
         # We run --lib specifically to avoid the STATUS_ENTRYPOINT_NOT_FOUND
         # which happens when trying to boot the full Tauri binary in CI
-        run: cargo test --manifest-path=./src-tauri/Cargo.toml --lib
+        run: cargo test --manifest-path=./src-tauri/Cargo.toml --lib --no-fail-fast
 
       - name: Run Type Check
         # This is where your current errors are.

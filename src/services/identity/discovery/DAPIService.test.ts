@@ -2,7 +2,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { DAPIService } from './DAPIService'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 
 vi.mock('@tauri-apps/api/core', () => ({
     invoke: vi.fn()

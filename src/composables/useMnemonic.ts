@@ -1,6 +1,6 @@
 // src/composables/useMnemonic.ts
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 import { ref } from 'vue'
 import * as bip39 from 'bip39'
 

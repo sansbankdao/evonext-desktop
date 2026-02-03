@@ -6,7 +6,7 @@ import { useIdentityStore } from '@/stores/identity'
 import { DAPIService } from '@/services/identity/discovery/DAPIService'
 import { KeyDerivationService } from '@/services/identity/keyDerivation.service'
 import { usePlatform } from '@/composables/usePlatform'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 
 // --- 1. MANDATORY TOP-LEVEL MOCKS ---
 vi.mock('@tauri-apps/api/core', () => ({

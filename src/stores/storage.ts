@@ -1,7 +1,7 @@
 // src/stores/storage.ts
 import { defineStore } from 'pinia'
 import { reactive } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 import type {
     RustDiscoveredIdentitiesStore,
     DiscoveredIdentity,

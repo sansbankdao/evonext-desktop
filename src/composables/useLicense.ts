@@ -1,7 +1,7 @@
 // src/composables/useLicense.ts
 
 import { ref, computed } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 import type { ILicense } from '@/types'
 
 interface LicenseState {

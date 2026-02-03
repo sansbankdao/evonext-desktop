@@ -1,6 +1,6 @@
 // src/services/posts/api.ts
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'pshenmic-dpp'

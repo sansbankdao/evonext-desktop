@@ -1,5 +1,5 @@
 // src/stores/identity/actions/discovered.ts - NEW FILE
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 import type { IIdentityState, DiscoveredIdentity, RustDiscoveredIdentitiesStore } from '@/types'
 import { log } from '@/utils/env'
 

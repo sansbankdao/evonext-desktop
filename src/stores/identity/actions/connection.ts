@@ -1,6 +1,6 @@
 // src/stores/identity/actions/connection.ts
 
-import { invoke } from '@tauri-apps/api/core'
+import { invoke } from '@/utils/tauri'
 import { ErrorBoundary } from '@/utils/errors'
 import { KeyDerivationService } from '@/services/identity/keyDerivation.service'
 import { DAPIService } from '@/services/identity/discovery/DAPIService'
