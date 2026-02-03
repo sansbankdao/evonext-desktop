@@ -31,7 +31,7 @@ describe('Identity Store - Persistence & Normalization', () => {
             derived_from_mnemonic: true
         }]
 
-        vi.mocked(commands.saveKeys).mockResolvedValue({ status: 'success', data: true } as any)
+        vi.mocked(commands.saveKeys).mockResolvedValue(true as any)
 
         await store.saveKeys('testnet', 'id_123', messyKeys)
 
@@ -47,7 +47,8 @@ describe('Identity Store - Persistence & Normalization', () => {
     it('should return a failure object if validation fails (Missing Private Key)', async () => {
         const invalidKeys = [{ keyId: 0 }]
 
-        // ErrorBoundary.wrap catches the throw and returns a success: false object
+        // Use standard await because the store action catches the error
+        // internally and returns a result object.
         const result = await store.saveKeys('testnet', 'id_123', invalidKeys)
 
         expect(result.success).toBe(false)
@@ -58,7 +59,7 @@ describe('Identity Store - Persistence & Normalization', () => {
     it('should sanitize the identity payload with strict fallbacks', async () => {
         const partialPayload = { identityId: 'id_123' }
 
-        vi.mocked(commands.saveIdentity).mockResolvedValue({ status: 'success', data: true } as any)
+        vi.mocked(commands.saveIdentity).mockResolvedValue(true as any)
 
         await store.saveIdentity('testnet', partialPayload)
 

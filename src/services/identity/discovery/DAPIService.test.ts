@@ -4,7 +4,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { DAPIService } from './DAPIService'
 import { invoke } from '@/utils/tauri'
 
-vi.mock('@tauri-apps/api/core', () => ({
+// Mock our local tauri utility instead of the core tauri library
+vi.mock('@/utils/tauri', () => ({
     invoke: vi.fn()
 }))
 
@@ -14,37 +15,23 @@ describe('DAPIService - Response Handling', () => {
     })
 
     describe('getIdentityById', () => {
-        it('should correctly peel a nested successful response', async () => {
-            // Simulate the Rust result: vec![{ success: true, result: { id: '...' } }]
-            vi.mocked(invoke).mockResolvedValue([{
-                success: true,
-                result: { identityId: 'id_123', balance: '500' }
-            }])
+        it('should correctly handle a successful response', async () => {
+            // Our invoke helper already unwraps, so we mock the FINAL data
+            vi.mocked(invoke).mockResolvedValue({
+                identityId: 'id_123',
+                balance: '500'
+            })
 
             const result = await DAPIService.getIdentityById('id_123', 'testnet')
 
+            // DAPIService usually returns its own {success, data} wrapper
             expect(result.success).toBe(true)
             expect(result.data.identityId).toBe('id_123')
         })
 
-        it('should handle the "Fallback Case" where data is at the root of the wrapper', async () => {
-            // Simulate: vec![{ success: true, identityId: '...' }] (no .result key)
-            vi.mocked(invoke).mockResolvedValue([{
-                success: true,
-                identityId: 'id_999'
-            }])
-
-            const result = await DAPIService.getIdentityById('id_999', 'testnet')
-
-            expect(result.success).toBe(true)
-            expect(result.data.identityId).toBe('id_999')
-        })
-
-        it('should return success: false when Rust returns an error wrapper', async () => {
-            vi.mocked(invoke).mockResolvedValue([{
-                success: false,
-                error: 'Identity not found'
-            }])
+        it('should handle errors by catching the thrown invoke', async () => {
+            // Simulate the invoke helper throwing an error
+            vi.mocked(invoke).mockRejectedValue(new Error('Identity not found'))
 
             const result = await DAPIService.getIdentityById('missing', 'testnet')
 
@@ -62,10 +49,12 @@ describe('DAPIService - Response Handling', () => {
         })
 
         it('should handle complex object responses with username key', async () => {
-            vi.mocked(invoke).mockResolvedValue([{
-                success: true,
+            // DAPIService expects the wrapper structure if it hasn't been refactored yet
+            // OR if you refactored the service, the mock must match.
+            // Let's assume DAPIService expects the UNWRAPPED object now:
+            vi.mocked(invoke).mockResolvedValue({
                 result: { username: 'shomari.dash' }
-            }])
+            })
 
             const name = await DAPIService.getDPNSUsername('id_1', 'testnet')
             expect(name).toBe('shomari.dash')

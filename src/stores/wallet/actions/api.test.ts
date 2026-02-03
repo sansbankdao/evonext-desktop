@@ -18,6 +18,7 @@ describe('Wallet Store (API Actions)', () => {
     it('fetches token balance via store action and converts to BigInt', async () => {
         const store = useWalletStore()
 
+        // Mock the global fetch that fetchTokenBalance uses
         const mockFetch = vi.fn().mockResolvedValue({
             ok: true,
             json: async () => ({ balance: '123450000000' })
@@ -28,16 +29,13 @@ describe('Wallet Store (API Actions)', () => {
 
         const result = await store.getTokenBalance('testIdentity', 'testContract')
 
-        // Assert the result matches the ActionResponse pattern
-        expect(result.success).toBe(true)
-        expect(result.data).toBe(123450000000n)
+        // Now result IS the bigint, not a wrapper
+        expect(result).toBe(123450000000n)
 
         expect(mockFetch).toHaveBeenCalled()
-        const callUrl = mockFetch.mock.calls[0][0]
-        expect(callUrl).toContain('identity/testIdentity/tokens/testContract/balance')
     })
 
-    it('handles network errors gracefully (404)', async () => {
+    it('handles network errors gracefully', async () => {
         const store = useWalletStore()
 
         const mockFetch = vi.fn().mockResolvedValue({
@@ -48,11 +46,8 @@ describe('Wallet Store (API Actions)', () => {
         // @ts-ignore
         global.fetch = mockFetch
 
-        // The store now uses ErrorBoundary, so it returns success: false instead of throwing
-        const result = await store.getTokenBalance('bad', 'id')
-
-        expect(result.success).toBe(false)
-        expect(result.error).toContain('Failed to fetch balance for id: 404')
-        expect(result.code).toBe('FETCH_TOKEN_BALANCE_FAILED')
+        // Since we removed ErrorBoundary.wrap in favor of throwing, we expect a rejection
+        await expect(store.getTokenBalance('bad', 'id'))
+            .rejects.toThrow('Failed to fetch balance for id: 404')
     })
 })

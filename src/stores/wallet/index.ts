@@ -52,10 +52,11 @@ export const useWalletStore = defineStore('wallet', {
         },
         async getTokenBalance(identityId: string, contractId: string): Promise<bigint> {
             const { fetchTokenBalance } = await import('./actions/api')
-            const response = await fetchTokenBalance(identityId, contractId)
-            // FIX: Unwrap response and cast to BigInt
-            const rawValue = (response as any)?.data ?? response
-            return BigInt(String(rawValue || 0))
+            const rawValue = await fetchTokenBalance(identityId, contractId)
+
+            // rawValue is already unwrapped by our invoke helper.
+            // If rawValue is 0 or null, we default to 0.
+            return BigInt(String(rawValue ?? 0))
         },
         async init(user: IUser) {
             this.user = user

@@ -12,7 +12,7 @@ import { useIdentity } from '@/composables/useIdentity'
 
 export const identityActions = () => ({
     async saveIdentity(this: any, network: string, payload: any) {
-        const result = await ErrorBoundary.wrap(async () => {
+        return await ErrorBoundary.wrap(async () => {
             const sanitizedPayload: ISaveIdentityPayload = {
                 identityId: payload.identityId,
                 username: payload.username || payload.identityId || 'default_user',
@@ -43,23 +43,29 @@ export const identityActions = () => ({
             log('debug', `Identity ${payload.identityId} saved and store patched.`)
             return response.data
         }, 'SAVE_IDENTITY_FAILED')
-        return result.data
     },
 
     async saveKeys(this: any, network: string, identityId: string, keys: any[]) {
-        const result = await ErrorBoundary.wrap(async () => {
-            const normalizedKeys: IPrivateKeyEntry[] = keys.map(k => ({
-                identityId: identityId,
-                keyId: k.keyId ?? k.key_id ?? 0,
-                purpose: k.purpose ?? 3,
-                securityLevel: k.securityLevel ?? k.security_level ?? 0,
-                keyType: k.keyType ?? k.key_type ?? 'ECDSA_SECP256K1',
-                privateKey: k.privateKey ?? k.private_key,
-                publicKey: k.publicKey ?? k.public_key ?? '',
-                derivedFromMnemonic: k.derivedFromMnemonic ?? k.derived_from_mnemonic ?? true,
-                createdAt: k.createdAt ?? k.created_at ?? new Date().toISOString(),
-                lastUsed: new Date().toISOString()
-            }))
+        return await ErrorBoundary.wrap(async () => {
+            const normalizedKeys: IPrivateKeyEntry[] = keys.map(k => {
+                const privateKey = k.privateKey ?? k.private_key
+                if (!privateKey) {
+                    throw new Error('Missing privateKey in payload')
+                }
+
+                return {
+                    identityId: identityId,
+                    keyId: k.keyId ?? k.key_id ?? 0,
+                    purpose: k.purpose ?? 3,
+                    securityLevel: k.securityLevel ?? k.security_level ?? 0,
+                    keyType: k.keyType ?? k.key_type ?? 'ECDSA_SECP256K1',
+                    privateKey: privateKey,
+                    publicKey: k.publicKey ?? k.public_key ?? '',
+                    derivedFromMnemonic: k.derivedFromMnemonic ?? k.derived_from_mnemonic ?? true,
+                    createdAt: k.createdAt ?? k.created_at ?? new Date().toISOString(),
+                    lastUsed: new Date().toISOString()
+                }
+            })
 
             const response = await commands.saveKeys(network, identityId, normalizedKeys)
             if (response.status === 'error') throw new Error(response.error)
@@ -69,21 +75,19 @@ export const identityActions = () => ({
             }
             return response.data
         }, 'SAVE_KEYS_FAILED')
-        return result.data
     },
 
     async loadKeystore(this: any, network: string) {
-        const result = await ErrorBoundary.wrap(async () => {
+        return await ErrorBoundary.wrap(async () => {
             const response = await commands.loadKeystore(network)
             if (response.status === 'error') throw new Error(response.error)
             if (this.keystore) this.keystore = response.data
             return response.data
         }, 'LOAD_KEYSTORE_FAILED')
-        return result.data
     },
 
     async deleteIdentity(this: any, network: string, identityId: string | null = null) {
-        const result = await ErrorBoundary.wrap(async () => {
+        return await ErrorBoundary.wrap(async () => {
             const response = await commands.deleteIdentity(network, identityId)
             if (response.status === 'error') throw new Error(response.error)
 
@@ -96,23 +100,22 @@ export const identityActions = () => ({
             }
             return response.data
         }, 'DELETE_IDENTITY_FAILED')
-        return result.data
     },
 
     async searchUserIdentities(this: any) {
-        const identityComposable = useIdentity()
-        const result = await ErrorBoundary.wrap(async () => {
+        return await ErrorBoundary.wrap(async () => {
+            const identityComposable = useIdentity()
             const response = await identityComposable.searchUserIdentities()
+            // searchUserIdentities composable likely returns ActionResponse
             const identities = response.data || []
             this.discoveredIdentities = identities
             return identities
         }, 'SEARCH_USER_IDENTITIES_FAILED')
-        return result.data || []
     },
 
     async queryIdentityDetails(this: any, identityId: string, identityIdx: number, sdk?: any) {
-        const identityComposable = useIdentity()
-        const result = await ErrorBoundary.wrap(async () => {
+        return await ErrorBoundary.wrap(async () => {
+            const identityComposable = useIdentity()
             const response = await identityComposable.queryIdentityDetails(identityId, identityIdx, sdk)
             const details = response.data
             if (this.identities && this.identities[identityId]) {
@@ -120,11 +123,10 @@ export const identityActions = () => ({
             }
             return details
         }, 'QUERY_IDENTITY_DETAILS_FAILED')
-        return result.data
     },
 
-    async getPublicKeys(this: any): Promise<any[]> {
-        const result = await ErrorBoundary.wrap(async () => {
+    async getPublicKeys(this: any) {
+        return await ErrorBoundary.wrap(async () => {
             if (this.publicKeys?.length > 0) return this.publicKeys
             if (this.identityId) {
                 const identityComposable = useIdentity()
@@ -136,6 +138,5 @@ export const identityActions = () => ({
             }
             return []
         }, 'GET_PUBLIC_KEYS_FAILED')
-        return result.data || []
     }
 })
