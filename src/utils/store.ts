@@ -1,5 +1,4 @@
 // src/utils/store.ts
-
 import { invoke } from '@tauri-apps/api/core'
 import { ErrorBoundary } from './errors'
 
@@ -10,6 +9,7 @@ type StoreType =
     | 'mnemonic'
     | 'private_keys'
     | 'settings'
+
 interface StoreConfig {
     commandPrefix: string
     keyName: string
@@ -17,39 +17,53 @@ interface StoreConfig {
 
 export class StoreManager {
     private static readonly STORE_CONFIG: Record<StoreType, StoreConfig> = {
-        assets: { commandPrefix: 'assets', keyName: 'assets' },
-        identity: { commandPrefix: 'identity_data', keyName: 'identity' },
+        assets: { commandPrefix: 'asset', keyName: 'assets' },
+        identity: { commandPrefix: 'identity', keyName: 'identity' },
         license: { commandPrefix: 'license', keyName: 'license' },
         mnemonic: { commandPrefix: 'mnemonic', keyName: 'mnemonic' },
-        private_keys: { commandPrefix: 'private_keys', keyName: 'keys' },
+        private_keys: { commandPrefix: 'identity', keyName: 'keys' },
         settings: { commandPrefix: 'settings', keyName: 'settings' },
     }
 
+    private static unwrap<T>(response: any): T {
+        if (response?.status === 'error' || response?.success === false) {
+            throw new Error(response.error || 'Store operation failed')
+        }
+        // Extract inner data from Specta (data) or Legacy (payload)
+        return (response?.data ?? response?.payload ?? response) as T
+    }
+
     static async load<T>(store: StoreType): Promise<T | null> {
-        return ErrorBoundary.wrap(async () => {
+        // Cast the whole wrap result to unknown then T | null to satisfy strict generic rules
+        const result = await ErrorBoundary.wrap<any>(async () => {
             const config = this.STORE_CONFIG[store]
-            const result = await invoke<T | null>(`load_${config.commandPrefix}`)
-            return result
+            const res = await invoke(`load_${config.commandPrefix}`)
+            return this.unwrap<T | null>(res)
         }, `STORE_LOAD_${store.toUpperCase()}`)
+
+        return result as T | null
     }
 
     static async save<T>(store: StoreType, data: T): Promise<void> {
-        return ErrorBoundary.wrap(async () => {
+        // Await the wrap but don't return its result value to ensure Promise<void>
+        await ErrorBoundary.wrap<void>(async () => {
             const config = this.STORE_CONFIG[store]
-            await invoke(`save_${config.commandPrefix}`, { payload: data })
+            const res = await invoke(`save_${config.commandPrefix}`, {
+                payload: data
+            })
+            this.unwrap<void>(res)
         }, `STORE_SAVE_${store.toUpperCase()}`)
     }
 
     static async delete(store: StoreType): Promise<void> {
-        return ErrorBoundary.wrap(async () => {
+        await ErrorBoundary.wrap<void>(async () => {
             const config = this.STORE_CONFIG[store]
             const deleteCommand = `delete_${config.commandPrefix}`
-            // Check if delete command exists (not all may have delete)
             try {
-                await invoke(deleteCommand)
+                const res = await invoke(deleteCommand)
+                this.unwrap<void>(res)
             } catch (error) {
-                console.warn(`Delete command not implemented for ${store}:`, error)
-                // For stores without delete, we can save empty/default data
+                console.warn(`Delete failed for ${store}, resetting to empty:`, error)
                 const emptyData = this.getEmptyData(store)
                 await this.save(store, emptyData)
             }
@@ -63,40 +77,21 @@ export class StoreManager {
                 username: '',
                 identityId: '',
                 identityIdx: 0,
-                balance: null,
+                balance: '0',
                 isAuthenticated: false,
-                publicKeys: null,
-                revision: null,
-                createdAt: null,
-                publicKeyIds: null
+                publicKeys: [],
+                revision: 0
             }
-            case 'license': return { licenseId: '' }
+            case 'license': return { success: false, identityId: '', isPremium: false }
             case 'mnemonic': return { seedPhrase: '' }
-            case 'private_keys': return {
-                identityId: '',
-                authKey: '',
-                transferKey: '',
-                encryptionKey: ''
-            }
-            case 'settings': return {
-                theme: 'system',
-                network: 'testnet',
-                notifications: {
-                    messages: true,
-                    mentions: true,
-                    contactRequests: false,
-                },
-                profile: {
-                    displayName: '',
-                    username: '',
-                    bio: '',
-                },
-            }
+            case 'private_keys': return { identities: {} }
+            case 'settings': return { theme: 'system', network: 'testnet' }
             default: return null
         }
     }
 
     static async remove(store: StoreType): Promise<void> {
-        return await invoke('remove_store', { store })
+        const res = await invoke('remove_store', { store })
+        this.unwrap<void>(res)
     }
 }
