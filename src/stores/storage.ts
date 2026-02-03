@@ -58,15 +58,13 @@ export const useStorageStore = defineStore('storage', () => {
             debugLogger.log('[Storage] Initializing from storage...', 'info')
             const network = await getCurrentNetwork()
             const identitiesStore = await loadDiscoveredIdentities(network)
-            // Robust check for the identities store and array
             if (identitiesStore?.identities && Array.isArray(identitiesStore.identities)) {
                 if (identitiesStore.identities.length > 0) {
                     const active = identitiesStore.identities[0]
-                    // active is narrowed here
                     if (active) {
                         state.identityId = active.identity_id ?? null
                         state.username = (active.dpns_username ?? active.identity_id) ?? null
-                        state.balance = active.balance ?? '0'
+                        state.balance = String(active.balance ?? '0')
                         state.isAuthenticated = true
                         debugLogger.log(`[Storage] Loaded identity: ${state.identityId}`, 'info')
                     }
@@ -131,7 +129,7 @@ export const useStorageStore = defineStore('storage', () => {
         const identityForSave = {
             identityIdx: state.identity?.identityIdx ?? 0,
             username: state.username ?? id,
-            balance: state.balance ?? '0',
+            balance: String(state.balance ?? '0'),
             revision: state.revision ?? 0,
             publicKeys: state.publicKeys
         }
@@ -155,7 +153,7 @@ export const useStorageStore = defineStore('storage', () => {
                 identity_id: identity.identityId,
                 identity_idx: identity.identityIdx || 0,
                 dpns_username: identity.dpnsUsername || null,
-                balance: identity.balance ? String(identity.balance) : '0',
+                balance: String(identity.balance ?? '0'),
                 key_type: keyType,
                 discovered_key: null,
                 discovered_at: new Date().toISOString()
