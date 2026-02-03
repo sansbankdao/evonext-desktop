@@ -10,7 +10,7 @@
     "coverage:clean": "rm -rf coverage/",
     "coverage:merge": "pnpm coverage:clean && pnpm coverage:rust && pnpm coverage:frontend",
     "dev": "vite",
-    "postinstall": "if [ \"$CI\" != \"true\" ]; then pnpm type:gen; fi",
+    "postinstall": "node -e \"if (process.env.CI !== 'true') { require('child_process').execSync('pnpm type:gen', {stdio: 'inherit'}) }\"",
     "preview": "vite preview",
     "tauri": "tauri",
     "test": "vitest run --coverage",
