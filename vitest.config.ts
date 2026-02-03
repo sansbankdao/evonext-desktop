@@ -1,4 +1,5 @@
 // vitest.config.ts
+
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
@@ -14,13 +15,12 @@ export default defineConfig({
     server: {
         watch: {
             ignored: [
-                '**/src-tauri/**', // Ignore the entire Rust source and build
-                '**/target/**',    // Ignore Rust build artifacts specifically
+                '**/src-tauri/**',
+                '**/target/**',
                 '**/node_modules/**',
             ],
         },
     },
-    // -----------------------
 
     test: {
         globals: true,
@@ -34,12 +34,14 @@ export default defineConfig({
         ],
         coverage: {
             provider: 'v8',
-            reporter: ['text', 'json', 'html'],
+            // 'lcov' is required for Codecov integration
+            reporter: ['text', 'json', 'html', 'lcov'],
             exclude: [
                 'node_modules/',
                 'dist/',
                 'tests/',
                 '**/*.d.ts',
+                'src/types/rust_generated.ts',
             ],
         },
     },
