@@ -15,7 +15,6 @@ import type { Network } from '@/composables/useNetwork'
 
 /**
  * Orchestrates fetching all balances (Native + Tokens)
- * Refactored to eliminate recursive network loops and fix property mismatches.
  */
 export async function refreshBalances(
     this: ReturnType<typeof useWalletStore>,
@@ -25,13 +24,11 @@ export async function refreshBalances(
     const systemStore = useSystemStore()
     const { ensure } = useNetwork()
 
-    // 1. Connection Guard
     if (!identityStore.isConnected) {
         console.warn('[Wallet] Cannot refresh: Identity not connected')
         return
     }
 
-    // 2. Set Active Network
     if (network) {
         this.network = network
     } else {
@@ -40,7 +37,6 @@ export async function refreshBalances(
 
     this.isLoading = true
 
-    // 3. Resolve Identity ID (Matches storage.ts naming)
     const identityId = identityStore.identityId || identityStore.identity?.identityId
 
     if (!identityId) {
@@ -49,8 +45,6 @@ export async function refreshBalances(
         return
     }
 
-    // 4. Resolve Credit Balance
-    // We rely on identityStore logic to handle the DAPI fetch
     await identityStore.fetchBalance()
 
     let creditBalance = 0
@@ -61,7 +55,6 @@ export async function refreshBalances(
 
     const newAssets: IAsset[] = []
 
-    // 5. Add Credits (Native Platform Asset)
     newAssets.push({
         id: 'credits',
         name: 'Dash',
@@ -81,7 +74,6 @@ export async function refreshBalances(
         usdValue: 0
     })
 
-    // 6. Add DASH (Computed from Credits)
     const dashAmount = creditBalance / 100_000_000_000
     const currentDashPrice = systemStore.currentDashPrice || 0
     const dashUsdValue = dashAmount * currentDashPrice
@@ -105,7 +97,6 @@ export async function refreshBalances(
         usdValue: dashUsdValue
     })
 
-    // 7. Fetch Token Balances from Rust Backend
     try {
         const storedAssets = await invoke<IAssetMinimal[]>('fetch_identity_tokens', {
             identityId: identityId,
@@ -118,14 +109,13 @@ export async function refreshBalances(
                 const rawContractId = assetDef.asset_id || ''
                 let decimalPlaces = assetDef.decimals || 8
 
-                // Handle specific token overrides
                 if (symbol.toUpperCase().includes('DUSD')) decimalPlaces = 6
 
                 let balance = BigInt(0)
                 let balanceFormatted = '0.00'
 
                 if (assetDef.balance !== undefined && assetDef.balance !== null) {
-                    balance = BigInt(assetDef.balance)
+                    balance = BigInt(String(assetDef.balance))
                     const divisor = BigInt(10 ** decimalPlaces)
                     const whole = balance / divisor
                     const remainder = balance % divisor
@@ -137,7 +127,6 @@ export async function refreshBalances(
                         : `${whole.toLocaleString()}.${trimmedRemainder}`
                 }
 
-                // Compute USD Values for known tokens
                 let usdValue = 0
                 const balanceNum = Number(balance) / (10 ** decimalPlaces)
                 if (symbol.toUpperCase().includes('DUSD')) usdValue = balanceNum * 1.0
@@ -168,11 +157,9 @@ export async function refreshBalances(
         console.error('[Wallet] Failed to fetch token assets:', err)
     }
 
-    // 8. Finalize State
     newAssets.sort((a, b) => (b.usdValue || 0) - (a.usdValue || 0))
     this.assets = newAssets
 
-    // 9. Fetch Transactions
     await this.fetchRealTransactions()
 
     this.isLoading = false
@@ -198,17 +185,17 @@ export async function fetchRealTransactions(
     if (!identityId) return
 
     try {
-        const explorerTxs = await fetchIdentityTransactions(identityId, limit, this.network)
+        const response = await fetchIdentityTransactions(identityId, limit, this.network)
 
-        // Map using the shared transformer (transforms.ts) to handle inconsistent API data
-        // and fix the "Received Credits 0" issue.
-        const mappedTransactions = explorerTxs.map((tx: any) =>
-            transformIdentityTransfer(tx, identityId)
-        )
+        // FIX: Unwrap the ActionResponse to get the array
+        const explorerTxs = (response as any)?.data ?? response ?? []
 
-        // Update state
-        this.transactions = mappedTransactions
-
+        if (Array.isArray(explorerTxs)) {
+            const mappedTransactions = explorerTxs.map((tx: any) =>
+                transformIdentityTransfer(tx, identityId)
+            )
+            this.transactions = mappedTransactions
+        }
     } catch (err) {
         console.error('[Wallet] Failed to fetch real transactions:', err)
     }

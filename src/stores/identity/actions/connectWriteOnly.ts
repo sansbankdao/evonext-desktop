@@ -112,7 +112,8 @@ export function connectWriteOnlyActions() {
                     revision: typeof revision === 'number' ? revision : Number(revision || 0),
                     publicKeys: publicKeys,
                     username: identity.dpnsUsername || identity.username || identity.identityId,
-                    displayName: identity.displayName || identity.dpnsUsername || undefined
+                    // Fixed: Use empty string instead of undefined
+                    displayName: identity.displayName || identity.dpnsUsername || ''
                 }
 
                 // Update store state

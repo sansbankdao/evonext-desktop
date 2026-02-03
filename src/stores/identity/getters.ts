@@ -21,20 +21,18 @@ export const useIdentityGetters = {
 
     // Safe IIdentity snapshot for components
     identity: (state: IIdentityState): IIdentity | null => {
-        if (!state.identityId || !state.identity) return null
+        if (!state.identityId) return null
 
-        const identityData = {
+        return {
             identityId: state.identityId,
-            username: state.username,
-            displayName: state.displayName,
-            balance: state.balance,
-            publicKeys: state.publicKeys,
-            revision: state.revision,
+            username: state.username || '',
+            displayName: state.displayName || '',
+            balance: state.balance || '0',
+            publicKeys: state.publicKeys || [],
+            revision: state.revision || 0,
             isAuthenticated: state.isAuthenticated,
             identityIdx: state.identity?.identityIdx ?? 0
-        }
-
-        return identityData as unknown as IIdentity
+        } as IIdentity
     },
 
     displayName: (state: IIdentityState): string => {
@@ -43,8 +41,8 @@ export const useIdentityGetters = {
 
     formattedBalance: (state: IIdentityState): string => {
         const balance = state.balance
-
-        if (!balance || balance === 0) return '0 DASH'
+        // Fixed: Compare against string "0"
+        if (!balance || balance === "0" || balance === "0.00") return '0 DASH'
 
         try {
             const dash = BigInt(String(balance)) / BigInt(100_000_000_000)

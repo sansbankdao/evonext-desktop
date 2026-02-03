@@ -88,15 +88,13 @@ export function createDefaultIdentityData(username: string = ''): IIdentity {
         id: '',
         identityId: '',
         identityIdx: 0,
-
-        balance: 0,
+        balance: '0', // Fixed: string "0"
         revision: 0,
         publicKeys: [],
-
         username,
-        // TODO Add all available fields.
         publicKeyIds: [],
         isAuthenticated: false,
         createdAt: 1234567890,
+        displayName: '' // Ensure field is present
     }
 }

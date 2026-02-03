@@ -26,23 +26,13 @@ export const useWalletStore = defineStore('wallet', {
         totalUsdValue: (state): number => {
             return state.assets.reduce((total, asset) => total + (asset.usdValue || 0), 0)
         },
-        /**
-         * Robust search for assets.
-         * 1. Checks strict match.
-         * 2. Fallback: Checks testnet prefix (e.g. input 'DUSD' finds 'tDUSD').
-         */
         getAssetByTicker: (state) => {
             return (symbol: string): IAsset | undefined => {
-                // 1. Strict search
                 let asset = state.assets.find((asset: IAsset) => asset.symbol === symbol)
-
-                // 2. Variant search (Testnet prefix)
                 if (!asset) {
-                    // Map common tickers to potential testnet variants
                     const variant = `t${symbol}`
                     asset = state.assets.find((asset: IAsset) => asset.symbol === variant)
                 }
-
                 return asset
             }
         },
@@ -60,10 +50,12 @@ export const useWalletStore = defineStore('wallet', {
             const { refreshBalances } = await import('./actions/index')
             await refreshBalances.call(this, network)
         },
-        // FIXED: Delegates to actions/api to break circular dependency
         async getTokenBalance(identityId: string, contractId: string): Promise<bigint> {
             const { fetchTokenBalance } = await import('./actions/api')
-            return await fetchTokenBalance(identityId, contractId)
+            const response = await fetchTokenBalance(identityId, contractId)
+            // FIX: Unwrap response and cast to BigInt
+            const rawValue = (response as any)?.data ?? response
+            return BigInt(String(rawValue || 0))
         },
         async init(user: IUser) {
             this.user = user
@@ -76,7 +68,6 @@ export const useWalletStore = defineStore('wallet', {
             this.balanceChange = null
             this.isLoading = false
         },
-        // Helper util often required by composables using the wallet store
         fromSatoshi(amount: number | bigint): number {
             const val = typeof amount === 'bigint' ? Number(amount) : amount
             return val / 100000000
