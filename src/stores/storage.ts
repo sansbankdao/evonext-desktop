@@ -1,4 +1,5 @@
 // src/stores/storage.ts
+
 import { defineStore } from 'pinia'
 import { reactive } from 'vue'
 import { invoke } from '@/utils/tauri'
@@ -9,7 +10,7 @@ import type {
     IPublicKey
 } from '@/types'
 import { debugLogger } from '@/utils/debugLogger'
-// Define a dedicated interface for the state properties only
+
 interface IStorageState {
     username: string | null
     identityId: string | null
@@ -30,8 +31,8 @@ interface IStorageState {
     discoveryProgress: number | null
     identitiesMap: Record<string, any>
 }
+
 export const useStorageStore = defineStore('storage', () => {
-    // Correctly type the reactive state with the property-only interface
     const state = reactive<IStorageState>({
         username: null,
         identityId: null,
@@ -52,16 +53,32 @@ export const useStorageStore = defineStore('storage', () => {
         discoveryProgress: null,
         identitiesMap: {}
     })
-    const unwrap = <T>(res: any): T => {
-        if (res?.status === 'error' || res?.success === false) {
-            throw new Error(res.error || 'Command failed')
+    const initFromStorage = async (): Promise<void> => {
+        try {
+            debugLogger.log('[Storage] Initializing from storage...', 'info')
+            const network = await getCurrentNetwork()
+            const identitiesStore = await loadDiscoveredIdentities(network)
+            // Robust check for the identities store and array
+            if (identitiesStore?.identities && Array.isArray(identitiesStore.identities)) {
+                if (identitiesStore.identities.length > 0) {
+                    const active = identitiesStore.identities[0]
+                    // active is narrowed here
+                    if (active) {
+                        state.identityId = active.identity_id ?? null
+                        state.username = (active.dpns_username ?? active.identity_id) ?? null
+                        state.balance = active.balance ?? '0'
+                        state.isAuthenticated = true
+                        debugLogger.log(`[Storage] Loaded identity: ${state.identityId}`, 'info')
+                    }
+                }
+            }
+        } catch (err: any) {
+            debugLogger.log(`[Storage] Init Error: ${err.message}`, 'error')
         }
-        return (res?.data ?? res?.payload ?? res) as T
     }
     const loadSettings = async (): Promise<any> => {
         try {
-            const res = await invoke('load_settings')
-            return unwrap<any>(res)
+            return await invoke<any>('load_settings')
         } catch {
             return null
         }
@@ -87,8 +104,7 @@ export const useStorageStore = defineStore('storage', () => {
             createdAt: new Date().toISOString()
         }
         try {
-            const res = await invoke('save_identity', { network, payload })
-            unwrap<void>(res)
+            await invoke<void>('save_identity', { network, payload })
             debugLogger.log(`[Storage] Identity ${targetId} synced`, 'info')
         } catch (err: any) {
             debugLogger.log(`[Storage] Rust Sync Error: ${err}`, 'error')
@@ -102,8 +118,7 @@ export const useStorageStore = defineStore('storage', () => {
     ): Promise<void> => {
         try {
             if (!keys || !keys.length) return
-            const res = await invoke('save_keys', { network, identityId: targetId, keys })
-            unwrap<void>(res)
+            await invoke<void>('save_keys', { network, identityId: targetId, keys })
         } catch (err: any) {
             debugLogger.log(`[Storage] Keystore Sync Error: ${err}`, 'error')
             throw err
@@ -124,8 +139,7 @@ export const useStorageStore = defineStore('storage', () => {
     }
     const loadMnemonic = async (network: 'mainnet' | 'testnet'): Promise<{ seedPhrase: string } | null> => {
         try {
-            const res = await invoke('load_mnemonic', { network })
-            return unwrap<{ seedPhrase: string }>(res)
+            return await invoke<{ seedPhrase: string }>('load_mnemonic', { network })
         } catch {
             return null
         }
@@ -146,11 +160,11 @@ export const useStorageStore = defineStore('storage', () => {
                 discovered_key: null,
                 discovered_at: new Date().toISOString()
             }))
-            const res = await invoke('save_discovered_identities', {
+            const savedCount = await invoke<number>('save_discovered_identities', {
                 network,
                 discoveredIdentities: rustIdentities
             })
-            return { success: true, savedCount: unwrap<number>(res) }
+            return { success: true, savedCount }
         } catch (err: any) {
             return { success: false, savedCount: 0, error: err.message }
         }
@@ -159,8 +173,7 @@ export const useStorageStore = defineStore('storage', () => {
         network: 'mainnet' | 'testnet'
     ): Promise<RustDiscoveredIdentitiesStore | null> => {
         try {
-            const res = await invoke('load_discovered_identities', { network })
-            return unwrap<RustDiscoveredIdentitiesStore>(res)
+            return await invoke<RustDiscoveredIdentitiesStore>('load_discovered_identities', { network })
         } catch {
             return null
         }
@@ -169,8 +182,7 @@ export const useStorageStore = defineStore('storage', () => {
         network: 'mainnet' | 'testnet'
     ): Promise<{ success: boolean; error?: string }> => {
         try {
-            const res = await invoke('clear_discovered_identities', { network })
-            unwrap<void>(res)
+            await invoke<void>('clear_discovered_identities', { network })
             return { success: true }
         } catch (err: any) {
             return { success: false, error: err.message }
@@ -190,6 +202,7 @@ export const useStorageStore = defineStore('storage', () => {
     }
     return {
         state,
+        initFromStorage,
         saveIdentityDataToStore,
         saveKeys,
         clearStorage,
