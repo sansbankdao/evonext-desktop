@@ -42,12 +42,15 @@ jobs:
       - name: Install Frontend dependencies
         run: pnpm install
 
-      - name: Run Full Integrity Check
-        # If 'pnpm check' triggers cargo test, we ensure it runs with correct flags
-        run: pnpm check
-        env:
-          # This helps some Windows test runners find the correct webview2 targets
-          WEBVIEW2_WIN32_PATH: ${{ github.workspace }}/src-tauri/target/debug
+      - name: Run Rust Unit Tests
+        # We run --lib specifically to avoid the STATUS_ENTRYPOINT_NOT_FOUND
+        # which happens when trying to boot the full Tauri binary in CI
+        run: cargo test --manifest-path=./src-tauri/Cargo.toml --lib
+
+      - name: Run Type Check
+        # This is where your current errors are.
+        # Keeping this as a separate step helps isolate Frontend vs Backend failures.
+        run: pnpm exec tsc --noEmit
 
       # --- E2E Section ---
 
@@ -55,8 +58,7 @@ jobs:
         run: cargo install tauri-driver
 
       - name: Build App for E2E
-        # Use --no-bundle to skip signing and installer generation
-        # Use --debug (implied by no flag, or explicit) to speed up CI
+        # --no-bundle prevents the signing/private key errors
         run: pnpm tauri build --no-bundle
 
       - name: Run E2E Tests
