@@ -1,7 +1,7 @@
 {
   "name": "evonext-desktop",
   "description": "Free and Fearless Social — Connect with early-stage Founders and Creators — plus, the hottest collection of Mini Apps designed to streamline your workflow and simplify everyday tasks.",
-  "version": "26.2.2",
+  "version": "26.2.3",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -48,6 +48,7 @@
     "@vitest/coverage-v8": "4.0.18",
     "@vitest/ui": "4.0.16",
     "@vue/test-utils": "2.4.6",
+    "@wdio/cli": "9.23.3",
     "appium": "3.1.2",
     "autoprefixer": "10.4.20",
     "happy-dom": "20.0.11",
@@ -57,6 +58,7 @@
     "typescript": "5.6.3",
     "vite": "7.1.9",
     "vitest": "4.0.18",
-    "vue-tsc": "3.1.0"
+    "vue-tsc": "3.1.0",
+    "webdriverio": "9.23.3"
   }
 }
