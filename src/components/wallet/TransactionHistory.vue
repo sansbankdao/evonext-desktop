@@ -1,5 +1,5 @@
 <!-- src/components/wallet/TransactionHistory.vue -->
- <template>
+<template>
     <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-0 flex flex-col h-full">
         <!-- Header -->
         <div class="p-8 pb-4 border-b border-slate-100 dark:border-slate-800">
@@ -124,15 +124,9 @@ const allTransactions = computed(() => {
     props.transactions.forEach(storeTx => {
         const alreadyExists = combined.some(localTx => localTx.id === storeTx.id)
 
-        // Filter logic:
-        // 1. Hide "SYSTEM" types (like the Token Batch wrappers)
-        // 2. Hide things that are strictly "0.00" (Ghosts)
-        // 3. KEEP things that are "---" (Real txs where we just missed the amount)
-
         const isSystem = (storeTx.type as any) === 'SYSTEM'
         const isGhostZero = (storeTx.amount === '0' || storeTx.amount === '0.00' || storeTx.amount === '$0.00')
 
-        // If amount is "---", it's a real tx we want to show, even if incomplete.
         const isValidEntry = storeTx.amount === '---' || (!isSystem && !isGhostZero)
 
         if (!alreadyExists && isValidEntry) {
@@ -155,20 +149,15 @@ const displayedTransactions = computed(() => {
     return allTransactions.value.slice(start, end)
 })
 
-// --- 2. Fix 0.00 Bug ---
 const getDisplayAmount = (tx: ITransaction) => {
-    // If the amount is already a non-numeric string (e.g., "1.00 DUSD"), return it directly.
-    // The transform functions in transforms.ts return formatted strings in the 'amount' field.
     if (typeof tx.amount === 'string' && isNaN(Number(tx.amount))) {
         return tx.amount
     }
 
-    // Fallback: If it's a number, format it
     if (typeof tx.amount === 'number') {
         return tx.amount.toLocaleString()
     }
 
-    // Fallback for formatted field
     return tx.amountFormatted || '0.00'
 }
 
@@ -193,12 +182,14 @@ const fetchMissingTokens = async () => {
     isFetchingTokens.value = true
 
     try {
-        // Fetch DUSD
-        const dusdRaw = await fetchTokenTransitions(DUSD_CONTRACT_ID_TESTNET, 20, Wallet.network)
+        // Fetch DUSD - Unwrap the ActionResponse
+        const dusdResponse = await fetchTokenTransitions(DUSD_CONTRACT_ID_TESTNET, 20, Wallet.network)
+        const dusdRaw = (dusdResponse as any)?.data || []
         const dusdTxs = transformTokenTransitions(dusdRaw, Identity.identityId, 'DUSD', DUSD_DECIMAL_PLACES)
 
-        // Fetch SANS
-        const sansRaw = await fetchTokenTransitions(SANS_CONTRACT_ID_TESTNET, 20, Wallet.network)
+        // Fetch SANS - Unwrap the ActionResponse
+        const sansResponse = await fetchTokenTransitions(SANS_CONTRACT_ID_TESTNET, 20, Wallet.network)
+        const sansRaw = (sansResponse as any)?.data || []
         const sansTxs = transformTokenTransitions(sansRaw, Identity.identityId, 'SANS', SANS_DECIMAL_PLACES)
 
         localTokenTransactions.value = [...dusdTxs, ...sansTxs]
