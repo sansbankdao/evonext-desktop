@@ -1,18 +1,18 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Introducing the 1st Release Candidate
+### Introducing the 2nd Release Candidate
 
-This latest version of EvoNext is completes the basic functions for the 1st public release.
+This latest version of EvoNext offers an expanded Testing Suite.
 
 # Changelog
 
 ## Latest Features:
 
-- __Packaging:__ Optimized the build process for the inaugural public release.
+- __Testing:__ Our testing coverage is now 18% on the front-end and 7% on the back-end.
 
 ## Bugfixes:
 
-- __Configuration:__ Fixed packaging configuration for a "formal" release.
+- __Testing:__ Fixed the CI (Guardian) testing workflow.
 
 ## Notes:
 
