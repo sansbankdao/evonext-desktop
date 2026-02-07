@@ -4,37 +4,91 @@ import { describe, it, expect } from 'vitest'
 import {
     createUpdatedAssets,
     processTokenBalances,
-    transformIdentityTransfer
+    transformIdentityTransfer,
+    transformTokenTransitions
 } from './transforms'
 
-describe('wallet transforms', () => {
-    it('should create asset list with calculated values', () => {
-        const assets = createUpdatedAssets(10, 5, 100, 200, 30)
-        const dash = assets.find(a => a.id === 'DASH')
-        expect(dash?.usdValue).toBe(300)
-        expect(assets.length).toBe(4)
+describe('wallet transforms - Final Consolidated', () => {
+    describe('createUpdatedAssets', () => {
+        it('should create asset list with calculated values', () => {
+            const assets = createUpdatedAssets(10, 5, 100, 200, 30)
+            const dash = assets.find(a => a.id === 'DASH')
+            expect(dash?.usdValue).toBe(300)
+            expect(assets.length).toBe(4)
+        })
     })
 
-    it('should extract token balances from varied ID formats', () => {
-        const balances = [
-            { tokenId: 'yNP7y...', balance: 1000000n } // DUSD testnet
-        ]
-        // This test requires matching constants.
-        // We'll mock the internal comparison or just verify the structure
-        const result = processTokenBalances(balances, 'testnet')
-        expect(result).toHaveProperty('dusdBalance')
-        expect(result).toHaveProperty('sansBalance')
+    describe('processTokenBalances', () => {
+        it('should handle Base58 object-style token IDs from raw API', () => {
+            const mockBalances = [
+                {
+                    tokenId: { base58: () => 'yNP7y...' },
+                    balance: 1000000n
+                }
+            ]
+            const result = processTokenBalances(mockBalances, 'testnet')
+            expect(typeof result.dusdBalance).toBe('number')
+        })
     })
 
-    it('should transform identity transfers into UI transactions', () => {
-        const raw = {
-            type: 'IDENTITY_CREATE',
-            owner: { identifier: 'user1' },
-            timestamp: '2023-01-01T00:00:00Z',
-            amount: 1000000
-        }
-        const tx = transformIdentityTransfer(raw, 'user1')
-        expect(tx.title).toBe('Identity Created')
-        expect(tx.direction).toBe('OUTGOING')
+    describe('transformIdentityTransfer', () => {
+        const id = 'user_123'
+
+        it('should identify IDENTITY_CREDIT_WITHDRAWAL as a specific UI type', () => {
+            const raw = { type: 'IDENTITY_CREDIT_WITHDRAWAL', amount: 500, hash: 'tx1' }
+            const tx = transformIdentityTransfer(raw, id)
+            expect(tx.title).toBe('Withdrawal')
+            expect(tx.subtitle).toBe('To Layer 1')
+        })
+    })
+
+    describe('transformTokenTransitions', () => {
+        const id = 'my_id'
+
+        it('should process TOKEN_MINT actions correctly', () => {
+            const raw = [{
+                action: 'TOKEN_MINT',
+                amount: '100',
+                owner: { identifier: id },
+                stateTransitionHash: 'hash1'
+            }]
+            const results = transformTokenTransitions(raw, id, 'DUSD', 6)
+            expect(results[0].title).toBe('Minted DUSD')
+            expect(results[0].direction).toBe('OUTGOING')
+        })
+
+        it('should process TOKEN_BURN actions correctly', () => {
+            const raw = [{
+                action: 'TOKEN_BURN',
+                amount: '50',
+                owner: { identifier: id },
+                stateTransitionHash: 'hash2'
+            }]
+            const results = transformTokenTransitions(raw, id, 'DUSD', 6)
+            expect(results[0].title).toBe('Burnt DUSD')
+            expect(results[0].direction).toBe('OUTGOING')
+        })
+
+        it('should distinguish between Sent and Received transfers', () => {
+            const raw = [
+                {
+                    action: 'TOKEN_TRANSFER',
+                    amount: '10',
+                    owner: { identifier: id },
+                    recipient: 'other',
+                    stateTransitionHash: 'h3'
+                },
+                {
+                    action: 'TOKEN_TRANSFER',
+                    amount: '20',
+                    owner: { identifier: 'other' },
+                    recipient: id,
+                    stateTransitionHash: 'h4'
+                }
+            ]
+            const results = transformTokenTransitions(raw, id, 'DUSD', 6)
+            expect(results[0].direction).toBe('OUTGOING')
+            expect(results[1].direction).toBe('INCOMING')
+        })
     })
 })
