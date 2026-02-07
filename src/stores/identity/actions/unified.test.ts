@@ -43,7 +43,10 @@ describe('unified identity actions', () => {
         it('sets error state if backend save fails', async () => {
             mockInvoke.mockResolvedValue({ success: false, error: 'DB Error' })
 
-            await store.connectFromDiscoveryUnified(discovered, 'testnet')
+            // We catch the error because the implementation throws it
+            await expect(
+                store.connectFromDiscoveryUnified({ identityId: 'id_1' }, 'testnet')
+            ).rejects.toThrow('DB Error')
 
             expect(store.isConnected).toBe(false)
             expect(store.error).toBe('DB Error')

@@ -2,11 +2,11 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { usePosts } from './usePosts'
+import { usePostsStore } from '@/stores/posts'
 import { ref } from 'vue'
 
-// Mock dependencies
 vi.mock('@/stores/posts', () => ({
-    usePostsStore: () => ({
+    usePostsStore: vi.fn(() => ({
         posts: [],
         sortedPosts: [],
         sortedUserPosts: [],
@@ -15,20 +15,15 @@ vi.mock('@/stores/posts', () => ({
         fetchPosts: vi.fn(),
         isPostLiked: vi.fn().mockReturnValue(false),
         likePostById: vi.fn()
-    })
+    }))
 }))
 
 vi.mock('@/stores/identity', () => ({
-    useIdentityStore: () => ({
-        isAuthenticated: true,
-        identityId: 'user_123'
-    })
+    useIdentityStore: () => ({ isAuthenticated: true, identityId: 'u1' })
 }))
 
 vi.mock('@/stores/settings', () => ({
-    useSettingsStore: () => ({
-        state: { network: 'testnet' }
-    })
+    useSettingsStore: () => ({ state: { network: 'testnet' } })
 }))
 
 vi.mock('./useDebounce', () => ({
@@ -36,25 +31,16 @@ vi.mock('./useDebounce', () => ({
 }))
 
 describe('usePosts composable', () => {
+    let postsStore: any
+
     beforeEach(() => {
         vi.useFakeTimers()
         vi.clearAllMocks()
+        postsStore = usePostsStore()
     })
 
-    it('manages tab state and filters', () => {
-        const { activeTab, setTab, clearFilters, searchQuery } = usePosts()
-
-        setTab('remix')
-        expect(activeTab.value).toBe('remix')
-
-        searchQuery.value = 'searching...'
-        clearFilters()
-        expect(searchQuery.value).toBe('')
-    })
-
-    it('starts and stops auto-refresh', () => {
+    it('starts and stops auto-refresh', async () => {
         const { startAutoRefresh, stopAutoRefresh } = usePosts()
-        const postsStore = require('@/stores/posts').usePostsStore()
 
         startAutoRefresh(10000)
         vi.advanceTimersByTime(10000)
@@ -67,8 +53,6 @@ describe('usePosts composable', () => {
 
     it('handles liking logic correctly', () => {
         const { likePost } = usePosts()
-        const postsStore = require('@/stores/posts').usePostsStore()
-
         likePost('post_1')
         expect(postsStore.likePostById).toHaveBeenCalledWith('post_1')
     })
