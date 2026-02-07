@@ -28,6 +28,8 @@ describe('Identity Store - Persistence & Normalization', () => {
     beforeEach(() => {
         setActivePinia(createPinia())
         store = useIdentityStore()
+        // Initialization is critical: the action checks 'if (this.keystore)'
+        store.keystore = { identities: {} }
         vi.clearAllMocks()
     })
     it('should normalize snake_case keys from UI into camelCase for Rust', async () => {
@@ -37,21 +39,28 @@ describe('Identity Store - Persistence & Normalization', () => {
             security_level: 0,
             derived_from_mnemonic: true
         }]
-        vi.mocked(commands.saveKeys).mockResolvedValue({ status: 'success', data: true } as any)
+        vi.mocked(commands.saveKeys).mockResolvedValue({
+            status: 'success',
+            data: true
+        } as any)
         await store.saveKeys('testnet', 'id_123', messyKeys)
         const callArgs = vi.mocked(commands.saveKeys).mock.calls[0]
-        const sentKeys = callArgs?.[2] || []
+        // Ensure we handle the potentially undefined callArgs for TS
+        const sentKeys = (callArgs as any)?.[2] || []
         expect(sentKeys[0]).toHaveProperty('keyId', 1)
+        expect(sentKeys[0]).toHaveProperty('privateKey', 'secret_wif')
     })
     describe('loadKeystore', () => {
         it('should update store keystore on success', async () => {
-            const mockData = { identities: { 'id_1': [] } }
+            const mockKeystoreData = { identities: { 'id_1': [] } }
+            // FIX: We must explicitly map to the 'data' property
             vi.mocked(commands.loadKeystore).mockResolvedValue({
-                status: 'success', mockData // Action looks for .data
+                status: 'success',
+                data: mockKeystoreData
             } as any)
-            store.keystore = {}
-            await store.loadKeystore('testnet')
-            expect(store.keystore).toEqual(mockData)
+            const result = await store.loadKeystore('testnet')
+            expect(result.success).toBe(true)
+            expect(store.keystore).toEqual(mockKeystoreData)
         })
     })
     describe('Composable Actions', () => {
@@ -64,8 +73,10 @@ describe('Identity Store - Persistence & Normalization', () => {
             store.identityId = 'id_123'
             store.publicKeys = []
             const result = await store.getPublicKeys()
+            // ErrorBoundary.wrap always returns an ActionResponse { success, data }
             expect(result.success).toBe(true)
             expect(result.data).toHaveLength(1)
+            expect(result.data[0].id).toBe(1)
         })
     })
 })
