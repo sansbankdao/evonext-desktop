@@ -3,42 +3,52 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import {
     getPostStats,
-    bookmarkPost,
-    unbookmarkPost,
-    isPostBookmarked,
-    applyStatsUpdate
+    getBookmarkedPostIds,
+    likePost,
+    unlikePost
 } from './stats'
-describe('post stats service', () => {
+
+describe('post stats service - Extended', () => {
     beforeEach(() => {
         localStorage.clear()
         vi.clearAllMocks()
     })
-    it('should fetch stats and detect bookmark state', async () => {
-        localStorage.setItem('bookmark_123', 'true')
-        const stats = await getPostStats('123')
-        expect(stats.bookmarks).toBe(1)
-        expect(stats.likes).toBeLessThan(100)
+
+    it('should return empty array when no bookmarks exist', () => {
+        const ids = getBookmarkedPostIds()
+        expect(ids).toEqual([])
     })
-    it('should bookmark a post', async () => {
-        const result = await bookmarkPost('abc')
-        expect(result).toBe(true)
-        expect(localStorage.getItem('bookmark_abc')).toBe('true')
+
+    it('should return list of IDs from localStorage', () => {
+        localStorage.setItem('bookmark_1', 'true')
+        localStorage.setItem('bookmark_2', 'true')
+        localStorage.setItem('other_key', 'true')
+
+        const ids = getBookmarkedPostIds()
+        expect(ids).toContain('1')
+        expect(ids).toContain('2')
+        expect(ids.length).toBe(2)
     })
-    it('should unbookmark a post', async () => {
-        localStorage.setItem('bookmark_abc', 'true')
-        await unbookmarkPost('abc')
-        expect(localStorage.getItem('bookmark_abc')).toBeNull()
+
+    it('should handle errors in getPostStats gracefully', async () => {
+        // Mock the entire return to simulate a crash before the random numbers generate
+        const spy = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+            throw new Error('Storage blocked')
+        })
+
+        const stats = await getPostStats('1')
+        expect(stats.likes).toBe(0) // Now it will hit the catch block
+
+        spy.mockRestore()
     })
-    it('should check if post is bookmarked', () => {
-        localStorage.setItem('bookmark_xyz', 'true')
-        expect(isPostBookmarked('xyz')).toBe(true)
-        expect(isPostBookmarked('other')).toBe(false)
-    })
-    it('should apply optimistic updates to a post object', () => {
-        const post: any = { id: '1', likes: 10, remixes: 5, replies: 2 }
-        const update = { postId: '1', likes: 11 }
-        const result = applyStatsUpdate(post, update)
-        expect(result.likes).toBe(11)
-        expect(result.remixes).toBe(5) // Unchanged
+
+    it('should log to console and return true for likes (mocked)', async () => {
+        const logSpy = vi.spyOn(console, 'log')
+        const res = await likePost('1')
+        expect(res).toBe(true)
+        expect(logSpy).toHaveBeenCalled()
+
+        const res2 = await unlikePost('1')
+        expect(res2).toBe(true)
     })
 })

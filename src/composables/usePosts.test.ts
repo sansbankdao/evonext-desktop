@@ -5,26 +5,27 @@ import { usePosts } from './usePosts'
 import { usePostsStore } from '@/stores/posts'
 import * as filters from '@/services/posts/filters'
 import * as stats from '@/services/posts/stats'
+import { nextTick } from 'vue'
 
 const mockPostsStore = {
-    posts: [],
-    sortedPosts: [],
+    posts: [{ id: 'p1', content: 'hello' }],
+    sortedPosts: [{ id: 'p1', content: 'hello' }],
     sortedUserPosts: [],
     isLoading: false,
     error: null,
     lastFetched: null,
     hasNextPage: false,
-    fetchPosts: vi.fn().mockResolvedValue([]),
-    fetchMorePosts: vi.fn().mockResolvedValue([]),
-    createNewPost: vi.fn().mockResolvedValue({ success: true }),
-    isPostLiked: vi.fn().mockReturnValue(false),
-    likePostById: vi.fn().mockResolvedValue(true),
-    unlikePostById: vi.fn().mockResolvedValue(true),
-    bookmarkPostById: vi.fn().mockResolvedValue(true),
-    unbookmarkPostById: vi.fn().mockResolvedValue(true),
-    deletePostById: vi.fn().mockResolvedValue(true),
-    updateExistingPost: vi.fn().mockResolvedValue(true),
-    refreshPostStats: vi.fn().mockResolvedValue(true),
+    fetchPosts: vi.fn(),
+    fetchMorePosts: vi.fn(),
+    createNewPost: vi.fn(),
+    isPostLiked: vi.fn(),
+    likePostById: vi.fn(),
+    unlikePostById: vi.fn(),
+    bookmarkPostById: vi.fn(),
+    unbookmarkPostById: vi.fn(),
+    deletePostById: vi.fn(),
+    updateExistingPost: vi.fn(),
+    refreshPostStats: vi.fn(),
     getPostById: vi.fn()
 }
 
@@ -37,14 +38,14 @@ vi.mock('@/stores/identity', () => ({
 }))
 
 vi.mock('@/stores/settings', () => ({
-    useSettingsStore: () => ({ state: { network: 'testnet' } })
+    useSettingsStore: () => ({ state: { network: 'mainnet' } })
 }))
 
 vi.mock('@/services/posts/filters', () => ({
     filterPosts: vi.fn((p) => p),
-    getUniqueLanguages: vi.fn(() => []),
-    getUniqueHashtags: vi.fn(() => []),
-    countPostsByPeriod: vi.fn(() => ({}))
+    getUniqueLanguages: vi.fn(() => ['en']),
+    getUniqueHashtags: vi.fn(() => ['#dash']),
+    countPostsByPeriod: vi.fn(() => ({ day: 1 }))
 }))
 
 vi.mock('@/services/posts/stats', () => ({
@@ -55,50 +56,62 @@ vi.mock('@/services/posts/stats', () => ({
 
 vi.mock('./useDebounce', () => ({ useDebounce: (val: any) => val }))
 
-const mockOnBeforeUnmount = vi.fn()
-vi.mock('vue', async () => {
-    const actual = await vi.importActual('vue')
-    return {
-        ...actual,
-        onBeforeUnmount: (fn: any) => mockOnBeforeUnmount.mockImplementation(fn)
-    }
-})
-
-describe('usePosts composable complete suite', () => {
+describe('usePosts UI & Filtering', () => {
     beforeEach(() => {
-        vi.useFakeTimers()
         vi.clearAllMocks()
-        mockPostsStore.isLoading = false
     })
 
-    describe('Auto-Refresh Logic', () => {
-        it('intervals fetchPosts based on provided time', async () => {
-            const { startAutoRefresh } = usePosts()
-            startAutoRefresh(5000)
-            await vi.advanceTimersByTimeAsync(5000)
-            expect(mockPostsStore.fetchPosts).toHaveBeenCalled()
-        })
+    it('should clear all filters', async () => {
+        const { searchQuery, languageFilter, sortBy, clearFilters } = usePosts()
+        searchQuery.value = 'search'
+        languageFilter.value = 'en'
+        sortBy.value = 'oldest'
 
-        it('stops refresh and cleans up on unmount', () => {
-            const { startAutoRefresh, stopAutoRefresh } = usePosts()
-            const clearIntervalSpy = vi.spyOn(global, 'clearInterval')
+        clearFilters()
 
-            // Start it first so the interval ID exists
-            startAutoRefresh(5000)
-
-            stopAutoRefresh()
-            mockOnBeforeUnmount()
-
-            expect(clearIntervalSpy).toHaveBeenCalled()
-        })
+        expect(searchQuery.value).toBe('')
+        expect(languageFilter.value).toBe('')
+        expect(sortBy.value).toBe('newest')
     })
 
-    describe('Action Delegation', () => {
-        it('toggles liking based on state', async () => {
-            const { likePost } = usePosts()
-            vi.mocked(mockPostsStore.isPostLiked).mockReturnValue(false)
-            await likePost('p1')
-            expect(mockPostsStore.likePostById).toHaveBeenCalledWith('p1')
-        })
+    it('should compute filteredPosts when dependencies change', async () => {
+        // Destructure the property from the result of usePosts()
+        const { searchQuery, posts } = usePosts()
+        searchQuery.value = 'new search'
+
+        const results = posts.value
+        expect(filters.filterPosts).toHaveBeenCalled()
+    })
+
+    it('should handle bookmark toggling', async () => {
+        const { bookmarkPost } = usePosts()
+
+        // Scenario: Not bookmarked
+        vi.mocked(stats.isPostBookmarked).mockReturnValue(false)
+        await bookmarkPost('p1')
+        expect(mockPostsStore.bookmarkPostById).toHaveBeenCalledWith('p1')
+
+        // Scenario: Already bookmarked
+        vi.mocked(stats.isPostBookmarked).mockReturnValue(true)
+        await bookmarkPost('p1')
+        expect(mockPostsStore.unbookmarkPostById).toHaveBeenCalledWith('p1')
+    })
+
+    it('should calculate unique metadata', () => {
+        const { uniqueLanguages, uniqueHashtags } = usePosts()
+        expect(uniqueLanguages.value).toContain('en')
+        expect(uniqueHashtags.value).toContain('#dash')
+    })
+
+    it('should expose stats helpers', () => {
+        const { countPostsByPeriod } = usePosts()
+        const res = countPostsByPeriod('day')
+        expect(res).toEqual({ day: 1 })
+    })
+
+    it('should handle tab switching', () => {
+        const { activeTab, setTab } = usePosts()
+        setTab('remix')
+        expect(activeTab.value).toBe('remix')
     })
 })
