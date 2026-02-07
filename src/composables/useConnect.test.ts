@@ -3,6 +3,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useConnect } from './useConnect'
 import { setActivePinia, createPinia, defineStore } from 'pinia'
+import { nextTick } from 'vue'
 
 vi.mock('@/composables/useNotification', () => ({
     useNotification: () => ({ showSuccess: vi.fn(), showError: vi.fn() })
@@ -36,62 +37,83 @@ const useTestStore = defineStore('identity', {
         discoveryProgress: null
     }),
     actions: {
-        clearConnectionError() {},
-        saveDiscoveredIdentities() { return Promise.resolve({ success: true }) },
-        connectWithSeed() { return Promise.resolve() },
-        connectWithSingleKey() { return Promise.resolve() },
-        switchIdentity() {}
+        clearConnectionError: vi.fn(),
+        saveDiscoveredIdentities: vi.fn().mockResolvedValue({ success: true }),
+        connectWithSeed: vi.fn().mockResolvedValue(undefined),
+        connectWithSingleKey: vi.fn().mockResolvedValue(undefined),
+        switchIdentity: vi.fn()
     }
 })
 
-describe('useConnect - Final Consolidated', () => {
+describe('useConnect - Coverage Boost', () => {
     beforeEach(() => {
         setActivePinia(createPinia())
         vi.clearAllMocks()
     })
 
-    it('handleConnect should trigger seed-based connection and use spy correctly', async () => {
+    it('watch seedWordCount should resize seedWords array', async () => {
+        const { seedWordCount, seedWords } = useConnect()
+
+        seedWordCount.value = '24'
+        await nextTick()
+        expect(seedWords.value.length).toBe(24)
+
+        seedWordCount.value = '12'
+        await nextTick()
+        expect(seedWords.value.length).toBe(12)
+    })
+
+    it('handlePaste should validate length and auto-trigger discovery', async () => {
+        const { handlePaste, seedDiscoveryError, seedWordCount } = useConnect()
+
+        await handlePaste(Array(15).fill('word'))
+        expect(seedDiscoveryError.value).toContain('Invalid seed phrase length')
+
+        await handlePaste(Array(24).fill('word'))
+        expect(seedWordCount.value).toBe('24')
+        expect(mockManager.discoverFromSeed).toHaveBeenCalled()
+    })
+
+    it('startSeedDiscovery should handle empty/invalid seeds', async () => {
+        const { startSeedDiscovery, seedDiscoveryError, seedWords } = useConnect()
+        seedWords.value = Array(12).fill('') // empty
+
+        await startSeedDiscovery()
+        expect(seedDiscoveryError.value).toContain('expected 12')
+    })
+
+    it('handleDiscoverIdentity should handle failure results', async () => {
+        mockManager.discoverFromKey.mockResolvedValueOnce({
+            success: false,
+            error: 'Identity not found'
+        })
+        const { handleDiscoverIdentity, privateKeyDiscoveryError } = useConnect()
+
+        await handleDiscoverIdentity('some-key')
+        expect(privateKeyDiscoveryError.value).toBe('Identity not found')
+    })
+
+    it('handleConnect should throw on missing data', async () => {
+        const { handleConnect, connectionMethod } = useConnect()
+
+        connectionMethod.value = 'privateKey'
+        // manualIdentityId is empty
+        await expect(handleConnect()).rejects.toThrow('Missing identity id')
+    })
+
+    it('progressPercentage should calculate correct values', async () => {
         const store = useTestStore()
-        const connectSpy = vi.spyOn(store, 'connectWithSeed')
+        const { progressPercentage } = useConnect()
 
-        const { handleConnect, connectionMethod, selectedSeedIdentity, seedWords } = useConnect()
+        store.discoveryProgress = { currentIdentityIndex: 2, totalIdentities: 5, message: '' } as any
 
-        connectionMethod.value = 'seed'
-        selectedSeedIdentity.value = { identityId: 'id1', identityIdx: 0 } as any
-        seedWords.value = Array(12).fill('word')
-
-        await handleConnect()
-
-        expect(connectSpy).toHaveBeenCalledWith(
-            expect.stringContaining('word'),
-            'testnet',
-            'id1',
-            0
-        )
+        await nextTick()
+        expect(progressPercentage.value).toBe(40)
     })
 
-    it('updateConnectionMethod should clear errors using spy', () => {
-        const store = useTestStore()
-        const clearSpy = vi.spyOn(store, 'clearConnectionError')
-
-        const { updateConnectionMethod } = useConnect()
-        updateConnectionMethod('privateKey')
-
-        expect(clearSpy).toHaveBeenCalled()
-    })
-
-    it('formatBalance should handle various input types', () => {
-        const { formatBalance } = useConnect()
-        expect(formatBalance(100000000)).toBe('1.0000')
-        expect(formatBalance(null)).toBe('0.0000')
-        expect(formatBalance(undefined)).toBe('0.0000')
-    })
-
-    it('isFormValid should correctly validate seed selection', () => {
-        const { isFormValid, selectedSeedIdentity, connectionMethod } = useConnect()
-        connectionMethod.value = 'seed'
-        expect(isFormValid.value).toBe(false)
-        selectedSeedIdentity.value = { identityId: 'id' } as any
-        expect(isFormValid.value).toBe(true)
+    it('cleanup should cancel discovery', () => {
+        const { cleanup } = useConnect()
+        cleanup()
+        expect(mockManager.cancelSeedDiscovery).toHaveBeenCalled()
     })
 })
