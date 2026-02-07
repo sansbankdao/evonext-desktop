@@ -1,7 +1,7 @@
 // src/stores/posts/actions/fetch.ts
 
 import type { PostsFetchOptions, IPostDocument, IPost } from '@/types/posts'
-import * as api from '@/services/posts/api'
+import * as api from '@/services/posts/fetching'
 import * as transformers from '@/services/posts/transformers'
 import { getActivePostContracts } from '@/constants'
 import {
@@ -12,16 +12,12 @@ import {
 import { useSettingsStore } from '@/stores/settings'
 import { invoke } from '@/utils/tauri'
 
-// Helper to get network
 function getCurrentNetwork() {
     const settings = useSettingsStore()
     const net = settings.state.network
     return (net === 'mainnet' || net === 'testnet') ? net : 'testnet'
 }
 
-/**
- * PURE JS BASE58 IMPLEMENTATION
- */
 const Base58 = {
     ALPHABET: '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
     ALPHABET_MAP: {} as Record<string, number>,
@@ -63,9 +59,6 @@ const Base58 = {
     }
 }
 
-/**
- * Helper to ensure IDs are in Base58 format.
- */
 function ensureBase58(id: string): string {
     if (!id) return id
     if (id.length === 44 && id.endsWith('=') || id.includes('+') || id.includes('/')) {
@@ -91,18 +84,15 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
         const network = getCurrentNetwork()
         const limit = this.limit || 10
 
-        // 1. Get Active Contracts
         let activeContracts: string[] = []
         try {
             activeContracts = getActivePostContracts(network)
         } catch (err) {
-            console.error('[Store] getActivePostContracts failed', err)
             activeContracts = network === 'testnet'
                 ? [EVONEXT_CONTRACT_ID_TESTNET, YAPPR_CONTRACT_ID_TESTNET]
                 : [EVONEXT_CONTRACT_ID_MAINNET]
         }
 
-        // Initialize Debug Stats
         this.debug = {
             activeContracts,
             fetchCounts: {},
@@ -111,9 +101,6 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
             lastFetchTime: new Date().toISOString()
         }
 
-        console.log(`[Store] Fetching on ${network}. Contracts:`, activeContracts)
-
-        // 2. Fetch from all active contracts
         let allDocuments: IPostDocument[] = []
 
         for (const contractId of activeContracts) {
@@ -128,12 +115,10 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
                 this.debug.fetchCounts[contractId] = docs.length
                 allDocuments.push(...docs)
             } catch (contractErr: any) {
-                console.warn(`[Store] Failed to fetch from contract ${contractId}:`, contractErr)
                 this.debug.fetchCounts[contractId] = 0
             }
         }
 
-        // 3. Merge & Sort & Dedupe
         allDocuments.sort((a, b) => b.createdAt - a.createdAt)
 
         const uniqueMap = new Map(allDocuments.map(doc => [
@@ -144,7 +129,6 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
 
         this.debug.duplicateCount = allDocuments.length - uniqueDocuments.length
 
-        // 4. Slice to limit
         const finalDocuments = uniqueDocuments.slice(0, limit)
         this.debug.mergeCount = finalDocuments.length
 
@@ -155,7 +139,6 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
             return
         }
 
-        // 5. Fetch Reply Context (Parent Posts)
         const replyToIds = new Set<string>()
         finalDocuments.forEach(doc => {
             if (doc.replyToPostId) {
@@ -176,10 +159,9 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
             }
         }
 
-        // 6. Fetch Profiles & DPNS
         const allDocsToProcess = [...finalDocuments, ...parentDocuments]
-        const profiles = new Map<string, any>() // DPNS
-        const yapprProfiles = new Map<string, any>() // YAPPR
+        const profiles = new Map<string, any>()
+        const yapprProfiles = new Map<string, any>()
         const dpnsNames = new Map<string, string>()
         const ownerIds = [...new Set(allDocsToProcess.map(doc => doc.ownerId || ''))].filter(Boolean)
 
@@ -187,16 +169,14 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
             ownerIds.map(async (ownerId) => {
                 if (!ownerId) return
 
-                // 6a. Fetch DPNS Profile
                 const dpnsProfile = await api.fetchUserProfile(ownerId, network)
                 if (dpnsProfile) {
                     profiles.set(ownerId, dpnsProfile)
                 }
 
-                // 6b. Fetch YAPPR Profile (RESTORED logic)
                 const yapprContractId = network === 'testnet'
                     ? YAPPR_CONTRACT_ID_TESTNET
-                    : YAPPR_CONTRACT_ID_TESTNET // This stays same per your original
+                    : YAPPR_CONTRACT_ID_TESTNET
 
                 let yapprDocs: any[] = []
                 try {
@@ -209,7 +189,7 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
                         network
                     })
                 } catch (err) {
-                    // Suppress error
+                    // Suppressed
                 }
 
                 if (yapprDocs && yapprDocs.length > 0) {
@@ -223,7 +203,6 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
             })
         )
 
-        // 7. Transform Data
         const parentPostsMap = new Map<string, IPost>()
         const transformedParents = transformers.transformPostDocuments(
             parentDocuments,
@@ -241,7 +220,6 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
             parentPostsMap
         )
 
-        // 8. Inject Contract ID
         const postsWithSource = posts.map(post => {
             const sourceDoc = uniqueDocuments.find(d => d.ownerId === post.ownerId && Math.abs(d.createdAt - post.createdAt) < 2)
             return {
@@ -250,14 +228,12 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
             }
         })
 
-        // 9. Update State
         this.posts = postsWithSource
         this.lastFetched = new Date()
         this.hasNextPage = allDocuments.length > limit
 
     } catch (error: any) {
         this.error = error.message || 'Failed to fetch posts'
-        console.error('Error fetching posts:', error)
     } finally {
         this.isLoading = false
     }

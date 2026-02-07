@@ -1,11 +1,11 @@
 // src/stores/posts/actions/fetch.test.ts
+
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fetchPostsAction, fetchMorePostsAction } from './fetch'
-import * as api from '@/services/posts/api'
+import * as api from '@/services/posts/fetching'
 import * as transformers from '@/services/posts/transformers'
 
-// Mock Dependencies
-vi.mock('@/services/posts/api')
+vi.mock('@/services/posts/fetching')
 vi.mock('@/services/posts/transformers')
 vi.mock('@/utils/tauri')
 vi.mock('@/stores/settings', () => ({
@@ -37,11 +37,9 @@ describe('fetch.ts Store Actions', () => {
 
     describe('fetchPostsAction', () => {
         it('should handle critical failures in profile fetching', async () => {
-            // 1. Success on posts fetch
             vi.mocked(api.fetchPostsFromTauri).mockResolvedValue([
                 { ownerId: 'u1', createdAt: 100 } as any
             ])
-            // 2. CRITICAL FAILURE on profile fetch (bubbles to outer catch)
             vi.mocked(api.fetchUserProfile).mockRejectedValue(new Error('DAPI Connection Failed'))
 
             await fetchPostsAction.call(mockStore)
@@ -51,12 +49,10 @@ describe('fetch.ts Store Actions', () => {
         })
 
         it('should remain successful if only one contract fails (resilience)', async () => {
-            // Mock failure for the first call, but the code catches it internally
             vi.mocked(api.fetchPostsFromTauri).mockRejectedValue(new Error('Minor Error'))
 
             await fetchPostsAction.call(mockStore)
 
-            // error remains null because the inner loop catches contract-specific errors
             expect(mockStore.error).toBeNull()
             expect(mockStore.debug.fetchCounts['contract_1']).toBe(0)
         })
@@ -65,7 +61,6 @@ describe('fetch.ts Store Actions', () => {
     describe('fetchMorePostsAction', () => {
         it('should set error state if fetch fails', async () => {
             mockStore.hasNextPage = true
-            // fetchMorePostsAction does NOT have an inner try/catch, so it bubbles immediately
             vi.mocked(api.fetchPostsFromTauri).mockRejectedValue(new Error('Network Timeout'))
 
             await fetchMorePostsAction.call(mockStore)
