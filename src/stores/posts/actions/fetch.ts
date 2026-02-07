@@ -137,7 +137,7 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
         allDocuments.sort((a, b) => b.createdAt - a.createdAt)
 
         const uniqueMap = new Map(allDocuments.map(doc => [
-            `${doc.$ownerId}-${doc.createdAt}`,
+            `${doc.ownerId}-${doc.createdAt}`,
             doc
         ]))
         const uniqueDocuments = Array.from(uniqueMap.values())
@@ -193,22 +193,19 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
                     profiles.set(ownerId, dpnsProfile)
                 }
 
-                // 6b. Fetch YAPPR Profile
-                // CRITICAL FIX: YAPPR index is 'owner', NOT '$ownerId'
+                // 6b. Fetch YAPPR Profile (RESTORED logic)
                 const yapprContractId = network === 'testnet'
                     ? YAPPR_CONTRACT_ID_TESTNET
-                    : YAPPR_CONTRACT_ID_TESTNET
+                    : YAPPR_CONTRACT_ID_TESTNET // This stays same per your original
 
                 let yapprDocs: any[] = []
                 try {
                     yapprDocs = await invoke<any[]>('get_posts', {
                         dataContractId: yapprContractId,
                         documentType: 'profile',
-                        // FIX: Use 'ownerId' without the dollar sign for YAPPR query
                         whereClause: JSON.stringify([["$ownerId", "==", ensureBase58(ownerId)]]),
                         limit: 1,
                         orderBy: JSON.stringify([["$ownerId", "desc"]]),
-                        // orderBy: JSON.stringify([]),
                         network
                     })
                 } catch (err) {
@@ -246,7 +243,7 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
 
         // 8. Inject Contract ID
         const postsWithSource = posts.map(post => {
-            const sourceDoc = uniqueDocuments.find(d => d.$ownerId === post.ownerId && Math.abs(d.createdAt - post.createdAt) < 2)
+            const sourceDoc = uniqueDocuments.find(d => d.ownerId === post.ownerId && Math.abs(d.createdAt - post.createdAt) < 2)
             return {
                 ...post,
                 contractId: sourceDoc?.dataContractId || ''

@@ -13,11 +13,11 @@ import type {
 } from '@/types'
 
 export function useConnect() {
-    // FIXED: Moved inside the function to ensure reactive context availability
+    // Top-level hooks moved inside the function to ensure injection context
     const { showSuccess, showError } = useNotification()
     const store = useIdentityStore()
     const { ensure } = useNetwork()
-    const { isConnecting, connectionError } = storeToRefs(store)
+    const { isConnecting, connectionError, discoveryProgress: storeProgress } = storeToRefs(store)
 
     const connectionMethod = ref<'seed' | 'privateKey'>('seed')
 
@@ -125,7 +125,7 @@ export function useConnect() {
             }
         } catch (err: any) {
             if (activeSeedRun.value !== run) return
-            seedDiscoveryError.value = err?.message || 'Unknown error'
+            seedDiscoveryError.value = err?.message || 'Unknown error during seed discovery'
         } finally {
             if (activeSeedRun.value === run) isSearchingSeed.value = false
         }
@@ -157,7 +157,7 @@ export function useConnect() {
             }
         } catch (err: any) {
             if (activeKeyRun.value !== run) return
-            privateKeyDiscoveryError.value = err?.message || 'Unknown error'
+            privateKeyDiscoveryError.value = err?.message || 'Unknown error occurred'
         } finally {
             if (activeKeyRun.value === run) isDiscovering.value = false
         }
@@ -175,8 +175,10 @@ export function useConnect() {
                 await store.connectWithSeed(seedWords.value.join(' '), network, identity.identityId, identity.identityIdx ?? 0)
             } else {
                 const id = (manualIdentityId.value || discoveredIdentity.value?.identityId || '').trim()
-                if (!id || !privateKeyInput.value) throw new Error('Missing credentials')
-                await store.connectWithSingleKey(privateKeyInput.value.trim(), id, network, discoveredIdentity.value)
+                if (!id) throw new Error('Missing identity id')
+                const privateKey = privateKeyInput.value?.trim()
+                if (!privateKey) throw new Error('Missing private key')
+                await store.connectWithSingleKey(privateKey, id, network, discoveredIdentity.value)
             }
             showSuccess(`Connected to ${store.username || store.identityId}`)
         } catch (err: any) {
@@ -186,6 +188,32 @@ export function useConnect() {
             throw err
         }
     }
+
+    // --- Original Computed Logic Restored ---
+    const discoveryProgress = computed(() => localDiscoveryProgress.value || storeProgress?.value)
+
+    const progressPercentage = computed(() => {
+        const progress = discoveryProgress.value
+        if (!progress) return 0
+        const { currentIdentityIndex, totalIdentities } = progress
+        if (!totalIdentities || totalIdentities <= 0) return 0
+        return Math.min(100, Math.round((currentIdentityIndex / totalIdentities) * 100))
+    })
+
+    const progressMessage = computed(() => discoveryProgress.value?.message || '')
+
+    const discoveryStatus = computed(() => {
+        if (isSearchingSeed.value) return 'Scanning network...'
+        if (isDiscovering.value) return 'Deriving keys and querying DAPI...'
+        return ''
+    })
+
+    const isFormValid = computed(() => {
+        if (connectionMethod.value === 'seed') return !!selectedSeedIdentity.value
+        const idOk = !!normalizeId(manualIdentityId.value || discoveredIdentity.value?.identityId || '')
+        const keyOk = !!privateKeyInput.value?.trim()
+        return idOk && keyOk
+    })
 
     return {
         connectionMethod,
@@ -201,26 +229,25 @@ export function useConnect() {
         privateKeyDiscoveryError,
         isConnecting,
         connectionError,
+        discoveryProgress,
         isSearchingSeed,
         isDiscovering,
+        discoveryStatus,
+        isFormValid,
+        progressPercentage,
+        progressMessage,
+        updateConnectionMethod,
         formatBalance,
         handlePaste,
-        updateConnectionMethod,
-        startSeedDiscovery,
+        selectSeedIdentity: (identity: DiscoveredIdentity) => { selectedSeedIdentity.value = identity },
         handleDiscoverIdentity,
+        resetDiscovery: () => { discoveredIdentity.value = null; manualIdentityId.value = '' },
+        closeResults: () => { seedDiscoveryResults.value = [] },
+        useManualIdentity: () => { manualIdentityId.value = normalizeId(manualIdentityId.value) },
         handleConnect,
         initialize: () => {},
-        cleanup: () => {
-            getIdentityManager(store).cancelSeedDiscovery()
-        },
-        resetDiscovery: () => { discoveredIdentity.value = null },
-        closeResults: () => { seedDiscoveryResults.value = [] },
-        selectSeedIdentity: (i: DiscoveredIdentity) => { selectedSeedIdentity.value = i },
+        cleanup: () => { getIdentityManager(store).cancelSeedDiscovery() },
         switchIdentity: (id: string) => store.switchIdentity(id.trim()),
-        useManualIdentity: () => { manualIdentityId.value = manualIdentityId.value.trim() },
-        isFormValid: computed(() => true), // Logic simplified for brevity
-        progressPercentage: computed(() => 0),
-        progressMessage: computed(() => ''),
-        discoveryStatus: computed(() => '')
+        startSeedDiscovery
     }
 }
