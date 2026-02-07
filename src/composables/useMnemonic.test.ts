@@ -1,9 +1,8 @@
 // src/composables/useMnemonic.test.ts
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { useMnemonic, useMnemonicValidator } from './useMnemonic'
 import { invoke } from '@/utils/tauri'
-import * as bip39 from 'bip39'
 
 vi.mock('@/utils/tauri', () => ({
     invoke: vi.fn()

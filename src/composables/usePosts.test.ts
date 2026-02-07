@@ -2,7 +2,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { usePosts } from './usePosts'
-import { usePostsStore } from '@/stores/posts'
 import * as filters from '@/services/posts/filters'
 import * as stats from '@/services/posts/stats'
 

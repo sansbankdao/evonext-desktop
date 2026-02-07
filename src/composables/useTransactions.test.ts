@@ -127,9 +127,9 @@ describe('useTransactions Composable Full Suite', () => {
 
             expect(result.success).toBe(true)
             if (result.success) {
-                expect(result.data).toHaveLength(1)
-                expect(result.data[0].amount).toBe(1000)
-                expect(result.data[0].direction).toBe('OUTGOING')
+                expect(result.data!).toHaveLength(1)
+                expect(result.data![0]!.amount).toBe(1000)
+                expect(result.data![0]!.direction).toBe('OUTGOING')
             }
         })
 
@@ -169,7 +169,7 @@ describe('useTransactions Composable Full Suite', () => {
             })
 
             expect(result.success).toBe(true)
-            expect(result.data?.txid).toBe('mock_st_hash')
+            expect(result.data!.txid).toBe('mock_st_hash')
             expect(mockSdk.stateTransitions.broadcast).toHaveBeenCalled()
         })
 
@@ -201,7 +201,7 @@ describe('useTransactions Composable Full Suite', () => {
             })
 
             expect(result.success).toBe(true)
-            expect(result.data?.txid).toBe('token_tx_hash')
+            expect(result.data!.txid).toBe('token_tx_hash')
             expect(mockSdk.tokens.createStateTransition).toHaveBeenCalled()
         })
 
@@ -222,7 +222,7 @@ describe('useTransactions Composable Full Suite', () => {
     })
 
     describe('Dash Withdrawals', () => {
-        it('withdrawDash should call creditWithdrawal on EvoSDK', async () => {
+        it('withdrawDash should call credit withdrawal on EvoSDK', async () => {
             const result = await withdrawDash({
                 identityId: 'id',
                 recipientAddress: 'addr123',
@@ -230,7 +230,7 @@ describe('useTransactions Composable Full Suite', () => {
             })
 
             expect(result.success).toBe(true)
-            expect(result.data?.txid).toBe('withdrawal_hash')
+            expect(result.data!.txid).toBe('withdrawal_hash')
             expect(mockSdk.identities.creditWithdrawal).toHaveBeenCalled()
         })
 

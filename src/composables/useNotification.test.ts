@@ -19,8 +19,8 @@ describe('useNotification', () => {
         show('Test Message', 'success')
 
         expect(notifications.length).toBe(1)
-        expect(notifications[0].message).toBe('Test Message')
-        expect(notifications[0].type).toBe('success')
+        expect(notifications[0]!.message).toBe('Test Message')
+        expect(notifications[0]!.type).toBe('success')
     })
 
     it('should automatically dismiss after duration', () => {
@@ -49,8 +49,8 @@ describe('useNotification', () => {
             action: { label: 'Undo', callback }
         })
 
-        expect(notifications[0].action?.label).toBe('Undo')
-        notifications[0].action?.callback()
+        expect(notifications[0]!.action!.label).toBe('Undo')
+        notifications[0]!.action!.callback()
         expect(callback).toHaveBeenCalled()
     })
 
