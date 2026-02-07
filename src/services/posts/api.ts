@@ -1,16 +1,12 @@
 // src/services/posts/api.ts
-
 import { invoke } from '@/utils/tauri'
-
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 import { EvoSDK } from '@dashevo/evo-sdk'
 // @ts-ignore
 import { binToHex } from '@evonext/utils'
 import { randomBytes } from '@/services/crypto'
-
 import { useNetwork } from '@/composables/useNetwork'
-// import { useWallet } from '@/composables/useWallet'
 import { useIdentityStore } from '@/stores/identity'
 import { getContractId } from './utils'
 import { YAPPR_CONTRACT_ID_TESTNET } from '@/constants'
@@ -21,13 +17,11 @@ import type {
     PostsFetchResult,
     IPostDocument
 } from '@/types/posts'
-
 const MAX_DPNS_NAMES_LIMIT = 100
-
 /**
  * PURE JS BASE58 IMPLEMENTATION
  */
-const Base58 = {
+export const Base58 = {
     ALPHABET: '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
     ALPHABET_MAP: {} as Record<string, number>,
     init() {
@@ -61,8 +55,7 @@ const Base58 = {
         return result
     }
 }
-
-function ensureBase58(id: string): string {
+export function ensureBase58(id: string): string {
     if (!id) return id
     if (id.length === 44 && id.endsWith('=') || id.includes('+') || id.includes('/')) {
         try {
@@ -76,8 +69,7 @@ function ensureBase58(id: string): string {
     }
     return id
 }
-
-function normalizeDocument(doc: any): IPostDocument {
+export function normalizeDocument(doc: any): IPostDocument {
     const data = typeof doc.toJSON === 'function' ? doc.toJSON() : doc
     return {
         ...data,
@@ -95,9 +87,6 @@ function normalizeDocument(doc: any): IPostDocument {
         remix: data.remix || undefined
     }
 }
-
-// --- Fetching Logic ---
-
 export async function fetchPostsFromTauri(
     network: string,
     options: {
@@ -110,9 +99,7 @@ export async function fetchPostsFromTauri(
     try {
         const { ownerId, orderBy, limit, contractId } = options
         const where: any[] = [["$createdAt", ">", 0]]
-
         if (ownerId) where.push(["$ownerId", "==", ensureBase58(ownerId)])
-
         const order = [["$createdAt", orderBy || 'desc']]
         const documents = await invoke<any[]>('get_posts', {
             dataContractId: contractId,
@@ -122,13 +109,11 @@ export async function fetchPostsFromTauri(
             limit: limit || 20,
             network
         })
-
         return (documents || []).map(normalizeDocument)
     } catch (error: any) {
         throw error
     }
 }
-
 export async function fetchPostsFromDAPI(options?: {
     ownerId?: string
     orderBy?: 'newest' | 'oldest' | 'desc' | 'asc'
@@ -136,26 +121,21 @@ export async function fetchPostsFromDAPI(options?: {
 }): Promise<PostsFetchResult> {
     const { network } = useNetwork()
     const targetNetwork = network.value
-
     let direction: 'desc' | 'asc' = (options?.orderBy === 'oldest' || options?.orderBy === 'asc') ? 'asc' : 'desc'
-
     const documents = await fetchPostsFromTauri(targetNetwork, {
         ownerId: options?.ownerId as string,
         orderBy: direction,
         limit: options?.limit || 20,
         contractId: YAPPR_CONTRACT_ID_TESTNET
     })
-
     return { posts: documents as unknown as IPost[], hasNextPage: false }
 }
-
 export async function fetchDocumentsById(
     network: string,
     contractId: string,
     ids: string[]
 ): Promise<IPostDocument[]> {
     if (!ids.length) return []
-
     const documents = await invoke<any[]>('get_posts', {
         dataContractId: contractId,
         documentType: 'post',
@@ -163,22 +143,15 @@ export async function fetchDocumentsById(
         limit: ids.length,
         network
     })
-
     return documents.map(normalizeDocument)
 }
-
-// --- DPNS & Profile Logic ---
-
 export async function fetchUserProfile(
     ownerId: string,
     networkOverride?: string
 ): Promise<any | null> {
     const { network } = useNetwork()
-
     const targetNetwork = networkOverride || network.value
-
     const contractId = getContractId('dashpay', targetNetwork)
-
     const profiles = await invoke<any[]>('get_posts', {
         dataContractId: contractId,
         documentType: 'profile',
@@ -186,19 +159,15 @@ export async function fetchUserProfile(
         limit: 1,
         network: targetNetwork
     })
-
     return profiles?.length ? normalizeDocument(profiles[0]) : null
 }
-
 export async function fetchDPNSName(
     ownerId: string,
     networkOverride?: string
 ): Promise<string | null> {
     const { network } = useNetwork()
     const targetNetwork = networkOverride || network.value
-
     const contractId = getContractId('dpns', targetNetwork)
-
     const dpnsRecords = await invoke<any[]>('get_posts', {
         dataContractId: contractId,
         documentType: 'domain',
@@ -206,21 +175,18 @@ export async function fetchDPNSName(
         limit: MAX_DPNS_NAMES_LIMIT,
         network: targetNetwork
     })
-
     if (dpnsRecords?.length) {
         const doc = dpnsRecords[0]
         return doc.label || doc.normalizedLabel || null
     }
     return null
 }
-
 export async function fetchDPNSNames(
     ownerId: string,
     networkOverride?: string
 ): Promise<string[] | null> {
     const { network } = useNetwork()
     const targetNetwork = networkOverride || network.value
-
     const contractId = getContractId('dpns', targetNetwork)
     const dpnsRecords = await invoke<any[]>('get_posts', {
         dataContractId: contractId,
@@ -229,119 +195,8 @@ export async function fetchDPNSNames(
         limit: MAX_DPNS_NAMES_LIMIT,
         network: targetNetwork
     })
-
     return dpnsRecords?.map((d: any) => d.label || d.normalizedLabel || null) || null
 }
-
-// --- Mutation Logic ---
-
-// interface IPostData {
-//     content: string;
-//     language?: string;
-// }
-
-// export async function createPost(
-//     params: ICreatePostParams
-// ): Promise<IPost | null> {
-//     const { network: currentNetwork } = useNetwork()
-//     // const { getAuthKey } = useWallet()
-
-//     const identityStore = useIdentityStore()
-
-//     const targetNetwork = currentNetwork.value as 'testnet' | 'mainnet'
-//     const identityId = identityStore.identityId
-
-//     if (!identityId) throw new Error('Identity not found.')
-
-//     try {
-//         // const sdk = new DashPlatformSDK({ network: targetNetwork })
-//         const sdk = targetNetwork === 'mainnet'
-//             ? EvoSDK.mainnetTrusted()
-//             : EvoSDK.testnetTrusted()
-
-//         const keyData = await invoke<any>('load_private_keys', { network: targetNetwork })
-// // alert(`KEY DATA: ${JSON.stringify(keyData, null, 2)}`)
-// // alert(`IDENTITIES: ${JSON.stringify(keyData?.identities, null, 2)}`)
-// // alert(`IDENTITY: ${JSON.stringify(keyData?.identities?.[identityId], null, 2)}`)
-//         const authKeyData = keyData?.identities?.[identityId]?.find((k: any) =>
-//             k.purpose === 0 && (k.securityLevel === 1 || k.securityLevel === 2)
-//         )
-// // alert(`AUTH PRIV KEY: ${JSON.stringify(authKeyData, null, 2)}`)
-//         if (!authKeyData?.privateKey) throw new Error('Auth Key not found.')
-
-//         /* Set private key (WIF). */
-//         const privateKeyWif = authKeyData.privateKey
-
-//         const data = {
-//             content: params.content.trim(),
-//             language: (params.language || 'en').substring(0, 2),
-//             ...(params.isSensitive && { sensitive: true }),
-//             ...(params.mediaUrl?.[0] && { mediaUrl: params.mediaUrl[0] }),
-//             ...(params.remix && { remix: params.remix })
-//         }
-
-//         const postData: IPostData = {
-//             content: params.content.trim(),
-//         }
-
-//         postData.language = (params.language || 'en').substring(0, 2)
-
-//         const entropyHex = binToHex(randomBytes(32))
-// // const IDENTITY_IDX = 0 // FIXME PULL THIS FROM RUST IDENTITY.JSON
-// // const authKey = getAuthKey(identityId)
-// // alert(`ENTROPY: ${entropyHex}`)
-
-//         const payload = {
-//             contractId: YAPPR_CONTRACT_ID_TESTNET,
-//             type: 'post',
-//             ownerId: identityId,
-//             data: postData,
-//             entropyHex,
-//             privateKeyWif,
-//         }
-// // alert(`PAYLOAD: ${JSON.stringify(payload, null, 2)}`)
-//         // const document = await sdk.documents.create(
-//         //     YAPPR_CONTRACT_ID_TESTNET, 'post', data, identityId, BigInt(1))
-//         const document = await sdk.documents.create(payload)
-// console.log(document)
-// // alert(`POSTED! ${JSON.stringify(document, null, 2)}`)
-
-//         // const identityContractNonce = (await sdk.identities
-//         //         .getIdentityContractNonce(identityId, YAPPR_CONTRACT_ID_TESTNET)) + 1n
-
-//         // const stateTransition = await sdk.documents
-//         //     .createStateTransition(document, 'create', { identityContractNonce })
-
-//         // const privKey = PrivateKeyWASM.fromWIF(authKeyData.privateKeyWif)
-//         // const identity = await sdk.identities.getIdentityByIdentifier(identityId)
-//         // if (!identity) throw new Error('Identity fetch failed.')
-
-//         // const publicKeyId = 1
-//         // const pubKey = identity.getPublicKeys()[publicKeyId]
-//         // if (!pubKey) throw new Error('Public key index 1 not found')
-
-//         // stateTransition.sign(privKey, pubKey)
-//         // stateTransition.signaturePublicKeyId = publicKeyId
-
-//         // await sdk.stateTransitions.broadcast(stateTransition)
-//         // await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
-
-//         return {
-//             ...data,
-//             // id: stateTransition.hash(true), // skip_signature: true
-//             id: '', // skip_signature: true
-//             ownerId: identityId,
-//             createdAt: Math.floor(Date.now() / 1000),
-//             updatedAt: null,
-//             contractId: YAPPR_CONTRACT_ID_TESTNET,
-//             author: identityStore.identity as any,
-//             likes: 0, remixes: 0, replies: 0, views: 0
-//         } as unknown as IPost
-//     } catch (error: any) {
-//         console.error('[API] createPost Error:', error)
-//         throw error
-//     }
-// }
 export async function createPost(
     params: ICreatePostParams
 ): Promise<IPost | null> {
@@ -351,13 +206,10 @@ export async function createPost(
     const identityId = identityStore.identityId
     if (!identityId) throw new Error('Identity not found.')
     try {
-        // 1. Use ONLY EvoSDK (matching your Modal's success path)
         const sdk = targetNetwork === 'mainnet'
             ? EvoSDK.mainnetTrusted()
             : EvoSDK.testnetTrusted()
-        // 2. Ensure SDK is connected before proceeding
-        await sdk.connect();
-        // 3. Load Keys (Removed all alerts)
+        await sdk.connect()
         const keyData = await invoke<any>('load_private_keys', { network: targetNetwork })
         const authKeyData = keyData?.identities?.[identityId]?.find((k: any) =>
             k.purpose === 0 && (k.securityLevel === 1 || k.securityLevel === 2)
@@ -365,7 +217,6 @@ export async function createPost(
         if (!authKeyData?.privateKey) throw new Error('Auth Key not found.')
         const privateKeyWif = authKeyData.privateKey
         const entropyHex = binToHex(randomBytes(32))
-        // 4. Data Construction
         const postData = {
             content: params.content.trim(),
             language: (params.language || 'en').substring(0, 2),
@@ -374,7 +225,6 @@ export async function createPost(
             ...(params.remix && { remix: params.remix })
         }
         const payload = {
-            id: '', // skip_signature: true
             contractId: YAPPR_CONTRACT_ID_TESTNET,
             type: 'post',
             ownerId: identityId,
@@ -382,11 +232,7 @@ export async function createPost(
             entropyHex,
             privateKeyWif,
         }
-        // 5. Submit Document
-        // Note: We use await here. If it hangs, check the console for WASM errors.
-        const createdDocument = await sdk.documents.create(payload)
-console.log('CREATED DOCUMENT', createdDocument)
-        // 6. Return standard post object for UI
+        await sdk.documents.create(payload)
         return {
             ...postData,
             ownerId: identityId,
@@ -401,61 +247,42 @@ console.log('CREATED DOCUMENT', createdDocument)
         throw error
     }
 }
-
 export async function updatePost(
     postId: string,
     updates: IUpdatePostParams
 ): Promise<boolean> {
     const { network: currentNetwork } = useNetwork()
-
     const identityStore = useIdentityStore()
-
     const targetNetwork = currentNetwork.value as 'testnet' | 'mainnet'
-
     const identityId = identityStore.identityId
-
     if (!identityId) throw new Error('Identity not found.')
-
     try {
         const sdk = new DashPlatformSDK({ network: targetNetwork })
-
         const keyData = await invoke<any>('load_private_keys', { network: targetNetwork })
-
         const authKeyData = keyData?.identities?.[identityId]?.find((k: any) =>
             k.purpose === 0 && (k.securityLevel === 1 || k.securityLevel === 2)
         )
-
         if (!authKeyData?.privateKeyWif) throw new Error('Auth Key not found.')
-
         const docs = await fetchDocumentsById(targetNetwork, YAPPR_CONTRACT_ID_TESTNET, [postId])
-
         if (!docs.length || !docs[0]) throw new Error('Post not found.')
-
         const nextRevision = BigInt((docs[0].revision || 1) + 1)
-
         const data = {
             content: updates.content?.trim(),
             language: (updates.language || 'en').substring(0, 2),
             ...(updates.isSensitive !== undefined && { sensitive: updates.isSensitive }),
             ...(updates.mediaUrl?.[0] && { mediaUrl: updates.mediaUrl[0] })
         }
-
         const document = await sdk.documents.create(YAPPR_CONTRACT_ID_TESTNET, 'post', data, identityId, nextRevision)
-
         document.id = ensureBase58(postId)
-
         const identityContractNonce = (await sdk.identities.getIdentityContractNonce(identityId, YAPPR_CONTRACT_ID_TESTNET)) + 1n
         const stateTransition = await sdk.documents.createStateTransition(document, 'replace', { identityContractNonce })
-
         const privKey = PrivateKeyWASM.fromWIF(authKeyData.privateKeyWif)
         const identity = await sdk.identities.getIdentityByIdentifier(identityId)
         const publicKeyId = 1
         const pubKey = identity?.getPublicKeys()[publicKeyId]
         if (!pubKey) throw new Error('Public key index 1 not found')
-
         stateTransition.sign(privKey, pubKey)
         stateTransition.signaturePublicKeyId = publicKeyId
-
         await sdk.stateTransitions.broadcast(stateTransition)
         return true
     } catch (error: any) {
@@ -463,7 +290,6 @@ export async function updatePost(
         return false
     }
 }
-
 export async function deletePost(postId: string): Promise<boolean> {
     console.log('[API] deletePost (Transition not implemented):', postId)
     return true

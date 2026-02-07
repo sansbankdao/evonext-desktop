@@ -1,7 +1,7 @@
 {
   "name": "evonext-desktop",
   "description": "Free and Fearless Social — Connect with early-stage Founders and Creators — plus, the hottest collection of Mini Apps designed to streamline your workflow and simplify everyday tasks.",
-  "version": "26.2.3",
+  "version": "26.2.7",
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -64,6 +64,7 @@
     "ts-node": "10.9.2",
     "typescript": "5.6.3",
     "vite": "7.1.9",
+    "vite-tsconfig-paths": "6.0.5",
     "vitest": "4.0.18",
     "vue-tsc": "3.1.0",
     "webdriverio": "9.23.3"
