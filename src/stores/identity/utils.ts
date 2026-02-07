@@ -5,7 +5,6 @@ import { binToHex } from '@evonext/utils'
 import { invoke } from '@/utils/tauri'
 import { DashPlatformSDK } from 'dash-platform-sdk'
 import type { IIdentity, IPublicKey } from '@/types'
-
 /**
  * Convert hex string to base64
  */
@@ -15,14 +14,12 @@ export function hexHash160ToBase64(hex: string): string {
     const bytes = new Uint8Array(matches.map(byte => parseInt(byte, 16)))
     return btoa(String.fromCharCode(...Array.from(bytes)))
 }
-
 /**
  * Create SDK instance for network
  */
 export function createSDK(network: 'testnet' | 'mainnet'): DashPlatformSDK {
     return new DashPlatformSDK({ network })
 }
-
 /**
  * Save data to Tauri store with error handling
  */
@@ -34,7 +31,6 @@ export async function saveToStore<T>(command: string, payload: T): Promise<void>
         throw error
     }
 }
-
 /**
  * Load data from Tauri store with error handling
  */
@@ -47,25 +43,30 @@ export async function loadFromStore<T>(command: string): Promise<T | null> {
         return null
     }
 }
-
 /**
  * Transform SDK public keys to IdentityPublicKey format
  */
 export function transformPublicKeys(sdkKeys: any[]): IPublicKey[] {
-    return sdkKeys.map((key: any, index: number) => ({
-        id: index,
-        type: key.type_ || key.type || '',
-        keyType: key.type_ || key.type || '',
-        purpose: key.purpose || key.purposeNumber || 0,
-        securityLevel: key.security_level || key.securityLevel || key.securityLevelNumber || 0,
-        data: key.data || '',
-        dataBytes: key.dataBytes || (key.data ? binToHex(key.data) : ''),
-        readOnly: key.read_only || key.readOnly || false,
-        disabledAt: key.disabled_at || key.disabledAt || null,
-        createdAt: key.created_at || null
-    }))
+    return sdkKeys.map((key: any, index: number) => {
+        let hexData = ''
+        if (key.data instanceof Uint8Array) {
+            hexData = binToHex(key.data)
+        } else if (typeof key.data === 'string') {
+            hexData = key.data
+        }
+        return {
+            type: key.type_ || key.type || '',
+            keyType: key.type_ || key.type || '',
+            purpose: key.purpose || key.purposeNumber || 0,
+            securityLevel: key.security_level || key.securityLevel || key.securityLevelNumber || 0,
+            data: hexData,
+            dataBytes: hexData,
+            readOnly: key.read_only || key.readOnly || false,
+            disabledAt: key.disabled_at || key.disabledAt || null,
+            createdAt: key.created_at || null
+        }
+    })
 }
-
 /**
  * Validate identity data
  */
@@ -79,22 +80,20 @@ export function validateIdentityData(data: any): boolean {
         typeof data.is_authenticated === 'boolean'
     )
 }
-
 /**
  * Create default identity data
  */
 export function createDefaultIdentityData(username: string = ''): IIdentity {
     return {
-        id: '',
         identityId: '',
         identityIdx: 0,
-        balance: '0', // Fixed: string "0"
+        balance: '0',
         revision: 0,
         publicKeys: [],
         username,
         publicKeyIds: [],
         isAuthenticated: false,
         createdAt: 1234567890,
-        displayName: '' // Ensure field is present
+        displayName: ''
     }
 }
