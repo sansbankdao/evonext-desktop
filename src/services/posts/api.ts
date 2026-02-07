@@ -18,9 +18,6 @@ import type {
     IPostDocument
 } from '@/types/posts'
 const MAX_DPNS_NAMES_LIMIT = 100
-/**
- * PURE JS BASE58 IMPLEMENTATION
- */
 export const Base58 = {
     ALPHABET: '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
     ALPHABET_MAP: {} as Record<string, number>,
@@ -262,7 +259,8 @@ export async function updatePost(
         const authKeyData = keyData?.identities?.[identityId]?.find((k: any) =>
             k.purpose === 0 && (k.securityLevel === 1 || k.securityLevel === 2)
         )
-        if (!authKeyData?.privateKeyWif) throw new Error('Auth Key not found.')
+        if (!authKeyData?.privateKeyWif && !authKeyData?.privateKey) throw new Error('Auth Key not found.')
+        const wif = authKeyData.privateKeyWif || authKeyData.privateKey
         const docs = await fetchDocumentsById(targetNetwork, YAPPR_CONTRACT_ID_TESTNET, [postId])
         if (!docs.length || !docs[0]) throw new Error('Post not found.')
         const nextRevision = BigInt((docs[0].revision || 1) + 1)
@@ -276,13 +274,18 @@ export async function updatePost(
         document.id = ensureBase58(postId)
         const identityContractNonce = (await sdk.identities.getIdentityContractNonce(identityId, YAPPR_CONTRACT_ID_TESTNET)) + 1n
         const stateTransition = await sdk.documents.createStateTransition(document, 'replace', { identityContractNonce })
-        const privKey = PrivateKeyWASM.fromWIF(authKeyData.privateKeyWif)
+        const privKey = PrivateKeyWASM.fromWIF(wif)
         const identity = await sdk.identities.getIdentityByIdentifier(identityId)
-        const publicKeyId = 1
-        const pubKey = identity?.getPublicKeys()[publicKeyId]
-        if (!pubKey) throw new Error('Public key index 1 not found')
+        // SEARCH logic: Find the public key that matches the authKeyData we are using
+        const publicKeys = identity?.getPublicKeys() || []
+        const pubKey = publicKeys.find((pk: any) =>
+            pk.purpose === 0 &&
+            pk.securityLevel === authKeyData.securityLevel &&
+            (pk.keyId === authKeyData.id || pk.id === authKeyData.id)
+        ) || publicKeys[1] // Fallback to index 1 if search fails to maintain existing (risky) behavior
+        if (!pubKey) throw new Error('Valid public key for signing not found')
         stateTransition.sign(privKey, pubKey)
-        stateTransition.signaturePublicKeyId = publicKeyId
+        stateTransition.signaturePublicKeyId = (pubKey as any).id || (pubKey as any).keyId || 1
         await sdk.stateTransitions.broadcast(stateTransition)
         return true
     } catch (error: any) {

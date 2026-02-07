@@ -83,7 +83,8 @@ describe('useTransactions Composable', () => {
         it('shortTxid should truncate hash correctly', () => {
             const hash = '1234567890abcdef1234567890abcdef'
             const shortened = shortTxid(hash, 8)
-            expect(shortened).toBe('1234...bcdef')
+            // Fixed expectation to match 4 chars from start and 4 from end
+            expect(shortened).toBe('1234...cdef')
         })
     })
 
