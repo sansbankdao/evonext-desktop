@@ -1,53 +1,60 @@
 // src/stores/wallet/actions/api.test.ts
 
-import { setActivePinia, createPinia } from 'pinia'
-import { useWalletStore } from '../index'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-
-vi.mock('@/utils/env', () => ({
-    PLATFORM_HTTP_API_MAINNET: 'https://mainnet-mock.api',
-    PLATFORM_HTTP_API_TESTNET: 'https://testnet-mock.api',
-}))
-
-describe('Wallet Store (API Actions)', () => {
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import {
+    fetchIdentityTransactions,
+    fetchIdentityTransfers,
+    fetchTokenTransitions,
+    fetchTokenBalance
+} from './api'
+describe('Wallet API Service', () => {
     beforeEach(() => {
-        setActivePinia(createPinia());
-        vi.restoreAllMocks()
+        vi.stubGlobal('fetch', vi.fn())
     })
-
-    it('fetches token balance via store action and converts to BigInt', async () => {
-        const store = useWalletStore()
-
-        // Mock the global fetch that fetchTokenBalance uses
-        const mockFetch = vi.fn().mockResolvedValue({
+    it('fetchIdentityTransactions should handle resultSet and raw arrays', async () => {
+        vi.mocked(fetch).mockResolvedValueOnce({
             ok: true,
-            json: async () => ({ balance: '123450000000' })
-        })
-
-        // @ts-ignore
-        global.fetch = mockFetch
-
-        const result = await store.getTokenBalance('testIdentity', 'testContract')
-
-        // Now result IS the bigint, not a wrapper
-        expect(result).toBe(123450000000n)
-
-        expect(mockFetch).toHaveBeenCalled()
+            json: async () => ({ resultSet: [{ txid: '1' }] })
+        } as any)
+        let res = await fetchIdentityTransactions('id')
+        expect(res).toHaveLength(1)
+        vi.mocked(fetch).mockResolvedValueOnce({
+            ok: true,
+            json: async () => [{ txid: '2' }]
+        } as any)
+        res = await fetchIdentityTransactions('id')
+        expect(res).toHaveLength(1)
     })
-
-    it('handles network errors gracefully', async () => {
-        const store = useWalletStore()
-
-        const mockFetch = vi.fn().mockResolvedValue({
-            ok: false,
-            status: 404
-        })
-
-        // @ts-ignore
-        global.fetch = mockFetch
-
-        // Since we removed ErrorBoundary.wrap in favor of throwing, we expect a rejection
-        await expect(store.getTokenBalance('bad', 'id'))
-            .rejects.toThrow('Failed to fetch balance for id: 404')
+    it('fetchIdentityTransactions should throw on error status', async () => {
+        vi.mocked(fetch).mockResolvedValueOnce({ ok: false, status: 404 } as any)
+        await expect(fetchIdentityTransactions('id')).rejects.toThrow('Explorer API error')
+    })
+    it('fetchIdentityTransfers should return empty array', async () => {
+        const res = await fetchIdentityTransfers('id')
+        expect(res).toEqual([])
+    })
+    it('fetchTokenTransitions should fetch and return data', async () => {
+        vi.mocked(fetch).mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ resultSet: [{ id: 't1' }] })
+        } as any)
+        const res = await fetchTokenTransitions('contract')
+        expect(res).toHaveLength(1)
+    })
+    it('fetchTokenBalance should handle balance strings and convert to BigInt', async () => {
+        // Test object response
+        vi.mocked(fetch).mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ balance: '1000' })
+        } as any)
+        let res = await fetchTokenBalance('id', 'contract')
+        expect(res).toBe(1000n)
+        // Test raw value response
+        vi.mocked(fetch).mockResolvedValueOnce({
+            ok: true,
+            json: async () => '2000'
+        } as any)
+        res = await fetchTokenBalance('id', 'contract')
+        expect(res).toBe(2000n)
     })
 })

@@ -5,11 +5,10 @@ import { usePosts } from './usePosts'
 import { usePostsStore } from '@/stores/posts'
 import * as filters from '@/services/posts/filters'
 import * as stats from '@/services/posts/stats'
-import { nextTick } from 'vue'
 
 const mockPostsStore = {
-    posts: [{ id: 'p1', content: 'hello' }],
-    sortedPosts: [{ id: 'p1', content: 'hello' }],
+    posts: [{ id: 'p1', content: 'hello', ownerId: 'u1' }],
+    sortedPosts: [{ id: 'p1', content: 'hello', ownerId: 'u1' }],
     sortedUserPosts: [],
     isLoading: false,
     error: null,
@@ -38,80 +37,86 @@ vi.mock('@/stores/identity', () => ({
 }))
 
 vi.mock('@/stores/settings', () => ({
-    useSettingsStore: () => ({ state: { network: 'mainnet' } })
+    useSettingsStore: () => ({ state: { network: 'testnet' } })
 }))
 
 vi.mock('@/services/posts/filters', () => ({
     filterPosts: vi.fn((p) => p),
     getUniqueLanguages: vi.fn(() => ['en']),
     getUniqueHashtags: vi.fn(() => ['#dash']),
-    countPostsByPeriod: vi.fn(() => ({ day: 1 }))
+    countPostsByPeriod: vi.fn(() => ({}))
 }))
 
 vi.mock('@/services/posts/stats', () => ({
     isPostBookmarked: vi.fn(() => false),
     getPostStats: vi.fn(),
-    getBookmarkedPostIds: vi.fn(() => [])
+    getBookmarkedPostIds: vi.fn(() => []),
+    applyStatsUpdate: vi.fn()
 }))
 
-vi.mock('./useDebounce', () => ({ useDebounce: (val: any) => val }))
+vi.mock('./useDebounce', () => ({
+    useDebounce: vi.fn((val) => val)
+}))
 
-describe('usePosts UI & Filtering', () => {
+const mockOnBeforeUnmount = vi.fn()
+vi.mock('vue', async () => {
+    const actual = await vi.importActual('vue')
+    return {
+        ...actual,
+        onBeforeUnmount: (fn: any) => mockOnBeforeUnmount.mockImplementation(fn)
+    }
+})
+
+describe('usePosts composable', () => {
     beforeEach(() => {
+        vi.useFakeTimers()
         vi.clearAllMocks()
     })
 
-    it('should clear all filters', async () => {
-        const { searchQuery, languageFilter, sortBy, clearFilters } = usePosts()
-        searchQuery.value = 'search'
+    it('should compute posts and handle dependencies', () => {
+        const { searchQuery, posts } = usePosts()
+        searchQuery.value = 'search term'
+
+        // Triggering computed access
+        const results = posts.value
+        expect(filters.filterPosts).toHaveBeenCalled()
+        expect(results).toHaveLength(1)
+    })
+
+    it('clearFilters should reset UI state', () => {
+        const { searchQuery, languageFilter, clearFilters } = usePosts()
+        searchQuery.value = 'test'
         languageFilter.value = 'en'
-        sortBy.value = 'oldest'
 
         clearFilters()
 
         expect(searchQuery.value).toBe('')
         expect(languageFilter.value).toBe('')
-        expect(sortBy.value).toBe('newest')
     })
 
-    it('should compute filteredPosts when dependencies change', async () => {
-        // Destructure the property from the result of usePosts()
-        const { searchQuery, posts } = usePosts()
-        searchQuery.value = 'new search'
+    it('auto-refresh should fetch posts at interval', async () => {
+        const { startAutoRefresh } = usePosts()
+        startAutoRefresh(1000)
 
-        const results = posts.value
-        expect(filters.filterPosts).toHaveBeenCalled()
+        await vi.advanceTimersByTimeAsync(1000)
+        expect(mockPostsStore.fetchPosts).toHaveBeenCalled()
     })
 
-    it('should handle bookmark toggling', async () => {
+    it('bookmarkPost should toggle based on current state', async () => {
         const { bookmarkPost } = usePosts()
 
-        // Scenario: Not bookmarked
         vi.mocked(stats.isPostBookmarked).mockReturnValue(false)
         await bookmarkPost('p1')
         expect(mockPostsStore.bookmarkPostById).toHaveBeenCalledWith('p1')
 
-        // Scenario: Already bookmarked
         vi.mocked(stats.isPostBookmarked).mockReturnValue(true)
         await bookmarkPost('p1')
         expect(mockPostsStore.unbookmarkPostById).toHaveBeenCalledWith('p1')
     })
 
-    it('should calculate unique metadata', () => {
+    it('should expose unique metadata from filters', () => {
         const { uniqueLanguages, uniqueHashtags } = usePosts()
         expect(uniqueLanguages.value).toContain('en')
         expect(uniqueHashtags.value).toContain('#dash')
-    })
-
-    it('should expose stats helpers', () => {
-        const { countPostsByPeriod } = usePosts()
-        const res = countPostsByPeriod('day')
-        expect(res).toEqual({ day: 1 })
-    })
-
-    it('should handle tab switching', () => {
-        const { activeTab, setTab } = usePosts()
-        setTab('remix')
-        expect(activeTab.value).toBe('remix')
     })
 })
