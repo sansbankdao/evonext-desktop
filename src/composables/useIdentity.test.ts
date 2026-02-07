@@ -1,12 +1,10 @@
 // src/composables/useIdentity.test.ts
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { reactive, nextTick } from 'vue'
+import { reactive, nextTick, computed } from 'vue'
 import { useIdentity } from './useIdentity'
 import { useIdentityStore } from '@/stores/identity'
-import { ErrorBoundary } from '@/utils/errors'
 import { invoke } from '@/utils/tauri'
-// Mocking external dependencies
 global.fetch = vi.fn()
 vi.mock('@/utils/tauri', () => ({
     invoke: vi.fn()
@@ -16,7 +14,7 @@ vi.mock('@/stores/identity', () => ({
 }))
 vi.mock('@/composables/useNetwork', () => ({
     useNetwork: () => ({
-        network: { value: 'testnet' }
+        network: computed(() => 'testnet')
     })
 }))
 vi.mock('@/utils/env', () => ({
@@ -60,7 +58,6 @@ describe('useIdentity Composable Full Suite', () => {
     let mockStore: any
     beforeEach(() => {
         vi.clearAllMocks()
-        // Reactive store mock to support computed properties
         mockStore = reactive({
             isAuthenticated: false,
             identityId: null,
@@ -114,21 +111,18 @@ describe('useIdentity Composable Full Suite', () => {
     describe('Identity Discovery & DPNS', () => {
         it('getDpnsUsername should handle various DAPI response formats', async () => {
             const { getDpnsUsername } = useIdentity()
-            // Scenario 1: Raw String return
             vi.mocked(global.fetch).mockResolvedValueOnce({
                 ok: true,
                 json: async () => 'alice.dash'
             } as any)
             let res = await getDpnsUsername('id1')
             expect(res.data).toBe('alice.dash')
-            // Scenario 2: result.data nested return
             vi.mocked(global.fetch).mockResolvedValueOnce({
                 ok: true,
                 json: async () => ({ success: true, data: 'bob.dash' })
             } as any)
             res = await getDpnsUsername('id2')
             expect(res.data).toBe('bob.dash')
-            // Scenario 3: failure
             vi.mocked(global.fetch).mockResolvedValueOnce({
                 ok: false,
                 status: 500

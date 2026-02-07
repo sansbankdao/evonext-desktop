@@ -1,4 +1,5 @@
 // src/composables/useIdentity.ts
+
 import { computed, unref } from 'vue'
 import { invoke } from '@/utils/tauri'
 import { useIdentityStore } from '@/stores/identity'
@@ -26,7 +27,7 @@ export function useIdentity() {
     const { getSDK } = usePlatformSdk()
     const isConnected = computed(() => store.isAuthenticated && !!store.identityId)
     const authPublicKey = computed(() => store.publicKeys.find((k: IPublicKey) => k.purpose === 0))
-    const displayName = computed(() => store.displayName || store.identityId || 'Guest')
+    const displayName = computed(() => store.displayName || store.username || store.identityId || 'Guest')
     const hasTransferKeyComputed = computed(hasTransferKey)
     async function init() {
         await store.loadFromStorage()
@@ -68,7 +69,6 @@ export function useIdentity() {
             const sdk = await getSDK()
             if (primaryIdentity?.id) {
                 try {
-                    // Note: getDpnsUsername now returns ActionResponse
                     const dpnsRes = await getDpnsUsername(primaryIdentity.id)
                     const dpnsUsername = dpnsRes.success ? dpnsRes.data : null
                     if (dpnsUsername) {
@@ -85,7 +85,6 @@ export function useIdentity() {
             store.identity = primaryIdentity || null
             store.isAuthenticated = true
             try {
-                // queryIdentityDetails now returns ActionResponse
                 const detailRes = await queryIdentityDetails(
                     primaryIdentity.id,
                     primaryIdentity.identityIdx || 0,
@@ -193,7 +192,7 @@ export function useIdentity() {
             const sdk = await getSDK()
             await queryIdentityDetails(store.identityId, store.identityIdx || 0, sdk)
             await store.fetchBalance()
-            const currentNetwork = unref(network) as any
+            const currentNetwork = unref(network)
             await store.syncIdentityToBackend(currentNetwork)
         } catch (error) {
             log('error', 'Failed to refresh identity', error)
@@ -221,6 +220,7 @@ export function useIdentity() {
         init,
         connect,
         searchUserIdentities,
+        discoverIdentities,
         getDpnsUsername,
         queryIdentityDetails,
         refreshIdentity,
