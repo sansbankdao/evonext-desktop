@@ -2,8 +2,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { RegistrationService } from './registration.service'
-import { EvoSDK } from '@dashevo/evo-sdk'
-
 vi.mock('@dashevo/evo-sdk', () => {
     const MockEvo = {
         connect: vi.fn().mockResolvedValue(true),
@@ -23,7 +21,6 @@ vi.mock('@dashevo/evo-sdk', () => {
         }
     }
 })
-
 vi.mock('./keyDerivation.service', () => ({
     KeyDerivationService: {
         deriveAllKeysFromSeed: vi.fn().mockResolvedValue([{
@@ -37,36 +34,29 @@ vi.mock('./keyDerivation.service', () => ({
         }])
     }
 }))
-
 vi.mock('@/composables/useMnemonic', () => ({
     mnemonicManager: {
         getMnemonic: vi.fn().mockResolvedValue('test mnemonic')
     }
 }))
-
 describe('RegistrationService', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         global.fetch = vi.fn()
     })
-
     it('should handshake with registrar and return platform ID', async () => {
         vi.mocked(fetch).mockResolvedValueOnce({
             ok: true,
             json: async () => ({ registrar: { dashAddr: 'Xaddr' } })
         } as Response)
-
         const addr = await RegistrationService.getPaymentAddress('alice', '', 'testnet')
         expect(addr).toBe('Xaddr')
-
         vi.mocked(fetch).mockResolvedValueOnce({
             ok: true,
             json: async () => ({ results: [{ proof: 'p', wif: 'w' }] })
         } as Response)
-
         const proof = await RegistrationService.pollForProof('testnet')
         expect(proof?.proof).toBe('p')
-
         const id = await RegistrationService.registerOnPlatform('p', 'w', 'alice', 'testnet')
         expect(id).toBe('mock_id')
     })

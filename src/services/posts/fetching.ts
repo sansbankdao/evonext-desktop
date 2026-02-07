@@ -1,4 +1,5 @@
 // src/services/posts/fetching.ts
+
 import { invoke } from '@/utils/tauri'
 import { useNetwork } from '@/composables/useNetwork'
 import { normalizeDocument, ensureBase58, getContractId } from './utils'
@@ -25,12 +26,16 @@ export async function fetchPostsFromTauri(
 export async function fetchPostsFromDAPI(options?: { ownerId?: string; orderBy?: string; limit?: number }): Promise<PostsFetchResult> {
     const { network } = useNetwork()
     const direction = (options?.orderBy === 'oldest' || options?.orderBy === 'asc') ? 'asc' : 'desc'
-    const documents = await fetchPostsFromTauri(network.value, {
-        ownerId: options?.ownerId,
-        orderBy: direction as 'desc' | 'asc',
-        limit: options?.limit,
-        contractId: YAPPR_CONTRACT_ID_TESTNET
-    })
+
+    // Build options object to respect exactOptionalPropertyTypes
+    const tauriOptions: { ownerId?: string; orderBy?: 'desc' | 'asc'; limit?: number; contractId: string } = {
+        contractId: YAPPR_CONTRACT_ID_TESTNET,
+        orderBy: direction as 'desc' | 'asc'
+    }
+    if (options?.ownerId) tauriOptions.ownerId = options.ownerId
+    if (options?.limit) tauriOptions.limit = options.limit
+
+    const documents = await fetchPostsFromTauri(network.value, tauriOptions)
     return { posts: documents as unknown as IPost[], hasNextPage: false }
 }
 export async function fetchDocumentsById(network: string, contractId: string, ids: string[]): Promise<IPostDocument[]> {
