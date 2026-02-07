@@ -1,4 +1,5 @@
 // src/composables/useIdentityDiscovery.test.ts
+
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useIdentityDiscovery } from './useIdentityDiscovery'
 vi.mock('./useNetwork', () => ({
@@ -18,7 +19,6 @@ describe('useIdentityDiscovery Composable', () => {
     })
     describe('Key Detection & Utils', () => {
         it('detectKeyType should identify WIF and HEX', () => {
-            // A valid WIF is usually 51-52 characters long
             const mockWif = 'cTog' + 'a'.repeat(48)
             expect(discovery.detectKeyType(mockWif)).toBe('WIF')
             expect(discovery.detectKeyType('a'.repeat(64))).toBe('HEX')
@@ -29,11 +29,11 @@ describe('useIdentityDiscovery Composable', () => {
                 keyType: 'ECDSA_SECP256K1',
                 purpose: 0,
                 securityLevel: 0,
-                dataB64: 'SGVsbG8=' // "Hello"
+                dataB64: 'SGVsbG8='
             }]
             const mapped = discovery.mapPublicKeys(rawKeys)
-            expect(mapped[0].type).toBe(0)
-            expect(mapped[0].dataBytes).toBe('48656c6c6f') // "Hello" in hex
+            expect(mapped[0]!.type).toBe(0)
+            expect(mapped[0]!.dataBytes).toBe('48656c6c6f')
         })
     })
     describe('API Interaction', () => {
@@ -92,7 +92,7 @@ describe('useIdentityDiscovery Composable', () => {
             expect(result.success).toBe(true)
             if (result.success && result.data) {
                 expect(result.data).toHaveLength(1)
-                expect(result.data[0].identityId).toBe('id_0')
+                expect(result.data[0]!.identityId).toBe('id_0')
             }
         })
     })
