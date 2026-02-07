@@ -1,4 +1,4 @@
-name: EvoNext Full CI Suite
+name: EvoNext (Desktop) CI Suite
 
 on:
   push:

@@ -41,13 +41,21 @@ vi.mock('@/services/crypto', () => ({
     hash160: vi.fn().mockResolvedValue(new Uint8Array(20))
 }))
 
-describe('KeyDerivationService - SDK Integration', () => {
+describe('KeyDerivationService', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         KeyDerivationService.cleanup()
     })
 
-    it('should track SDK instances correctly and derive keys', async () => {
+    it('identifies various key formats correctly', () => {
+        const wif = 'cT6871Y7Xh58kXG8X7Xh58kXG8X7Xh58kXG8X7Xh58kXG8X7Xh58'
+        const hex = 'a'.repeat(64)
+
+        expect(KeyDerivationService.detectKeyFormat(wif).format).toBe('WIF')
+        expect(KeyDerivationService.detectKeyFormat(hex).format).toBe('HEX_PRIVATE')
+    })
+
+    it('tracks SDK instances and derives identity keys from mnemonic', async () => {
         const mnemonic = 'word '.repeat(12).trim()
         await KeyDerivationService.getPrivateKeyWASM(mnemonic, 'testnet', 0, 0)
 
@@ -55,7 +63,21 @@ describe('KeyDerivationService - SDK Integration', () => {
         expect(sdkConstructor).toHaveBeenCalled()
 
         const sdkInstance = sdkConstructor.mock.instances[0] as any
-        expect(sdkInstance.keyPair.deriveIdentityPrivateKey).toHaveBeenCalled()
+        expect(sdkInstance.keyPair.deriveIdentityPrivateKey).toHaveBeenCalledWith(
+            expect.anything(),
+            0, // identityIndex
+            0, // keyIndex
+            'testnet'
+        )
         expect(PrivateKeyWASM.fromHex).toHaveBeenCalled()
+    })
+
+    it('derives all keys from a seed for discovery', async () => {
+        const mnemonic = 'word '.repeat(12).trim()
+        const results = await KeyDerivationService.deriveAllKeysFromSeed(mnemonic, 'testnet', 1, 5)
+
+        expect(results).toHaveLength(1)
+        expect(results[0].keys).toHaveLength(5)
+        expect(results[0].keys[0].path).toContain("0'/0'/0'")
     })
 })
