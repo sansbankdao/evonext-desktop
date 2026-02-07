@@ -1,5 +1,4 @@
 // src/services/posts/utils.ts
-
 import {
     EVONEXT_CONTRACT_ID_TESTNET,
     EVONEXT_CONTRACT_ID_MAINNET,
@@ -8,10 +7,76 @@ import {
     DPNS_CONTRACT_ID_MAINNET,
     DPNS_CONTRACT_ID_TESTNET
 } from '@/constants'
-
+import type { IPostDocument } from '@/types/posts'
 /**
- * Get the current data contract ID based on network and type
+ * PURE JS BASE58 IMPLEMENTATION
  */
+export const Base58 = {
+    ALPHABET: '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz',
+    ALPHABET_MAP: {} as Record<string, number>,
+    init() {
+        if (Object.keys(this.ALPHABET_MAP).length === 0) {
+            for (let i = 0; i < this.ALPHABET.length; i++) {
+                this.ALPHABET_MAP[this.ALPHABET.charAt(i)] = i
+            }
+        }
+    },
+    encode(buffer: Uint8Array): string {
+        this.init()
+        const digits: number[] = [0]
+        for (let i = 0; i < buffer.length; i++) {
+            let carry = buffer[i] as number
+            for (let j = 0; j < digits.length; ++j) {
+                carry += (digits[j] as number) << 8
+                digits[j] = carry % 58
+                carry = (carry / 58) | 0
+            }
+            while (carry > 0) {
+                digits.push(carry % 58)
+                carry = (carry / 58) | 0
+            }
+        }
+        let result = ''
+        for (let i = 0; i < buffer.length && buffer[i] === 0; i++) result += '1'
+        for (let i = digits.length - 1; i >= 0; i--) {
+            const digit = digits[i]
+            if (digit !== undefined) result += this.ALPHABET[digit]
+        }
+        return result
+    }
+}
+export function ensureBase58(id: string): string {
+    if (!id) return id
+    if (id.length === 44 && id.endsWith('=') || id.includes('+') || id.includes('/')) {
+        try {
+            const binaryString = atob(id)
+            const bytes = new Uint8Array(binaryString.length)
+            for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i)
+            return Base58.encode(bytes)
+        } catch (e) {
+            return id
+        }
+    }
+    return id
+}
+export function normalizeDocument(doc: any): IPostDocument {
+    const data = typeof doc.toJSON === 'function' ? doc.toJSON() : doc
+    return {
+        ...data,
+        ownerId: data.$ownerId || data.ownerId,
+        contractId: data.$dataContractId || data.dataContractId || data.contractId,
+        dataContractId: data.$dataContractId || data.dataContractId,
+        createdAt: data.$createdAt || data.createdAt,
+        updatedAt: data.$updatedAt || data.updatedAt,
+        documentTypeName: data.$type || data.documentTypeName || 'post',
+        revision: data.$revision || data.revision,
+        content: data.content || '',
+        language: data.language || 'en',
+        isSensitive: data.sensitive ?? data.isSensitive ?? false,
+        mediaUrl: data.mediaUrl || null,
+        remix: data.remix || undefined
+    }
+}
 export function getContractId(type: 'evonext' | 'dashpay' | 'dpns' = 'evonext', network: string): string {
     const isTest = network.toLowerCase() === 'testnet'
     switch (type) {
@@ -25,24 +90,6 @@ export function getContractId(type: 'evonext' | 'dashpay' | 'dpns' = 'evonext', 
             return EVONEXT_CONTRACT_ID_MAINNET
     }
 }
-
-/**
- * Convert Base64 identifier to buffer (from libs/posts/apiUtils.ts)
- */
-export function base64ToBuffer(base64: string): Uint8Array {
-    return new Uint8Array(Buffer.from(base64, 'base64'))
-}
-
-/**
- * Convert buffer to Base64 identifier (from libs/posts/apiUtils.ts)
- */
-export function bufferToBase64(buffer: Uint8Array): string {
-    return Buffer.from(buffer).toString('base64')
-}
-
-/**
- * Format timestamp to relative time (from libs/posts/apiUtils.ts)
- */
 export function formatTimeAgo(timestamp: number): string {
     const now = new Date().getTime()
     const diffMs = now - timestamp
@@ -53,83 +100,10 @@ export function formatTimeAgo(timestamp: number): string {
     if (diffMins < 60) return `${diffMins}m ago`
     if (diffHours < 24) return `${diffHours}h ago`
     if (diffDays < 7) return `${diffDays}d ago`
-    return new Date(timestamp).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric'
-    })
+    return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
-
-/**
- * Generate a unique avatar URL based on ownerId (from libs/posts/userInfo.ts)
- */
 export function generateAvatarUrl(ownerId: string, name?: string): string {
     const color = ownerId.slice(0, 6)
     const background = color.match(/[0-9A-Fa-f]{6}/) ? color : '0ea5e9'
-    const userName = name || 'User'
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=${background}&color=fff`
-}
-
-/**
- * Get a username from ownerId (fallback when DPNS unavailable)
- * From libs/posts/userInfo.ts
- */
-export function getUsernameFromId(ownerId: string): string {
-    const names = ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace', 'Henry']
-    const hash = Array.from(ownerId).reduce((acc, char) => acc + char.charCodeAt(0), 0)
-    return names[hash % names.length] || ''
-}
-
-/**
- * Get display name from ownerId (from libs/posts/userInfo.ts)
- */
-export function getDisplayNameFromId(ownerId: string): string {
-    return getUsernameFromId(ownerId)
-}
-
-/**
- * Generate a consistent ID for a post (from libs/posts/transformers.ts)
- */
-export function generatePostId(doc: { dataContractId: string; createdAt: string }): string {
-    return `${doc.dataContractId.slice(0, 8)}-${doc.createdAt}`
-}
-
-/**
- * Apply filters to posts (from libs/posts/api.ts - applyFilters)
- */
-export function applyFilters(
-    posts: any[],
-    options?: {
-        ownerId?: string
-        language?: string
-        fromDate?: number
-        toDate?: number
-        orderBy?: 'newest' | 'oldest'
-        limit?: number
-    }
-): any[] {
-    let filtered = [...posts]
-    if (!options) return filtered
-    if (options.ownerId) {
-        filtered = filtered.filter((post: any) => post.ownerId === options.ownerId)
-    }
-    if (options.language) {
-        filtered = filtered.filter((post: any) => post.language === options.language)
-    }
-    if (options.fromDate) {
-        filtered = filtered.filter((post: any) => post.createdAt >= options.fromDate!)
-    }
-    if (options.toDate) {
-        filtered = filtered.filter((post: any) => post.createdAt <= options.toDate!)
-    }
-    // Sort
-    if (options.orderBy === 'newest') {
-        filtered.sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime())
-    } else if (options.orderBy === 'oldest') {
-        filtered.sort((a: any, b: any) => a.createdAt.getTime() - b.createdAt.getTime())
-    }
-    // Limit
-    if (options.limit && filtered.length > options.limit) {
-        filtered = filtered.slice(0, options.limit)
-    }
-    return filtered
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=${background}&color=fff`
 }
