@@ -5,7 +5,7 @@ import { ref, computed, onUnmounted } from 'vue'
 import { DASHSWAP_ENDPOINT } from '@/utils/env'
 import type { IDashPriceData } from '@/types'
 
-const PRICE_UPDATE_INTERVAL_MS = 30_000 // 30 seconds
+const PRICE_UPDATE_INTERVAL_MS = 30_000
 const DEFAULT_DASH_PRICE = 25
 
 export const useSystemStore = defineStore('system', () => {
@@ -40,7 +40,6 @@ export const useSystemStore = defineStore('system', () => {
             console.error('Failed to fetch DASH price:', err)
             error.value = err instanceof Error ? err.message : 'Failed to fetch price data'
 
-            // Keep previous price if available, otherwise use fallback
             if (!dashPrice.value) {
                 dashPrice.value = DEFAULT_DASH_PRICE
             }
@@ -51,7 +50,6 @@ export const useSystemStore = defineStore('system', () => {
 
     const startPriceUpdates = () => {
         if (priceUpdateInterval.value !== null) {
-            console.log('Price updates already running')
             return
         }
 
@@ -60,15 +58,12 @@ export const useSystemStore = defineStore('system', () => {
         priceUpdateInterval.value = window.setInterval(() => {
             fetchDashPrice()
         }, PRICE_UPDATE_INTERVAL_MS)
-
-        console.log('Started price updates')
     }
 
     const stopPriceUpdates = () => {
         if (priceUpdateInterval.value !== null) {
             clearInterval(priceUpdateInterval.value)
             priceUpdateInterval.value = null
-            console.log('Stopped price updates')
         }
     }
 
@@ -76,28 +71,21 @@ export const useSystemStore = defineStore('system', () => {
         error.value = null
     }
 
-    // Start updates when store is used
     startPriceUpdates()
 
-    // Cleanup on component unmount
     onUnmounted(() => {
         stopPriceUpdates()
     })
 
     return {
-        // State
         dashPrice,
         dashPriceData,
         isLoading,
         error,
         lastUpdated,
-
-        // Computed
         currentDashPrice,
         priceChange24h,
         isPricePositive,
-
-        // Actions
         fetchDashPrice,
         startPriceUpdates,
         stopPriceUpdates,

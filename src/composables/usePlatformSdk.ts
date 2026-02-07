@@ -29,8 +29,6 @@ class SDKManager {
         const key = network
         const sdk = this.sdkInstances.get(key)
         if (sdk) {
-            // Note: DashPlatformSDK doesn't have dispose method per docs
-            // We'll just delete from cache; let JS GC handle cleanup
             console.log(`Clearing SDK instance for ${network}`)
             this.sdkInstances.delete(key)
         }
@@ -75,10 +73,8 @@ export function usePlatformSdk() {
     }
 
     function switchNetwork(_newNetwork: Network): void {
-        // Clear SDK for old network and update network
         manager.clearSDK(network.value as Network)
         _isInitialized.value = false
-        // Note: network would need to be updated via settings store
     }
 
     return {
@@ -91,5 +87,4 @@ export function usePlatformSdk() {
     }
 }
 
-// Export manager for advanced usage if needed
 export const sdkManager = SDKManager.getInstance()

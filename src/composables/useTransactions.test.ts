@@ -1,34 +1,40 @@
 // src/composables/useTransactions.test.ts
+
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useTransactions } from './useTransactions'
 import { MIN_CREDIT_TRANSFER } from '@/constants'
 
-// Mock Dependencies
+// --- MOCK DEFINITIONS ---
+
+const mockSdk = {
+    identities: {
+        getIdentityByIdentifier: vi.fn().mockResolvedValue({
+            getPublicKeys: () => [{ keyIdNumber: 3 }, { keyId: 5 }]
+        }),
+        getIdentityNonce: vi.fn().mockResolvedValue(BigInt(10)),
+        createStateTransition: vi.fn().mockReturnValue({
+            sign: vi.fn(),
+            hash: () => 'mock_st_hash'
+        }),
+        creditWithdrawal: vi.fn().mockResolvedValue({ hash: 'withdrawal_hash' })
+    },
+    stateTransitions: {
+        broadcast: vi.fn().mockResolvedValue(true),
+        waitForStateTransitionResult: vi.fn().mockResolvedValue(true)
+    },
+    tokens: {
+        createBaseTransition: vi.fn().mockResolvedValue({}),
+        createStateTransition: vi.fn().mockReturnValue({
+            sign: vi.fn(),
+            hash: () => 'token_tx_hash'
+        })
+    },
+    connect: vi.fn().mockResolvedValue(true)
+}
+
 vi.mock('./usePlatform', () => ({
     usePlatform: () => ({
-        getSDK: vi.fn().mockResolvedValue({
-            identities: {
-                getIdentityByIdentifier: vi.fn().mockResolvedValue({
-                    getPublicKeys: () => [{ keyIdNumber: 3 }]
-                }),
-                getIdentityNonce: vi.fn().mockResolvedValue(BigInt(10)),
-                createStateTransition: vi.fn().mockReturnValue({
-                    sign: vi.fn(),
-                    hash: () => 'mock_st_hash'
-                })
-            },
-            stateTransitions: {
-                broadcast: vi.fn().mockResolvedValue(true),
-                waitForStateTransitionResult: vi.fn().mockResolvedValue(true)
-            },
-            tokens: {
-                createBaseTransition: vi.fn().mockResolvedValue({}),
-                createStateTransition: vi.fn().mockReturnValue({
-                    sign: vi.fn(),
-                    hash: () => 'mock_token_hash'
-                })
-            }
-        })
+        getSDK: vi.fn().mockResolvedValue(mockSdk)
     })
 }))
 
@@ -47,20 +53,30 @@ vi.mock('./useNetwork', () => ({
     })
 }))
 
-// Mock WASM/heavy dependencies
 vi.mock('pshenmic-dpp', () => ({
     PrivateKeyWASM: {
         fromWIF: vi.fn().mockReturnValue({})
     }
 }))
 
-describe('useTransactions Composable', () => {
+vi.mock('@dashevo/evo-sdk', () => ({
+    EvoSDK: {
+        testnetTrusted: () => mockSdk,
+        mainnetTrusted: () => mockSdk
+    }
+}))
+
+// --- TEST SUITE ---
+
+describe('useTransactions Composable Full Suite', () => {
     const {
         atomicToDash,
         formatDashAmount,
         shortTxid,
         fetchIdentityTransfers,
-        sendCredits
+        sendCredits,
+        sendToken,
+        withdrawDash
     } = useTransactions()
 
     beforeEach(() => {
@@ -75,7 +91,6 @@ describe('useTransactions Composable', () => {
         })
 
         it('formatDashAmount should return localized string', () => {
-            // Using 100000000 (1.00)
             const result = formatDashAmount(100000000)
             expect(result).toContain('1.00')
         })
@@ -83,7 +98,6 @@ describe('useTransactions Composable', () => {
         it('shortTxid should truncate hash correctly', () => {
             const hash = '1234567890abcdef1234567890abcdef'
             const shortened = shortTxid(hash, 8)
-            // Fixed expectation to match 4 chars from start and 4 from end
             expect(shortened).toBe('1234...cdef')
         })
     })
@@ -127,10 +141,13 @@ describe('useTransactions Composable', () => {
 
             const result = await fetchIdentityTransfers('any')
             expect(result.success).toBe(false)
+            if (!result.success) {
+                expect(result.code).toBe('FETCH_IDENTITY_TRANSFERS_FAILED')
+            }
         })
     })
 
-    describe('Transaction Execution', () => {
+    describe('Credit Transactions', () => {
         it('sendCredits should fail if amount is below minimum', async () => {
             const result = await sendCredits({
                 identityId: 'id',
@@ -153,18 +170,82 @@ describe('useTransactions Composable', () => {
 
             expect(result.success).toBe(true)
             expect(result.data?.txid).toBe('mock_st_hash')
+            expect(mockSdk.stateTransitions.broadcast).toHaveBeenCalled()
         })
 
-        it('sendCredits should allow providing an explicit private key', async () => {
+        it('sendCredits should handle missing public key errors', async () => {
+            mockSdk.identities.getIdentityByIdentifier.mockResolvedValueOnce({
+                getPublicKeys: () => [{ keyIdNumber: 99 }] // Mismatched ID
+            })
+
             const result = await sendCredits({
                 identityId: 'id',
                 identityIdx: 0,
                 receiver: 'rec',
-                credits: MIN_CREDIT_TRANSFER + 100n,
-                privateKey: 'explicit_wif'
+                credits: MIN_CREDIT_TRANSFER + 100n
+            })
+
+            expect(result.success).toBe(false)
+            expect(result.error?.message).toContain('Public Key ID 3 missing')
+        })
+    })
+
+    describe('Token Transactions', () => {
+        it('sendToken should execute full token broadcast', async () => {
+            const result = await sendToken({
+                identityId: 'id',
+                identityIdx: 0,
+                tokenId: 'token123',
+                receiver: 'rec',
+                atomicUnits: 100n
             })
 
             expect(result.success).toBe(true)
+            expect(result.data?.txid).toBe('token_tx_hash')
+            expect(mockSdk.tokens.createStateTransition).toHaveBeenCalled()
+        })
+
+        it('sendToken should catch execution errors', async () => {
+            mockSdk.tokens.createBaseTransition.mockRejectedValueOnce(new Error('Token Contract Not Found'))
+
+            const result = await sendToken({
+                identityId: 'id',
+                identityIdx: 0,
+                tokenId: 'bad_token',
+                receiver: 'rec',
+                atomicUnits: 100n
+            })
+
+            expect(result.success).toBe(false)
+            expect(result.error?.message).toBe('Token Contract Not Found')
+        })
+    })
+
+    describe('Dash Withdrawals', () => {
+        it('withdrawDash should call creditWithdrawal on EvoSDK', async () => {
+            const result = await withdrawDash({
+                identityId: 'id',
+                recipientAddress: 'addr123',
+                amountDash: 0.5
+            })
+
+            expect(result.success).toBe(true)
+            expect(result.data?.txid).toBe('withdrawal_hash')
+            expect(mockSdk.identities.creditWithdrawal).toHaveBeenCalled()
+        })
+
+        it('withdrawDash should handle EvoSDK insolvency or broadcast errors', async () => {
+            mockSdk.identities.creditWithdrawal.mockRejectedValueOnce(new Error('Insufficient Layer 1 Liquidity'))
+
+            const result = await withdrawDash({
+                identityId: 'id',
+                recipientAddress: 'addr',
+                amountDash: 1.0
+            })
+
+            expect(result.success).toBe(false)
+            expect(result.error?.message).toBe('Insufficient Layer 1 Liquidity')
+            expect(result.error?.step).toBe('WITHDRAWAL')
         })
     })
 })
