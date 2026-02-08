@@ -16,6 +16,9 @@ pub enum DAPIError {
     #[error("Invalid method: {0}")]
     InvalidMethod(String),
 
+    #[error("Unknown DAPI method: {0}")]
+    UnknownMethod(String),
+
     #[error("Missing required parameter: {0}")]
     MissingParameter(String),
 
@@ -108,13 +111,12 @@ impl DAPIResponse {
                 Ok(items)
             }
             Value::Object(_) => {
-                // Single object response
                 let parsed: T = serde_json::from_value(self.result)
                     .map_err(|e| DAPIError::DeserializationError(e.to_string()))?;
                 Ok(vec![parsed])
             }
             Value::Null => Ok(Vec::new()),
-            _ => Ok(Vec::new()), // For non-array/non-object responses
+            _ => Ok(Vec::new()),
         }
     }
 }
@@ -142,7 +144,6 @@ impl Network {
     }
 }
 
-// Common document type for posts
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PostDocument {
@@ -184,7 +185,6 @@ pub struct PostDocument {
     pub reply_to_post_id: Option<Vec<String>>,
 }
 
-// Identity types
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Identity {
@@ -213,7 +213,6 @@ pub struct IdentityPublicKey {
     pub disabled_at: Option<String>,
 }
 
-// Token types
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TokenBalance {
