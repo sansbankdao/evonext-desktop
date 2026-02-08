@@ -50,7 +50,7 @@ sentry = "0.46.1"
 tauri-plugin-sentry = "0.5"
 
 # Anti-Regression Suite (Specta v2 Unified)
-specta = { version = "2.0.0-rc.21", features = ["derive", "serde"] }
+specta = { version = "2.0.0-rc.21", features = ["derive", "serde", "tauri"] }
 specta-typescript = "0.0.9"
 tauri-specta = { version = "2.0.0-rc.21", features = ["typescript"] }
 

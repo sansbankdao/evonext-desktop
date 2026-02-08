@@ -9,6 +9,7 @@ use tauri::{AppHandle, Runtime};
 mod tests;
 
 #[tauri::command]
+#[specta::specta]
 pub fn load_settings<R: Runtime>(app_handle: AppHandle<R>) -> Result<Option<IAppSettings>, String> {
     let manager = StoreManager::new(&app_handle);
 
@@ -22,6 +23,7 @@ pub fn load_settings<R: Runtime>(app_handle: AppHandle<R>) -> Result<Option<IApp
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn save_settings<R: Runtime>(app_handle: AppHandle<R>, settings: IAppSettings) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
 
@@ -35,6 +37,7 @@ pub fn save_settings<R: Runtime>(app_handle: AppHandle<R>, settings: IAppSetting
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn delete_settings<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
 

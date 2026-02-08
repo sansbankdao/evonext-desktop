@@ -10,6 +10,7 @@ use tauri::Runtime;
 mod tests;
 
 #[tauri::command]
+#[specta::specta]
 pub async fn dapi_request<R: Runtime>(
     _app: tauri::AppHandle<R>,
     method: String,
@@ -39,6 +40,7 @@ pub async fn dapi_request<R: Runtime>(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_posts(
     data_contract_id: String,
     document_type: String,
@@ -63,6 +65,7 @@ pub async fn get_posts(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_identity_info(identity_id: String, network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
     let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
@@ -73,6 +76,7 @@ pub async fn get_identity_info(identity_id: String, network: Option<String>) -> 
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_identity_balance(identity_id: String, network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
     let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
@@ -82,6 +86,7 @@ pub async fn get_identity_balance(identity_id: String, network: Option<String>) 
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_token_balances(identity_id: String, token_ids: Vec<String>, network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
     let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
@@ -89,6 +94,7 @@ pub async fn get_token_balances(identity_id: String, token_ids: Vec<String>, net
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn resolve_dpns_name(username: String, network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
     let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
@@ -96,6 +102,7 @@ pub async fn resolve_dpns_name(username: String, network: Option<String>) -> Res
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_dpns_username(identity_id: String, network: Option<String>) -> Result<Option<String>, String> {
     let client = get_dapi_client();
     let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
@@ -106,6 +113,7 @@ pub async fn get_dpns_username(identity_id: String, network: Option<String>) -> 
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_dpns_usernames(identity_id: String, network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
     let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
@@ -113,6 +121,7 @@ pub async fn get_dpns_usernames(identity_id: String, network: Option<String>) ->
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_platform_status(network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
     let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
@@ -120,6 +129,7 @@ pub async fn get_platform_status(network: Option<String>) -> Result<Vec<Value>, 
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_identities_balances(identity_ids: Vec<String>, network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
     let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
@@ -127,6 +137,7 @@ pub async fn get_identities_balances(identity_ids: Vec<String>, network: Option<
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_data_contract_info(contract_id: String, network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
     let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
@@ -134,6 +145,7 @@ pub async fn get_data_contract_info(contract_id: String, network: Option<String>
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_token_contract_info(contract_id: String, network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
     let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
@@ -141,6 +153,7 @@ pub async fn get_token_contract_info(contract_id: String, network: Option<String
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_token_statuses(token_ids: Vec<String>, network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
     let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
@@ -148,6 +161,7 @@ pub async fn get_token_statuses(token_ids: Vec<String>, network: Option<String>)
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_total_supply(token_id: String, network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
     let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
@@ -155,6 +169,7 @@ pub async fn get_total_supply(token_id: String, network: Option<String>) -> Resu
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_current_epoch(network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
     let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
@@ -162,6 +177,7 @@ pub async fn get_current_epoch(network: Option<String>) -> Result<Vec<Value>, St
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_total_credits_in_platform(network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
     let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
@@ -169,6 +185,7 @@ pub async fn get_total_credits_in_platform(network: Option<String>) -> Result<Ve
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_identity_by_public_key_hash(public_key_hash: String, network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
     let network_val = network.unwrap_or_else(|| "testnet".to_string());
@@ -180,6 +197,7 @@ pub async fn get_identity_by_public_key_hash(public_key_hash: String, network: O
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_identity_by_non_unique_public_key_hash(public_key_hash: String, network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
     let network_val = network.unwrap_or_else(|| "testnet".to_string());
@@ -191,6 +209,7 @@ pub async fn get_identity_by_non_unique_public_key_hash(public_key_hash: String,
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn get_identity_by_id(identity_id: String, network: Option<String>) -> Result<serde_json::Value, String> {
     let client = get_dapi_client();
     let network_val = network.unwrap_or_else(|| "testnet".to_string());
@@ -202,6 +221,7 @@ pub async fn get_identity_by_id(identity_id: String, network: Option<String>) ->
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn dapi_request_array<R: Runtime>(
     app: tauri::AppHandle<R>,
     method: String,

@@ -62,6 +62,7 @@ pub fn parse_assets_from_json(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn discover_assets<R: Runtime>(
     app_handle: AppHandle<R>,
     identity_id: String,
@@ -108,6 +109,7 @@ pub fn discover_assets<R: Runtime>(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn fetch_identity_tokens<R: Runtime>(
     app: AppHandle<R>,
     identity_id: String,
@@ -150,6 +152,7 @@ pub async fn fetch_identity_tokens<R: Runtime>(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn load_assets<R: Runtime>(app_handle: AppHandle<R>, identity_id: String, network: String) -> Result<IAssets, String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
@@ -160,6 +163,7 @@ pub fn load_assets<R: Runtime>(app_handle: AppHandle<R>, identity_id: String, ne
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn save_assets<R: Runtime>(app_handle: AppHandle<R>, identity_id: String, network: String, payload: IAssets) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
@@ -169,6 +173,7 @@ pub fn save_assets<R: Runtime>(app_handle: AppHandle<R>, identity_id: String, ne
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn delete_assets<R: Runtime>(app_handle: AppHandle<R>, network: String) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;

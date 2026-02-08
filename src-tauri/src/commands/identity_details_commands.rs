@@ -8,6 +8,7 @@ use tauri::{AppHandle, Runtime};
 mod tests;
 
 #[tauri::command]
+#[specta::specta]
 pub fn update_identity_with_sdk_data<R: Runtime>(
     app_handle: AppHandle<R>,
     network: String,
@@ -32,6 +33,7 @@ pub fn update_identity_with_sdk_data<R: Runtime>(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn get_identity_public_keys<R: Runtime>(
     app_handle: AppHandle<R>,
     network: String,
@@ -42,6 +44,7 @@ pub fn get_identity_public_keys<R: Runtime>(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn delete_identity_public_keys<R: Runtime>(
     app_handle: AppHandle<R>,
     network: String,

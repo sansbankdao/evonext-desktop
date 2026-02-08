@@ -8,6 +8,7 @@ use tauri::{AppHandle, Runtime};
 mod tests;
 
 #[tauri::command]
+#[specta::specta]
 pub fn load_mnemonic<R: Runtime>(
     app_handle: AppHandle<R>,
     network: String,
@@ -26,6 +27,7 @@ pub fn load_mnemonic<R: Runtime>(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn save_mnemonic<R: Runtime>(
     app_handle: AppHandle<R>,
     network: String,
@@ -48,6 +50,7 @@ pub fn save_mnemonic<R: Runtime>(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub fn delete_mnemonic<R: Runtime>(app_handle: AppHandle<R>, network: String) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
