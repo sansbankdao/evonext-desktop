@@ -1,9 +1,9 @@
 // src/services/posts/mutations.test.ts
+
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as mutations from './mutations'
 import * as fetching from './fetching'
 import { invoke } from '@/utils/tauri'
-import { DashPlatformSDK } from 'dash-platform-sdk'
 vi.mock('@/utils/tauri', () => ({ invoke: vi.fn() }))
 vi.mock('./fetching', () => ({ fetchDocumentsById: vi.fn() }))
 vi.mock('@/composables/useNetwork', () => ({
@@ -18,7 +18,6 @@ vi.mock('@/services/crypto', () => ({
 vi.mock('pshenmic-dpp', () => ({
     PrivateKeyWASM: { fromWIF: vi.fn().mockReturnValue({}) }
 }))
-// FIXED: Use Class syntax for mocking constructor
 vi.mock('dash-platform-sdk', () => ({
     DashPlatformSDK: class {
         documents = {
@@ -49,7 +48,6 @@ describe('Posts Mutations Service', () => {
         expect(success).toBe(true)
     })
     it('updatePost should throw meaningful error if post missing', async () => {
-        // FIXED: Added purpose and securityLevel to pass the WIF check
         vi.mocked(invoke).mockResolvedValue({
             identities: { 'mock_user': [{ id: 1, purpose: 0, securityLevel: 2, privateKey: validWif }] }
         })

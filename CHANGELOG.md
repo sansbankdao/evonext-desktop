@@ -1,18 +1,18 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Introducing the 2nd Release Candidate
+### Introducing the 3rd Release Candidate (Based)
 
-This latest version of EvoNext offers an expanded Testing Suite.
+This latest version of EvoNext introduces the 1st Baseline Implementation.
 
 # Changelog
 
 ## Latest Features:
 
-- __Testing:__ Our testing coverage is now 18% on the front-end and 7% on the back-end.
+- __Testing:__ Our testing coverage is now 80%, offering satisfactory protection against unexpected bugs.
 
 ## Bugfixes:
 
-- __Testing:__ Fixed the CI (Guardian) testing workflow.
+- __Testing:__ Finalized the CI (Guardian) testing workflow.
 
 ## Notes:
 
