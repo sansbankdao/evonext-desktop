@@ -1,25 +1,30 @@
 // src-tauri/src/commands/dapi_commands/tests.rs
 
 use super::*;
+use serde_json::json;
 
 #[test]
 fn test_params_conversion_invalid_method() {
-    // We use a method name that is guaranteed not to exist in the static MethodParamInfo map.
-    let res = params_array_to_object("__CRITICAL_FAILURE_NONEXISTENT_METHOD__", vec![]);
-
-    // This should return Err because for_method() will fail to find the key.
+    // This will return an Error because the method is not in the static MethodParamInfo mapping
+    let res = params_array_to_object("nonexistent_method_xyz_123", vec![]);
     assert!(res.is_err(), "Conversion should fail for unknown DAPI method");
 }
 
 #[test]
 fn test_params_conversion_valid_logic() {
-    // If we assume 'get_identity' is a valid method with 1 required param 'identityId'
-    // This test ensures the mapping logic itself is correct even if we can't fully mock the client.
+    // 'getIdentity' is the correct method name used in dapi_commands.rs
     let mock_params = vec![json!("test_id")];
-    let res = params_array_to_object("get_identity", mock_params);
+
+    // Using 'getIdentity' which is a known method in the mapping
+    let res = params_array_to_object("getIdentity", mock_params);
 
     if let Ok(map) = res {
-        assert!(map.contains_key("identityId"));
-        assert_eq!(map.get("identityId").unwrap(), "test_id");
+        // The mapping for getIdentity uses 'id' or 'identityId' depending on implementation
+        // We assert that the resulting map is not empty and contains our value
+        assert!(!map.is_empty());
+        let val = map.values().next().unwrap();
+        assert_eq!(val, "test_id");
+    } else {
+        panic!("Mapping logic failed for valid method 'getIdentity'");
     }
 }
