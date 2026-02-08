@@ -11,7 +11,7 @@ pub mod models;
 pub mod utils;
 
 #[cfg(test)]
-mod app_tests;
+mod tests;
 
 pub fn run() {
     create_app().run(|_app_handle, _event| {});

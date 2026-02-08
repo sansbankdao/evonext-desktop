@@ -1,4 +1,4 @@
-// src-tauri/src/app_tests.rs
+// src-tauri/src/tests.rs
 
 use tauri::test::mock_builder;
 
