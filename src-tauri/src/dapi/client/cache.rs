@@ -4,6 +4,9 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug)]
 pub struct CacheEntry {
     pub value: Value,
@@ -36,7 +39,7 @@ impl Cache {
         Self {
             entries: HashMap::with_capacity(capacity),
             capacity,
-            default_ttl: Duration::from_secs(300), // 5 minutes default TTL
+            default_ttl: Duration::from_secs(300),
         }
     }
 
@@ -63,12 +66,9 @@ impl Cache {
     }
 
     pub fn set_with_ttl(&mut self, key: String, value: Value, ttl: Duration) {
-        // Remove expired entries first
         self.cleanup();
 
-        // Check capacity and evict if needed
         if self.entries.len() >= self.capacity {
-            // Simple LRU-like eviction: remove the first expired entry, or the first one
             if let Some(key_to_remove) = self.entries.keys().next().cloned() {
                 self.entries.remove(&key_to_remove);
             }
