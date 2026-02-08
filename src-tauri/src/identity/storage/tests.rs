@@ -6,12 +6,14 @@ use crate::utils::{StoreError, PersistentStore};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::Mutex;
+/// A mock implementation of the PersistentStore trait for unit testing.
 struct MockStore {
     pub data: Mutex<HashMap<String, Value>>,
 }
 impl MockStore {
     fn new() -> Self {
-        Self {Mutex::new(HashMap::new()),
+        Self {
+            data: Mutex::new(HashMap::new()),
         }
     }
 }
@@ -64,13 +66,10 @@ fn test_identity_storage_roundtrip_logic() {
         created_at: None,
         public_key_ids: None,
     });
-    // Save with active marker
     save_identity_map_internal(&store, network, &map, Some(identity_id.clone())).unwrap();
-    // Load and verify
     let loaded_map = load_identity_map_internal(&store, network).unwrap();
     assert_eq!(loaded_map.len(), 1);
     assert_eq!(loaded_map.get(&identity_id).unwrap().username, "alice");
-    // Verify raw structure contains the metadata for frontend discovery
     let filename = get_network_file(network, "identity").unwrap();
     let raw_val = store.load_value(&filename, "identities").unwrap().unwrap();
     assert_eq!(raw_val["__active_identity_id"], json!(identity_id));
@@ -81,17 +80,25 @@ fn test_keystore_storage_logic() {
     let network = "testnet";
     let mut keystore = IPrivateKeyStore::default();
     let entry = IPrivateKeyEntry {
+        identity_id: "id_123".to_string(),
         key_id: 1,
-        wif: "private_wif_key".to_string(),
-        key_type: 0,
-        address: Some("addr_1".to_string()),
-        decrypted_hex: None,
+        purpose: 0,
+        security_level: 0,
+        key_type: "ECDSA_SECP256K1".to_string(),
+        private_key: "private_key_data".to_string(),
+        public_key: "public_key_data".to_string(),
+        derived_from_mnemonic: Some(true),
+        created_at: "2024-01-01T00:00:00Z".to_string(),
+        last_used: "2024-01-01T00:00:00Z".to_string(),
     };
     keystore.identities.insert("id_123".to_string(), vec![entry]);
     save_keystore_internal(&store, network, &keystore).unwrap();
     let loaded = load_keystore_internal(&store, network).unwrap();
     assert!(loaded.identities.contains_key("id_123"));
-    assert_eq!(loaded.identities.get("id_123").unwrap()[0].wif, "private_wif_key");
+    assert_eq!(
+        loaded.identities.get("id_123").unwrap()[0].private_key,
+        "private_key_data"
+    );
 }
 #[test]
 fn test_handling_malformed_identities() {
@@ -109,7 +116,6 @@ fn test_handling_malformed_identities() {
         }
     });
     let map = process_raw_identity_map(raw_json);
-    // Should preserve the good one and skip the bad one
     assert_eq!(map.len(), 1);
     assert!(map.contains_key("good_one"));
     assert!(!map.contains_key("bad_one"));
