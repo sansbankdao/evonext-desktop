@@ -1,6 +1,5 @@
 // src-tauri/src/app_tests.rs
 
-use super::*;
 use tauri::test::mock_builder;
 
 #[test]

@@ -12,10 +12,12 @@ async fn test_license_lifecycle() {
     let handle: AppHandle<MockRuntime> = app.handle().clone();
 
     let license = ILicense {
+        success: true,
         identity_id: "test_identity_id".into(),
-        is_active: true,
-        tier: "pro".into(),
-        expires_at: Some(2000000000),
+        txid: "test_tx_id".into(),
+        is_premium: true,
+        created_at: 1700000000,
+        expires_at: 2000000000,
         updated_at: None,
     };
 
@@ -28,7 +30,9 @@ async fn test_license_lifecycle() {
         .expect("Failed to load license");
 
     assert!(loaded.is_some());
-    assert_eq!(loaded.unwrap().tier, "pro");
+    let unwrapped = loaded.unwrap();
+    assert!(unwrapped.is_premium);
+    assert_eq!(unwrapped.identity_id, "test_identity_id");
 
     // Delete
     delete_license(handle.clone(), "test_identity_id".into()).expect("Failed to delete");
