@@ -1,9 +1,13 @@
 // src-tauri/src/utils/macros.rs
+
+#[cfg(test)]
+mod tests;
+
 #[macro_export]
 macro_rules! create_store_command {
     ($name:ident, $file:expr, $key:expr, $type:ty) => {
         #[tauri::command]
-        pub fn $name(app_handle: tauri::AppHandle<tauri::Wry>) -> Result<Option<$type>, String> {
+        pub fn $name<R: tauri::Runtime>(app_handle: tauri::AppHandle<R>) -> Result<Option<$type>, String> {
             use crate::utils::store::StoreManager;
 
             let manager = StoreManager::new(&app_handle);
@@ -14,8 +18,8 @@ macro_rules! create_store_command {
 
     ($save_name:ident, $file:expr, $key:expr, $type:ty) => {
         #[tauri::command]
-        pub fn $save_name(
-            app_handle: tauri::AppHandle<tauri::Wry>,
+        pub fn $save_name<R: tauri::Runtime>(
+            app_handle: tauri::AppHandle<R>,
             payload: $type
         ) -> Result<(), String> {
             use crate::utils::store::StoreManager;
@@ -28,7 +32,7 @@ macro_rules! create_store_command {
 
     ($name:ident, $file:expr, $key:expr, $type:ty, $delete_name:ident) => {
         #[tauri::command]
-        pub fn $name(app_handle: tauri::AppHandle<tauri::Wry>) -> Result<Option<$type>, String> {
+        pub fn $name<R: tauri::Runtime>(app_handle: tauri::AppHandle<R>) -> Result<Option<$type>, String> {
             use crate::utils::store::StoreManager;
 
             let manager = StoreManager::new(&app_handle);
@@ -37,7 +41,7 @@ macro_rules! create_store_command {
         }
 
         #[tauri::command]
-        pub fn $delete_name(app_handle: tauri::AppHandle<tauri::Wry>) -> Result<(), String> {
+        pub fn $delete_name<R: tauri::Runtime>(app_handle: tauri::AppHandle<R>) -> Result<(), String> {
             use crate::utils::store::StoreManager;
 
             let manager = StoreManager::new(&app_handle);

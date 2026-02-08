@@ -5,6 +5,9 @@ use serde::de::{Error as DeError, Unexpected};
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 
+#[cfg(test)]
+mod tests;
+
 // =====================================================
 // Custom Types & Wrappers
 // =====================================================
@@ -83,7 +86,6 @@ pub type IAssetStoreMap = HashMap<String, Vec<IAssetDefinition>>;
 // Helper Deserializers
 // =====================================================
 
-/// Handles conversion of String or Number into a u32 (for Revision)
 fn de_u32_from_str_or_num<'de, D>(deserializer: D) -> Result<u32, D::Error>
 where
     D: Deserializer<'de>,
