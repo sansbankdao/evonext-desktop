@@ -29,9 +29,12 @@ fn test_dpns_username_normalization() {
 
 #[tokio::test]
 async fn test_resolve_dpns_name_path() {
-    let client = DAPIClient::new();
+    // Fixed: Added required endpoint argument
+    let client = DAPIClient::new("https://localhost".to_string());
+
     // Verify that the async path for resolution compiles and initiates a request
     let res = client.resolve_dpns_name("tester".into(), Network::Testnet).await;
+
     // Expected to fail in test environment without network, but verifies logic flow
     assert!(res.is_err());
 }

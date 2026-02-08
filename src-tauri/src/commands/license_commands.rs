@@ -3,16 +3,17 @@
 use crate::constants::LICENSE_FILE;
 use crate::models::{ILicense, ILicenseStoreMap};
 use crate::utils::StoreManager;
-use std::time::SystemTime;
-use std::time::UNIX_EPOCH;
-use tauri::{AppHandle, Wry};
+use std::time::{SystemTime, UNIX_EPOCH};
+use tauri::{AppHandle, Runtime};
 
 #[cfg(test)]
+#[path = "license_commands/tests.rs"]
 mod tests;
 
 #[tauri::command]
-pub async fn refresh_license(
-    app_handle: AppHandle<Wry>,
+#[specta::specta]
+pub async fn refresh_license<R: Runtime>(
+    app_handle: AppHandle<R>,
     identity_id: String,
 ) -> Result<ILicense, String> {
     let url = format!(
@@ -48,8 +49,9 @@ pub async fn refresh_license(
 }
 
 #[tauri::command]
-pub async fn load_license(
-    app_handle: AppHandle<Wry>,
+#[specta::specta]
+pub async fn load_license<R: Runtime>(
+    app_handle: AppHandle<R>,
     identity_id: String,
 ) -> Result<Option<ILicense>, String> {
     let manager = StoreManager::new(&app_handle);
@@ -64,7 +66,8 @@ pub async fn load_license(
 }
 
 #[tauri::command]
-pub fn save_license(app_handle: AppHandle<Wry>, payload: ILicense) -> Result<(), String> {
+#[specta::specta]
+pub fn save_license<R: Runtime>(app_handle: AppHandle<R>, payload: ILicense) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let mut map: ILicenseStoreMap = manager
         .load(LICENSE_FILE, "licenses")
@@ -78,7 +81,8 @@ pub fn save_license(app_handle: AppHandle<Wry>, payload: ILicense) -> Result<(),
 }
 
 #[tauri::command]
-pub fn delete_license(app_handle: AppHandle<Wry>, identity_id: String) -> Result<(), String> {
+#[specta::specta]
+pub fn delete_license<R: Runtime>(app_handle: AppHandle<R>, identity_id: String) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let mut map: ILicenseStoreMap = manager
         .load(LICENSE_FILE, "licenses")

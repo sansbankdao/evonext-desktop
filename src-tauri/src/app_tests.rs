@@ -9,6 +9,6 @@ fn test_app_builder_config() {
         .build(tauri::generate_context!())
         .expect("Failed to build app");
 
-    // FIXED: Check version instead of name string which varies by build target
+    // Verify version existence as a proxy for valid config loading
     assert!(app.handle().package_info().version.to_string().len() > 0);
 }

@@ -10,6 +10,9 @@ pub mod menu;
 pub mod models;
 pub mod utils;
 
+#[cfg(test)]
+mod app_tests;
+
 pub fn run() {
     create_app().run(|_app_handle, _event| {});
 }
@@ -99,22 +102,4 @@ pub fn create_app() -> tauri::App {
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use tauri::test::mock_builder;
-
-    #[test]
-    fn test_app_builder_config() {
-        let app = mock_builder()
-            .build(tauri::generate_context!())
-            .expect("Failed to build app with production context");
-
-        let handle = app.handle();
-        // Verify we can obtain a handle and the package name is present
-        let name = handle.package_info().name.clone();
-        assert!(!name.is_empty(), "Package name should not be empty");
-    }
 }
