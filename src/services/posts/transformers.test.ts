@@ -36,7 +36,7 @@ describe('transformers', () => {
     })
     describe('transformPostDocument', () => {
         const mockDoc: IPostDocument = {
-            id: 'owner_1',
+            id: 'post_1',
             ownerId: 'owner_1',
             content: 'Hello World',
             isSensitive: true,

@@ -55,24 +55,21 @@ describe('Identity Store Actions', () => {
         // @ts-ignore
         commands.saveIdentity.mockResolvedValue({ status: 'success', data: { identityId: 'id_123' } })
 
-        // Mock a payload where fields like username or balance might be missing
         const partialPayload = {
-            identityId: 'id_123',
-            // Missing username, balance, revision, and publicKeys
+            identityId: 'id_123'
         }
 
-        // @ts-ignore - explicitly testing store logic resilience
+        // @ts-ignore
         await store.saveIdentity('testnet', partialPayload)
 
-        // Verify that the command was called with mandatory defaults
         expect(commands.saveIdentity).toHaveBeenCalledWith(
             'testnet',
             expect.objectContaining({
                 identityId: 'id_123',
-                username: expect.any(String), // Should fallback to identityId
-                balance: expect.stringMatching('0'), // Should default to '0'
-                revision: expect.any(Number), // Should default to 0
-                publicKeys: expect.any(Array) // Should be []
+                username: expect.any(String),
+                balance: expect.stringMatching('0'),
+                revision: expect.any(Number),
+                publicKeys: expect.any(Array)
             } as ISaveIdentityPayload)
         )
     })
@@ -96,7 +93,7 @@ describe('Identity Store Actions', () => {
 
         await store.saveIdentity('testnet', payload)
 
-        const identityInStore = store.identities['id_123']
+        const identityInStore = store.identities['id_123']!
         expect(identityInStore.username).toBe('alice')
         expect(identityInStore.balance).toBe('500')
         expect(identityInStore.revision).toBe(5)

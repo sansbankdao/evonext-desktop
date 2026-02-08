@@ -20,11 +20,12 @@ describe('getTransferKey logic', () => {
             }
         }
 
-        mockIPC((cmd, args) => {
+        mockIPC((cmd, args: any) => {
             if (cmd === 'load_private_keys') {
-                expect(args.network).toBe('mainnet')
+                expect(args?.network).toBe('mainnet')
                 return mockKeystore
             }
+            return null
         })
 
         const result = await getTransferKey('user_123', 'mainnet')
@@ -36,6 +37,7 @@ describe('getTransferKey logic', () => {
             if (cmd === 'load_private_keys') {
                 return { identities: { "someone_else": [] } }
             }
+            return null
         })
 
         const result = await getTransferKey('user_123', 'mainnet')
@@ -51,6 +53,7 @@ describe('getTransferKey logic', () => {
                     }
                 }
             }
+            return null
         })
 
         const result = await getTransferKey('user_123', 'mainnet')
@@ -65,18 +68,19 @@ describe('getTransferKey logic', () => {
     it('handles empty or missing keystore files gracefully', async () => {
         mockIPC((cmd) => {
             if (cmd === 'load_private_keys') return null
+            return null
         })
 
         const result = await getTransferKey('user_123', 'mainnet')
         expect(result).toBeNull()
     })
 
-    // NEW: Achieve 100% coverage by testing the catch/error branch
     it('returns null if the Tauri command throws an error', async () => {
         mockIPC((cmd) => {
             if (cmd === 'load_private_keys') {
                 throw new Error('IPC_FAILED')
             }
+            return null
         })
 
         const result = await getTransferKey('user_123', 'mainnet')
