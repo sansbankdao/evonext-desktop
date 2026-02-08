@@ -1,7 +1,6 @@
 // src-tauri/src/lib.rs
 
 use tauri::Manager;
-
 pub mod commands;
 pub mod constants;
 pub mod dapi;
@@ -11,13 +10,20 @@ pub mod models;
 pub mod utils;
 
 #[cfg(test)]
-mod tests;
+mod lib_tests;
+
+pub fn setup_environment() {
+    #[cfg(target_os = "linux")]
+    {
+        std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+        std::env::set_var("TOUCH_LEAN_MODE", "0");
+    }
+}
 
 pub fn run() {
     create_app().run(|_app_handle, _event| {});
 }
 
-/// Creates the tauri app instance.
 pub fn create_app() -> tauri::App {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -27,45 +33,30 @@ pub fn create_app() -> tauri::App {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .invoke_handler(tauri::generate_handler![
-            // Assets
             commands::asset_commands::discover_assets,
             commands::asset_commands::fetch_identity_tokens,
             commands::asset_commands::load_assets,
             commands::asset_commands::save_assets,
             commands::asset_commands::delete_assets,
-
-            // Crypto Commands
             commands::crypto_commands::hash160,
             commands::crypto_commands::random_bytes,
-
-            // Identity & Keystore
             commands::identity_commands::save_identity,
             commands::identity_commands::delete_identity,
             commands::identity_commands::save_keys,
             commands::identity_commands::load_keystore,
-
-            // License
             commands::license_commands::load_license,
             commands::license_commands::save_license,
             commands::license_commands::delete_license,
             commands::license_commands::refresh_license,
-
-            // Mnemonic
             commands::mnemonic_commands::load_mnemonic,
             commands::mnemonic_commands::save_mnemonic,
             commands::mnemonic_commands::delete_mnemonic,
-
-            // Settings
             commands::settings_commands::load_settings,
             commands::settings_commands::save_settings,
             commands::settings_commands::delete_settings,
-
-            // Identity Details
             commands::identity_details_commands::update_identity_with_sdk_data,
             commands::identity_details_commands::get_identity_public_keys,
             commands::identity_details_commands::delete_identity_public_keys,
-
-            // DAPI Commands
             commands::dapi_commands::dapi_request,
             commands::dapi_commands::dapi_request_array,
             commands::dapi_commands::get_posts,
@@ -90,11 +81,9 @@ pub fn create_app() -> tauri::App {
         .setup(|app| {
             let handle = app.handle();
             menu::setup_menus(handle)?;
-
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_menu(app.menu().unwrap());
             }
-
             Ok(())
         })
         .on_menu_event(|app, event| {

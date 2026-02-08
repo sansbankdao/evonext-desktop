@@ -21,6 +21,7 @@ pub async fn hash160<R: Runtime>(
     let ripemd160_result = ripemd160_hasher.finalize();
     Ok(ripemd160_result.to_vec())
 }
+
 #[tauri::command]
 pub async fn random_bytes<R: Runtime>(
     _app_handle: AppHandle<R>,

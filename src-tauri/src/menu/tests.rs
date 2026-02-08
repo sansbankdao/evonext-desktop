@@ -16,7 +16,7 @@ fn test_handle_menu_logic_execution() {
     let app = mock_builder().build(tauri::generate_context!()).unwrap();
     let handle: AppHandle<MockRuntime> = app.handle().clone();
 
-    // Verify that the logic handler accepts IDs and processes them
+    // Testing the routing logic directly
     handle_id(&handle, &MenuId::new("about"));
     handle_id(&handle, &MenuId::new("exit"));
     handle_id(&handle, &MenuId::new("unknown_id_123"));

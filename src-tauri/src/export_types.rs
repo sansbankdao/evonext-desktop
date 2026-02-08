@@ -3,10 +3,16 @@
 use tauri_specta::{collect_commands, Builder};
 use specta_typescript::Typescript;
 use evonext::commands::identity_commands;
-use evonext::models::{IIdentityData, IPrivateKeyStore, IIdentityPublicKey, IDiscoveredIdentity, ILicense};
+use evonext::models::{
+    IIdentityData,
+    IPrivateKeyStore,
+    IIdentityPublicKey,
+    IDiscoveredIdentity,
+    ILicense
+};
 
 #[cfg(test)]
-mod tests;
+mod export_types_tests;
 
 pub fn create_builder() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new()
@@ -22,6 +28,7 @@ pub fn create_builder() -> Builder<tauri::Wry> {
             identity_commands::load_keystore::<tauri::Wry>
         ])
 }
+
 fn main() {
     let out_path = "../../src/types/rust_generated.ts";
     let builder = create_builder();
