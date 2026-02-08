@@ -64,3 +64,7 @@ path = "src/main.rs"
 [[bin]]
 name = "export_types"
 path = "src/export_types.rs"
+
+[package.metadata.cargo-llvm-cov]
+# Ignore files that don't contain testable logic
+ignore_filename_regex = "main.rs|export_types.rs"
