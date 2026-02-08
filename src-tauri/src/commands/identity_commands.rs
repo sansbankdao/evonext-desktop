@@ -60,6 +60,7 @@ pub struct IUnifiedCommandResult {
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn save_identity<R: Runtime>(
     app: AppHandle<R>,
     network: String,
@@ -81,6 +82,7 @@ pub async fn save_identity<R: Runtime>(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn delete_identity<R: Runtime>(
     app: AppHandle<R>,
     network: String,
@@ -103,6 +105,7 @@ pub async fn delete_identity<R: Runtime>(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn save_keys<R: Runtime>(
     app: AppHandle<R>,
     network: String,
@@ -128,6 +131,7 @@ pub async fn save_keys<R: Runtime>(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn load_keystore<R: Runtime>(app: AppHandle<R>, network: String) -> Result<IAnyValue, String> {
     let data = storage::load_keystore(&app, &network)?;
     serde_json::to_value(data).map(IAnyValue).map_err(|e| e.to_string())
