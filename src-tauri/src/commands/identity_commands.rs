@@ -70,7 +70,7 @@ pub async fn save_identity<R: Runtime>(
 
     let mut map = storage::load_identity_map(&app, &network)?;
 
-    // If no active identity is specified, and this is the only one, make it active
+    // Auto-promote to Active if this is the first identity being connected
     let active_id = payload.active_identity_id.clone().or_else(|| {
         if map.is_empty() { Some(identity_id.clone()) } else { None }
     });

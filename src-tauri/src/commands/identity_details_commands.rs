@@ -13,21 +13,18 @@ pub fn update_identity_with_sdk_data(
     revision: u64,
     public_key_ids: Vec<u32>,
 ) -> Result<(), String> {
-    // Load the full map
     let mut identities = storage::load_identity_map(&app_handle, &network)?;
 
-    // Update the specific identity within the map
     if let Some(identity_data) = identities.get_mut(&identity_id) {
         identity_data.public_keys = public_keys;
         identity_data.revision = revision as u32;
         identity_data.public_key_ids = Some(public_key_ids);
         identity_data.created_at = Some(chrono::Utc::now().to_rfc3339());
 
-        // Save the whole map back to disk
         storage::save_identity_map(&app_handle, &network, &identities, None)?;
         Ok(())
     } else {
-        Err(format!("Identity {} not found in local storage. Cannot update SDK data.", identity_id))
+        Err(format!("Identity {} not found in local storage.", identity_id))
     }
 }
 
