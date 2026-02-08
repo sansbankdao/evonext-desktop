@@ -67,11 +67,17 @@ pub async fn save_identity<R: Runtime>(
     payload: ISaveIdentityPayload,
 ) -> Result<IUnifiedCommandResult, String> {
     let identity_id = payload.identity_id.clone();
-    let active_id = payload.active_identity_id.clone();
-    let identity = IdentityMapper::map_to_identity(payload);
 
     let mut map = storage::load_identity_map(&app, &network)?;
+
+    // If no active identity is specified, and this is the only one, make it active
+    let active_id = payload.active_identity_id.clone().or_else(|| {
+        if map.is_empty() { Some(identity_id.clone()) } else { None }
+    });
+
+    let identity = IdentityMapper::map_to_identity(payload);
     map.insert(identity_id.clone(), identity);
+
     storage::save_identity_map(&app, &network, &map, active_id)?;
 
     Ok(IUnifiedCommandResult {
