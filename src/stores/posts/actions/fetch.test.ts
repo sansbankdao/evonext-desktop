@@ -1,7 +1,7 @@
 // src/stores/posts/actions/fetch.test.ts
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fetchPostsAction, fetchMorePostsAction, fetchUserPostsAction } from './fetch'
+import { fetchPostsAction, fetchUserPostsAction } from './fetch'
 import * as api from '@/services/posts/fetching'
 import * as transformers from '@/services/posts/transformers'
 import { invoke } from '@/utils/tauri'

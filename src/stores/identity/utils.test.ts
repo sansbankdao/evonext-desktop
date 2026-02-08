@@ -12,7 +12,9 @@ import {
 } from './utils'
 import { invoke } from '@/utils/tauri'
 vi.mock('@evonext/utils', () => ({
-    binToHex: vi.fn((bytes) => Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join(''))
+    binToHex: vi.fn((bytes: Uint8Array) =>
+        Array.from(bytes).map((b: number) => b.toString(16).padStart(2, '0')).join('')
+    )
 }))
 vi.mock('@/utils/tauri', () => ({
     invoke: vi.fn()
@@ -62,10 +64,10 @@ describe('identity store utils', () => {
             }
         ]
         const result = transformPublicKeys(sdkKeys)
-        expect(result[0].data).toBe('48656c6c6f')
-        expect(result[1].data).toBe('existing_hex_string')
-        expect(result[1].readOnly).toBe(true)
-        expect(result[1].keyType).toBe('Ed25519')
+        expect(result[0]!.data).toBe('48656c6c6f')
+        expect(result[1]!.data).toBe('existing_hex_string')
+        expect(result[1]!.readOnly).toBe(true)
+        expect(result[1]!.keyType).toBe('Ed25519')
     })
     it('validateIdentityData should enforce schema', () => {
         const valid = {
@@ -77,7 +79,7 @@ describe('identity store utils', () => {
         }
         expect(validateIdentityData(valid)).toBe(true)
         expect(validateIdentityData(null)).toBe(false)
-        expect(validateIdentityData({ ...valid, username: 123 })).toBe(false)
+        expect(validateIdentityData({ ...valid, username: 123 } as any)).toBe(false)
     })
     it('createDefaultIdentityData should return complete object', () => {
         const data = createDefaultIdentityData('alice')

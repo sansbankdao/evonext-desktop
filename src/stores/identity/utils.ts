@@ -47,7 +47,7 @@ export async function loadFromStore<T>(command: string): Promise<T | null> {
  * Transform SDK public keys to IdentityPublicKey format
  */
 export function transformPublicKeys(sdkKeys: any[]): IPublicKey[] {
-    return sdkKeys.map((key: any, index: number) => {
+    return sdkKeys.map((key: any, _index: number) => {
         let hexData = ''
         if (key.data instanceof Uint8Array) {
             hexData = binToHex(key.data)
