@@ -8,11 +8,12 @@ This latest version of EvoNext introduces the 1st Baseline Implementation.
 
 ## Latest Features:
 
-- __Testing:__ Our testing coverage is now 80%, offering satisfactory protection against unexpected bugs.
+- __Testing:__ Our testing coverage is now ~80% — offering satisfactory protection against unexpected bugs and code regressions.
+- __Testing:__ Added Codecov integration.
 
 ## Bugfixes:
 
-- __Testing:__ Finalized the CI (Guardian) testing workflow.
+- __Testing:__ Fixed ALL CI/TS errors that were causing build failure.
 
 ## Notes:
 
