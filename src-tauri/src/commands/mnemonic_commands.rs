@@ -2,7 +2,7 @@
 
 use crate::models::{IMnemonic, IPrivateKeyStore};
 use crate::utils::{network_file::get_network_file, StoreManager};
-use tauri::{AppHandle, Runtime, Manager};
+use tauri::{AppHandle, Runtime};
 
 #[tauri::command]
 pub fn load_mnemonic<R: Runtime>(
@@ -46,7 +46,6 @@ pub fn save_mnemonic<R: Runtime>(
             println!("Mnemonic saved successfully to keystore for {}.", network);
             Ok(())
         }
-
         Err(e) => {
             println!("Failed to save mnemonic for {}: {}", network, e);
             Err(e.to_string())
@@ -70,13 +69,9 @@ pub fn delete_mnemonic<R: Runtime>(app_handle: AppHandle<R>, network: String) ->
 
     match manager.save(filename, "keystore", &keystore) {
         Ok(_) => {
-            println!(
-                "Mnemonic deleted successfully from keystore for {}.",
-                network
-            );
+            println!("Mnemonic deleted successfully from keystore for {}.", network);
             Ok(())
         }
-
         Err(e) => {
             println!("Failed to delete mnemonic for {}: {}", network, e);
             Err(e.to_string())
@@ -87,7 +82,7 @@ pub fn delete_mnemonic<R: Runtime>(app_handle: AppHandle<R>, network: String) ->
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tauri::test::mock_builder;
+    use tauri::test::{mock_builder, MockRuntime};
 
     #[test]
     fn test_mnemonic_lifecycle() {
@@ -97,30 +92,33 @@ mod tests {
             seed_phrase: "apple banana cherry".to_string(),
         };
 
-        // Test Save - Pass handle directly (it is an owned AppHandle<MockRuntime>)
-        let save_res = save_mnemonic(app.handle(), network.clone(), mnemonic.clone());
+        // FIXED: Explicitly clone the handle as required by Tauri v2 App traits in tests
+        let handle: AppHandle<MockRuntime> = app.handle().clone();
+
+        // Test Save
+        let save_res = save_mnemonic::<MockRuntime>(handle.clone(), network.clone(), mnemonic.clone());
         assert!(save_res.is_ok());
 
         // Test Load
-        let load_res = load_mnemonic(app.handle(), network.clone()).unwrap();
+        let load_res = load_mnemonic::<MockRuntime>(handle.clone(), network.clone()).unwrap();
         assert!(load_res.is_some());
         assert_eq!(load_res.unwrap().seed_phrase, "apple banana cherry");
 
         // Test Delete
-        let del_res = delete_mnemonic(app.handle(), network.clone());
+        let del_res = delete_mnemonic::<MockRuntime>(handle.clone(), network.clone());
         assert!(del_res.is_ok());
 
         // Verify Deleted
-        let final_load = load_mnemonic(app.handle(), network.clone()).unwrap();
+        let final_load = load_mnemonic::<MockRuntime>(handle, network.clone()).unwrap();
         assert!(final_load.is_none());
     }
 
     #[test]
     fn test_mnemonic_invalid_network() {
         let app = mock_builder().build(tauri::generate_context!()).unwrap();
+        let handle: AppHandle<MockRuntime> = app.handle().clone();
 
-        // Use app.handle() directly in the argument to satisfy AppHandle<R> (owned)
-        let result = load_mnemonic(app.handle(), "invalid_network".to_string());
+        let result = load_mnemonic::<MockRuntime>(handle, "invalid_network".to_string());
         assert!(result.is_err());
     }
 }

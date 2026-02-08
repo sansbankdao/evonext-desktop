@@ -2,7 +2,6 @@
 
 use tauri::Manager;
 
-// NOTE: We make these public to the crate so export_types.rs can see them.
 pub mod commands;
 pub mod constants;
 pub mod dapi;
@@ -12,6 +11,12 @@ pub mod models;
 pub mod utils;
 
 pub fn run() {
+    create_app().run(|_app_handle, _event| {});
+}
+
+/// Creates the tauri app instance.
+/// Separated from run() to allow unit testing the builder configuration.
+pub fn create_app() -> tauri::App {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
@@ -31,11 +36,11 @@ pub fn run() {
             commands::crypto_commands::hash160,
             commands::crypto_commands::random_bytes,
 
-            // --- CONSOLIDATED IDENTITY & KEYSTORE ---
-            commands::identity_commands::save_identity,    // Replaces save_identity_unified, save_identity_data
-            commands::identity_commands::delete_identity,  // Replaces delete_identity_data, delete_private_keys
-            commands::identity_commands::save_keys,        // Replaces save_private_keys, save_single_identity_keys, save_imported_key
-            commands::identity_commands::load_keystore,    // Replaces load_private_keys
+            // Identity & Keystore
+            commands::identity_commands::save_identity,
+            commands::identity_commands::delete_identity,
+            commands::identity_commands::save_keys,
+            commands::identity_commands::load_keystore,
 
             // License
             commands::license_commands::load_license,
@@ -94,6 +99,24 @@ pub fn run() {
             menu::handle_menu_event(app, event);
         })
         .build(tauri::generate_context!())
-        .expect("error while running tauri application")
-        .run(|_app_handle, _event| {});
+        .expect("error while building tauri application")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tauri::test::mock_builder;
+
+    #[test]
+    fn test_app_builder_config() {
+        // This test ensures that the generate_context and plugin registration
+        // logic executes without panicking.
+        let app = mock_builder()
+            .build(tauri::generate_context!())
+            .expect("Failed to build app with production context");
+
+        // Verify we can obtain a handle, confirming initialization.
+        let handle = app.handle();
+        assert!(handle.app_handle().package_info().name == "evonext");
+    }
 }

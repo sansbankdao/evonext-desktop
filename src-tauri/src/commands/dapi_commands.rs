@@ -4,29 +4,24 @@ use crate::dapi::client::{get_dapi_client, MethodParamInfo};
 use crate::dapi::types::Network;
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use tauri::command;
 
-#[command]
+#[tauri::command]
 pub async fn dapi_request(
     method: String,
     params: HashMap<String, Value>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
-    println!("[RUST-DEBUG] dapi_request: method={}, params={:?}", method, params);
     let current_network = if let Some(network_str) = network {
         Network::from_str(&network_str).unwrap_or(Network::Testnet)
     } else {
         Network::Testnet
     };
-    println!(
-        "[DEBUG DAPI] dapi_request method={} network={}",
-        method,
-        current_network.as_str()
-    );
+
     let method_info = match MethodParamInfo::for_method(&method) {
         Ok(info) => info,
         Err(e) => return Err(e.to_string()),
     };
+
     let mut params_array = Vec::new();
     for param_name in &method_info.required_params {
         if let Some(value) = params.get(*param_name) {
@@ -35,6 +30,7 @@ pub async fn dapi_request(
             params_array.push(Value::Null);
         }
     }
+
     let client = get_dapi_client();
     match client
         .request::<Value>(method.clone(), params_array, current_network)
@@ -48,7 +44,7 @@ pub async fn dapi_request(
     }
 }
 
-#[command]
+#[tauri::command]
 pub async fn get_posts(
     data_contract_id: String,
     document_type: String,
@@ -64,18 +60,10 @@ pub async fn get_posts(
         Network::Testnet
     };
 
-    // LOGGING: Verify Input
-    println!(
-        "[COMMAND] get_posts | Network: {} | Contract ID: {} | Type: {}",
-        current_network.as_str(),
-        data_contract_id,
-        document_type
-    );
-
     match client
         .get_documents(
             data_contract_id,
-            document_type.clone(),
+            document_type,
             current_network,
             where_clause,
             order_by,
@@ -85,44 +73,8 @@ pub async fn get_posts(
         )
         .await
     {
-        Ok(docs) => {
-            // =========================================================================
-            // DEBUG LOGGING: Inspect Profile and Domain responses
-            // =========================================================================
-            if document_type == "profile" {
-                println!("[PROFILE_DEBUG] Success. Count: {}", docs.len());
-                if docs.len() > 0 {
-                    let first = &docs[0];
-                    println!("[PROFILE_DEBUG] Raw JSON: {}", serde_json::to_string(first).unwrap_or_default());
-
-                    // Check specifically for avatar and display name
-                    let has_avatar = first.get("avatar").is_some() || first.get("avatarUrl").is_some();
-                    let has_name = first.get("displayName").is_some();
-                    println!("[PROFILE_DEBUG] Has Avatar?: {} | Has Name?: {}", has_avatar, has_name);
-                } else {
-                    println!("[PROFILE_DEBUG] Response is EMPTY.");
-                }
-            }
-
-            if document_type == "domain" {
-                println!("[DOMAIN_DEBUG] Success. Count: {}", docs.len());
-                if docs.len() > 0 {
-                    let first = &docs[0];
-                    println!("[DOMAIN_DEBUG] Raw JSON: {}", serde_json::to_string(first).unwrap_or_default());
-
-                    let has_label = first.get("label").is_some();
-                    println!("[DOMAIN_DEBUG] Has Label?: {}", has_label);
-                } else {
-                    println!("[DOMAIN_DEBUG] Response is EMPTY.");
-                }
-            }
-
-            Ok(docs)
-        }
-        Err(e) => {
-            tracing::error!("Failed to get posts: {}", e);
-            Err(e.to_string())
-        }
+        Ok(docs) => Ok(docs),
+        Err(e) => Err(e.to_string()),
     }
 }
 
@@ -132,426 +84,160 @@ pub async fn get_identity_info(
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let current_network = if let Some(network_str) = network {
-        Network::from_str(&network_str).unwrap_or(Network::Testnet)
-    } else {
-        Network::Testnet
-    };
-    println!(
-        "[DEBUG DAPI] get_identity_info network={}",
-        current_network.as_str()
-    );
-    match client
-        .get_identity(identity_id, current_network)
-        .await
-    {
+    let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
+
+    match client.get_identity(identity_id, current_network).await {
         Ok(identities) => {
-            let values: Vec<Value> = identities
-                .into_iter()
-                .map(|i| serde_json::to_value(i).unwrap_or_default())
-                .collect();
-            Ok(values)
+            Ok(identities.into_iter().map(|i| json!(i)).collect())
         }
-        Err(e) => {
-            tracing::error!("Failed to get identity info: {}", e);
-            Err(e.to_string())
-        }
+        Err(e) => Err(e.to_string()),
     }
 }
 
-#[command]
+#[tauri::command]
 pub async fn get_identity_balance(
     identity_id: String,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let current_network = if let Some(network_str) = network {
-        Network::from_str(&network_str).unwrap_or(Network::Testnet)
-    } else {
-        Network::Testnet
-    };
-    println!(
-        "[DEBUG DAPI] get_identity_balance network={}",
-        current_network.as_str()
-    );
-    let method = "get_identity_balance".to_string();
-    let params = vec![Value::String(identity_id)];
-    match client
-        .request::<Value>(method, params, current_network)
+    let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
+
+    client.request::<Value>("get_identity_balance".to_string(), vec![json!(identity_id)], current_network)
         .await
-    {
-        Ok(balances) => Ok(balances),
-        Err(e) => {
-            tracing::error!("Failed to get identity balance: {}", e);
-            Err(e.to_string())
-        }
-    }
+        .map_err(|e| e.to_string())
 }
 
-#[command]
+#[tauri::command]
 pub async fn get_token_balances(
     identity_id: String,
     token_ids: Vec<String>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let current_network = if let Some(network_str) = network {
-        Network::from_str(&network_str).unwrap_or(Network::Testnet)
-    } else {
-        Network::Testnet
-    };
-    println!(
-        "[DEBUG DAPI] get_token_balances network={}",
-        current_network.as_str()
-    );
-    match client
-        .get_identity_token_balances(identity_id, token_ids, current_network)
+    let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
+
+    client.get_identity_token_balances(identity_id, token_ids, current_network)
         .await
-    {
-        Ok(balances) => Ok(balances),
-        Err(e) => {
-            tracing::error!("Failed to get token balances: {}", e);
-            Err(e.to_string())
-        }
-    }
+        .map_err(|e| e.to_string())
 }
 
-#[command]
+#[tauri::command]
 pub async fn resolve_dpns_name(
     username: String,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let current_network = if let Some(network_str) = network {
-        Network::from_str(&network_str).unwrap_or(Network::Testnet)
-    } else {
-        Network::Testnet
-    };
-    println!(
-        "[DEBUG DAPI] resolve_dpns_name network={}",
-        current_network.as_str()
-    );
-    match client
-        .resolve_dpns_name(username, current_network)
+    let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
+
+    client.resolve_dpns_name(username, current_network)
         .await
-    {
-        Ok(result) => Ok(result),
-        Err(e) => {
-            tracing::error!("Failed to resolve DPNS name: {}", e);
-            Err(e.to_string())
-        }
-    }
+        .map_err(|e| e.to_string())
 }
 
-#[command]
+#[tauri::command]
 pub async fn get_dpns_username(
     identity_id: String,
     network: Option<String>,
 ) -> Result<Option<String>, String> {
-    // CHANGED RETURN TYPE: From Vec<Value> to Option<String>
-    // This fixes the serialization issue where a raw JSON string "name.dash" was
-    // failing to parse as a JSON Array of Objects.
-
     let client = get_dapi_client();
-    let current_network = if let Some(network_str) = network {
-        Network::from_str(&network_str).unwrap_or(Network::Testnet)
-    } else {
-        Network::Testnet
-    };
+    let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
 
-    println!(
-        "[DEBUG DAPI] get_dpns_username network={}",
-        current_network.as_str()
-    );
-
-    match client
-        .get_dpns_username(identity_id, current_network)
-        .await
-    {
-        // The client returns a Vec<Value>. We inspect it here to extract the string.
+    match client.get_dpns_username(identity_id, current_network).await {
         Ok(result_vec) => {
-            if result_vec.is_empty() {
-                Ok(None)
+            if let Some(first) = result_vec.get(0) {
+                Ok(first.as_str().map(|s| s.to_string()))
             } else {
-                // The DAPI response is expected to be a JSON string inside the array, e.g. ["name.dash"]
-                // or an object. We attempt to handle the string case directly.
-                let first = &result_vec[0];
-
-                if first.is_string() {
-                    // If it is a raw string, return it directly
-                    Ok(first.as_str().map(|s| s.to_string()))
-                } else {
-                    // If it is an object (unexpected but possible), serialize it back to string
-                    match serde_json::to_string(first) {
-                        Ok(s) => Ok(Some(s)),
-                        Err(_) => Ok(None)
-                    }
-                }
+                Ok(None)
             }
         }
-        Err(e) => {
-            tracing::error!("Failed to get DPNS username: {}", e);
-            Err(e.to_string())
-        }
+        Err(e) => Err(e.to_string()),
     }
 }
 
-#[command]
+#[tauri::command]
 pub async fn get_dpns_usernames(
     identity_id: String,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let current_network = if let Some(network_str) = network {
-        Network::from_str(&network_str).unwrap_or(Network::Testnet)
-    } else {
-        Network::Testnet
-    };
-    println!(
-        "[DEBUG DAPI] get_dpns_usernames network={}",
-        current_network.as_str()
-    );
-    match client
-        .get_dpns_usernames(identity_id, current_network)
-        .await
-    {
-        Ok(result) => Ok(result),
-        Err(e) => {
-            tracing::error!("Failed to get DPNS usernames: {}", e);
-            Err(e.to_string())
-        }
-    }
+    let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
+    client.get_dpns_usernames(identity_id, current_network).await.map_err(|e| e.to_string())
 }
 
-#[command]
+#[tauri::command]
 pub async fn get_platform_status(network: Option<String>) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let current_network = if let Some(network_str) = network {
-        Network::from_str(&network_str).unwrap_or(Network::Testnet)
-    } else {
-        Network::Testnet
-    };
-    println!(
-        "[DEBUG DAPI] get_platform_status network={}",
-        current_network.as_str()
-    );
-    let params = vec![];
-    match client
-        .request::<Value>("get_status".to_string(), params, current_network)
-        .await
-    {
-        Ok(status) => Ok(status),
-        Err(e) => {
-            tracing::error!("Failed to get platform status: {}", e);
-            Err(e.to_string())
-        }
-    }
+    let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
+    client.request::<Value>("get_status".to_string(), vec![], current_network).await.map_err(|e| e.to_string())
 }
 
-#[command]
+#[tauri::command]
 pub async fn get_identities_balances(
     identity_ids: Vec<String>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let current_network = if let Some(network_str) = network {
-        Network::from_str(&network_str).unwrap_or(Network::Testnet)
-    } else {
-        Network::Testnet
-    };
-    println!(
-        "[DEBUG DAPI] get_identities_balances network={}",
-        current_network.as_str()
-    );
-    let method = "get_identities_balances".to_string();
-    let ids_array: Vec<Value> = identity_ids.into_iter().map(Value::String).collect();
-    let params = vec![Value::Array(ids_array)];
-    match client
-        .request::<Value>(method, params, current_network)
-        .await
-    {
-        Ok(balances) => Ok(balances),
-        Err(e) => {
-            tracing::error!("Failed to get identities balances: {}", e);
-            Err(e.to_string())
-        }
-    }
+    let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
+    let params = vec![json!(identity_ids)];
+    client.request::<Value>("get_identities_balances".to_string(), params, current_network).await.map_err(|e| e.to_string())
 }
 
-#[command]
+#[tauri::command]
 pub async fn get_data_contract_info(
     contract_id: String,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let current_network = if let Some(network_str) = network {
-        Network::from_str(&network_str).unwrap_or(Network::Testnet)
-    } else {
-        Network::Testnet
-    };
-    println!(
-        "[DEBUG DAPI] get_data_contract_info network={}",
-        current_network.as_str()
-    );
-    let method = "data_contract_fetch".to_string();
-    let params = vec![Value::String(contract_id)];
-    match client
-        .request::<Value>(method, params, current_network)
-        .await
-    {
-        Ok(contracts) => Ok(contracts),
-        Err(e) => {
-            tracing::error!("Failed to get data contract info: {}", e);
-            Err(e.to_string())
-        }
-    }
+    let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
+    client.request::<Value>("data_contract_fetch".to_string(), vec![json!(contract_id)], current_network).await.map_err(|e| e.to_string())
 }
 
-#[command]
+#[tauri::command]
 pub async fn get_token_contract_info(
     contract_id: String,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let current_network = if let Some(network_str) = network {
-        Network::from_str(&network_str).unwrap_or(Network::Testnet)
-    } else {
-        Network::Testnet
-    };
-    println!(
-        "[DEBUG DAPI] get_token_contract_info network={}",
-        current_network.as_str()
-    );
-    let method = "get_token_contract_info".to_string();
-    let params = vec![Value::String(contract_id)];
-    match client
-        .request::<Value>(method, params, current_network)
-        .await
-    {
-        Ok(contracts) => Ok(contracts),
-        Err(e) => {
-            tracing::error!("Failed to get token contract info: {}", e);
-            Err(e.to_string())
-        }
-    }
+    let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
+    client.request::<Value>("get_token_contract_info".to_string(), vec![json!(contract_id)], current_network).await.map_err(|e| e.to_string())
 }
 
-#[command]
+#[tauri::command]
 pub async fn get_token_statuses(
     token_ids: Vec<String>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let current_network = if let Some(network_str) = network {
-        Network::from_str(&network_str).unwrap_or(Network::Testnet)
-    } else {
-        Network::Testnet
-    };
-    println!(
-        "[DEBUG DAPI] get_token_statuses network={}",
-        current_network.as_str()
-    );
-    let method = "get_token_statuses".to_string();
-    let token_ids_array: Vec<Value> = token_ids.into_iter().map(Value::String).collect();
-    let params = vec![Value::Array(token_ids_array)];
-    match client
-        .request::<Value>(method, params, current_network)
-        .await
-    {
-        Ok(statuses) => Ok(statuses),
-        Err(e) => {
-            tracing::error!("Failed to get token statuses: {}", e);
-            Err(e.to_string())
-        }
-    }
+    let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
+    client.request::<Value>("get_token_statuses".to_string(), vec![json!(token_ids)], current_network).await.map_err(|e| e.to_string())
 }
 
-#[command]
+#[tauri::command]
 pub async fn get_total_supply(
     token_id: String,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let current_network = if let Some(network_str) = network {
-        Network::from_str(&network_str).unwrap_or(Network::Testnet)
-    } else {
-        Network::Testnet
-    };
-    println!(
-        "[DEBUG DAPI] get_total_supply network={}",
-        current_network.as_str()
-    );
-    let method = "get_token_total_supply".to_string();
-    let params = vec![Value::String(token_id)];
-    match client
-        .request::<Value>(method, params, current_network)
-        .await
-    {
-        Ok(supply) => Ok(supply),
-        Err(e) => {
-            tracing::error!("Failed to get token total supply: {}", e);
-            Err(e.to_string())
-        }
-    }
+    let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
+    client.request::<Value>("get_token_total_supply".to_string(), vec![json!(token_id)], current_network).await.map_err(|e| e.to_string())
 }
 
-#[command]
+#[tauri::command]
 pub async fn get_current_epoch(
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let current_network = if let Some(network_str) = network {
-        Network::from_str(&network_str).unwrap_or(Network::Testnet)
-    } else {
-        Network::Testnet
-    };
-    println!(
-        "[DEBUG DAPI] get_current_epoch network={}",
-        current_network.as_str()
-    );
-    let method = "get_current_epoch".to_string();
-    let params = vec![];
-    match client
-        .request::<Value>(method, params, current_network)
-        .await
-    {
-        Ok(epoch) => Ok(epoch),
-        Err(e) => {
-            tracing::error!("Failed to get current epoch: {}", e);
-            Err(e.to_string())
-        }
-    }
+    let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
+    client.request::<Value>("get_current_epoch".to_string(), vec![], current_network).await.map_err(|e| e.to_string())
 }
 
-#[command]
+#[tauri::command]
 pub async fn get_total_credits_in_platform(
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
-    let current_network = if let Some(network_str) = network {
-        Network::from_str(&network_str).unwrap_or(Network::Testnet)
-    } else {
-        Network::Testnet
-    };
-    println!(
-        "[DEBUG DAPI] get_total_credits_in_platform network={}",
-        current_network.as_str()
-    );
-    let params = vec![];
-    match client
-        .request::<Value>(
-            "get_total_credits_in_platform".to_string(),
-            params,
-            current_network,
-        )
-        .await
-    {
-        Ok(credits) => Ok(credits),
-        Err(e) => {
-            tracing::error!("Failed to get total credits: {}", e);
-            Err(e.to_string())
-        }
-    }
+    let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
+    client.request::<Value>("get_total_credits_in_platform".to_string(), vec![], current_network).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -559,49 +245,17 @@ pub async fn get_identity_by_public_key_hash(
     public_key_hash: String,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
-    println!("[RUST-DEBUG] get_identity_by_public_key_hash: hash={}", public_key_hash);
     let client = get_dapi_client();
-    let network_value = network.unwrap_or_else(|| "testnet".to_string());
-    let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
-    println!(
-        "[DEBUG DAPI] get_identity_by_public_key_hash network={}",
-        network_enum.as_str()
-    );
-    let params = vec![json!(public_key_hash)];
-    match client
-        .request::<Value>(
-            "get_identity_by_public_key_hash".to_string(),
-            params,
-            network_enum,
-        )
-        .await
-    {
-        Ok(result) => {
-            let is_empty = result.is_empty();
-            if is_empty {
-                Ok(vec![])
-            } else {
-                let response = json!({
-                    "success": true,
-                    "method": "get_identity_by_public_key_hash",
-                    "params": [public_key_hash],
-                    "network": network_value,
-                    "result": result
-                });
-                Ok(vec![response])
-            }
-        }
-        Err(e) => {
-            tracing::error!("Failed to get identity by public key hash: {}", e);
-            let error_response = json!({
-                "success": false,
-                "method": "get_identity_by_public_key_hash",
-                "params": [public_key_hash],
-                "network": network_value,
-                "error": e.to_string()
-            });
-            Ok(vec![error_response])
-        }
+    let network_val = network.clone().unwrap_or_else(|| "testnet".to_string());
+    let network_enum = Network::from_str(&network_val).unwrap_or(Network::Testnet);
+
+    match client.request::<Value>("get_identity_by_public_key_hash".to_string(), vec![json!(public_key_hash)], network_enum).await {
+        Ok(res) => Ok(vec![json!({
+            "success": true,
+            "result": res,
+            "network": network_val
+        })]),
+        Err(e) => Err(e.to_string()),
     }
 }
 
@@ -610,52 +264,17 @@ pub async fn get_identity_by_non_unique_public_key_hash(
     public_key_hash: String,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
-    println!("[RUST-DEBUG] get_identity_by_non_unique_public_key_hash: hash={}", public_key_hash);
     let client = get_dapi_client();
-    let network_value = network.unwrap_or_else(|| "testnet".to_string());
-    let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
-    println!(
-        "[DEBUG DAPI] get_identity_by_non_unique_public_key_hash network={}",
-        network_enum.as_str()
-    );
-    let params = vec![json!(public_key_hash)];
-    match client
-        .request::<Value>(
-            "get_identity_by_non_unique_public_key_hash".to_string(),
-            params,
-            network_enum,
-        )
-        .await
-    {
-        Ok(result) => {
-            let is_empty = result.is_empty();
-            if is_empty {
-                Ok(vec![])
-            } else {
-                let response = json!({
-                    "success": true,
-                    "method": "get_identity_by_non_unique_public_key_hash",
-                    "params": [public_key_hash],
-                    "network": network_value,
-                    "result": result
-                });
-                Ok(vec![response])
-            }
-        }
-        Err(e) => {
-            tracing::error!(
-                "Failed to get identity by non-unique public key hash: {}",
-                e
-            );
-            let error_response = json!({
-                "success": false,
-                "method": "get_identity_by_non_unique_public_key_hash",
-                "params": [public_key_hash],
-                "network": network_value,
-                "error": e.to_string()
-            });
-            Ok(vec![error_response])
-        }
+    let network_val = network.clone().unwrap_or_else(|| "testnet".to_string());
+    let network_enum = Network::from_str(&network_val).unwrap_or(Network::Testnet);
+
+    match client.request::<Value>("get_identity_by_non_unique_public_key_hash".to_string(), vec![json!(public_key_hash)], network_enum).await {
+        Ok(res) => Ok(vec![json!({
+            "success": true,
+            "result": res,
+            "network": network_val
+        })]),
+        Err(e) => Err(e.to_string()),
     }
 }
 
@@ -664,40 +283,13 @@ pub async fn get_identity_by_id(
     identity_id: String,
     network: Option<String>,
 ) -> Result<serde_json::Value, String> {
-    println!("[RUST-DEBUG] get_identity_by_id: id={}", identity_id);
     let client = get_dapi_client();
-    let network_value = network.unwrap_or_else(|| "testnet".to_string());
-    let network_enum = Network::from_str(&network_value).unwrap_or(Network::Testnet);
-    println!(
-        "[DEBUG DAPI] get_identity_by_id network={}",
-        network_enum.as_str()
-    );
-    let params = vec![json!(identity_id)];
-    match client
-        .request::<serde_json::Value>("getIdentity".to_string(), params, network_enum)
-        .await
-    {
-        Ok(result) => {
-            let response = json!({
-                "success": true,
-                "method": "getIdentity",
-                "params": [identity_id],
-                "network": network_value,
-                "result": result
-            });
-            Ok(response)
-        }
-        Err(e) => {
-            tracing::error!("Failed to get identity by ID: {}", e);
-            let error_response = json!({
-                "success": false,
-                "method": "getIdentity",
-                "params": [identity_id],
-                "network": network_value,
-                "error": e.to_string()
-            });
-            Ok(error_response)
-        }
+    let network_val = network.clone().unwrap_or_else(|| "testnet".to_string());
+    let network_enum = Network::from_str(&network_val).unwrap_or(Network::Testnet);
+
+    match client.request::<Value>("getIdentity".to_string(), vec![json!(identity_id)], network_enum).await {
+        Ok(res) => Ok(json!({ "success": true, "result": res })),
+        Err(e) => Err(e.to_string()),
     }
 }
 
@@ -709,16 +301,13 @@ pub fn params_array_to_object(
     let mut params = HashMap::new();
     for (i, param_value) in params_array.into_iter().enumerate() {
         if i < method_info.required_params.len() {
-            let param_name = method_info.required_params[i];
-            params.insert(param_name.to_string(), param_value);
-        } else {
-            break;
+            params.insert(method_info.required_params[i].to_string(), param_value);
         }
     }
     Ok(params)
 }
 
-#[command]
+#[tauri::command]
 pub async fn dapi_request_array(
     method: String,
     params_array: Vec<Value>,
@@ -726,4 +315,15 @@ pub async fn dapi_request_array(
 ) -> Result<Vec<Value>, String> {
     let params = params_array_to_object(&method, params_array)?;
     dapi_request(method, params, network).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_params_conversion_invalid() {
+        let res = params_array_to_object("invalid_method", vec![]);
+        assert!(res.is_err());
+    }
 }
