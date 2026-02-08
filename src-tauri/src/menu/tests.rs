@@ -2,7 +2,7 @@
 
 use super::*;
 use tauri::menu::MenuId;
-use tauri::test::{mock_builder, MockRuntime};
+use tauri::test::{mock_builder};
 
 #[test]
 fn test_menu_setup_completes() {
@@ -13,11 +13,20 @@ fn test_menu_setup_completes() {
 
 #[test]
 fn test_handle_menu_logic_execution() {
-    let app = mock_builder().build(tauri::generate_context!()).unwrap();
-    let handle: AppHandle<MockRuntime> = app.handle().clone();
+    // Testing the routing logic directly via determine_action
+    // to avoid unimplemented 'exit' in MockRuntime
+    assert_eq!(
+        determine_action(&MenuId::new("about")),
+        MenuAction::Navigate("/about".into())
+    );
 
-    // Testing the routing logic directly
-    handle_id(&handle, &MenuId::new("about"));
-    handle_id(&handle, &MenuId::new("exit"));
-    handle_id(&handle, &MenuId::new("unknown_id_123"));
+    assert_eq!(
+        determine_action(&MenuId::new("exit")),
+        MenuAction::Exit
+    );
+
+    assert_eq!(
+        determine_action(&MenuId::new("unknown")),
+        MenuAction::None
+    );
 }

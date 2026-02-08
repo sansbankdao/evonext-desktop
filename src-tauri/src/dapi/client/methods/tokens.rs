@@ -17,6 +17,7 @@ impl DAPIClient {
         let params = vec![Value::String(contract_id)];
         self.request(method, params, network).await
     }
+
     pub fn format_token_balance(balance: u64, decimals: u32) -> String {
         let divisor = 10u64.pow(decimals);
         let whole = balance / divisor;
@@ -33,6 +34,7 @@ impl DAPIClient {
             }
         }
     }
+
     pub fn parse_token_amount(amount: &str, decimals: u32) -> Option<u64> {
         let parts: Vec<&str> = amount.split('.').collect();
         match parts.len() {
@@ -43,9 +45,24 @@ impl DAPIClient {
             2 => {
                 let whole = parts[0].parse::<u64>().ok()?;
                 let fraction_str = parts[1];
-                let padded = format!("{:<0width$}", fraction_str, width = decimals as usize);
-                let fraction = padded[..decimals as usize].parse::<u64>().ok()?;
-                Some(whole * 10u64.pow(decimals) + fraction)
+
+                // If the user provided more decimals than the contract supports, we fail or truncate.
+                // Here we truncate to 'decimals' length to match padding.
+                let len = fraction_str.len();
+                let (proc_fraction, multiplier) = if len > decimals as usize {
+                    (fraction_str[..decimals as usize].to_string(), 1u64)
+                } else {
+                    // Pad with trailing zeros: "5" with 8 decimals becomes "50000000"
+                    let padding = (decimals as usize) - len;
+                    let mut padded = fraction_str.to_string();
+                    for _ in 0..padding {
+                        padded.push('0');
+                    }
+                    (padded, 1u64)
+                };
+
+                let fraction = proc_fraction.parse::<u64>().ok()?;
+                Some((whole * 10u64.pow(decimals)) + (fraction * multiplier))
             }
             _ => None,
         }

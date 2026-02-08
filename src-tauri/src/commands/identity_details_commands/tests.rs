@@ -5,9 +5,12 @@ use tauri::test::{mock_builder, MockRuntime};
 
 #[test]
 fn test_identity_details_missing_identity() {
-    let app = mock_builder().build(tauri::generate_context!()).unwrap();
+    // FIX: Register the store plugin so storage::load_identity_map can find StoreState
+    let app = mock_builder()
+        .plugin(tauri_plugin_store::Builder::new().build())
+        .build(tauri::generate_context!())
+        .unwrap();
     let handle: AppHandle<MockRuntime> = app.handle().clone();
-
     let res = update_identity_with_sdk_data(
         handle,
         "testnet".into(),
@@ -16,7 +19,6 @@ fn test_identity_details_missing_identity() {
         1,
         vec![]
     );
-
     assert!(res.is_err());
     assert!(res.unwrap_err().contains("not found"));
 }

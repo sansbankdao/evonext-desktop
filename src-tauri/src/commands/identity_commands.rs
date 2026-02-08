@@ -20,7 +20,6 @@ impl IdentityMapper {
             .enumerate()
             .filter_map(|(i, IAnyValue(v))| identity_logic::normalize_public_key(i as u32, v))
             .collect::<Vec<IIdentityPublicKey>>();
-
         IIdentityData {
             identity_id: payload.identity_id,
             username: payload.username,
@@ -31,7 +30,8 @@ impl IdentityMapper {
             dpns_username: payload.dpns_username,
             is_authenticated: true,
             created_at: Some(payload.created_at.unwrap_or_else(|| Utc::now().to_rfc3339())),
-            public_key_ids: None,
+            // FIX: Restore publicKeyIds mapping to prevent regression in Identity Manager
+            public_key_ids: payload.public_key_ids,
         }
     }
 }
@@ -47,6 +47,7 @@ pub struct ISaveIdentityPayload {
     pub identity_idx: Option<u32>,
     pub dpns_username: Option<String>,
     pub created_at: Option<String>,
+    pub public_key_ids: Option<Vec<u32>>, // Added to support Discovery -> Manager transition
     #[serde(default)]
     pub active_identity_id: Option<String>,
 }
@@ -67,19 +68,13 @@ pub async fn save_identity<R: Runtime>(
     payload: ISaveIdentityPayload,
 ) -> Result<IUnifiedCommandResult, String> {
     let identity_id = payload.identity_id.clone();
-
     let mut map = storage::load_identity_map(&app, &network)?;
-
-    // Auto-promote to Active if this is the first identity being connected
     let active_id = payload.active_identity_id.clone().or_else(|| {
         if map.is_empty() { Some(identity_id.clone()) } else { None }
     });
-
     let identity = IdentityMapper::map_to_identity(payload);
     map.insert(identity_id.clone(), identity);
-
     storage::save_identity_map(&app, &network, &map, active_id)?;
-
     Ok(IUnifiedCommandResult {
         success: true,
         error: None,

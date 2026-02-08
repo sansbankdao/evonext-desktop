@@ -1,7 +1,7 @@
 // src-tauri/src/dapi/client/cache.rs
 
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::time::{Duration, Instant};
 
 #[cfg(test)]
@@ -20,7 +20,6 @@ impl CacheEntry {
             expires_at: Instant::now() + ttl,
         }
     }
-
     pub fn is_expired(&self) -> bool {
         Instant::now() > self.expires_at
     }
@@ -29,6 +28,7 @@ impl CacheEntry {
 #[derive(Debug)]
 pub struct Cache {
     entries: HashMap<String, CacheEntry>,
+    order: VecDeque<String>, // Tracks insertion order for deterministic eviction
     capacity: usize,
     default_ttl: Duration,
 }
@@ -38,19 +38,19 @@ impl Cache {
     pub fn new(capacity: usize) -> Self {
         Self {
             entries: HashMap::with_capacity(capacity),
+            order: VecDeque::with_capacity(capacity),
             capacity,
             default_ttl: Duration::from_secs(300),
         }
     }
-
     pub fn with_ttl(capacity: usize, default_ttl: Duration) -> Self {
         Self {
             entries: HashMap::with_capacity(capacity),
+            order: VecDeque::with_capacity(capacity),
             capacity,
             default_ttl,
         }
     }
-
     pub fn get(&self, key: &str) -> Option<Value> {
         self.entries.get(key).and_then(|entry| {
             if entry.is_expired() {
@@ -60,36 +60,35 @@ impl Cache {
             }
         })
     }
-
     pub fn set(&mut self, key: String, value: Value) {
         self.set_with_ttl(key, value, self.default_ttl);
     }
-
     pub fn set_with_ttl(&mut self, key: String, value: Value, ttl: Duration) {
         self.cleanup();
-
-        if self.entries.len() >= self.capacity {
-            if let Some(key_to_remove) = self.entries.keys().next().cloned() {
-                self.entries.remove(&key_to_remove);
+        // If key exists, update it and move to back of order
+        if self.entries.contains_key(&key) {
+            self.order.retain(|k| k != &key);
+        } else if self.entries.len() >= self.capacity {
+            // FIFO Eviction: Remove the oldest key
+            if let Some(oldest_key) = self.order.pop_front() {
+                self.entries.remove(&oldest_key);
             }
         }
-
+        self.order.push_back(key.clone());
         let entry = CacheEntry::new(value, ttl);
         self.entries.insert(key, entry);
     }
-
     pub fn remove(&mut self, key: &str) -> Option<Value> {
+        self.order.retain(|k| k != key);
         self.entries.remove(key).map(|entry| entry.value)
     }
-
     pub fn clear(&mut self) {
         self.entries.clear();
+        self.order.clear();
     }
-
     pub fn size(&self) -> usize {
         self.entries.len()
     }
-
     pub fn cleanup(&mut self) {
         let expired_keys: Vec<String> = self
             .entries
@@ -97,12 +96,10 @@ impl Cache {
             .filter(|(_, entry)| entry.is_expired())
             .map(|(key, _)| key.clone())
             .collect();
-
         for key in expired_keys {
-            self.entries.remove(&key);
+            self.remove(&key);
         }
     }
-
     pub fn get_ttl(&self, key: &str) -> Option<Duration> {
         self.entries.get(key).map(|entry| {
             let now = Instant::now();
@@ -113,7 +110,6 @@ impl Cache {
             }
         })
     }
-
     pub fn set_default_ttl(&mut self, ttl: Duration) {
         self.default_ttl = ttl;
     }

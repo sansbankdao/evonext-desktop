@@ -13,13 +13,10 @@ pub async fn hash160<R: Runtime>(
     _app_handle: AppHandle<R>,
     data: Vec<u8>,
 ) -> Result<Vec<u8>, String> {
-    let mut sha256_hasher = Sha256::new();
-    sha256_hasher.update(&data);
-    let sha256_result = sha256_hasher.finalize();
-    let mut ripemd160_hasher = Ripemd160::new();
-    ripemd160_hasher.update(sha256_result);
-    let ripemd160_result = ripemd160_hasher.finalize();
-    Ok(ripemd160_result.to_vec())
+    // Chaining SHA256 then RIPEMD160
+    let sha256_hash = Sha256::digest(&data);
+    let ripemd160_hash = Ripemd160::digest(sha256_hash);
+    Ok(ripemd160_hash.to_vec())
 }
 
 #[tauri::command]

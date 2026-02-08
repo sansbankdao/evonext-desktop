@@ -8,6 +8,13 @@ use tauri::{
 #[cfg(test)]
 mod tests;
 
+#[derive(Debug, PartialEq)]
+pub enum MenuAction {
+    Navigate(String),
+    Exit,
+    None,
+}
+
 pub fn setup_menus<R: Runtime>(app_handle: &AppHandle<R>) -> tauri::Result<()> {
     let identities_menu = SubmenuBuilder::new(app_handle, "Identity")
         .text("connect", "Connect an Identity...")
@@ -30,16 +37,20 @@ pub fn setup_menus<R: Runtime>(app_handle: &AppHandle<R>) -> tauri::Result<()> {
 }
 
 pub fn handle_menu_event<R: Runtime>(app: &AppHandle<R>, event: tauri::menu::MenuEvent) {
-    handle_id(app, event.id());
+    match determine_action(event.id()) {
+        MenuAction::Navigate(path) => { let _ = app.emit("navigate", path); }
+        MenuAction::Exit => { app.exit(0); }
+        MenuAction::None => {}
+    }
 }
 
-/// Restored pub(crate) visibility for testability
-pub(crate) fn handle_id<R: Runtime>(app: &AppHandle<R>, id: &MenuId) {
+/// Extracted logic to make it testable without triggering unimplemented mock exits
+pub(crate) fn determine_action(id: &MenuId) -> MenuAction {
     let id_str = id.as_ref();
     match id_str {
-        "about" => { let _ = app.emit("navigate", "/about"); }
-        "asset" => { let _ = app.emit("navigate", "/asset"); }
-        "exit" | "quit" => { app.exit(0); }
-        _ => {}
+        "about" => MenuAction::Navigate("/about".into()),
+        "asset" => MenuAction::Navigate("/asset".into()),
+        "exit" | "quit" => MenuAction::Exit,
+        _ => MenuAction::None,
     }
 }
