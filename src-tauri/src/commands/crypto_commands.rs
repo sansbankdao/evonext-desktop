@@ -13,7 +13,6 @@ pub async fn hash160<R: Runtime>(
     _app_handle: AppHandle<R>,
     data: Vec<u8>,
 ) -> Result<Vec<u8>, String> {
-    // Chaining SHA256 then RIPEMD160
     let sha256_hash = Sha256::digest(&data);
     let ripemd160_hash = Ripemd160::digest(sha256_hash);
     Ok(ripemd160_hash.to_vec())

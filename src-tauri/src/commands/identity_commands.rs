@@ -14,12 +14,15 @@ mod tests;
 pub struct IdentityMapper;
 
 impl IdentityMapper {
+    /// Maps the frontend payload to the internal Rust storage model.
+    /// Includes the fix for the Identity Manager regression by preserving public_key_ids.
     pub fn map_to_identity(payload: ISaveIdentityPayload) -> IIdentityData {
         let normalized_keys = payload.public_keys
             .iter()
             .enumerate()
             .filter_map(|(i, IAnyValue(v))| identity_logic::normalize_public_key(i as u32, v))
             .collect::<Vec<IIdentityPublicKey>>();
+
         IIdentityData {
             identity_id: payload.identity_id,
             username: payload.username,
@@ -47,7 +50,7 @@ pub struct ISaveIdentityPayload {
     pub identity_idx: Option<u32>,
     pub dpns_username: Option<String>,
     pub created_at: Option<String>,
-    pub public_key_ids: Option<Vec<u32>>, // Added to support Discovery -> Manager transition
+    pub public_key_ids: Option<Vec<u32>>, // Required to restore discovery data in Manager screen
     #[serde(default)]
     pub active_identity_id: Option<String>,
 }
@@ -68,13 +71,19 @@ pub async fn save_identity<R: Runtime>(
     payload: ISaveIdentityPayload,
 ) -> Result<IUnifiedCommandResult, String> {
     let identity_id = payload.identity_id.clone();
+
     let mut map = storage::load_identity_map(&app, &network)?;
+
+    // Auto-promote to Active if this is the first identity being connected
     let active_id = payload.active_identity_id.clone().or_else(|| {
         if map.is_empty() { Some(identity_id.clone()) } else { None }
     });
+
     let identity = IdentityMapper::map_to_identity(payload);
     map.insert(identity_id.clone(), identity);
+
     storage::save_identity_map(&app, &network, &map, active_id)?;
+
     Ok(IUnifiedCommandResult {
         success: true,
         error: None,
@@ -123,17 +132,28 @@ pub async fn save_keys<R: Runtime>(
                 entries.push(k);
             }
         }
+
+        // Enrich the keys with metadata (Purpose, SecurityLevel) by matching
+        // against the public keys stored in the identity map.
         let current_identities = storage::load_identity_map(&app, &network)?;
         if let Some(identity_data) = current_identities.get(&identity_id) {
             identity_logic::enrich_key_entries(entries, identity_data);
         }
     }
-    storage::save_keystore(&app, &network, &keystore).map(|_| true).map_err(|e| e.to_string())
+
+    storage::save_keystore(&app, &network, &keystore)
+        .map(|_| true)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn load_keystore<R: Runtime>(app: AppHandle<R>, network: String) -> Result<IAnyValue, String> {
+pub async fn load_keystore<R: Runtime>(
+    app: AppHandle<R>,
+    network: String
+) -> Result<IAnyValue, String> {
     let data = storage::load_keystore(&app, &network)?;
-    serde_json::to_value(data).map(IAnyValue).map_err(|e| e.to_string())
+    serde_json::to_value(data)
+        .map(IAnyValue)
+        .map_err(|e| e.to_string())
 }
