@@ -5,6 +5,9 @@ use crate::dapi::types::Network;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
+#[cfg(test)]
+mod tests;
+
 #[tauri::command]
 pub async fn dapi_request(
     method: String,
@@ -315,15 +318,4 @@ pub async fn dapi_request_array(
 ) -> Result<Vec<Value>, String> {
     let params = params_array_to_object(&method, params_array)?;
     dapi_request(method, params, network).await
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_params_conversion_invalid() {
-        let res = params_array_to_object("invalid_method", vec![]);
-        assert!(res.is_err());
-    }
 }

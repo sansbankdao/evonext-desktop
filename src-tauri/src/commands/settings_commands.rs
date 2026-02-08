@@ -5,6 +5,9 @@ use crate::models::IAppSettings;
 use crate::utils::StoreManager;
 use tauri::{AppHandle, Runtime};
 
+#[cfg(test)]
+mod tests;
+
 #[tauri::command]
 pub fn load_settings<R: Runtime>(app_handle: AppHandle<R>) -> Result<Option<IAppSettings>, String> {
     let manager = StoreManager::new(&app_handle);
@@ -41,38 +44,5 @@ pub fn delete_settings<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), Strin
             println!("Failed to delete settings: {}", e);
             Err(e.to_string())
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::models::{INotificationSettings, IProfileSettings};
-    use tauri::test::mock_builder;
-
-    fn create_mock_settings() -> IAppSettings {
-        IAppSettings {
-            network: "testnet".to_string(),
-            theme: "dark".to_string(),
-            notifications: INotificationSettings::default(),
-            profile: IProfileSettings::default(),
-            active_identity_id: Some("test-id".to_string()),
-        }
-    }
-
-    #[test]
-    fn test_settings_lifecycle() {
-        let app = mock_builder().build(tauri::generate_context!()).unwrap();
-        let handle = app.handle();
-        let settings = create_mock_settings();
-
-        let _ = save_settings(handle.clone(), settings.clone());
-        let load_res = load_settings(handle.clone()).unwrap();
-        assert!(load_res.is_some());
-        assert_eq!(load_res.unwrap().theme, "dark");
-
-        let _ = delete_settings(handle.clone());
-        let final_load = load_settings(handle.clone()).unwrap();
-        assert!(final_load.is_none());
     }
 }
