@@ -126,3 +126,59 @@ pub fn enrich_key_entries(
     }
     updated
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    #[test]
+    fn test_normalize_public_key_b64_and_enums() {
+        let raw = json!({
+            "dataB64": "SGVsbG8=", // "Hello" in base64
+            "purpose": "TRANSFER",
+            "securityLevel": "MASTER",
+            "keyType": "ECDSA_SECP256K1"
+        });
+        let result = normalize_public_key(99, &raw).unwrap();
+        assert_eq!(result.data, "48656c6c6f"); // "Hello" in hex
+        assert_eq!(result.purpose, 3);
+        assert_eq!(result.security_level, 0);
+        assert_eq!(result.type_, "ECDSA_SECP256K1");
+        assert_eq!(result.id, 99);
+    }
+    #[test]
+    fn test_normalize_public_key_numeric_and_hex() {
+        let raw = json!({
+            "id": 5,
+            "data": "aabbcc",
+            "purpose": 1,
+            "securityLevel": 2,
+            "type": "Ed25519"
+        });
+        let result = normalize_public_key(0, &raw).unwrap();
+        assert_eq!(result.id, 5);
+        assert_eq!(result.data, "aabbcc");
+        assert_eq!(result.purpose, 1);
+        assert_eq!(result.security_level, 2);
+    }
+    #[test]
+    fn test_enrich_key_entries_matching() {
+        let mut entries = vec![crate::models::IPrivateKeyEntry {
+            public_key: "02c01977799516892e59e1f57989938b814df340b0f74a00473a24683501a4e12e".to_string(),
+            ..Default::default()
+        }];
+        let identity = IIdentityData {
+            public_keys: vec![IIdentityPublicKey {
+                data: "02c01977799516892e59e1f57989938b814df340b0f74a00473a24683501a4e12e".to_string(),
+                purpose: 3,
+                security_level: 0,
+                ..Default::default()
+            }],
+            ..Default::default()
+        };
+        let count = enrich_key_entries(&mut entries, &identity);
+        assert_eq!(count, 0); // No derivation needed as pubkey was provided
+        assert_eq!(entries[0].key_id, 10);
+        assert_eq!(entries[0].purpose, 3);
+        assert_eq!(entries[0].security_level, 0);
+    }
+}
