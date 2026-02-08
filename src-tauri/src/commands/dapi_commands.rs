@@ -4,18 +4,19 @@ use crate::dapi::client::{get_dapi_client, MethodParamInfo, params_array_to_obje
 use crate::dapi::types::Network;
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use tauri::Runtime;
 
 #[cfg(test)]
 mod tests;
 
 #[tauri::command]
-pub async fn dapi_request(
+pub async fn dapi_request<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     method: String,
     params: HashMap<String, Value>,
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
-
     let method_info = MethodParamInfo::for_method(&method).map_err(|e| e.to_string())?;
 
     let mut params_array = Vec::new();
@@ -49,10 +50,16 @@ pub async fn get_posts(
     let client = get_dapi_client();
     let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
 
-    match client.get_documents(data_contract_id, document_type, current_network, where_clause, order_by, limit, None, None).await {
-        Ok(docs) => Ok(docs),
-        Err(e) => Err(e.to_string()),
-    }
+    client.get_documents(
+        data_contract_id,
+        document_type,
+        current_network,
+        where_clause,
+        order_by,
+        limit,
+        None,
+        None
+    ).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -195,7 +202,12 @@ pub async fn get_identity_by_id(identity_id: String, network: Option<String>) ->
 }
 
 #[tauri::command]
-pub async fn dapi_request_array(method: String, params_array: Vec<Value>, network: Option<String>) -> Result<Vec<Value>, String> {
+pub async fn dapi_request_array<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    method: String,
+    params_array: Vec<Value>,
+    network: Option<String>
+) -> Result<Vec<Value>, String> {
     let params = params_array_to_object(&method, params_array).map_err(|e| e.to_string())?;
-    dapi_request(method, params, network).await
+    dapi_request(app, method, params, network).await
 }
