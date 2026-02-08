@@ -2,7 +2,7 @@
 
 use crate::identity::lib::IdentityMap;
 use crate::models::{IIdentityData, IPrivateKeyStore};
-use crate::utils::{get_network_file, StoreManager, PersistentStore, StoreError};
+use crate::utils::{get_network_file, StoreManager, PersistentStore};
 use serde_json::Value;
 use std::collections::HashMap;
 use tauri::{AppHandle, Runtime};
@@ -106,6 +106,7 @@ pub fn save_keystore<R: Runtime>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::utils::StoreError;
     use serde_json::json;
     struct MockStore {
         data: Option<Value>,
