@@ -54,7 +54,6 @@ describe('Identity Store - Connection Actions', () => {
         store.saveMnemonicToStore = vi.fn().mockResolvedValue(undefined)
         store.saveIdentityWithKeys = vi.fn().mockResolvedValue(undefined)
     })
-
     describe('connectWithSeed', () => {
         it('should call atomic saveIdentityWithKeys on successful connection', async () => {
             const result = await store.connectWithSeed(
@@ -77,6 +76,33 @@ describe('Identity Store - Connection Actions', () => {
             )
             expect(result.success).toBe(false)
             expect(store.saveIdentityWithKeys).not.toHaveBeenCalled()
+        })
+    })
+    describe('connectWithSingleKey', () => {
+        const mockPK = 'private_key'
+        it('should successfully login with a single key and use atomic save', async () => {
+            const result = await store.connectWithSingleKey(
+                mockPK, mockIdentityId, mockNetwork
+            )
+            expect(result.success).toBe(true)
+            expect(store.identityId).toBe(mockIdentityId)
+            expect(store.saveIdentityWithKeys).toHaveBeenCalledWith(
+                mockNetwork,
+                expect.objectContaining({ identityId: mockIdentityId }),
+                expect.arrayContaining([
+                    expect.objectContaining({ privateKey: mockPK })
+                ])
+            )
+        })
+        it('should return error if DAPI fetch throws an exception', async () => {
+            vi.mocked(DAPIService.getIdentityById).mockImplementation(() => {
+                throw new Error('NETWORK_CRASH')
+            })
+            const result = await store.connectWithSingleKey(
+                mockPK, mockIdentityId, mockNetwork
+            )
+            expect(result.success).toBe(false)
+            expect(result.error).toBe('NETWORK_CRASH')
         })
     })
 })

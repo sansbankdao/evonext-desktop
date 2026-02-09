@@ -107,6 +107,14 @@ pub async fn save_identity_with_keys(
     identity_payload: ISaveIdentityPayload,
     keys: Vec<IPrivateKeyEntry>,
 ) -> Result<IUnifiedCommandResult, String> {
+    save_identity_with_keys_inner(app, network, identity_payload, keys).await
+}
+pub async fn save_identity_with_keys_inner<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    network: String,
+    identity_payload: ISaveIdentityPayload,
+    keys: Vec<IPrivateKeyEntry>,
+) -> Result<IUnifiedCommandResult, String> {
     // 1. Save Identity Profile
     save_identity_inner(app.clone(), network.clone(), identity_payload.clone()).await?;
     // 2. Save and Enrich Keys

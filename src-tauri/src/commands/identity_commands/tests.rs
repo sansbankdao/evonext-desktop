@@ -19,6 +19,7 @@ fn test_identity_mapper_discovery_regression() {
     assert_eq!(result.public_keys.len(), 1);
     assert_eq!(result.public_keys[0].data, "A1B2");
 }
+
 #[tokio::test]
 async fn test_save_identity_with_keys_atomic() {
     let app = mock_builder()
@@ -40,7 +41,8 @@ async fn test_save_identity_with_keys_atomic() {
         private_key: "wif_secret".into(),
         ..Default::default()
     }];
-    let res = save_identity_with_keys(
+    // Now uses the inner generic function that accepts MockRuntime
+    let res = save_identity_with_keys_inner(
         handle.clone(),
         "testnet".into(),
         payload,

@@ -7,7 +7,6 @@ import { DAPIService } from '@/services/identity/discovery/DAPIService'
 import { usePlatform } from '@/composables/usePlatform'
 import type {
     ConnectionResult,
-    IIdentityState,
     IIdentity
 } from '@/types'
 
@@ -25,7 +24,7 @@ async function persistActiveIdentityMarker(identityId: string | null, network: s
 }
 export const connectionActions = () => ({
     async connectWithSeed(
-        this: any, // Matches IIdentityState + identityActions
+        this: any,
         seedPhrase: string,
         network: 'mainnet' | 'testnet' = 'mainnet',
         targetId: string,
@@ -85,7 +84,7 @@ export const connectionActions = () => ({
                     revision: Number(identityData.revision || 0),
                     publicKeys
                 }
-                // ATOMIC SYNC TO DISK: Both Identity Map and Safu Keystore
+                // ATOMIC SYNC TO DISK
                 await this.saveIdentityWithKeys(network, {
                     ...activeIdentity,
                     activeIdentityId: targetId
