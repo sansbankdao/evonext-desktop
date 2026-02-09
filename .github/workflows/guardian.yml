@@ -58,7 +58,8 @@ jobs:
           CI: true
 
       - name: Create Placeholder Dist
-        run: mkdir -p dist
+        # Using a cross-platform node command to ensure the build never panics
+        run: node -e "const fs = require('fs'); if (!fs.existsSync('dist')) fs.mkdirSync('dist')"
 
       - name: Build and Generate Types
         run: pnpm run build
