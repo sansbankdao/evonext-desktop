@@ -2,15 +2,14 @@
 
 use crate::models::IIdentityPublicKey;
 use crate::identity::storage;
-use tauri::{AppHandle, Runtime};
 
 #[cfg(test)]
 mod tests;
 
 #[tauri::command]
 #[specta::specta]
-pub fn update_identity_with_sdk_data<R: Runtime>(
-    app_handle: AppHandle<R>,
+pub fn update_identity_with_sdk_data(
+    app_handle: tauri::AppHandle,
     network: String,
     identity_id: String,
     public_keys: Vec<IIdentityPublicKey>,
@@ -34,8 +33,8 @@ pub fn update_identity_with_sdk_data<R: Runtime>(
 
 #[tauri::command]
 #[specta::specta]
-pub fn get_identity_public_keys<R: Runtime>(
-    app_handle: AppHandle<R>,
+pub fn get_identity_public_keys(
+    app_handle: tauri::AppHandle,
     network: String,
     identity_id: String,
 ) -> Result<Option<Vec<IIdentityPublicKey>>, String> {
@@ -45,8 +44,8 @@ pub fn get_identity_public_keys<R: Runtime>(
 
 #[tauri::command]
 #[specta::specta]
-pub fn delete_identity_public_keys<R: Runtime>(
-    app_handle: AppHandle<R>,
+pub fn delete_identity_public_keys(
+    app_handle: tauri::AppHandle,
     network: String,
     identity_id: String,
 ) -> Result<(), String> {

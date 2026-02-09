@@ -1,6 +1,5 @@
 // src-tauri/src/commands/asset_commands.rs
 
-use tauri::{AppHandle, Runtime};
 use serde_json::{Value};
 use crate::models::{IAssetDefinition, IAssetStoreMap, IAssets};
 use crate::utils::{StoreManager, network_file::get_network_file};
@@ -63,8 +62,8 @@ pub fn parse_assets_from_json(
 
 #[tauri::command]
 #[specta::specta]
-pub fn discover_assets<R: Runtime>(
-    app_handle: AppHandle<R>,
+pub fn discover_assets(
+    app_handle: tauri::AppHandle,
     identity_id: String,
     network: String
 ) -> Result<IAssets, String> {
@@ -110,8 +109,8 @@ pub fn discover_assets<R: Runtime>(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn fetch_identity_tokens<R: Runtime>(
-    app: AppHandle<R>,
+pub async fn fetch_identity_tokens(
+    app: tauri::AppHandle,
     identity_id: String,
     network: String,
 ) -> Result<IAssets, String> {
@@ -153,7 +152,11 @@ pub async fn fetch_identity_tokens<R: Runtime>(
 
 #[tauri::command]
 #[specta::specta]
-pub fn load_assets<R: Runtime>(app_handle: AppHandle<R>, identity_id: String, network: String) -> Result<IAssets, String> {
+pub fn load_assets(
+    app_handle: tauri::AppHandle,
+    identity_id: String,
+    network: String,
+) -> Result<IAssets, String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
     match manager.load::<IAssetStoreMap>(filename, "assets") {
@@ -164,7 +167,12 @@ pub fn load_assets<R: Runtime>(app_handle: AppHandle<R>, identity_id: String, ne
 
 #[tauri::command]
 #[specta::specta]
-pub fn save_assets<R: Runtime>(app_handle: AppHandle<R>, identity_id: String, network: String, payload: IAssets) -> Result<(), String> {
+pub fn save_assets(
+    app_handle: tauri::AppHandle,
+    identity_id: String,
+    network: String,
+    payload: IAssets,
+) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
     let mut asset_map: IAssetStoreMap = manager.load(filename, "assets").unwrap_or_default().unwrap_or_default();
@@ -174,7 +182,10 @@ pub fn save_assets<R: Runtime>(app_handle: AppHandle<R>, identity_id: String, ne
 
 #[tauri::command]
 #[specta::specta]
-pub fn delete_assets<R: Runtime>(app_handle: AppHandle<R>, network: String) -> Result<(), String> {
+pub fn delete_assets(
+    app_handle: tauri::AppHandle,
+    network: String,
+) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
     manager.delete(filename, "assets").map(|_| ()).map_err(|e| e.to_string())

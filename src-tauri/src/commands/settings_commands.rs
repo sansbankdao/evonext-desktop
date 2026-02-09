@@ -3,14 +3,13 @@
 use crate::constants::SETTINGS_FILE;
 use crate::models::IAppSettings;
 use crate::utils::StoreManager;
-use tauri::{AppHandle, Runtime};
 
 #[cfg(test)]
 mod tests;
 
 #[tauri::command]
 #[specta::specta]
-pub fn load_settings<R: Runtime>(app_handle: AppHandle<R>) -> Result<Option<IAppSettings>, String> {
+pub fn load_settings(app_handle: tauri::AppHandle) -> Result<Option<IAppSettings>, String> {
     let manager = StoreManager::new(&app_handle);
 
     match manager.load(SETTINGS_FILE, "settings") {
@@ -24,7 +23,10 @@ pub fn load_settings<R: Runtime>(app_handle: AppHandle<R>) -> Result<Option<IApp
 
 #[tauri::command]
 #[specta::specta]
-pub fn save_settings<R: Runtime>(app_handle: AppHandle<R>, settings: IAppSettings) -> Result<(), String> {
+pub fn save_settings(
+    app_handle: tauri::AppHandle,
+    settings: IAppSettings,
+) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
 
     match manager.save(SETTINGS_FILE, "settings", &settings) {
@@ -38,7 +40,7 @@ pub fn save_settings<R: Runtime>(app_handle: AppHandle<R>, settings: IAppSetting
 
 #[tauri::command]
 #[specta::specta]
-pub fn delete_settings<R: Runtime>(app_handle: AppHandle<R>) -> Result<(), String> {
+pub fn delete_settings(app_handle: tauri::AppHandle) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
 
     match manager.delete(SETTINGS_FILE, "settings") {

@@ -5,7 +5,6 @@ use crate::models::{IIdentityData, IIdentityPublicKey, IPrivateKeyEntry, IAnyVal
 use crate::utils::StoreManager;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Runtime};
 use specta::Type;
 
 #[cfg(test)]
@@ -15,7 +14,7 @@ pub struct IdentityMapper;
 
 impl IdentityMapper {
     /// Maps the frontend payload to the internal Rust storage model.
-    /// Includes the fix for the Identity Manager regression by preserving public_key_ids.
+    /// Preserves public_key_ids to ensure the Identity Manager screen works.
     pub fn map_to_identity(payload: ISaveIdentityPayload) -> IIdentityData {
         let normalized_keys = payload.public_keys
             .iter()
@@ -33,7 +32,6 @@ impl IdentityMapper {
             dpns_username: payload.dpns_username,
             is_authenticated: true,
             created_at: Some(payload.created_at.unwrap_or_else(|| Utc::now().to_rfc3339())),
-            // FIX: Restore publicKeyIds mapping to prevent regression in Identity Manager
             public_key_ids: payload.public_key_ids,
         }
     }
@@ -50,7 +48,7 @@ pub struct ISaveIdentityPayload {
     pub identity_idx: Option<u32>,
     pub dpns_username: Option<String>,
     pub created_at: Option<String>,
-    pub public_key_ids: Option<Vec<u32>>, // Required to restore discovery data in Manager screen
+    pub public_key_ids: Option<Vec<u32>>,
     #[serde(default)]
     pub active_identity_id: Option<String>,
 }
@@ -65,8 +63,8 @@ pub struct IUnifiedCommandResult {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn save_identity<R: Runtime>(
-    app: AppHandle<R>,
+pub async fn save_identity(
+    app: tauri::AppHandle,
     network: String,
     payload: ISaveIdentityPayload,
 ) -> Result<IUnifiedCommandResult, String> {
@@ -74,7 +72,6 @@ pub async fn save_identity<R: Runtime>(
 
     let mut map = storage::load_identity_map(&app, &network)?;
 
-    // Auto-promote to Active if this is the first identity being connected
     let active_id = payload.active_identity_id.clone().or_else(|| {
         if map.is_empty() { Some(identity_id.clone()) } else { None }
     });
@@ -93,8 +90,8 @@ pub async fn save_identity<R: Runtime>(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn delete_identity<R: Runtime>(
-    app: AppHandle<R>,
+pub async fn delete_identity(
+    app: tauri::AppHandle,
     network: String,
     identity_id: Option<String>,
 ) -> Result<bool, String> {
@@ -116,8 +113,8 @@ pub async fn delete_identity<R: Runtime>(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn save_keys<R: Runtime>(
-    app: AppHandle<R>,
+pub async fn save_keys(
+    app: tauri::AppHandle,
     network: String,
     identity_id: String,
     keys: Vec<IPrivateKeyEntry>,
@@ -133,8 +130,6 @@ pub async fn save_keys<R: Runtime>(
             }
         }
 
-        // Enrich the keys with metadata (Purpose, SecurityLevel) by matching
-        // against the public keys stored in the identity map.
         let current_identities = storage::load_identity_map(&app, &network)?;
         if let Some(identity_data) = current_identities.get(&identity_id) {
             identity_logic::enrich_key_entries(entries, identity_data);
@@ -148,8 +143,8 @@ pub async fn save_keys<R: Runtime>(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn load_keystore<R: Runtime>(
-    app: AppHandle<R>,
+pub async fn load_keystore(
+    app: tauri::AppHandle,
     network: String
 ) -> Result<IAnyValue, String> {
     let data = storage::load_keystore(&app, &network)?;

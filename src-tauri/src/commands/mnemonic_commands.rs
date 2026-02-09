@@ -2,15 +2,14 @@
 
 use crate::models::{IMnemonic, IPrivateKeyStore};
 use crate::utils::{network_file::get_network_file, StoreManager};
-use tauri::{AppHandle, Runtime};
 
 #[cfg(test)]
 mod tests;
 
 #[tauri::command]
 #[specta::specta]
-pub fn load_mnemonic<R: Runtime>(
-    app_handle: AppHandle<R>,
+pub fn load_mnemonic(
+    app_handle: tauri::AppHandle,
     network: String,
 ) -> Result<Option<IMnemonic>, String> {
     let manager = StoreManager::new(&app_handle);
@@ -28,8 +27,8 @@ pub fn load_mnemonic<R: Runtime>(
 
 #[tauri::command]
 #[specta::specta]
-pub fn save_mnemonic<R: Runtime>(
-    app_handle: AppHandle<R>,
+pub fn save_mnemonic(
+    app_handle: tauri::AppHandle,
     network: String,
     payload: IMnemonic,
 ) -> Result<(), String> {
@@ -51,7 +50,10 @@ pub fn save_mnemonic<R: Runtime>(
 
 #[tauri::command]
 #[specta::specta]
-pub fn delete_mnemonic<R: Runtime>(app_handle: AppHandle<R>, network: String) -> Result<(), String> {
+pub fn delete_mnemonic(
+    app_handle: tauri::AppHandle,
+    network: String,
+) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "safu")?;
 
