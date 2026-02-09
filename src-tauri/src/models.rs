@@ -8,7 +8,7 @@ use specta::Type;
 #[cfg(test)]
 mod tests;
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 pub struct IAnyValue(pub serde_json::Value);
 
 impl ::specta::Type for IAnyValue {
@@ -21,7 +21,7 @@ impl ::specta::Type for IAnyValue {
 // Settings Models
 // =====================================================
 
-#[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Type, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct INotificationSettings {
     pub messages: bool,
@@ -29,7 +29,7 @@ pub struct INotificationSettings {
     pub contact_requests: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Type, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IProfileSettings {
     pub display_name: String,
@@ -37,7 +37,7 @@ pub struct IProfileSettings {
     pub bio: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Type)]
+#[derive(Serialize, Deserialize, Clone, Debug, Type, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IAppSettings {
     pub network: String,
@@ -51,7 +51,7 @@ pub struct IAppSettings {
 // Asset Models
 // =====================================================
 
-#[derive(Serialize, Deserialize, Clone, Debug, Type)]
+#[derive(Serialize, Deserialize, Clone, Debug, Type, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IAssetDefinition {
     pub identity_id: String,
@@ -98,11 +98,12 @@ where
 // Keystore & Identity Models
 // =====================================================
 
-#[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
+// Added PartialEq here
+#[derive(Serialize, Deserialize, Clone, Debug, Type, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IMnemonic { pub seed_phrase: String }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Type, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IPrivateKeyEntry {
     pub identity_id: String,
@@ -116,14 +117,14 @@ pub struct IPrivateKeyEntry {
     pub last_used: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Type, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IPrivateKeyStore {
     pub identities: HashMap<String, Vec<IPrivateKeyEntry>>,
     pub mnemonic: Option<IMnemonic>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Type, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IIdentityPublicKey {
     pub id: u32,
@@ -136,7 +137,7 @@ pub struct IIdentityPublicKey {
     pub disabled_at: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, Default, Type)]
+#[derive(Serialize, Deserialize, Clone, Debug, Default, Type, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IIdentityData {
     pub identity_id: String,
@@ -156,7 +157,7 @@ pub struct IIdentityData {
 // License & Discovery Results
 // =====================================================
 
-#[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Type, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ILicense {
     pub success: bool,
@@ -170,7 +171,7 @@ pub struct ILicense {
 
 pub type ILicenseStoreMap = HashMap<String, ILicense>;
 
-#[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
+#[derive(Serialize, Deserialize, Clone, Debug, Type, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IDiscoveredIdentity {
     pub identity_id: String,
