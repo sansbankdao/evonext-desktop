@@ -64,40 +64,68 @@ jobs:
       - name: Build and Generate Types
         run: pnpm run build
 
-      - name: Locate x64 WebView2Loader.dll for Windows tests
+      - name: Setup Windows WebView2Loader.dll
         if: matrix.platform == 'windows-latest'
         shell: powershell
         run: |
-          # List ALL WebView2Loader.dll variants so we can see what's available
-          Write-Host "=== All WebView2Loader.dll in target ==="
-          Get-ChildItem -Path "src-tauri\target" -Recurse -Filter "WebView2Loader.dll" | ForEach-Object {
-            Write-Host "  $($_.FullName) [$($_.Length) bytes]"
+          $x64Dll = Get-ChildItem -Path "src-tauri\target" -Recurse -Filter "WebView2Loader.dll" | Where-Object { $_.FullName -match "\\x64\\" } | Select-Object -First 1
+          if ($x64Dll) {
+            Copy-Item $x64Dll.FullName -Destination "src-tauri\target\debug\deps\WebView2Loader.dll" -Force
           }
 
-          # Find specifically the x64 variant (path contains \x64\)
-          $x64Dlls = Get-ChildItem -Path "src-tauri\target" -Recurse -Filter "WebView2Loader.dll" -ErrorAction SilentlyContinue | Where-Object {
-            $_.FullName -match "\\x64\\" -or $_.FullName -match "[/]x64[/]"
+      - name: Diagnose Windows test failure
+        if: matrix.platform == 'windows-latest'
+        shell: powershell
+        run: |
+          # Build tests without running them
+          cargo test --manifest-path=./src-tauri/Cargo.toml --all-features --no-run 2>&1
+
+          # Find the actual test binary
+          $testExe = Get-ChildItem -Path "src-tauri\target\debug\deps" -Filter "evonext-*.exe" | Where-Object { $_.Name -notmatch "\.d$" } | Select-Object -First 1
+          Write-Host "Test binary: $($testExe.FullName)"
+
+          # Use dumpbin to see what DLLs it needs
+          Write-Host "`n=== DIRECT DLL DEPENDENCIES ==="
+          & dumpbin /dependents $testExe.FullName 2>$null
+
+          # Check which DLLs Windows would actually load
+          Write-Host "`n=== Checking each dependency on PATH ==="
+          $dumpOutput = & dumpbin /dependents $testExe.FullName 2>$null
+          foreach ($line in $dumpOutput) {
+            if ($line -match "^\s+(\S+\.dll)\s*$") {
+              $dllName = $matches[1]
+              $found = & where.exe $dllName 2>$null
+              if ($found) {
+                Write-Host "${dllName}: $found"
+              } else {
+                Write-Host "${dllName}: NOT FOUND ON PATH"
+              }
+            }
           }
 
-          if ($x64Dlls.Count -eq 0) {
-            Write-Error "x64 WebView2Loader.dll not found in target directory"
-            Write-Host "This runner's architecture: $env:PROCESSOR_ARCHITECTURE"
-            exit 1
+          # Try running the test binary directly to capture the real error
+          Write-Host "`n=== Attempting direct execution ==="
+          $env:RUST_BACKTRACE = "1"
+          $proc = Start-Process -FilePath $testExe.FullName -ArgumentList "--list" -Wait -PassThru -NoNewWindow -RedirectStandardOutput "test_stdout.txt" -RedirectStandardError "test_stderr.txt" 2>$null
+          Write-Host "Exit code: $($proc.ExitCode)"
+          Write-Host "Stdout:"
+          if (Test-Path "test_stdout.txt") { Get-Content "test_stdout.txt" }
+          Write-Host "Stderr:"
+          if (Test-Path "test_stderr.txt") { Get-Content "test_stderr.txt" }
+
+          # Check Windows Event Log for application errors
+          Write-Host "`n=== Recent Application Errors ==="
+          Get-WinEvent -FilterHashtable @{LogName='Application'; Level=2; StartTime=(Get-Date).AddMinutes(-5)} -MaxEvents 10 -ErrorAction SilentlyContinue | ForEach-Object {
+            Write-Host "$($_.TimeCreated): $($_.Message)"
           }
 
-          $dll = $x64Dlls[0]
-          Write-Host "`nUsing x64 DLL: $($dll.FullName) [$($dll.Length) bytes]"
+          # Check what WebView2Loader.dll exports
+          Write-Host "`n=== WebView2Loader.dll exports ==="
+          & dumpbin /exports "src-tauri\target\debug\deps\WebView2Loader.dll" 2>$null
 
-          # Copy next to the test binary and its deps
-          Copy-Item $dll.FullName -Destination "src-tauri\target\debug\WebView2Loader.dll" -Force
-          Write-Host "Copied to src-tauri\target\debug\"
-
-          Copy-Item $dll.FullName -Destination "src-tauri\target\debug\deps\WebView2Loader.dll" -Force
-          Write-Host "Copied to src-tauri\target\debug\deps\"
-
-          # Also add to PATH as a fallback
-          echo "$($dll.DirectoryName)" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          Write-Host "Added $($dll.DirectoryName) to PATH"
+          # Check what the test binary imports from WebView2Loader
+          Write-Host "`n=== Test binary imports from WebView2Loader ==="
+          & dumpbin /imports $testExe.FullName 2>$null | Select-String -Pattern "WebView2" -Context 0,20
 
       - name: Run Rust Unit Tests
         shell: bash
