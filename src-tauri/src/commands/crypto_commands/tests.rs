@@ -8,12 +8,14 @@ use tauri::AppHandle;
 fn test_hash160_logic() {
     let app = mock_builder().build(tauri::generate_context!()).unwrap();
 
-    // Fixed: Added .clone() to get the owned AppHandle
+    // Added .clone() to handle the MockRuntime type correctly
     let handle: AppHandle<MockRuntime> = app.handle().clone();
     let input = b"hello".to_vec();
 
-    // Call the inner generic function to satisfy MockRuntime
+    // Call the inner generic function
     let result = hash160_inner(handle, input).unwrap();
+
+    // Hash160 always returns 20 bytes
     assert_eq!(result.len(), 20);
 }
 
@@ -21,10 +23,11 @@ fn test_hash160_logic() {
 fn test_random_bytes_logic() {
     let app = mock_builder().build(tauri::generate_context!()).unwrap();
 
-    // Fixed: Added .clone() to get the owned AppHandle
     let handle: AppHandle<MockRuntime> = app.handle().clone();
-    let len = 32;
+    let len: u32 = 32; // Explicitly defined as u32 to match the new signature
 
     let bytes = random_bytes_inner(handle, len).unwrap();
-    assert_eq!(bytes.len(), len);
+
+    // FIXED: Cast 'len' to usize to match bytes.len() type
+    assert_eq!(bytes.len(), len as usize);
 }

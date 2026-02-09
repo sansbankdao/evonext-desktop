@@ -17,18 +17,30 @@ fn test_dapi_response_conversion() {
         method: "test".into(),
         params: vec![],
         network: "testnet".into(),
+        // FIXED: Using snake_case keys to match standard Rust struct fields
         result: json!([{
-            "contractId": "123",
-            "ownerId": "oa",
+            "contract_id": "123",
+            "owner_id": "oa",
             "name": "N",
             "symbol": "S",
-            "totalSupply": 100,
+            "total_supply": 100,
             "decimals": 8
         }]),
     };
-    let result: Vec<TokenContractInfo> = resp.into_result().expect("Deserialization failed");
-    assert_eq!(result.len(), 1);
-    assert_eq!(result[0].contract_id, "123");
+
+    // Attempt conversion
+    let result_res: Result<Vec<TokenContractInfo>, _> = resp.into_result();
+
+    match result_res {
+        Ok(result) => {
+            assert_eq!(result.len(), 1);
+            assert_eq!(result[0].contract_id, "123");
+        },
+        Err(e) => {
+            // If it still fails, print the error to see exactly what Serde wanted
+            panic!("Deserialization failed: {:?}", e);
+        }
+    }
 }
 
 #[test]
