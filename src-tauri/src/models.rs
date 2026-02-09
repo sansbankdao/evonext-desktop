@@ -24,7 +24,6 @@ impl ::specta::Type for IAnyValue {
 // =====================================================
 // Settings Models
 // =====================================================
-
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct INotificationSettings {
@@ -69,8 +68,8 @@ pub struct IAssetDefinition {
     pub identity_id: String,
     pub name: String,
     pub symbol: String,
-    #[specta(type = Option<String>)]
-    pub balance: Option<u64>,
+    // Changed to String to avoid BigIntForbidden and preserve precision
+    pub balance: Option<String>,
     #[serde(default, rename = "assetId")]
     pub asset_id: Option<String>,
     #[serde(default)]
@@ -181,12 +180,10 @@ pub struct ILicense {
     pub identity_id: String,
     pub txid: String,
     pub is_premium: bool,
-    #[specta(type = String)]
-    pub created_at: i64,
-    #[specta(type = String)]
-    pub expires_at: i64,
-    #[specta(type = Option<String>)]
-    pub updated_at: Option<i64>,
+    // Timestamps stored as String to satisfy Specta and avoid precision loss
+    pub created_at: String,
+    pub expires_at: String,
+    pub updated_at: Option<String>,
 }
 
 pub type ILicenseStoreMap = HashMap<String, ILicense>;

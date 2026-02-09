@@ -1,6 +1,5 @@
 // src-tauri/src/commands/crypto_commands.rs
 
-use tauri::{AppHandle, Runtime};
 use sha2::{Sha256, Digest};
 use ripemd::Ripemd160;
 use rand::RngCore;
@@ -9,22 +8,23 @@ use rand::RngCore;
 mod tests;
 
 #[tauri::command]
-pub async fn hash160<R: Runtime>(
-    _app_handle: AppHandle<R>,
+#[specta::specta]
+pub fn hash160(
+    _app: tauri::AppHandle,
     data: Vec<u8>,
 ) -> Result<Vec<u8>, String> {
-    // Bitcoin Standard HASH160: RIPEMD160(SHA256(data))
     let sha256_hash = Sha256::digest(&data);
     let ripemd160_hash = Ripemd160::digest(sha256_hash);
     Ok(ripemd160_hash.to_vec())
 }
 
 #[tauri::command]
-pub async fn random_bytes<R: Runtime>(
-    _app_handle: AppHandle<R>,
-    length: usize,
+#[specta::specta]
+pub fn random_bytes(
+    _app: tauri::AppHandle,
+    length: u32, // Concrete u32 to avoid architecture-dependent usize/u64
 ) -> Result<Vec<u8>, String> {
-    let mut bytes = vec![0u8; length];
+    let mut bytes = vec![0u8; length as usize];
     rand::rng().fill_bytes(&mut bytes);
     Ok(bytes)
 }
