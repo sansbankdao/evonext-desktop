@@ -1,14 +1,14 @@
 // src-tauri/src/commands/license_commands/tests.rs
 
 use super::*;
-use tauri::test::{mock_builder, MockRuntime};
+use tauri::test::{mock_builder, mock_context, MockRuntime, noop_assets};
 use tauri::AppHandle;
 
 #[tokio::test]
 async fn test_license_lifecycle() {
     let app = mock_builder()
         .plugin(tauri_plugin_store::Builder::new().build())
-        .build(tauri::generate_context!())
+        .build(mock_context(noop_assets()))
         .unwrap();
     let handle: AppHandle<MockRuntime> = app.handle().clone();
 
@@ -20,8 +20,8 @@ async fn test_license_lifecycle() {
         identity_id: "test_identity_id".into(),
         txid: "test_tx_id".into(),
         is_premium: true,
-        created_at: "1700000000".into(), // Explicit string
-        expires_at: "2000000000".into(), // Explicit string
+        created_at: "1700000000".into(),
+        expires_at: "2000000000".into(),
         updated_at: None,
     };
 

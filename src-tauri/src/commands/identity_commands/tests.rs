@@ -2,7 +2,7 @@
 
 use super::*;
 use serde_json::json;
-use tauri::test::{mock_builder, MockRuntime};
+use tauri::test::{mock_builder, mock_context, MockRuntime, noop_assets};
 use tauri::AppHandle;
 
 #[test]
@@ -34,7 +34,7 @@ fn test_identity_mapper_malformed_keys() {
 async fn test_connect_identity_lifecycle() {
     let app = mock_builder()
         .plugin(tauri_plugin_store::Builder::new().build())
-        .build(tauri::generate_context!())
+        .build(mock_context(noop_assets()))
         .unwrap();
     let handle: AppHandle<MockRuntime> = app.handle().clone();
 
@@ -46,7 +46,6 @@ async fn test_connect_identity_lifecycle() {
         ..Default::default()
     };
 
-    // Use _inner to accept MockRuntime handle
     let save_res = save_identity_inner(handle.clone(), "testnet".into(), payload).await.unwrap();
     assert!(save_res.success);
 

@@ -2,19 +2,19 @@
 
 use super::*;
 use tauri::menu::MenuId;
-use tauri::test::{mock_builder};
+use tauri::test::{mock_builder, mock_context, noop_assets};
 
 #[test]
 fn test_menu_setup_completes() {
-    let app = mock_builder().build(tauri::generate_context!()).unwrap();
+    let app = mock_builder()
+        .build(mock_context(noop_assets()))
+        .unwrap();
     let res = setup_menus(app.handle());
     assert!(res.is_ok());
 }
 
 #[test]
 fn test_handle_menu_logic_execution() {
-    // Testing the routing logic directly via determine_action
-    // to avoid unimplemented 'exit' in MockRuntime
     assert_eq!(
         determine_action(&MenuId::new("about")),
         MenuAction::Navigate("/about".into())

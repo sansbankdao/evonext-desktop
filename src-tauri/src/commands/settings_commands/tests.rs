@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::models::{INotificationSettings, IProfileSettings};
-use tauri::test::{mock_builder, MockRuntime};
+use tauri::test::{mock_builder, mock_context, MockRuntime, noop_assets};
 use tauri::AppHandle;
 
 fn create_mock_settings() -> IAppSettings {
@@ -19,13 +19,12 @@ fn create_mock_settings() -> IAppSettings {
 fn test_settings_lifecycle() {
     let app = mock_builder()
         .plugin(tauri_plugin_store::Builder::default().build())
-        .build(tauri::generate_context!())
+        .build(mock_context(noop_assets()))
         .unwrap();
 
     let handle: AppHandle<MockRuntime> = app.handle().clone();
     let settings = create_mock_settings();
 
-    // Call _inner functions to satisfy the MockRuntime type
     let _ = save_settings_inner(handle.clone(), settings.clone());
 
     let load_res = load_settings_inner(handle.clone()).unwrap();

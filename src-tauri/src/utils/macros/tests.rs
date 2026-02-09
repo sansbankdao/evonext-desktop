@@ -1,7 +1,8 @@
 // src-tauri/src/utils/macros/tests.rs
 
 use serde::{Serialize, Deserialize};
-use tauri::test::{mock_builder, MockRuntime};
+use tauri::test::{mock_builder, mock_context, MockRuntime, noop_assets};
+use specta::Type;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, Type, PartialEq)]
 pub struct MacroTestPayload {
@@ -22,7 +23,7 @@ create_store_command!(
 async fn test_macro_generated_commands_lifecycle() {
     let app = mock_builder()
         .plugin(tauri_plugin_store::Builder::new().build())
-        .build(tauri::generate_context!())
+        .build(mock_context(noop_assets()))
         .unwrap();
     let handle: tauri::AppHandle<MockRuntime> = app.handle().clone();
 
