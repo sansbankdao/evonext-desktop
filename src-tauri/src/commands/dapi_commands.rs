@@ -4,6 +4,7 @@ use crate::dapi::client::{get_dapi_client, MethodParamInfo, params_array_to_obje
 use crate::dapi::types::Network;
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use tracing;
 
 #[cfg(test)]
 mod tests;

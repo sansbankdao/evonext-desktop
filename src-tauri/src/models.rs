@@ -1,7 +1,7 @@
 // src-tauri/src/models.rs
 
 use std::collections::HashMap;
-use serde::de::{Error as DeError, Unexpected};
+use serde::de::{Unexpected};
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 
@@ -57,13 +57,10 @@ pub struct IAssetDefinition {
     pub identity_id: String,
     pub name: String,
     pub symbol: String,
-    // FIX: Physically changed to String. No u64 allowed.
     pub balance: Option<String>,
     #[serde(default, rename = "assetId")]
     pub asset_id: Option<String>,
-    #[serde(default)]
     pub decimals: Option<u8>,
-    #[serde(default)]
     pub network: Option<String>,
 }
 
@@ -90,7 +87,7 @@ where
         NumOrStr::Str(s) => {
             if s.is_empty() { return Ok(0); }
             s.parse::<u32>().map(Ok).unwrap_or_else(|_| {
-                Err(D::Error::invalid_value(Unexpected::Str(&s), &"u32"))
+                Err(serde::de::Error::invalid_value(Unexpected::Str(&s), &"u32"))
             })
         }
         NumOrStr::Null => Ok(0),
@@ -120,6 +117,12 @@ pub struct IPrivateKeyEntry {
 
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
 #[serde(rename_all = "camelCase")]
+pub struct IPrivateKeyStore {
+    pub identities: HashMap<String, Vec<IPrivateKeyEntry>>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct IIdentityPublicKey {
     pub id: u32,
     #[serde(rename = "type")]
@@ -128,6 +131,7 @@ pub struct IIdentityPublicKey {
     pub security_level: u32,
     pub data: String,
     pub read_only: bool,
+    pub disabled_at: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, Type)]
@@ -142,6 +146,8 @@ pub struct IIdentityData {
     pub identity_idx: Option<u32>,
     pub dpns_username: Option<String>,
     pub is_authenticated: bool,
+    pub created_at: Option<String>,
+    pub public_key_ids: Option<Vec<u32>>,
 }
 
 // =====================================================
@@ -155,11 +161,12 @@ pub struct ILicense {
     pub identity_id: String,
     pub txid: String,
     pub is_premium: bool,
-    // FIX: Physically changed to String. No i64 allowed.
     pub created_at: String,
     pub expires_at: String,
     pub updated_at: Option<String>,
 }
+
+pub type ILicenseStoreMap = HashMap<String, Vec<ILicense>>;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
 #[serde(rename_all = "camelCase")]

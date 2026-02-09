@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::fmt::Debug;
 use tokio::sync::Mutex;
 
 #[cfg(test)]
@@ -28,7 +29,6 @@ impl DAPIClient {
         }
     }
 
-    /// Generic request method for DAPI calls
     pub async fn request<T>(
         &self,
         method: String,
@@ -36,9 +36,8 @@ impl DAPIClient {
         network: Network,
     ) -> Result<Vec<T>, DAPIError>
     where
-        T: for<'de> Deserialize<'de> + Serialize + Clone + Send + Sync + std::fmt::Debug,
+        T: for<'de> Deserialize<'de> + Serialize + Clone + Send + Sync + Debug,
     {
-        // 1. Validate
         let method_info = MethodParamInfo::for_method(&method)?;
         let mut params_map = HashMap::new();
         for (i, value) in params.iter().enumerate() {
@@ -48,7 +47,6 @@ impl DAPIClient {
         }
         validate_dapi_params(&method, &params_map)?;
 
-        // 2. Cache & Request Construction
         let request = DAPIRequest {
             method: method.clone(),
             params: Value::Array(params),
@@ -62,7 +60,6 @@ impl DAPIClient {
             }
         }
 
-        // 3. Network Call
         let response = self.client.post(&self.endpoint)
             .json(&request)
             .send()
@@ -73,10 +70,8 @@ impl DAPIClient {
             DAPIError::SerializationError(format!("Failed to read response body: {}", e))
         })?;
 
-        // 4. Parse using extracted testable logic
         let result = self.parse_response_text::<T>(&method, &response_text)?;
 
-        // 5. Cache result
         if let Ok(cache_value) = serde_json::to_value(&result) {
             self.cache.lock().await.set(cache_key, cache_value);
         }
@@ -84,7 +79,6 @@ impl DAPIClient {
         Ok(result)
     }
 
-    /// INTERNAL: Extracted logic for "Case A/B/C" parsing to enable 100% test coverage
     pub(crate) fn parse_response_text<T>(&self, method: &str, text: &str) -> Result<Vec<T>, DAPIError>
     where
         T: for<'de> Deserialize<'de> + Debug,
@@ -103,8 +97,6 @@ impl DAPIClient {
         }
     }
 }
-
-use std::fmt::Debug;
 
 lazy_static::lazy_static! {
     static ref DAPI_CLIENT: DAPIClient = DAPIClient::new(DAPI_WEB_API_ENDPOINT.to_string());
