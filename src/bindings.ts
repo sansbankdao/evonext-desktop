@@ -379,7 +379,7 @@ export type IMnemonic = { seedPhrase: string }
 export type INotificationSettings = { messages: boolean; mentions: boolean; contactRequests: boolean }
 export type IPrivateKeyEntry = { identityId: string; keyId: number; purpose: number; securityLevel: number; keyType: string; privateKey: string; publicKey: string; createdAt: string; lastUsed: string }
 export type IProfileSettings = { displayName: string; username: string; bio: string }
-export type ISaveIdentityPayload = { identityId: string; username: string; balance: string; revision: number; publicKeys: any[]; identityIdx: number | null; dpnsUsername: string | null; createdAt: string | null; publicKeyIds: number[] | null; activeIdentityId?: string | null }
+export type ISaveIdentityPayload = { identityId: string; username: string; balance: string; revision: number; publicKeys: any[]; identityIdx?: number | null; dpnsUsername?: string | null; createdAt?: string | null; publicKeyIds?: number[] | null; activeIdentityId?: string | null }
 export type IUnifiedCommandResult = { success: boolean; error: string | null; payload: any | null }
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
 
