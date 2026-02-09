@@ -36,7 +36,7 @@ async fn test_connect_identity_lifecycle() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .build(tauri::generate_context!())
         .unwrap();
-    let handle: AppHandle<MockRuntime> = app.handle();
+    let handle: AppHandle<MockRuntime> = app.handle().clone();
 
     let payload = ISaveIdentityPayload {
         identity_id: "conn_123".into(),

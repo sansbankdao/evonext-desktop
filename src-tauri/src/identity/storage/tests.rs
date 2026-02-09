@@ -87,7 +87,7 @@ fn test_keystore_storage_logic() {
         key_type: "ECDSA_SECP256K1".to_string(),
         private_key: "private_key_data".to_string(),
         public_key: "public_key_data".to_string(),
-        derived_from_mnemonic: Some(true),
+        // derived_from_mnemonic: Some(true),
         created_at: "2024-01-01T00:00:00Z".to_string(),
         last_used: "2024-01-01T00:00:00Z".to_string(),
     };

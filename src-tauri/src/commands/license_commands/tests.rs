@@ -10,7 +10,7 @@ async fn test_license_lifecycle() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .build(tauri::generate_context!())
         .unwrap();
-    let handle: AppHandle<MockRuntime> = app.handle();
+    let handle: AppHandle<MockRuntime> = app.handle().clone();
 
     let license = ILicense {
         success: true,
