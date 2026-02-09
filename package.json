@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "build": "pnpm type:gen && vue-tsc --noEmit && vite build",
+    "build": "mkdir -p dist && pnpm type:gen && vue-tsc --noEmit && vite build",
     "check": "pnpm type:gen && pnpm test:rust && vue-tsc --noEmit && pnpm test",
     "coverage:clean": "rm -rf coverage/",
     "coverage:merge": "pnpm coverage:clean && pnpm coverage:rust && pnpm coverage:frontend",

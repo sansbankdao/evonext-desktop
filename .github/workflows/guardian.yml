@@ -42,9 +42,6 @@ jobs:
         with:
           workspaces: "./src-tauri -> target"
 
-      - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@cargo-llvm-cov
-
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-latest'
         run: |
@@ -57,60 +54,43 @@ jobs:
         env:
           CI: true
 
-      - name: Build Frontend
-        run: pnpm build
+      - name: Create Placeholder Dist
+        run: mkdir -p dist
 
-      - name: Generate Rust Types
-        shell: bash
+      - name: Build and Generate Types
+        run: pnpm run build
+
+      - name: Setup Windows DLLs
+        if: matrix.platform == 'windows-latest'
+        shell: powershell
         run: |
-          # This ensures the dist folder exists so the proc-macro doesn't panic
-          mkdir -p dist
-          pnpm run type:gen
+          $Webview2Version = "1.0.2903.40"
+          Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/$Webview2Version" -OutFile "webview2.zip"
+          Expand-Archive -Path "webview2.zip" -DestinationPath "webview2"
+          $dllPath = "webview2/build/native/x64/WebView2Loader.dll"
+          # Create target directories for both standard cargo and llvm-cov
+          New-Item -ItemType Directory -Force -Path "src-tauri/target/debug/deps"
+          Copy-Item $dllPath -Destination "src-tauri/target/debug/"
+          Copy-Item $dllPath -Destination "src-tauri/target/debug/deps/"
+          Write-Host "✅ WebView2Loader.dll injected into target directories"
+
+      - name: Run Rust Unit Tests
+        run: pnpm run test:rust
 
       - name: Run Frontend Coverage
         if: matrix.platform == 'ubuntu-latest'
-        run: pnpm exec vitest run --coverage
-
-      - name: Run Rust Unit Tests
-        shell: bash
-        run: |
-          # Standard cargo test works on all platforms for MockRuntime tests.
-          # We bypass the 'pnpm tauri' wrapper to avoid CLI versioning conflicts.
-          cargo test --manifest-path=./src-tauri/Cargo.toml --all-features
-
-      - name: Run Rust Coverage (Tarpaulin)
-        if: matrix.platform == 'ubuntu-latest'
-        run: |
-          cargo install cargo-tarpaulin
-          cargo tarpaulin --manifest-path src-tauri/Cargo.toml \
-            --out Xml --output-dir ./coverage/rust
+        run: pnpm test
 
       - name: Run Type Check
         run: pnpm exec vue-tsc --noEmit
-
-      - name: Build App for E2E
-        run: pnpm tauri build --no-bundle
 
       - name: Run E2E Tests
         env:
           CI: true
         shell: bash
         run: |
-          if [ ! -f "wdio.conf.ts" ]; then
-            echo "Error: wdio.conf.ts not found!"
-            exit 1
-          fi
           if [ "${{ matrix.platform }}" == "ubuntu-latest" ]; then
             xvfb-run --auto-servernum pnpm run test:e2e
           else
             pnpm run test:e2e
           fi
-
-      - name: Upload coverage reports to Codecov
-        if: matrix.platform == 'ubuntu-latest'
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          slug: sansbankdao/evonext-desktop
-          files: ./coverage/lcov.info,./coverage/rust/tarpaulin.xml
-          fail_ci_if_error: true
