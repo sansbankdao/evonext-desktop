@@ -32,6 +32,11 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
 
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-latest'
@@ -57,18 +62,15 @@ jobs:
           fi
 
       - name: Run Frontend Coverage
-        # We run coverage only on Linux to provide a clean, single report
         if: matrix.platform == 'ubuntu-latest'
         run: pnpm exec vitest run --coverage
 
       - name: Run Rust Unit Tests
         shell: bash
         run: |
-          if [ "${{ matrix.platform }}" == "windows-latest" ]; then
-            cargo test --manifest-path=./src-tauri/Cargo.toml --lib --no-run
-          else
-            pnpm test:rust --no-fail-fast
-          fi
+          # We use standard cargo test for unit verification on all platforms
+          # Regular cargo test avoids llvm-cov overhead where not needed
+          cargo test --manifest-path=./src-tauri/Cargo.toml --all-features
 
       - name: Run Rust Coverage (Tarpaulin)
         if: matrix.platform == 'ubuntu-latest'
