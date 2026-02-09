@@ -22,7 +22,7 @@ pub fn hash160(
 #[specta::specta]
 pub fn random_bytes(
     _app: tauri::AppHandle,
-    length: u32, // Concrete u32 to avoid architecture-dependent usize/u64
+    length: u32,
 ) -> Result<Vec<u8>, String> {
     let mut bytes = vec![0u8; length as usize];
     rand::rng().fill_bytes(&mut bytes);

@@ -35,13 +35,15 @@ pub fn parse_assets_from_json(
             continue;
         }
 
+        // FIX: Use i64 for intermediate casting from Value
         let decimals = item.get("decimals")
-            .and_then(|v| v.as_u64())
+            .and_then(|v| v.as_i64())
             .map(|val| val as u8)
             .unwrap_or(8);
 
+        // FIX: Use u128 for parsing large balances
         let balance = get_str("balance")
-            .and_then(|s| s.parse::<u64>().ok())
+            .and_then(|s| s.parse::<u128>().ok())
             .unwrap_or(0);
 
         assets.push(IAssetDefinition {
@@ -50,7 +52,6 @@ pub fn parse_assets_from_json(
             symbol,
             asset_id: Some(contract_id),
             decimals: Some(decimals),
-            // FIX: Convert u64 balance to String for the model
             balance: Some(balance.to_string()),
             network: Some(network.to_string()),
         });
@@ -140,7 +141,6 @@ pub async fn fetch_identity_tokens(
 
     let mut identities_map = load_identity_map(&app, &network).unwrap_or_default();
     if let Some(identity_data) = identities_map.get_mut(&identity_id) {
-        // FIX: Parse balance strings back to u128 for summation
         let total: u128 = assets
             .iter()
             .filter_map(|a| {

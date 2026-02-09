@@ -13,16 +13,15 @@ pub fn update_identity_with_sdk_data(
     network: String,
     identity_id: String,
     public_keys: Vec<IIdentityPublicKey>,
-    revision: u64,
-    public_key_ids: Vec<u32>,
+    revision: u32,
+    _public_key_ids: Vec<u32>,
 ) -> Result<(), String> {
     let mut identities = storage::load_identity_map(&app_handle, &network)?;
 
     if let Some(identity_data) = identities.get_mut(&identity_id) {
         identity_data.public_keys = public_keys;
-        identity_data.revision = revision as u32;
-        identity_data.public_key_ids = Some(public_key_ids);
-        identity_data.created_at = Some(chrono::Utc::now().to_rfc3339());
+        identity_data.revision = revision; // No cast needed
+        identity_data.is_authenticated = true;
 
         storage::save_identity_map(&app_handle, &network, &identities, None)?;
         Ok(())
@@ -53,7 +52,6 @@ pub fn delete_identity_public_keys(
 
     if let Some(identity_data) = identities.get_mut(&identity_id) {
         identity_data.public_keys = vec![];
-        identity_data.public_key_ids = None;
         storage::save_identity_map(&app_handle, &network, &identities, None)?;
         Ok(())
     } else {
