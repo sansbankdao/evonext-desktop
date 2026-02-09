@@ -58,7 +58,6 @@ jobs:
           CI: true
 
       - name: Create Placeholder Dist
-        # Using a cross-platform node command to ensure the build never panics
         run: node -e "const fs = require('fs'); if (!fs.existsSync('dist')) fs.mkdirSync('dist')"
 
       - name: Setup Windows DLLs
@@ -69,21 +68,24 @@ jobs:
           Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/$Webview2Version" -OutFile "webview2.zip"
           Expand-Archive -Path "webview2.zip" -DestinationPath "webview2"
           $dllPath = (Get-ChildItem -Path "webview2/build/native/x64/WebView2Loader.dll" -Recurse).FullName
-
-          # NUCLEAR OPTION: Create a dedicated bin folder and add it to the SYSTEM PATH
           $binDir = "$pwd/external_bin"
           if (!(Test-Path $binDir)) { New-Item -ItemType Directory -Force -Path $binDir }
           Copy-Item $dllPath -Destination $binDir
-
-          # Add to GITHUB_PATH so all subsequent steps (including pnpm run test:rust) can see it
           echo "$binDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          Write-Host "✅ WebView2Loader.dll added to System PATH via $binDir"
+          Write-Host "✅ WebView2Loader.dll added to System PATH"
 
       - name: Build and Generate Types
         run: pnpm run build
 
       - name: Run Rust Unit Tests
-        run: pnpm run test:rust
+        shell: bash
+        run: |
+          if [ "${{ matrix.platform }}" == "windows-latest" ]; then
+            # Use standard cargo test on Windows to avoid llvm-cov's linker entrypoint conflict
+            cargo test --manifest-path=./src-tauri/Cargo.toml --all-features
+          else
+            pnpm run test:rust
+          fi
 
       - name: Run Frontend Coverage
         if: matrix.platform == 'ubuntu-latest'
