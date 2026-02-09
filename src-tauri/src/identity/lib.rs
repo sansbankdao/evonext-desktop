@@ -8,7 +8,13 @@ use bitcoin::PrivateKey;
 use ripemd::Ripemd160;
 use serde_json::Value as JsonValue;
 use sha2::{Digest, Sha256};
+
 pub type IdentityMap = HashMap<String, IIdentityData>;
+
+// Declares the external test file at src/identity/lib/tests.rs
+#[cfg(test)]
+mod tests;
+
 // =====================================================
 // LOGIC: Normalization & Matching
 // =====================================================
@@ -24,9 +30,9 @@ pub fn normalize_public_key(default_id: u32, raw: &JsonValue) -> Option<IIdentit
     } else {
         return None;
     };
-    // 2. Normalize Purpose
+    // 2. Normalize Purpose (Strictly u32)
     let purpose = match obj.get("purpose") {
-        Some(JsonValue::Number(n)) => n.as_u64().unwrap_or(0) as u32,
+        Some(JsonValue::Number(n)) => n.as_i64().unwrap_or(0) as u32,
         Some(JsonValue::String(s)) => match s.to_uppercase().as_str() {
             "AUTHENTICATION" => 0,
             "ENCRYPTION" => 1,
@@ -36,9 +42,9 @@ pub fn normalize_public_key(default_id: u32, raw: &JsonValue) -> Option<IIdentit
         },
         _ => 0,
     };
-    // 3. Normalize SecurityLevel
+    // 3. Normalize SecurityLevel (Strictly u32)
     let security_level = match obj.get("securityLevel") {
-        Some(JsonValue::Number(n)) => n.as_u64().unwrap_or(0) as u32,
+        Some(JsonValue::Number(n)) => n.as_i64().unwrap_or(0) as u32,
         Some(JsonValue::String(s)) => match s.to_uppercase().as_str() {
             "MASTER" => 0,
             "CRITICAL" => 1,
@@ -49,11 +55,13 @@ pub fn normalize_public_key(default_id: u32, raw: &JsonValue) -> Option<IIdentit
         },
         _ => 0,
     };
+    // 4. Normalize ID (Strictly u32)
+    let id = obj.get("id")
+        .and_then(|v| v.as_i64())
+        .map(|n| n as u32)
+        .unwrap_or(default_id);
     Some(IIdentityPublicKey {
-        id: obj.get("id")
-            .and_then(|v| v.as_u64())
-            .map(|n| n as u32)
-            .unwrap_or(default_id),
+        id,
         type_: obj.get("type")
             .or(obj.get("keyType"))
             .and_then(|v| v.as_str())
@@ -112,66 +120,4 @@ pub fn enrich_key_entries(
         }
     }
     updated
-}
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json::json;
-    #[test]
-    fn test_normalize_public_key_b64_and_enums() {
-        let raw = json!({
-            "dataB64": "SGVsbG8=", // "Hello" in base64
-            "purpose": "TRANSFER",
-            "securityLevel": "MASTER",
-            "keyType": "ECDSA_SECP256K1"
-        });
-        let result = normalize_public_key(99, &raw).unwrap();
-        assert_eq!(result.data, "48656c6c6f"); // "Hello" in hex
-        assert_eq!(result.purpose, 3);
-        assert_eq!(result.security_level, 0);
-        assert_eq!(result.type_, "ECDSA_SECP256K1");
-        assert_eq!(result.id, 99);
-    }
-    #[test]
-    fn test_normalize_public_key_numeric_and_hex() {
-        let raw = json!({
-            "id": 5,
-            "data": "aabbcc",
-            "purpose": 1,
-            "securityLevel": 2,
-            "type": "Ed25519"
-        });
-        let result = normalize_public_key(0, &raw).unwrap();
-        assert_eq!(result.id, 5);
-        assert_eq!(result.data, "aabbcc");
-        assert_eq!(result.purpose, 1);
-        assert_eq!(result.security_level, 2);
-    }
-    #[test]
-    fn test_enrich_key_entries_matching() {
-        // Use lowercase hex for the test comparison
-        let pub_hex = "02c01977799516892e59e1f57989938b814df340b0f74a00473a24683501a4e12e".to_string();
-        let mut entries = vec![crate::models::IPrivateKeyEntry {
-            public_key: pub_hex.clone(),
-            key_id: 0,
-            ..Default::default()
-        }];
-        let identity = IIdentityData {
-            public_keys: vec![IIdentityPublicKey {
-                id: 10,
-                data: pub_hex,
-                purpose: 3,
-                security_level: 0,
-                type_: "ECDSA_SECP256K1".to_string(),
-                read_only: false,
-                disabled_at: None,
-            }],
-            ..Default::default()
-        };
-        let count = enrich_key_entries(&mut entries, &identity);
-        assert_eq!(count, 0); // No derivation needed
-        assert_eq!(entries[0].key_id, 10);
-        assert_eq!(entries[0].purpose, 3);
-        assert_eq!(entries[0].security_level, 0);
-    }
 }
