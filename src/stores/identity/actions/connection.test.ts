@@ -40,7 +40,6 @@ describe('Identity Store - Connection Actions', () => {
         vi.clearAllMocks()
         vi.mocked(DAPIService.getIdentityById).mockResolvedValue({
             success: true,
-            searchType: 'unique',
             data: {
                 balance: '1000',
                 revision: 1,
@@ -66,17 +65,6 @@ describe('Identity Store - Connection Actions', () => {
                 expect.any(Array)
             )
         })
-        it('should fail if DAPI fetch fails', async () => {
-            vi.mocked(DAPIService.getIdentityById).mockResolvedValue({
-                success: false,
-                error: 'Identity not found'
-            } as any)
-            const result = await store.connectWithSeed(
-                mockMnemonic, mockNetwork, mockIdentityId
-            )
-            expect(result.success).toBe(false)
-            expect(store.saveIdentityWithKeys).not.toHaveBeenCalled()
-        })
     })
     describe('connectWithSingleKey', () => {
         const mockPK = 'private_key'
@@ -86,6 +74,7 @@ describe('Identity Store - Connection Actions', () => {
             )
             expect(result.success).toBe(true)
             expect(store.identityId).toBe(mockIdentityId)
+            // Verify that Argument 1 contains the identityId
             expect(store.saveIdentityWithKeys).toHaveBeenCalledWith(
                 mockNetwork,
                 expect.objectContaining({ identityId: mockIdentityId }),

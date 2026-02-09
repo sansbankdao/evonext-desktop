@@ -71,13 +71,13 @@ export const connectionActions = () => ({
                             publicKey: pk.data || '',
                             derivedFromMnemonic: true,
                             createdAt: now,
-                            last_used: now
+                            lastUsed: now
                         })
                     } catch (e) {
                         console.warn(`[Connect] KeyId ${keyId} derivation skipped`)
                     }
                 }
-                const activeIdentity: IIdentity = {
+                const identityPayload: IIdentity = {
                     identityId: targetId,
                     identityIdx: identityIndex,
                     balance: String(identityData.balance || '0'),
@@ -86,19 +86,19 @@ export const connectionActions = () => ({
                 }
                 // ATOMIC SYNC TO DISK
                 await this.saveIdentityWithKeys(network, {
-                    ...activeIdentity,
+                    ...identityPayload,
                     activeIdentityId: targetId
                 }, privateKeyEntries)
                 // Update RAM
                 this.isAuthenticated = true
                 this.username = targetId
                 this.identityId = targetId
-                this.identity = activeIdentity
+                this.identity = identityPayload
                 this.publicKeys = publicKeys
-                this.balance = activeIdentity.balance
+                this.balance = identityPayload.balance
                 this.isConnected = true
                 await persistActiveIdentityMarker(targetId, network)
-                return { success: true, identityId: targetId, identity: activeIdentity }
+                return { success: true, identityId: targetId, identity: identityPayload }
             } finally {
                 this.isConnecting = false
             }
@@ -124,6 +124,7 @@ export const connectionActions = () => ({
                 if (!fetchResult.success || !fetchResult.data) throw new Error('DAPI Fetch failed')
                 const identityData = fetchResult.data
                 const publicKeys = identityData.publicKeys || []
+                const now = new Date().toISOString()
                 const pkEntry = {
                     identityId: trimmedId,
                     keyId: 0,
@@ -133,10 +134,10 @@ export const connectionActions = () => ({
                     privateKey: privateKey,
                     publicKey: '',
                     derivedFromMnemonic: false,
-                    createdAt: new Date().toISOString(),
-                    lastUsed: new Date().toISOString()
+                    createdAt: now,
+                    lastUsed: now
                 }
-                this.identity = {
+                const identityPayload: IIdentity = {
                     identityId: trimmedId,
                     identityIdx: 0,
                     balance: String(identityData.balance || '0'),
@@ -145,12 +146,15 @@ export const connectionActions = () => ({
                 }
                 // ATOMIC SYNC
                 await this.saveIdentityWithKeys(network, {
-                    ...this.identity,
+                    ...identityPayload,
                     activeIdentityId: trimmedId
                 }, [pkEntry])
+                // Update RAM
                 this.isAuthenticated = true
                 this.identityId = trimmedId
-                this.balance = String(identityData.balance || '0')
+                this.identity = identityPayload
+                this.publicKeys = publicKeys
+                this.balance = identityPayload.balance
                 this.isConnected = true
                 await persistActiveIdentityMarker(trimmedId, network)
                 return { success: true, identityId: trimmedId }
