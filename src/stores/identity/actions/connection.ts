@@ -8,9 +8,9 @@ import { usePlatform } from '@/composables/usePlatform'
 import type {
     ConnectionResult,
     IIdentityState,
-    // DiscoveredIdentity,
     IIdentity
 } from '@/types'
+
 async function persistActiveIdentityMarker(identityId: string | null, network: string) {
     try {
         if (identityId) {
@@ -25,7 +25,7 @@ async function persistActiveIdentityMarker(identityId: string | null, network: s
 }
 export const connectionActions = () => ({
     async connectWithSeed(
-        this: IIdentityState,
+        this: any, // Matches IIdentityState + identityActions
         seedPhrase: string,
         network: 'mainnet' | 'testnet' = 'mainnet',
         targetId: string,
@@ -78,9 +78,6 @@ export const connectionActions = () => ({
                         console.warn(`[Connect] KeyId ${keyId} derivation skipped`)
                     }
                 }
-                if (privateKeyEntries.length > 0) {
-                    await this.saveKeys(network, targetId, privateKeyEntries)
-                }
                 const activeIdentity: IIdentity = {
                     identityId: targetId,
                     identityIdx: identityIndex,
@@ -88,6 +85,11 @@ export const connectionActions = () => ({
                     revision: Number(identityData.revision || 0),
                     publicKeys
                 }
+                // ATOMIC SYNC TO DISK: Both Identity Map and Safu Keystore
+                await this.saveIdentityWithKeys(network, {
+                    ...activeIdentity,
+                    activeIdentityId: targetId
+                }, privateKeyEntries)
                 // Update RAM
                 this.isAuthenticated = true
                 this.username = targetId
@@ -96,11 +98,6 @@ export const connectionActions = () => ({
                 this.publicKeys = publicKeys
                 this.balance = activeIdentity.balance
                 this.isConnected = true
-                // SYNC TO DISK
-                await this.saveIdentityDataToStore(network, targetId, {
-                    ...activeIdentity,
-                    active_identity_id: targetId
-                })
                 await persistActiveIdentityMarker(targetId, network)
                 return { success: true, identityId: targetId, identity: activeIdentity }
             } finally {
@@ -109,7 +106,7 @@ export const connectionActions = () => ({
         }, 'CONNECT_WITH_SEED_FAILED')
     },
     async connectWithSingleKey(
-        this: IIdentityState,
+        this: any,
         privateKey: string,
         identityId: string,
         network: 'mainnet' | 'testnet' = 'mainnet'
@@ -134,15 +131,12 @@ export const connectionActions = () => ({
                     purpose: 0,
                     securityLevel: 0,
                     keyType: 'ECDSA_HASH160',
-                    private_key: privateKey,
-                    public_key: '',
-                    derived_from_mnemonic: false,
-                    created_at: new Date().toISOString(),
-                    last_used: new Date().toISOString()
+                    privateKey: privateKey,
+                    publicKey: '',
+                    derivedFromMnemonic: false,
+                    createdAt: new Date().toISOString(),
+                    lastUsed: new Date().toISOString()
                 }
-                await this.saveKeys(network, trimmedId, [pkEntry])
-                this.isAuthenticated = true
-                this.identityId = trimmedId
                 this.identity = {
                     identityId: trimmedId,
                     identityIdx: 0,
@@ -150,12 +144,15 @@ export const connectionActions = () => ({
                     revision: Number(identityData.revision || 0),
                     publicKeys
                 }
+                // ATOMIC SYNC
+                await this.saveIdentityWithKeys(network, {
+                    ...this.identity,
+                    activeIdentityId: trimmedId
+                }, [pkEntry])
+                this.isAuthenticated = true
+                this.identityId = trimmedId
                 this.balance = String(identityData.balance || '0')
                 this.isConnected = true
-                await this.saveIdentityDataToStore(network, trimmedId, {
-                    ...this.identity,
-                    active_identity_id: trimmedId
-                })
                 await persistActiveIdentityMarker(trimmedId, network)
                 return { success: true, identityId: trimmedId }
             } finally {

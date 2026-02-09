@@ -1,19 +1,18 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Introducing the 3rd Release Candidate (Based)
+### Introducing the 4th Release Candidate (Rusty)
 
-This latest version of EvoNext introduces the 1st Baseline Implementation.
+This latest version of EvoNext complete the Rust (back-end) foundation.
 
 # Changelog
 
 ## Latest Features:
 
-- __Testing:__ Our testing coverage is now ~80% — offering satisfactory protection against unexpected bugs and code regressions.
-- __Testing:__ Added Codecov integration.
+- __Testing:__ Our Rust testing coverage is now ~35% — offering satisfactory protection against unexpected bugs and code regressions.
 
 ## Bugfixes:
 
-- __Testing:__ Fixed ALL CI/TS errors that were causing build failure.
+- __Types:__ Update ALL types to now use `bindings.ts` as the ONLY source of truth.
 
 ## Notes:
 

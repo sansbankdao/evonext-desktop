@@ -22,7 +22,6 @@ impl IdentityMapper {
             .enumerate()
             .filter_map(|(i, IAnyValue(v))| identity_logic::normalize_public_key(i as u32, v))
             .collect::<Vec<IIdentityPublicKey>>();
-
         IIdentityData {
             identity_id: payload.identity_id,
             username: payload.username,
@@ -37,7 +36,6 @@ impl IdentityMapper {
         }
     }
 }
-
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ISaveIdentityPayload {
@@ -57,7 +55,6 @@ pub struct ISaveIdentityPayload {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub active_identity_id: Option<String>,
 }
-
 #[derive(Serialize, Deserialize, Clone, Debug, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct IUnifiedCommandResult {
@@ -65,7 +62,6 @@ pub struct IUnifiedCommandResult {
     pub error: Option<String>,
     pub payload: Option<IAnyValue>,
 }
-
 #[tauri::command]
 #[specta::specta]
 pub async fn discover_and_save_identity(
@@ -75,17 +71,14 @@ pub async fn discover_and_save_identity(
 ) -> Result<IUnifiedCommandResult, String> {
     let client = get_dapi_client();
     let net = Network::from_str(&network).unwrap_or(Network::Testnet);
-
     let raw_identities = client.get_identity(identity_id.clone(), net)
         .await
         .map_err(|e| e.to_string())?;
-
     let dapi_identity: Identity = serde_json::from_value(
         raw_identities.first()
             .ok_or_else(|| "Identity not found on chain".to_string())?
             .clone()
     ).map_err(|e| format!("Failed to parse chain identity: {}", e))?;
-
     let dpns_names = client.get_dpns_usernames(identity_id.clone(), net)
         .await
         .unwrap_or_default();
@@ -93,7 +86,6 @@ pub async fn discover_and_save_identity(
         .and_then(|v| v.as_str())
         .unwrap_or("Unknown")
         .to_string();
-
     let payload = ISaveIdentityPayload {
         identity_id: identity_id.clone(),
         username: username.clone(),
@@ -105,10 +97,26 @@ pub async fn discover_and_save_identity(
         dpns_username: Some(username),
         ..Default::default()
     };
-
     save_identity_inner(app, network, payload).await
 }
-
+#[tauri::command]
+#[specta::specta]
+pub async fn save_identity_with_keys(
+    app: tauri::AppHandle,
+    network: String,
+    identity_payload: ISaveIdentityPayload,
+    keys: Vec<IPrivateKeyEntry>,
+) -> Result<IUnifiedCommandResult, String> {
+    // 1. Save Identity Profile
+    save_identity_inner(app.clone(), network.clone(), identity_payload.clone()).await?;
+    // 2. Save and Enrich Keys
+    save_keys_inner(app, network, identity_payload.identity_id, keys).await?;
+    Ok(IUnifiedCommandResult {
+        success: true,
+        error: None,
+        payload: None,
+    })
+}
 #[tauri::command]
 #[specta::specta]
 pub async fn save_identity(
@@ -118,7 +126,6 @@ pub async fn save_identity(
 ) -> Result<IUnifiedCommandResult, String> {
     save_identity_inner(app, network, payload).await
 }
-
 pub async fn save_identity_inner<R: Runtime>(
     app: tauri::AppHandle<R>,
     network: String,
@@ -126,23 +133,18 @@ pub async fn save_identity_inner<R: Runtime>(
 ) -> Result<IUnifiedCommandResult, String> {
     let identity_id = payload.identity_id.clone();
     let mut map = storage::load_identity_map(&app, &network)?;
-
     let active_id = payload.active_identity_id.clone().or_else(|| {
         if map.is_empty() { Some(identity_id.clone()) } else { None }
     });
-
     let identity = IdentityMapper::map_to_identity(payload);
     map.insert(identity_id.clone(), identity);
-
     storage::save_identity_map(&app, &network, &map, active_id)?;
-
     Ok(IUnifiedCommandResult {
         success: true,
         error: None,
         payload: Some(IAnyValue(serde_json::json!({ "identityId": identity_id }))),
     })
 }
-
 #[tauri::command]
 #[specta::specta]
 pub async fn delete_identity(
@@ -152,7 +154,6 @@ pub async fn delete_identity(
 ) -> Result<bool, String> {
     delete_identity_inner(app, network, identity_id).await
 }
-
 pub async fn delete_identity_inner<R: Runtime>(
     app: tauri::AppHandle<R>,
     network: String,
@@ -173,7 +174,6 @@ pub async fn delete_identity_inner<R: Runtime>(
             .map_err(|e| e.to_string())
     }
 }
-
 #[tauri::command]
 #[specta::specta]
 pub async fn save_keys(
@@ -184,7 +184,6 @@ pub async fn save_keys(
 ) -> Result<bool, String> {
     save_keys_inner(app, network, identity_id, keys).await
 }
-
 pub async fn save_keys_inner<R: Runtime>(
     app: tauri::AppHandle<R>,
     network: String,
@@ -201,18 +200,15 @@ pub async fn save_keys_inner<R: Runtime>(
                 entries.push(k);
             }
         }
-
         let current_identities = storage::load_identity_map(&app, &network)?;
         if let Some(identity_data) = current_identities.get(&identity_id) {
             identity_logic::enrich_key_entries(entries, identity_data);
         }
     }
-
     storage::save_keystore(&app, &network, &keystore)
         .map(|_| true)
         .map_err(|e| e.to_string())
 }
-
 #[tauri::command]
 #[specta::specta]
 pub async fn load_keystore(
@@ -221,7 +217,6 @@ pub async fn load_keystore(
 ) -> Result<IAnyValue, String> {
     load_keystore_inner(app, network).await
 }
-
 pub async fn load_keystore_inner<R: Runtime>(
     app: tauri::AppHandle<R>,
     network: String
