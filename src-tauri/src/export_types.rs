@@ -21,6 +21,8 @@ fn main() {
         crypto_commands::hash160,
         crypto_commands::random_bytes,
         identity_commands::save_identity,
+        identity_commands::save_identity_with_keys, // Added
+        identity_commands::discover_and_save_identity, // Added
         identity_commands::delete_identity,
         identity_commands::save_keys,
         identity_commands::load_keystore,

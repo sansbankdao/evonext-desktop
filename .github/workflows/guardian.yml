@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Better for tools like Tarpaulin
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -34,6 +36,11 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: llvm-tools-preview
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
@@ -57,36 +64,24 @@ jobs:
         shell: bash
         run: |
           mkdir -p src/types
-          if [ "${{ matrix.platform }}" == "windows-latest" ]; then
-            pnpm run type:gen || echo "Warning: Type gen failed"
-            touch src/bindings.ts
-          else
-            pnpm run type:gen
-          fi
-
-      - name: Compile Rust (Prepare Binaries)
-        run: cargo build --manifest-path ./src-tauri/Cargo.toml --all-features
-
-      - name: Fix Windows DLL Path
-        if: matrix.platform == 'windows-latest'
-        shell: pwsh
-        run: |
-          # Locate the WebView2Loader.dll in the build tree and copy it to the deps folder
-          # where the test runner looks for it.
-          $dll = Get-ChildItem -Path "src-tauri/target/debug" -Filter "WebView2Loader.dll" -Recurse | Select-Object -First 1
-          if ($dll) {
-            Copy-Item $dll.FullName -Destination "src-tauri/target/debug/deps/"
-            echo "Successfully deployed WebView2Loader.dll to deps folder."
-          } else {
-            echo "Warning: WebView2Loader.dll not found in debug folder."
-          }
+          # Ensure current bindings are fresh.
+          # We don't 'touch' anymore; we want to know if it fails.
+          pnpm run type:gen
 
       - name: Run Frontend Coverage
         if: matrix.platform == 'ubuntu-latest'
         run: pnpm exec vitest run --coverage
 
       - name: Run Rust Unit Tests
-        run: cargo test --manifest-path ./src-tauri/Cargo.toml --all-features
+        shell: bash
+        run: |
+          if [ "${{ matrix.platform }}" == "windows-latest" ]; then
+            # If 'tauri test' fails, this is the fallback 'correct' v2 command
+            pnpm tauri dev --test -- --manifest-path=./src-tauri/Cargo.toml --all-features || \
+            pnpm tauri test -- --manifest-path=./src-tauri/Cargo.toml --all-features
+          else
+            cargo test --manifest-path=./src-tauri/Cargo.toml --all-features
+          fi
 
       - name: Run Rust Coverage (Tarpaulin)
         if: matrix.platform == 'ubuntu-latest'
