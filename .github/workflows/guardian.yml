@@ -50,6 +50,9 @@ jobs:
         env:
           CI: true
 
+      - name: Build Frontend
+        run: pnpm build
+
       - name: Generate Rust Types
         shell: bash
         run: |
@@ -68,8 +71,7 @@ jobs:
       - name: Run Rust Unit Tests
         shell: bash
         run: |
-          # We use standard cargo test for unit verification on all platforms
-          # Regular cargo test avoids llvm-cov overhead where not needed
+          # The dist folder now exists, so the tauri macro won't panic
           cargo test --manifest-path=./src-tauri/Cargo.toml --all-features
 
       - name: Run Rust Coverage (Tarpaulin)
