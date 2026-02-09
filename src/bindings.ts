@@ -371,6 +371,8 @@ async getIdentityByNonUniquePublicKeyHash(publicKeyHash: string, network: string
 
 export type IAppSettings = { network: string; theme: string; notifications: INotificationSettings; profile: IProfileSettings; activeIdentityId: string | null }
 export type IAssetDefinition = { identityId: string; name: string; symbol: string; balance: string | null; assetId?: string | null; decimals: number | null; network: string | null }
+export type IDiscoveredIdentity = { identityId: string; balance: string; identityIdx: number | null; dpnsUsername: string | null; keyType: string; discoveredAt: string }
+export type IIdentityData = { identityId: string; username: string; balance: string; revision?: number; publicKeys: IIdentityPublicKey[]; identityIdx: number | null; dpnsUsername: string | null; isAuthenticated: boolean; createdAt: string | null; publicKeyIds: number[] | null }
 export type IIdentityPublicKey = { id: number; type: string; purpose: number; securityLevel: number; data: string; readOnly: boolean; disabledAt: string | null }
 export type ILicense = { success: boolean; identityId: string; txid: string; isPremium: boolean; createdAt: string; expiresAt: string; updatedAt: string | null }
 export type IMnemonic = { seedPhrase: string }
