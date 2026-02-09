@@ -31,7 +31,6 @@ pub async fn refresh_license(
         .unwrap()
         .as_secs();
 
-    // FIX: Convert timestamp to String for the updated model
     api_data.updated_at = Some(now.to_string());
 
     let manager = StoreManager::new(&app_handle);

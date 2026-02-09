@@ -84,7 +84,6 @@ impl Network {
             Network::Testnet => "testnet",
         }
     }
-
     pub fn from_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "mainnet" => Some(Network::Mainnet),

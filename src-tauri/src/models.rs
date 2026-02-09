@@ -99,6 +99,7 @@ where
 // =====================================================
 
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct IMnemonic { pub seed_phrase: String }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
@@ -119,6 +120,7 @@ pub struct IPrivateKeyEntry {
 #[serde(rename_all = "camelCase")]
 pub struct IPrivateKeyStore {
     pub identities: HashMap<String, Vec<IPrivateKeyEntry>>,
+    pub mnemonic: Option<IMnemonic>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
@@ -166,7 +168,7 @@ pub struct ILicense {
     pub updated_at: Option<String>,
 }
 
-pub type ILicenseStoreMap = HashMap<String, Vec<ILicense>>;
+pub type ILicenseStoreMap = HashMap<String, ILicense>;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
 #[serde(rename_all = "camelCase")]
