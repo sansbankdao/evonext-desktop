@@ -71,8 +71,13 @@ jobs:
       - name: Run Rust Unit Tests
         shell: bash
         run: |
-          # The dist folder now exists, so the tauri macro won't panic
-          cargo test --manifest-path=./src-tauri/Cargo.toml --all-features
+          if [ "${{ matrix.platform }}" == "windows-latest" ]; then
+            # Windows requires the tauri-cli wrapper to locate WebView2Loader.dll
+            pnpm tauri test -- --manifest-path=./src-tauri/Cargo.toml --all-features
+          else
+            # Keep original command for macOS and Ubuntu to avoid breaking passing builds
+            cargo test --manifest-path=./src-tauri/Cargo.toml --all-features
+          fi
 
       - name: Run Rust Coverage (Tarpaulin)
         if: matrix.platform == 'ubuntu-latest'
