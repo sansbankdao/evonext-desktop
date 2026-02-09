@@ -12,6 +12,7 @@ This latest version of EvoNext complete the Rust (back-end) foundation.
 
 ## Bugfixes:
 
+- __Identity:__ Restore search discovery.
 - __Types:__ Update ALL types to now use `bindings.ts` as the ONLY source of truth.
 
 ## Notes:
