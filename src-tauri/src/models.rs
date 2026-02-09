@@ -8,10 +8,6 @@ use specta::Type;
 #[cfg(test)]
 mod tests;
 
-// =====================================================
-// Custom Types & Wrappers
-// =====================================================
-
 #[derive(Serialize, Deserialize, Clone, Debug, Default)]
 pub struct IAnyValue(pub serde_json::Value);
 
@@ -24,25 +20,20 @@ impl ::specta::Type for IAnyValue {
 // =====================================================
 // Settings Models
 // =====================================================
+
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct INotificationSettings {
-    #[serde(default)]
     pub messages: bool,
-    #[serde(default)]
     pub mentions: bool,
-    #[serde(default)]
     pub contact_requests: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct IProfileSettings {
-    #[serde(default)]
     pub display_name: String,
-    #[serde(default)]
     pub username: String,
-    #[serde(default)]
     pub bio: String,
 }
 
@@ -51,9 +42,7 @@ pub struct IProfileSettings {
 pub struct IAppSettings {
     pub network: String,
     pub theme: String,
-    #[serde(default)]
     pub notifications: INotificationSettings,
-    #[serde(default)]
     pub profile: IProfileSettings,
     pub active_identity_id: Option<String>,
 }
@@ -68,7 +57,7 @@ pub struct IAssetDefinition {
     pub identity_id: String,
     pub name: String,
     pub symbol: String,
-    // Changed to String to avoid BigIntForbidden and preserve precision
+    // FIX: Physically changed to String. No u64 allowed.
     pub balance: Option<String>,
     #[serde(default, rename = "assetId")]
     pub asset_id: Option<String>,
@@ -101,7 +90,7 @@ where
         NumOrStr::Str(s) => {
             if s.is_empty() { return Ok(0); }
             s.parse::<u32>().map(Ok).unwrap_or_else(|_| {
-                Err(D::Error::invalid_value(Unexpected::Str(&s), &"a u32 or stringified u32"))
+                Err(D::Error::invalid_value(Unexpected::Str(&s), &"u32"))
             })
         }
         NumOrStr::Null => Ok(0),
@@ -113,10 +102,7 @@ where
 // =====================================================
 
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct IMnemonic {
-    pub seed_phrase: String,
-}
+pub struct IMnemonic { pub seed_phrase: String }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
 #[serde(rename_all = "camelCase")]
@@ -128,16 +114,8 @@ pub struct IPrivateKeyEntry {
     pub key_type: String,
     pub private_key: String,
     pub public_key: String,
-    pub derived_from_mnemonic: Option<bool>,
     pub created_at: String,
     pub last_used: String,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, Default, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct IPrivateKeyStore {
-    pub mnemonic: Option<IMnemonic>,
-    pub identities: HashMap<String, Vec<IPrivateKeyEntry>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
@@ -150,7 +128,6 @@ pub struct IIdentityPublicKey {
     pub security_level: u32,
     pub data: String,
     pub read_only: bool,
-    pub disabled_at: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, Default, Type)]
@@ -165,8 +142,6 @@ pub struct IIdentityData {
     pub identity_idx: Option<u32>,
     pub dpns_username: Option<String>,
     pub is_authenticated: bool,
-    pub created_at: Option<String>,
-    pub public_key_ids: Option<Vec<u32>>,
 }
 
 // =====================================================
@@ -180,13 +155,11 @@ pub struct ILicense {
     pub identity_id: String,
     pub txid: String,
     pub is_premium: bool,
-    // Timestamps stored as String to satisfy Specta and avoid precision loss
+    // FIX: Physically changed to String. No i64 allowed.
     pub created_at: String,
     pub expires_at: String,
     pub updated_at: Option<String>,
 }
-
-pub type ILicenseStoreMap = HashMap<String, ILicense>;
 
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default)]
 #[serde(rename_all = "camelCase")]
@@ -196,13 +169,5 @@ pub struct IDiscoveredIdentity {
     pub identity_idx: Option<u32>,
     pub dpns_username: Option<String>,
     pub key_type: String,
-    pub discovered_key: Option<String>,
     pub discovered_at: String,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug, Default, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct IDiscoveredIdentitiesStore {
-    pub identities: HashMap<String, IDiscoveredIdentity>,
-    pub last_scan: Option<String>,
 }
