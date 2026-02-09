@@ -98,7 +98,6 @@ where
 // Keystore & Identity Models
 // =====================================================
 
-// Added PartialEq here
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct IMnemonic { pub seed_phrase: String }
@@ -146,10 +145,14 @@ pub struct IIdentityData {
     #[serde(default, deserialize_with = "de_u32_from_str_or_num")]
     pub revision: u32,
     pub public_keys: Vec<IIdentityPublicKey>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub identity_idx: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dpns_username: Option<String>,
     pub is_authenticated: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub created_at: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub public_key_ids: Option<Vec<u32>>,
 }
 

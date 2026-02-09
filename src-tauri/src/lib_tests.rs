@@ -9,8 +9,8 @@ fn test_app_builder_config() {
         .build(mock_context(noop_assets()))
         .expect("Failed to build app");
 
-    // Check that we have a valid package name or version
-    assert!(app.handle().package_info().name.len() >= 0);
+    // Fixed warning: use is_empty instead of len >= 0
+    assert!(!app.handle().package_info().name.is_empty());
 }
 
 #[test]
