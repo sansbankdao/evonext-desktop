@@ -6,6 +6,7 @@ use crate::utils::StoreManager;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use specta::Type;
+use tauri::Runtime;
 
 #[cfg(test)]
 mod tests;
@@ -13,8 +14,6 @@ mod tests;
 pub struct IdentityMapper;
 
 impl IdentityMapper {
-    /// Maps the frontend payload to the internal Rust storage model.
-    /// Preserves public_key_ids to ensure the Identity Manager screen works.
     pub fn map_to_identity(payload: ISaveIdentityPayload) -> IIdentityData {
         let normalized_keys = payload.public_keys
             .iter()
@@ -68,8 +67,15 @@ pub async fn save_identity(
     network: String,
     payload: ISaveIdentityPayload,
 ) -> Result<IUnifiedCommandResult, String> {
-    let identity_id = payload.identity_id.clone();
+    save_identity_inner(app, network, payload).await
+}
 
+pub async fn save_identity_inner<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    network: String,
+    payload: ISaveIdentityPayload,
+) -> Result<IUnifiedCommandResult, String> {
+    let identity_id = payload.identity_id.clone();
     let mut map = storage::load_identity_map(&app, &network)?;
 
     let active_id = payload.active_identity_id.clone().or_else(|| {
@@ -95,6 +101,14 @@ pub async fn delete_identity(
     network: String,
     identity_id: Option<String>,
 ) -> Result<bool, String> {
+    delete_identity_inner(app, network, identity_id).await
+}
+
+pub async fn delete_identity_inner<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    network: String,
+    identity_id: Option<String>,
+) -> Result<bool, String> {
     if let Some(id) = identity_id {
         let mut map = storage::load_identity_map(&app, &network)?;
         if map.remove(&id).is_some() {
@@ -115,6 +129,15 @@ pub async fn delete_identity(
 #[specta::specta]
 pub async fn save_keys(
     app: tauri::AppHandle,
+    network: String,
+    identity_id: String,
+    keys: Vec<IPrivateKeyEntry>,
+) -> Result<bool, String> {
+    save_keys_inner(app, network, identity_id, keys).await
+}
+
+pub async fn save_keys_inner<R: Runtime>(
+    app: tauri::AppHandle<R>,
     network: String,
     identity_id: String,
     keys: Vec<IPrivateKeyEntry>,
@@ -145,6 +168,13 @@ pub async fn save_keys(
 #[specta::specta]
 pub async fn load_keystore(
     app: tauri::AppHandle,
+    network: String
+) -> Result<IAnyValue, String> {
+    load_keystore_inner(app, network).await
+}
+
+pub async fn load_keystore_inner<R: Runtime>(
+    app: tauri::AppHandle<R>,
     network: String
 ) -> Result<IAnyValue, String> {
     let data = storage::load_keystore(&app, &network)?;

@@ -1,6 +1,7 @@
 // src-tauri/src/commands/asset_commands.rs
 
-use serde_json::{Value};
+use serde_json::Value;
+use tauri::Runtime;
 use crate::models::{IAssetDefinition, IAssetStoreMap, IAssets};
 use crate::utils::{StoreManager, network_file::get_network_file};
 use crate::identity::storage::{load_identity_map, save_identity_map};
@@ -35,13 +36,11 @@ pub fn parse_assets_from_json(
             continue;
         }
 
-        // FIX: Use i64 for intermediate casting from Value
         let decimals = item.get("decimals")
             .and_then(|v| v.as_i64())
             .map(|val| val as u8)
             .unwrap_or(8);
 
-        // FIX: Use u128 for parsing large balances
         let balance = get_str("balance")
             .and_then(|s| s.parse::<u128>().ok())
             .unwrap_or(0);
@@ -63,6 +62,14 @@ pub fn parse_assets_from_json(
 #[specta::specta]
 pub fn discover_assets(
     app_handle: tauri::AppHandle,
+    identity_id: String,
+    network: String
+) -> Result<IAssets, String> {
+    discover_assets_inner(app_handle, identity_id, network)
+}
+
+pub fn discover_assets_inner<R: Runtime>(
+    app_handle: tauri::AppHandle<R>,
     identity_id: String,
     network: String
 ) -> Result<IAssets, String> {
@@ -110,6 +117,14 @@ pub fn discover_assets(
 #[specta::specta]
 pub async fn fetch_identity_tokens(
     app: tauri::AppHandle,
+    identity_id: String,
+    network: String,
+) -> Result<IAssets, String> {
+    fetch_identity_tokens_inner(app, identity_id, network).await
+}
+
+pub async fn fetch_identity_tokens_inner<R: Runtime>(
+    app: tauri::AppHandle<R>,
     identity_id: String,
     network: String,
 ) -> Result<IAssets, String> {
@@ -163,6 +178,14 @@ pub fn load_assets(
     identity_id: String,
     network: String,
 ) -> Result<IAssets, String> {
+    load_assets_inner(app_handle, identity_id, network)
+}
+
+pub fn load_assets_inner<R: Runtime>(
+    app_handle: tauri::AppHandle<R>,
+    identity_id: String,
+    network: String,
+) -> Result<IAssets, String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
     match manager.load::<IAssetStoreMap>(filename, "assets") {
@@ -179,6 +202,15 @@ pub fn save_assets(
     network: String,
     payload: IAssets,
 ) -> Result<(), String> {
+    save_assets_inner(app_handle, identity_id, network, payload)
+}
+
+pub fn save_assets_inner<R: Runtime>(
+    app_handle: tauri::AppHandle<R>,
+    identity_id: String,
+    network: String,
+    payload: IAssets,
+) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
     let filename = get_network_file(&network, "assets")?;
     let mut asset_map: IAssetStoreMap = manager.load(filename, "assets").unwrap_or_default().unwrap_or_default();
@@ -190,6 +222,13 @@ pub fn save_assets(
 #[specta::specta]
 pub fn delete_assets(
     app_handle: tauri::AppHandle,
+    network: String,
+) -> Result<(), String> {
+    delete_assets_inner(app_handle, network)
+}
+
+pub fn delete_assets_inner<R: Runtime>(
+    app_handle: tauri::AppHandle<R>,
     network: String,
 ) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);

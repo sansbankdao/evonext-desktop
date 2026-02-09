@@ -1,8 +1,6 @@
 // src-tauri/src/commands/crypto_commands.rs
 
-use sha2::{Sha256, Digest};
-use ripemd::Ripemd160;
-use rand::RngCore;
+use tauri::Runtime;
 
 #[cfg(test)]
 mod tests;
@@ -11,20 +9,38 @@ mod tests;
 #[specta::specta]
 pub fn hash160(
     _app: tauri::AppHandle,
-    data: Vec<u8>,
+    input: Vec<u8>
 ) -> Result<Vec<u8>, String> {
-    let sha256_hash = Sha256::digest(&data);
-    let ripemd160_hash = Ripemd160::digest(sha256_hash);
-    Ok(ripemd160_hash.to_vec())
+    hash160_inner(_app, input)
+}
+
+// Internal generic version for testing
+pub fn hash160_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
+    input: Vec<u8>
+) -> Result<Vec<u8>, String> {
+    use ripemd::{Digest, Ripemd160};
+    use sha2::Sha256;
+    let sha_hash = Sha256::digest(&input);
+    let rip_hash = Ripemd160::digest(&sha_hash);
+    Ok(rip_hash.to_vec())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub fn random_bytes(
     _app: tauri::AppHandle,
-    length: u32,
+    len: usize
 ) -> Result<Vec<u8>, String> {
-    let mut bytes = vec![0u8; length as usize];
+    random_bytes_inner(_app, len)
+}
+
+pub fn random_bytes_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
+    len: usize
+) -> Result<Vec<u8>, String> {
+    use rand::RngCore;
+    let mut bytes = vec![0u8; len];
     rand::rng().fill_bytes(&mut bytes);
     Ok(bytes)
 }

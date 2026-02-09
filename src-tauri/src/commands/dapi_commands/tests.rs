@@ -3,6 +3,8 @@
 use super::*;
 use serde_json::json;
 use std::collections::HashMap;
+use tauri::test::{mock_builder, MockRuntime};
+use tauri::AppHandle;
 
 #[test]
 fn test_params_conversion_invalid_method() {
@@ -21,12 +23,13 @@ fn test_params_conversion_valid_logic() {
 
 #[tokio::test]
 async fn test_dapi_request_validation_failure() {
-    // This tests the guard logic in dapi_request before it hits the network client
-    let app = tauri::test::mock_builder().build(tauri::generate_context!()).unwrap();
+    let app = mock_builder().build(tauri::generate_context!()).unwrap();
+    let handle: AppHandle<MockRuntime> = app.handle().clone();
+
     let mut params = HashMap::new();
     params.insert("wrong_key".to_string(), json!(123));
 
-    let res = dapi_request(app.handle().clone(), "getIdentity".into(), params, None).await;
-    // Should fail because identityId is missing in required params
+    // Call the _inner function to allow MockRuntime
+    let res = dapi_request_inner(handle, "getIdentity".into(), params, None).await;
     assert!(res.is_err());
 }

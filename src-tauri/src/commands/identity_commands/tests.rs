@@ -36,7 +36,7 @@ async fn test_connect_identity_lifecycle() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .build(tauri::generate_context!())
         .unwrap();
-    let handle: AppHandle<MockRuntime> = app.handle().clone();
+    let handle: AppHandle<MockRuntime> = app.handle();
 
     let payload = ISaveIdentityPayload {
         identity_id: "conn_123".into(),
@@ -46,17 +46,15 @@ async fn test_connect_identity_lifecycle() {
         ..Default::default()
     };
 
-    // 1. Connect (Save)
-    let save_res = save_identity(handle.clone(), "testnet".into(), payload).await.unwrap();
+    // Use _inner to accept MockRuntime handle
+    let save_res = save_identity_inner(handle.clone(), "testnet".into(), payload).await.unwrap();
     assert!(save_res.success);
 
-    // 2. Verify existence in the storage map
     let map = storage::load_identity_map(&handle, "testnet").unwrap();
     assert!(map.contains_key("conn_123"));
     assert_eq!(map.get("conn_123").unwrap().username, "connected_user");
 
-    // 3. Disconnect (Delete)
-    let del_res = delete_identity(handle.clone(), "testnet".into(), Some("conn_123".into())).await.unwrap();
+    let del_res = delete_identity_inner(handle.clone(), "testnet".into(), Some("conn_123".into())).await.unwrap();
     assert!(del_res);
 
     let final_map = storage::load_identity_map(&handle, "testnet").unwrap();

@@ -1,7 +1,8 @@
 // src-tauri/src/commands/license_commands/tests.rs
 
 use super::*;
-use tauri::test::{mock_builder};
+use tauri::test::{mock_builder, MockRuntime};
+use tauri::AppHandle;
 
 #[tokio::test]
 async fn test_license_lifecycle() {
@@ -9,24 +10,22 @@ async fn test_license_lifecycle() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .build(tauri::generate_context!())
         .unwrap();
-    let handle = app.handle().clone();
+    let handle: AppHandle<MockRuntime> = app.handle();
 
     let license = ILicense {
         success: true,
         identity_id: "test_identity_id".into(),
         txid: "test_tx_id".into(),
         is_premium: true,
-        // FIX: Timestamp literals must be Strings
         created_at: "1700000000".into(),
         expires_at: "2000000000".into(),
         updated_at: None,
     };
 
-    // Save - Use concrete handle
-    save_license(handle.clone(), license.clone()).expect("Failed to save license");
+    // Call _inner to satisfy MockRuntime
+    save_license_inner(handle.clone(), license.clone()).expect("Failed to save license");
 
-    // Load
-    let loaded = load_license(handle.clone(), "test_identity_id".into())
+    let loaded = load_license_inner(handle.clone(), "test_identity_id".into())
         .await
         .expect("Failed to load license");
 
@@ -35,10 +34,9 @@ async fn test_license_lifecycle() {
     assert!(unwrapped.is_premium);
     assert_eq!(unwrapped.identity_id, "test_identity_id");
 
-    // Delete
-    delete_license(handle.clone(), "test_identity_id".into()).expect("Failed to delete");
+    delete_license_inner(handle.clone(), "test_identity_id".into()).expect("Failed to delete");
 
-    let final_load = load_license(handle.clone(), "test_identity_id".into())
+    let final_load = load_license_inner(handle.clone(), "test_identity_id".into())
         .await
         .unwrap();
     assert!(final_load.is_none());

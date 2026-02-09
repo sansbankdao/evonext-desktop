@@ -2,6 +2,7 @@
 
 use crate::models::{IMnemonic, IPrivateKeyStore};
 use crate::utils::{network_file::get_network_file, StoreManager};
+use tauri::Runtime;
 
 #[cfg(test)]
 mod tests;
@@ -10,6 +11,13 @@ mod tests;
 #[specta::specta]
 pub fn load_mnemonic(
     app_handle: tauri::AppHandle,
+    network: String,
+) -> Result<Option<IMnemonic>, String> {
+    load_mnemonic_inner(app_handle, network)
+}
+
+pub fn load_mnemonic_inner<R: Runtime>(
+    app_handle: tauri::AppHandle<R>,
     network: String,
 ) -> Result<Option<IMnemonic>, String> {
     let manager = StoreManager::new(&app_handle);
@@ -29,6 +37,14 @@ pub fn load_mnemonic(
 #[specta::specta]
 pub fn save_mnemonic(
     app_handle: tauri::AppHandle,
+    network: String,
+    payload: IMnemonic,
+) -> Result<(), String> {
+    save_mnemonic_inner(app_handle, network, payload)
+}
+
+pub fn save_mnemonic_inner<R: Runtime>(
+    app_handle: tauri::AppHandle<R>,
     network: String,
     payload: IMnemonic,
 ) -> Result<(), String> {
@@ -52,6 +68,13 @@ pub fn save_mnemonic(
 #[specta::specta]
 pub fn delete_mnemonic(
     app_handle: tauri::AppHandle,
+    network: String,
+) -> Result<(), String> {
+    delete_mnemonic_inner(app_handle, network)
+}
+
+pub fn delete_mnemonic_inner<R: Runtime>(
+    app_handle: tauri::AppHandle<R>,
     network: String,
 ) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);

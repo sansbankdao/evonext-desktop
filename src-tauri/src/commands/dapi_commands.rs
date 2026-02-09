@@ -4,6 +4,7 @@ use crate::dapi::client::{get_dapi_client, MethodParamInfo, params_array_to_obje
 use crate::dapi::types::Network;
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use tauri::Runtime;
 use tracing;
 
 #[cfg(test)]
@@ -12,7 +13,16 @@ mod tests;
 #[tauri::command]
 #[specta::specta]
 pub async fn dapi_request(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    method: String,
+    params: HashMap<String, Value>,
+    network: Option<String>,
+) -> Result<Vec<Value>, String> {
+    dapi_request_inner(app, method, params, network).await
+}
+
+pub async fn dapi_request_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     method: String,
     params: HashMap<String, Value>,
     network: Option<String>,
@@ -42,7 +52,19 @@ pub async fn dapi_request(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_posts(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    data_contract_id: String,
+    document_type: String,
+    where_clause: Option<Value>,
+    order_by: Option<Value>,
+    limit: Option<u32>,
+    network: Option<String>,
+) -> Result<Vec<Value>, String> {
+    get_posts_inner(app, data_contract_id, document_type, where_clause, order_by, limit, network).await
+}
+
+pub async fn get_posts_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     data_contract_id: String,
     document_type: String,
     where_clause: Option<Value>,
@@ -68,7 +90,15 @@ pub async fn get_posts(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_identity_info(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    identity_id: String,
+    network: Option<String>
+) -> Result<Vec<Value>, String> {
+    get_identity_info_inner(app, identity_id, network).await
+}
+
+pub async fn get_identity_info_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     identity_id: String,
     network: Option<String>
 ) -> Result<Vec<Value>, String> {
@@ -83,7 +113,15 @@ pub async fn get_identity_info(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_identity_balance(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    identity_id: String,
+    network: Option<String>
+) -> Result<Vec<Value>, String> {
+    get_identity_balance_inner(app, identity_id, network).await
+}
+
+pub async fn get_identity_balance_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     identity_id: String,
     network: Option<String>
 ) -> Result<Vec<Value>, String> {
@@ -97,7 +135,16 @@ pub async fn get_identity_balance(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_token_balances(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    identity_id: String,
+    token_ids: Vec<String>,
+    network: Option<String>
+) -> Result<Vec<Value>, String> {
+    get_token_balances_inner(app, identity_id, token_ids, network).await
+}
+
+pub async fn get_token_balances_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     identity_id: String,
     token_ids: Vec<String>,
     network: Option<String>
@@ -110,7 +157,15 @@ pub async fn get_token_balances(
 #[tauri::command]
 #[specta::specta]
 pub async fn resolve_dpns_name(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    username: String,
+    network: Option<String>
+) -> Result<Vec<Value>, String> {
+    resolve_dpns_name_inner(app, username, network).await
+}
+
+pub async fn resolve_dpns_name_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     username: String,
     network: Option<String>
 ) -> Result<Vec<Value>, String> {
@@ -122,7 +177,15 @@ pub async fn resolve_dpns_name(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_dpns_username(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    identity_id: String,
+    network: Option<String>
+) -> Result<Option<String>, String> {
+    get_dpns_username_inner(app, identity_id, network).await
+}
+
+pub async fn get_dpns_username_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     identity_id: String,
     network: Option<String>
 ) -> Result<Option<String>, String> {
@@ -137,7 +200,15 @@ pub async fn get_dpns_username(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_dpns_usernames(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    identity_id: String,
+    network: Option<String>
+) -> Result<Vec<Value>, String> {
+    get_dpns_usernames_inner(app, identity_id, network).await
+}
+
+pub async fn get_dpns_usernames_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     identity_id: String,
     network: Option<String>
 ) -> Result<Vec<Value>, String> {
@@ -149,7 +220,14 @@ pub async fn get_dpns_usernames(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_platform_status(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    network: Option<String>
+) -> Result<Vec<Value>, String> {
+    get_platform_status_inner(app, network).await
+}
+
+pub async fn get_platform_status_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     network: Option<String>
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
@@ -160,7 +238,15 @@ pub async fn get_platform_status(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_identities_balances(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    identity_ids: Vec<String>,
+    network: Option<String>
+) -> Result<Vec<Value>, String> {
+    get_identities_balances_inner(app, identity_ids, network).await
+}
+
+pub async fn get_identities_balances_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     identity_ids: Vec<String>,
     network: Option<String>
 ) -> Result<Vec<Value>, String> {
@@ -172,7 +258,15 @@ pub async fn get_identities_balances(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_data_contract_info(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    contract_id: String,
+    network: Option<String>
+) -> Result<Vec<Value>, String> {
+    get_data_contract_info_inner(app, contract_id, network).await
+}
+
+pub async fn get_data_contract_info_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     contract_id: String,
     network: Option<String>
 ) -> Result<Vec<Value>, String> {
@@ -184,7 +278,15 @@ pub async fn get_data_contract_info(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_token_contract_info(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    contract_id: String,
+    network: Option<String>
+) -> Result<Vec<Value>, String> {
+    get_token_contract_info_inner(app, contract_id, network).await
+}
+
+pub async fn get_token_contract_info_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     contract_id: String,
     network: Option<String>
 ) -> Result<Vec<Value>, String> {
@@ -196,7 +298,15 @@ pub async fn get_token_contract_info(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_token_statuses(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    token_ids: Vec<String>,
+    network: Option<String>
+) -> Result<Vec<Value>, String> {
+    get_token_statuses_inner(app, token_ids, network).await
+}
+
+pub async fn get_token_statuses_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     token_ids: Vec<String>,
     network: Option<String>
 ) -> Result<Vec<Value>, String> {
@@ -208,7 +318,15 @@ pub async fn get_token_statuses(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_total_supply(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    token_id: String,
+    network: Option<String>
+) -> Result<Vec<Value>, String> {
+    get_total_supply_inner(app, token_id, network).await
+}
+
+pub async fn get_total_supply_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     token_id: String,
     network: Option<String>
 ) -> Result<Vec<Value>, String> {
@@ -220,7 +338,14 @@ pub async fn get_total_supply(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_current_epoch(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    network: Option<String>
+) -> Result<Vec<Value>, String> {
+    get_current_epoch_inner(app, network).await
+}
+
+pub async fn get_current_epoch_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     network: Option<String>
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
@@ -231,7 +356,14 @@ pub async fn get_current_epoch(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_total_credits_in_platform(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    network: Option<String>
+) -> Result<Vec<Value>, String> {
+    get_total_credits_in_platform_inner(app, network).await
+}
+
+pub async fn get_total_credits_in_platform_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     network: Option<String>
 ) -> Result<Vec<Value>, String> {
     let client = get_dapi_client();
@@ -242,7 +374,15 @@ pub async fn get_total_credits_in_platform(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_identity_by_public_key_hash(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    public_key_hash: String,
+    network: Option<String>
+) -> Result<Vec<Value>, String> {
+    get_identity_by_public_key_hash_inner(app, public_key_hash, network).await
+}
+
+pub async fn get_identity_by_public_key_hash_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     public_key_hash: String,
     network: Option<String>
 ) -> Result<Vec<Value>, String> {
@@ -258,7 +398,15 @@ pub async fn get_identity_by_public_key_hash(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_identity_by_non_unique_public_key_hash(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    public_key_hash: String,
+    network: Option<String>
+) -> Result<Vec<Value>, String> {
+    get_identity_by_non_unique_public_key_hash_inner(app, public_key_hash, network).await
+}
+
+pub async fn get_identity_by_non_unique_public_key_hash_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     public_key_hash: String,
     network: Option<String>
 ) -> Result<Vec<Value>, String> {
@@ -274,7 +422,15 @@ pub async fn get_identity_by_non_unique_public_key_hash(
 #[tauri::command]
 #[specta::specta]
 pub async fn get_identity_by_id(
-    _app: tauri::AppHandle,
+    app: tauri::AppHandle,
+    identity_id: String,
+    network: Option<String>
+) -> Result<serde_json::Value, String> {
+    get_identity_by_id_inner(app, identity_id, network).await
+}
+
+pub async fn get_identity_by_id_inner<R: Runtime>(
+    _app: tauri::AppHandle<R>,
     identity_id: String,
     network: Option<String>
 ) -> Result<serde_json::Value, String> {
@@ -296,5 +452,5 @@ pub async fn dapi_request_array(
     network: Option<String>
 ) -> Result<Vec<Value>, String> {
     let params = params_array_to_object(&method, params_array).map_err(|e| e.to_string())?;
-    dapi_request(app, method, params, network).await
+    dapi_request_inner(app, method, params, network).await
 }

@@ -1,53 +1,49 @@
 // src-tauri/src/commands/settings_commands.rs
 
-use crate::constants::SETTINGS_FILE;
+use tauri::Runtime;
 use crate::models::IAppSettings;
 use crate::utils::StoreManager;
 
 #[cfg(test)]
 mod tests;
 
+const SETTINGS_FILE: &str = "settings.json";
+const SETTINGS_KEY: &str = "app_settings";
+
 #[tauri::command]
 #[specta::specta]
 pub fn load_settings(app_handle: tauri::AppHandle) -> Result<Option<IAppSettings>, String> {
-    let manager = StoreManager::new(&app_handle);
+    load_settings_inner(app_handle)
+}
 
-    match manager.load(SETTINGS_FILE, "settings") {
-        Ok(data) => Ok(data),
-        Err(e) => {
-            println!("Failed to load settings: {}", e);
-            Err(e.to_string())
-        }
-    }
+pub fn load_settings_inner<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Result<Option<IAppSettings>, String> {
+    let manager = StoreManager::new(&app_handle);
+    manager.load::<IAppSettings>(SETTINGS_FILE.to_string(), SETTINGS_KEY)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 #[specta::specta]
-pub fn save_settings(
-    app_handle: tauri::AppHandle,
-    settings: IAppSettings,
-) -> Result<(), String> {
-    let manager = StoreManager::new(&app_handle);
+pub fn save_settings(app_handle: tauri::AppHandle, settings: IAppSettings) -> Result<(), String> {
+    save_settings_inner(app_handle, settings)
+}
 
-    match manager.save(SETTINGS_FILE, "settings", &settings) {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            println!("Failed to save settings: {}", e);
-            Err(e.to_string())
-        }
-    }
+pub fn save_settings_inner<R: Runtime>(app_handle: tauri::AppHandle<R>, settings: IAppSettings) -> Result<(), String> {
+    let manager = StoreManager::new(&app_handle);
+    manager.save(SETTINGS_FILE.to_string(), SETTINGS_KEY, &settings)
+        .map(|_| ())
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub fn delete_settings(app_handle: tauri::AppHandle) -> Result<(), String> {
-    let manager = StoreManager::new(&app_handle);
+    delete_settings_inner(app_handle)
+}
 
-    match manager.delete(SETTINGS_FILE, "settings") {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            println!("Failed to delete settings: {}", e);
-            Err(e.to_string())
-        }
-    }
+pub fn delete_settings_inner<R: Runtime>(app_handle: tauri::AppHandle<R>) -> Result<(), String> {
+    let manager = StoreManager::new(&app_handle);
+    manager.delete(SETTINGS_FILE.to_string(), SETTINGS_KEY)
+        .map(|_| ())
+        .map_err(|e| e.to_string())
 }
