@@ -5,12 +5,9 @@ use crate::models::{IAssetDefinition, IAssetStoreMap, IAssets};
 use crate::utils::{StoreManager, network_file::get_network_file};
 use crate::identity::storage::{load_identity_map, save_identity_map};
 
-// This declaration looks for src/commands/asset_commands/tests.rs
 #[cfg(test)]
 mod tests;
 
-/// Core parsing logic extracted for anti-regression testing.
-/// This function is pub so the submodule 'tests' can access it.
 pub fn parse_assets_from_json(
     items: &Vec<Value>,
     identity_id: &str,
@@ -53,7 +50,8 @@ pub fn parse_assets_from_json(
             symbol,
             asset_id: Some(contract_id),
             decimals: Some(decimals),
-            balance: Some(balance),
+            // FIX: Convert u64 balance to String for the model
+            balance: Some(balance.to_string()),
             network: Some(network.to_string()),
         });
     }
@@ -142,7 +140,15 @@ pub async fn fetch_identity_tokens(
 
     let mut identities_map = load_identity_map(&app, &network).unwrap_or_default();
     if let Some(identity_data) = identities_map.get_mut(&identity_id) {
-        let total: u128 = assets.iter().filter_map(|a| a.balance.map(|b| b as u128)).sum();
+        // FIX: Parse balance strings back to u128 for summation
+        let total: u128 = assets
+            .iter()
+            .filter_map(|a| {
+                a.balance
+                    .as_ref()
+                    .and_then(|b_str| b_str.parse::<u128>().ok())
+            })
+            .sum();
         identity_data.balance = total.to_string();
         let _ = save_identity_map(&app, &network, &identities_map, None);
     }

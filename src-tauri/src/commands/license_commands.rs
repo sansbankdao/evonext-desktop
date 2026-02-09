@@ -6,7 +6,6 @@ use crate::utils::StoreManager;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[cfg(test)]
-#[path = "license_commands/tests.rs"]
 mod tests;
 
 #[tauri::command]
@@ -30,8 +29,10 @@ pub async fn refresh_license(
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
-        .as_secs() as i64;
-    api_data.updated_at = Some(now);
+        .as_secs();
+
+    // FIX: Convert timestamp to String for the updated model
+    api_data.updated_at = Some(now.to_string());
 
     let manager = StoreManager::new(&app_handle);
     let mut map: ILicenseStoreMap = manager

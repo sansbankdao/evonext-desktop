@@ -1,7 +1,7 @@
 // src-tauri/src/commands/license_commands/tests.rs
 
 use super::*;
-use tauri::test::{mock_builder, MockRuntime};
+use tauri::test::{mock_builder};
 
 #[tokio::test]
 async fn test_license_lifecycle() {
@@ -9,19 +9,20 @@ async fn test_license_lifecycle() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .build(tauri::generate_context!())
         .unwrap();
-    let handle: AppHandle<MockRuntime> = app.handle().clone();
+    let handle = app.handle().clone();
 
     let license = ILicense {
         success: true,
         identity_id: "test_identity_id".into(),
         txid: "test_tx_id".into(),
         is_premium: true,
-        created_at: 1700000000,
-        expires_at: 2000000000,
+        // FIX: Timestamp literals must be Strings
+        created_at: "1700000000".into(),
+        expires_at: "2000000000".into(),
         updated_at: None,
     };
 
-    // Save
+    // Save - Use concrete handle
     save_license(handle.clone(), license.clone()).expect("Failed to save license");
 
     // Load
