@@ -64,72 +64,26 @@ jobs:
       - name: Build and Generate Types
         run: pnpm run build
 
-      - name: Setup Windows WebView2Loader.dll
+      - name: Run Rust Unit Tests (Windows)
         if: matrix.platform == 'windows-latest'
-        shell: powershell
-        run: |
-          $x64Dll = Get-ChildItem -Path "src-tauri\target" -Recurse -Filter "WebView2Loader.dll" | Where-Object { $_.FullName -match "\\x64\\" } | Select-Object -First 1
-          if ($x64Dll) {
-            Copy-Item $x64Dll.FullName -Destination "src-tauri\target\debug\deps\WebView2Loader.dll" -Force
-            Write-Host "Copied x64 DLL to deps"
-          }
-
-      - name: Diagnose Windows test failure
-        if: matrix.platform == 'windows-latest'
-        shell: cmd
-        run: |
-          echo === Building tests without running ===
-          cargo test --manifest-path=./src-tauri/Cargo.toml --all-features --no-run
-
-          echo.
-          echo === Finding test binary ===
-          dir /b src-tauri\target\debug\deps\evonext-*.exe
-
-          echo.
-          echo === DIRECT DLL DEPENDENCIES ===
-          for %%f in (src-tauri\target\debug\deps\evonext-*.exe) do (
-            echo Checking: %%f
-            dumpbin /dependents %%f
-          )
-
-          echo.
-          echo === Checking each dependency on PATH ===
-          for %%f in (src-tauri\target\debug\deps\evonext-*.exe) do (
-            for /f "tokens=*" %%d in ('dumpbin /dependents %%f ^| findstr /i ".dll"') do (
-              where %%d 2>nul && echo FOUND: %%d || echo NOT FOUND: %%d
-            )
-          )
-
-          echo.
-          echo === WebView2Loader.dll exports ===
-          dumpbin /exports src-tauri\target\debug\deps\WebView2Loader.dll
-
-          echo.
-          echo === Test binary imports from WebView2Loader ===
-          for %%f in (src-tauri\target\debug\deps\evonext-*.exe) do (
-            dumpbin /imports %%f | findstr /i /c:"WebView2" /c:"CreateCoreWebView" /c:"CompareBrowser" /c:"GetAvailable"
-          )
-
-          echo.
-          echo === Attempting test --list ===
-          for %%f in (src-tauri\target\debug\deps\evonext-*.exe) do (
-            echo Running: %%f --list
-            %%f --list
-            echo Exit code: %ERRORLEVEL%
-          )
-
-          echo.
-          echo === Recent Application Error Events ===
-          wevtutil qe Application /c:5 /f:text /q:"*[System[Level=2 and TimeCreated[timediff(@SystemTime) <= 300000]]]" 2>nul
-
-      - name: Run Rust Unit Tests
         shell: bash
+        env:
+          TAURI_WEBVIEW_AUTOMATION: false
         run: |
-          if [ "${{ matrix.platform }}" == "windows-latest" ]; then
-            cargo test --manifest-path=./src-tauri/Cargo.toml --all-features
-          else
-            pnpm run test:rust
-          fi
+          # Clean the webview2-com-sys build artifacts to force a fresh
+          # rebuild with the no-DLL stub, avoiding any cached mismatch.
+          cargo clean --manifest-path=./src-tauri/Cargo.toml -p webview2-com-sys
+
+          # This env var tells webview2-com-sys to compile a stub that
+          # returns errors instead of loading WebView2Loader.dll.
+          # Since all tests use MockRuntime, WebView2 is never invoked.
+          export WEBVIEW2_COM_SYS_NO_WEBVIEW2=1
+
+          cargo test --manifest-path=./src-tauri/Cargo.toml --all-features
+
+      - name: Run Rust Unit Tests (Unix)
+        if: matrix.platform != 'windows-latest'
+        run: pnpm run test:rust
 
       - name: Run Frontend Coverage
         if: matrix.platform == 'ubuntu-latest'
