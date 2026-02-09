@@ -1,11 +1,11 @@
 // src/stores/identity/actions/identity.ts
 
-import { commands } from '@/types/rust_generated'
+import { commands } from '@/bindings'
 import type {
     ISaveIdentityPayload,
     IPrivateKeyEntry,
     IIdentityData
-} from '@/types/rust_generated'
+} from '@/bindings'
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
 import { useIdentity } from '@/composables/useIdentity'

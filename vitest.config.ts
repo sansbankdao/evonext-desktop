@@ -48,7 +48,7 @@ export default defineConfig({
                 'dist/',
                 'tests/',
                 '**/*.d.ts',
-                'src/types/rust_generated.ts',
+                'src/bindings.ts',
                 '**/*.test.ts',
             ],
         },

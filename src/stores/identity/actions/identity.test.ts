@@ -2,8 +2,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useIdentityStore } from '../index'
-import { commands } from '@/types/rust_generated'
-vi.mock('@/types/rust_generated', () => ({
+import { commands } from '@/bindings'
+vi.mock('@/bindings', () => ({
     commands: {
         saveIdentity: vi.fn(),
         saveKeys: vi.fn(),

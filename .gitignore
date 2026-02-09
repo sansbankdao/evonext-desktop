@@ -28,6 +28,7 @@ dist-ssr
 !.gitkeep
 
 # Generated types from Rust
+src/bindings.ts
 src/types/rust_generated.ts
 
 # Coverage reports

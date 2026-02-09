@@ -1,7 +1,7 @@
 // src/stores/identity/state.ts
 
 import type { IIdentityState } from '@/types'
-import type { IIdentityData } from '@/types/rust_generated'
+import type { IIdentityData } from '@/bindings'
 
 export const useIdentityState = (): IIdentityState => ({
     username: null,

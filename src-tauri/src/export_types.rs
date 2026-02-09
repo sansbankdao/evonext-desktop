@@ -3,16 +3,12 @@
 use specta_typescript::Typescript;
 use tauri_specta::{collect_commands, Builder};
 
-// We use "evonext" because this is a separate binary looking into the library.
+// Import models to register them explicitly
+use evonext::models::{IIdentityData, IAppSettings, IDiscoveredIdentity, ILicense};
 use evonext::commands::{
-    asset_commands,
-    crypto_commands,
-    identity_commands,
-    license_commands,
-    mnemonic_commands,
-    settings_commands,
-    identity_details_commands,
-    dapi_commands,
+    asset_commands, crypto_commands, identity_commands,
+    license_commands, mnemonic_commands, settings_commands,
+    identity_details_commands, dapi_commands,
 };
 
 fn main() {
@@ -64,7 +60,12 @@ fn main() {
     ];
 
     let builder = Builder::<tauri::Wry>::new()
-        .commands(commands);
+        .commands(commands)
+        // Ensure hidden models are exported
+        .typ::<IIdentityData>()
+        .typ::<IAppSettings>()
+        .typ::<ILicense>()
+        .typ::<IDiscoveredIdentity>();
 
     builder
         .export(Typescript::default(), "../src/bindings.ts")

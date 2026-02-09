@@ -7,7 +7,7 @@ cargo run --bin export_types
 cd ..
 
 # Safety check: Prepend @ts-nocheck to the newly generated file
-GENERATED_FILE="src/types/rust_generated.ts"
+GENERATED_FILE="src/bindings.ts"
 
 if [ -f "$GENERATED_FILE" ]; then
     # Use a temporary file to safely prepend the comment

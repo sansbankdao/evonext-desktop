@@ -3,10 +3,10 @@
 import { setActivePinia, createPinia } from 'pinia'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useIdentityStore } from './index'
-import { commands } from '@/types/rust_generated'
-import type { IPrivateKeyEntry, ISaveIdentityPayload } from '@/types/rust_generated'
+import { commands } from '@/bindings'
+import type { IPrivateKeyEntry, ISaveIdentityPayload } from '@/bindings'
 
-vi.mock('@/types/rust_generated', () => ({
+vi.mock('@/bindings', () => ({
     commands: {
         saveIdentity: vi.fn(),
         saveKeys: vi.fn(),
@@ -32,7 +32,7 @@ describe('Identity Store Actions', () => {
             keyType: 'ECDSA_SECP256K1',
             privateKey: 'secret_data',
             publicKey: 'public_data',
-            derivedFromMnemonic: true,
+            // derivedFromMnemonic: true,
             createdAt: new Date().toISOString(),
             lastUsed: new Date().toISOString()
         }

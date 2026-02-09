@@ -51,7 +51,7 @@ jobs:
           mkdir -p src/types
           if [ "${{ matrix.platform }}" == "windows-latest" ]; then
             pnpm run type:gen || echo "Warning: Type gen failed"
-            touch src/types/rust_generated.ts
+            touch src/bindings.ts
           else
             pnpm run type:gen
           fi

@@ -1,6 +1,6 @@
 // src/types/identity.ts
 
-import type { IIdentityData } from '@/types/rust_generated'
+import type { IIdentityData } from '@/bindings'
 
 export type PurposeType = 0 | 1 | 2 | 3
 export type SecurityLevelType = 0 | 1 | 2 | 3 | 4
