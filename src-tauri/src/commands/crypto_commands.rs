@@ -14,7 +14,7 @@ pub fn hash160(
     hash160_inner(_app, input)
 }
 
-// Internal generic version for testing
+/// Internal generic version for testing
 pub fn hash160_inner<R: Runtime>(
     _app: tauri::AppHandle<R>,
     input: Vec<u8>
@@ -30,17 +30,19 @@ pub fn hash160_inner<R: Runtime>(
 #[specta::specta]
 pub fn random_bytes(
     _app: tauri::AppHandle,
-    len: usize
+    len: u32, // Changed from usize to u32 for TypeScript compatibility
 ) -> Result<Vec<u8>, String> {
     random_bytes_inner(_app, len)
 }
 
+/// Internal generic version for testing
 pub fn random_bytes_inner<R: Runtime>(
     _app: tauri::AppHandle<R>,
-    len: usize
+    len: u32, // Changed from usize to u32 for TypeScript compatibility
 ) -> Result<Vec<u8>, String> {
     use rand::RngCore;
-    let mut bytes = vec![0u8; len];
+    // Cast to usize for the local memory allocation
+    let mut bytes = vec![0u8; len as usize];
     rand::rng().fill_bytes(&mut bytes);
     Ok(bytes)
 }
