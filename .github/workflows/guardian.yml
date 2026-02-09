@@ -19,7 +19,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Better for tools like Tarpaulin
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -63,9 +63,8 @@ jobs:
       - name: Generate Rust Types
         shell: bash
         run: |
-          mkdir -p src/types
-          # Ensure current bindings are fresh.
-          # We don't 'touch' anymore; we want to know if it fails.
+          # This ensures the dist folder exists so the proc-macro doesn't panic
+          mkdir -p dist
           pnpm run type:gen
 
       - name: Run Frontend Coverage
@@ -75,13 +74,9 @@ jobs:
       - name: Run Rust Unit Tests
         shell: bash
         run: |
-          if [ "${{ matrix.platform }}" == "windows-latest" ]; then
-            # If 'tauri test' fails, this is the fallback 'correct' v2 command
-            pnpm tauri dev --test -- --manifest-path=./src-tauri/Cargo.toml --all-features || \
-            pnpm tauri test -- --manifest-path=./src-tauri/Cargo.toml --all-features
-          else
-            cargo test --manifest-path=./src-tauri/Cargo.toml --all-features
-          fi
+          # Standard cargo test works on all platforms for MockRuntime tests.
+          # We bypass the 'pnpm tauri' wrapper to avoid CLI versioning conflicts.
+          cargo test --manifest-path=./src-tauri/Cargo.toml --all-features
 
       - name: Run Rust Coverage (Tarpaulin)
         if: matrix.platform == 'ubuntu-latest'
