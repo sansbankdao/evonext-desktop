@@ -60,13 +60,22 @@ impl DAPIResponse {
         if self.result.is_null() {
             return Ok(vec![]);
         }
-        if let Ok(items) = serde_json::from_value::<Vec<T>>(self.result.clone()) {
-            Ok(items)
-        } else if let Ok(item) = serde_json::from_value::<T>(self.result) {
-            Ok(vec![item])
-        } else {
-            Err(DAPIError::DeserializationError("Could not parse result into expected type".into()))
+
+        // 1. Try to parse as Vec<T> (Case A: Result is already an array)
+        if self.result.is_array() {
+            if let Ok(items) = serde_json::from_value::<Vec<T>>(self.result.clone()) {
+                return Ok(items);
+            }
         }
+
+        // 2. Try to parse as single T (Case B: Result is an object)
+        if let Ok(item) = serde_json::from_value::<T>(self.result) {
+            return Ok(vec![item]);
+        }
+
+        Err(DAPIError::DeserializationError(
+            "Could not parse result into expected type".into()
+        ))
     }
 }
 
@@ -130,9 +139,9 @@ pub struct Identity {
 pub struct IdentityPublicKey {
     pub id: u32,
     #[serde(rename = "type")]
-    pub key_type: u32,
-    pub purpose: u32,
-    pub security_level: u32,
+    pub key_type: Value, // Changed to Value to handle String or Number
+    pub purpose: Value,
+    pub security_level: Value,
     pub data: String,
     pub read_only: bool,
     #[serde(skip_serializing_if = "Option::is_none")]

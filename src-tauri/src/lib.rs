@@ -40,6 +40,7 @@ pub fn create_app() -> tauri::App {
             commands::asset_commands::delete_assets,
             commands::crypto_commands::hash160,
             commands::crypto_commands::random_bytes,
+            commands::identity_commands::discover_and_save_identity,
             commands::identity_commands::save_identity,
             commands::identity_commands::delete_identity,
             commands::identity_commands::save_keys,

@@ -3,6 +3,8 @@
 use crate::identity::{lib as identity_logic, storage};
 use crate::models::{IIdentityData, IIdentityPublicKey, IPrivateKeyEntry, IAnyValue};
 use crate::utils::StoreManager;
+use crate::dapi::client::get_dapi_client;
+use crate::dapi::types::{Network, Identity}; // Imported Identity struct
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -58,6 +60,54 @@ pub struct IUnifiedCommandResult {
     pub success: bool,
     pub error: Option<String>,
     pub payload: Option<IAnyValue>,
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn discover_and_save_identity(
+    app: tauri::AppHandle,
+    identity_id: String,
+    network: String
+) -> Result<IUnifiedCommandResult, String> {
+    let client = get_dapi_client();
+    let net = Network::from_str(&network).unwrap_or(Network::Testnet);
+
+    // 1. Fetch raw value from DAPI
+    let raw_identities = client.get_identity(identity_id.clone(), net)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // 2. Convert raw Value into typed Identity struct
+    let dapi_identity: Identity = serde_json::from_value(
+        raw_identities.first()
+            .ok_or_else(|| "Identity not found on chain".to_string())?
+            .clone()
+    ).map_err(|e| format!("Failed to parse chain identity: {}", e))?;
+
+    // 3. Fetch DPNS if available
+    let dpns_names = client.get_dpns_usernames(identity_id.clone(), net)
+        .await
+        .unwrap_or_default();
+    let username = dpns_names.first()
+        .and_then(|v| v.as_str())
+        .unwrap_or("Unknown")
+        .to_string();
+
+    // 4. Normalize into Storage Format (Fields now exist because dapi_identity is typed)
+    let payload = ISaveIdentityPayload {
+        identity_id: identity_id.clone(),
+        username: username.clone(),
+        balance: dapi_identity.balance.clone().unwrap_or_else(|| "0".into()),
+        revision: dapi_identity.revision.unwrap_or(0),
+        public_keys: dapi_identity.public_keys.iter()
+            .map(|pk| IAnyValue(serde_json::to_value(pk).unwrap()))
+            .collect(),
+        dpns_username: Some(username),
+        ..Default::default()
+    };
+
+    // 5. Save using existing inner logic
+    save_identity_inner(app, network, payload).await
 }
 
 #[tauri::command]
