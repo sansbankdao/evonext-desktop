@@ -64,33 +64,40 @@ jobs:
       - name: Build and Generate Types
         run: pnpm run build
 
-      - name: Locate WebView2Loader.dll for Windows tests
+      - name: Locate x64 WebView2Loader.dll for Windows tests
         if: matrix.platform == 'windows-latest'
         shell: powershell
         run: |
-          # After build, webview2-com-sys has already downloaded the
-          # exact matching DLL into a build script output directory.
-          $dlls = Get-ChildItem -Path "src-tauri\target" -Recurse -Filter "WebView2Loader.dll" -ErrorAction SilentlyContinue
-          if ($dlls.Count -eq 0) {
-            Write-Error "WebView2Loader.dll not found in target directory"
+          # List ALL WebView2Loader.dll variants so we can see what's available
+          Write-Host "=== All WebView2Loader.dll in target ==="
+          Get-ChildItem -Path "src-tauri\target" -Recurse -Filter "WebView2Loader.dll" | ForEach-Object {
+            Write-Host "  $($_.FullName) [$($_.Length) bytes]"
+          }
+
+          # Find specifically the x64 variant (path contains \x64\)
+          $x64Dlls = Get-ChildItem -Path "src-tauri\target" -Recurse -Filter "WebView2Loader.dll" -ErrorAction SilentlyContinue | Where-Object {
+            $_.FullName -match "\\x64\\" -or $_.FullName -match "[/]x64[/]"
+          }
+
+          if ($x64Dlls.Count -eq 0) {
+            Write-Error "x64 WebView2Loader.dll not found in target directory"
+            Write-Host "This runner's architecture: $env:PROCESSOR_ARCHITECTURE"
             exit 1
           }
-          # Pick the first one (they're all the same version from webview2-com-sys)
-          $dllDir = $dlls[0].DirectoryName
-          Write-Host "Found WebView2Loader.dll at: $dllDir"
-          # Add to PATH so the test binary can find it at runtime
-          echo "$dllDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          # Also copy it next to where the test binary will be
-          $debugDir = "src-tauri\target\debug"
-          if (Test-Path $debugDir) {
-            Copy-Item $dlls[0].FullName -Destination "$debugDir\WebView2Loader.dll" -Force
-            Write-Host "Also copied DLL to $debugDir"
-          }
-          $depsDir = "src-tauri\target\debug\deps"
-          if (Test-Path $depsDir) {
-            Copy-Item $dlls[0].FullName -Destination "$depsDir\WebView2Loader.dll" -Force
-            Write-Host "Also copied DLL to $depsDir"
-          }
+
+          $dll = $x64Dlls[0]
+          Write-Host "`nUsing x64 DLL: $($dll.FullName) [$($dll.Length) bytes]"
+
+          # Copy next to the test binary and its deps
+          Copy-Item $dll.FullName -Destination "src-tauri\target\debug\WebView2Loader.dll" -Force
+          Write-Host "Copied to src-tauri\target\debug\"
+
+          Copy-Item $dll.FullName -Destination "src-tauri\target\debug\deps\WebView2Loader.dll" -Force
+          Write-Host "Copied to src-tauri\target\debug\deps\"
+
+          # Also add to PATH as a fallback
+          echo "$($dll.DirectoryName)" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Write-Host "Added $($dll.DirectoryName) to PATH"
 
       - name: Run Rust Unit Tests
         shell: bash
