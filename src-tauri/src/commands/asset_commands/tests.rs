@@ -3,7 +3,7 @@
 use super::*;
 use crate::models::IAssetDefinition;
 use serde_json::json;
-use tauri::test::{mock_builder, MockRuntime};
+use tauri::test::{mock_builder, mock_context, MockRuntime, noop_assets};
 use tauri::AppHandle;
 
 #[test]
@@ -26,9 +26,13 @@ fn test_parse_assets_snapshot_regression() {
 
 #[test]
 fn test_assets_command_storage_cycle() {
+    // 1. mock_context(noop_assets()) provides a Context without using
+    //    the generate_context! macro. This eliminates the symbol collision.
+    // 2. mock_builder().plugin(...).build(...) ensures that the Store
+    //    plugin's managed state is correctly initialized, fixing the panic.
     let app = mock_builder()
         .plugin(tauri_plugin_store::Builder::new().build())
-        .build(tauri::generate_context!())
+        .build(mock_context(noop_assets()))
         .unwrap();
 
     let handle: AppHandle<MockRuntime> = app.handle().clone();
@@ -45,7 +49,7 @@ fn test_assets_command_storage_cycle() {
         network: Some(net.clone()),
     }];
 
-    // Call inner functions to satisfy MockRuntime type
+    // Test storage inner logic
     let save_res = save_assets_inner(handle.clone(), id.clone(), net.clone(), assets);
     assert!(save_res.is_ok());
 
