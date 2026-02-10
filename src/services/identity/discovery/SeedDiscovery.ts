@@ -14,206 +14,153 @@ import { binToHex } from '@evonext/utils'
 import { hash160 } from '@/services/crypto'
 
 export type ProgressCallback = (details: any) => void
-
 export class SeedDiscovery extends BaseDiscovery {
-    private isCancelled = false
+    private controller: AbortController
     private store: IIdentityActions
     private progressCallback: ProgressCallback | null = null
-
     constructor(store: IIdentityActions) {
         super()
         this.store = store
+        this.controller = new AbortController()
     }
-
-    // Correctly implement the abstract method to match DiscoveryResult interface
     async discover(input: string, options?: DiscoveryOptions): Promise<DiscoveryResult> {
         const network = options?.network || 'testnet'
-        console.log(`[SeedDiscovery] Starting discovery with network: ${network}`)
+        // Abort any existing session and create a new one
+        this.controller.abort()
+        this.controller = new AbortController()
         try {
             const identities = await this.discoverFromSeed(input, network, options)
-            console.log(`[SeedDiscovery] Discovery completed, found ${identities.length} identities`)
             return {
                 success: true,
                 identities: identities,
                 debug: { step: 'completed', network, count: identities.length }
             }
         } catch (err: any) {
-            console.error(`[SeedDiscovery] Discovery failed:`, err)
+            if (err.name === 'AbortError') {
+                return { success: false, identities: [], error: 'Discovery Aborted' }
+            }
             return {
                 success: false,
                 error: err.message || 'Seed discovery failed',
                 identities: [],
-                debug: { step: 'error', error: err.message, stack: err.stack }
+                debug: { step: 'error', error: err.message }
             }
         }
     }
-
     cancel(): void {
-        console.log(`[SeedDiscovery] Discovery cancelled`)
-        this.isCancelled = true
+        this.controller.abort()
     }
-
     setProgressCallback(callback: ProgressCallback): void {
         this.progressCallback = callback
     }
-
     protected updateProgress(details: any) {
-        console.log(`[SeedDiscovery] Progress:`, details)
         if (this.progressCallback) {
             this.progressCallback(details)
         }
-        const event = new CustomEvent('discovery:progress', { detail: details })
-        window.dispatchEvent(event)
+        window.dispatchEvent(new CustomEvent('discovery:progress', { detail: details }))
     }
-
     async discoverFromSeed(
         seedPhrase: string,
         network: 'mainnet' | 'testnet',
         options?: any
     ): Promise<DiscoveredIdentity[]> {
-        this.isCancelled = false
         const results: DiscoveredIdentity[] = []
         let currentIndex = 0
         const searchLimit = options?.maxIdentityIndex ?? 5
-
-        console.log(`[SeedDiscovery] Starting discovery for seed phrase (first 10 chars): ${seedPhrase.substring(0, 10)}...`)
-        console.log(`[SeedDiscovery] Network: ${network}, Search limit: ${searchLimit}`)
-
+        const signal = this.controller.signal
         while (currentIndex < searchLimit) {
-            if (this.isCancelled) {
-                console.log(`[SeedDiscovery] Discovery cancelled at index ${currentIndex}`)
-                break
-            }
-
+            if (signal.aborted) break
             this.updateProgress({
                 currentIdentityIndex: currentIndex,
                 totalIdentities: searchLimit,
-                message: `Scanning Identity Index ${currentIndex}...`
+                message: `Checking Identity Index ${currentIndex}...`
             })
-
             try {
-                console.log(`[SeedDiscovery] Deriving key for identity index ${currentIndex}, key index 0`)
-
-                // Get private key for identity index, key index 0 (master key)
+                // 1. Derive the Master Key (Local Index 0) to use as search anchor
                 const { privateKey } = await KeyDerivationService.getPrivateKeyWASM(
                     seedPhrase, network, currentIndex, 0
                 )
-
-                // Get public key bytes and hash
                 const pubKeyBytes = privateKey.getPublicKey().bytes()
                 const pubKeyHash = binToHex(await hash160(pubKeyBytes))
-                console.log(`[SeedDiscovery] Derived pubKeyHash for index ${currentIndex}: ${pubKeyHash}`)
-
-                // Query DAPI for identity by hash
-                console.log(`[SeedDiscovery] Querying DAPI for hash ${pubKeyHash}`)
-
-                // 1. Try Unique Search
+                // 2. Query DAPI
                 let result = await DAPIService.queryIdentityByHash(pubKeyHash, network, true)
-                console.log(`[SeedDiscovery] DAPI Unique result for index ${currentIndex}:`, result)
-
-                // 2. If Unique fails, try Non-Unique Search (The fix)
                 if (!result.success || !result.data) {
-                    console.log(`[SeedDiscovery] Unique search failed, trying Non-Unique...`)
                     result = await DAPIService.queryIdentityByHash(pubKeyHash, network, false)
-                    console.log(`[SeedDiscovery] DAPI Non-Unique result for index ${currentIndex}:`, result)
                 }
-
                 if (result.success && result.data) {
-                    const id = result.data.identityId || result.data.id
-                    console.log(`[SeedDiscovery] Found identity ${id} at index ${currentIndex}`)
-
-                    // Allow DPNS to fail without breaking discovery
+                    const identityId = result.data.identityId
+                    // 3. Resolve metadata (DPNS)
                     let dpns = ''
                     try {
-                        dpns = await DAPIService.getDPNSUsername(id, network) || ''
-                    } catch (e) {
-                        console.warn(`[SeedDiscovery] Failed to fetch DPNS for ${id}:`, e)
+                        dpns = await DAPIService.getDPNSUsername(identityId, network) || ''
+                    } catch (e) { /* non-critical */ }
+                    // 4. Handle Keys: Match DAPI manifest against local derivation
+                    const dapiKeys = result.data.publicKeys || []
+                    const entriesToSave = await this.matchAndDeriveKeys(
+                        seedPhrase,
+                        network,
+                        currentIndex,
+                        identityId,
+                        dapiKeys
+                    )
+                    if (entriesToSave.length > 0) {
+                        await this.store.saveKeys(network, identityId, entriesToSave)
                     }
-
-                    const discovered: DiscoveredIdentity = {
-                        identityId: id,
+                    results.push({
+                        identityId,
                         identityIdx: currentIndex,
-                        publicKeys: result.data.publicKeys || [],
+                        publicKeys: dapiKeys,
                         balance: result.data.balance,
-                        username: dpns || id,
+                        username: dpns || identityId,
                         dpnsUsername: dpns,
                         displayName: dpns || `Identity ${currentIndex}`,
                         revision: result.data.revision
-                    }
-
-                    results.push(discovered)
-                    console.log(`[SeedDiscovery] Saving derived keys for ${id}`)
-                    await this.saveDerivedKeys(seedPhrase, network, currentIndex, id, discovered.publicKeys)
-                } else {
-                    console.log(`[SeedDiscovery] No identity found at index ${currentIndex}`)
+                    })
                 }
-
             } catch (e: any) {
-                // Identity not found at this index
-                console.log(`[SeedDiscovery] Error at index ${currentIndex}:`, e.message)
+                if (e.name === 'AbortError') throw e
+                console.warn(`[SeedDiscovery] Skip index ${currentIndex}: ${e.message}`)
             }
-
             currentIndex++
         }
-
-        this.updateProgress({
-            currentIdentityIndex: searchLimit,
-            totalIdentities: searchLimit,
-            message: `Found ${results.length} identities.`
-        })
-
-        console.log(`[SeedDiscovery] Discovery complete. Found ${results.length} identities`)
         return results
     }
-
-    private async saveDerivedKeys(phrase: string, net: any, idx: number, id: string, keys: any[]) {
-        console.log(`[SeedDiscovery] Saving ${keys.length} keys for identity ${id}`)
-        const entries = []
+    private async matchAndDeriveKeys(
+        phrase: string,
+        net: any,
+        idx: number,
+        identityId: string,
+        dapiKeys: any[]
+    ) {
+        const matchedEntries = []
         const now = new Date().toISOString()
-
-        for (let i = 0; i < keys.length; i++) {
+        for (let i = 0; i < dapiKeys.length; i++) {
+            const dk = dapiKeys[i]
+            const dapiData = (dk.data || dk.dataB64 || '').toLowerCase()
+            const keyId = i
             try {
-                const kId = (keys[i].id !== undefined && keys[i].id !== null) ? Number(keys[i].id) : i
-                if (kId > 10) {
-                    console.log(`[SeedDiscovery] Skipping key ID ${kId} > 10`)
-                    continue
+                const res = await KeyDerivationService.getPrivateKeyWASM(phrase, net, idx, keyId)
+                const pubBytes = res.privateKey.getPublicKey().bytes()
+                const localHex = binToHex(pubBytes).toLowerCase()
+                const localHash = binToHex(await hash160(pubBytes)).toLowerCase()
+                if (dapiData === localHex || dapiData === localHash) {
+                    matchedEntries.push({
+                        identityId,
+                        keyId,
+                        purpose: dk.purpose,
+                        securityLevel: dk.securityLevel,
+                        keyType: dk.keyType,
+                        privateKey: res.privateKey.WIF(),
+                        publicKey: localHex,
+                        derivedFromMnemonic: true,
+                        createdAt: now,
+                        lastUsed: now
+                    })
                 }
-
-                console.log(`[SeedDiscovery] Deriving private key for key ID ${kId}`)
-                const res = await KeyDerivationService.getPrivateKeyWASM(phrase, net, idx, kId)
-
-                // Get the public key from the private key to verify it matches
-                const derivedPubKey = binToHex(res.privateKey.getPublicKey().bytes())
-                const keyData = keys[i].data
-
-                console.log(`[SeedDiscovery] Derived pubkey: ${derivedPubKey.substring(0, 16)}...`)
-                console.log(`[SeedDiscovery] Key data from DAPI: ${keyData}`)
-
-                entries.push({
-                    identityId: id,
-                    keyId: kId,
-                    purpose: Number(keys[i].purpose ?? 0),
-                    securityLevel: Number(keys[i].securityLevel ?? 0),
-                    keyType: String(keys[i].keyType || keys[i].type || 'ECDSA_HASH160'),
-                    privateKey: res.privateKey.WIF(),
-                    publicKey: keys[i].data || '',
-                    derivedFromMnemonic: true,
-                    createdAt: now,
-                    lastUsed: now
-                })
-
-                console.log(`[SeedDiscovery] Added key entry for ID ${kId}`)
-            } catch (e: any) {
-                console.error(`[SeedDiscovery] Failed to derive key ${i}:`, e.message)
-                continue
+            } catch (e) {
+                console.error(`[SeedDiscovery] Derivation failed for key index ${keyId}`)
             }
         }
-
-        if (entries.length > 0) {
-            console.log(`[SeedDiscovery] Saving ${entries.length} key entries to store`)
-            await this.store.saveKeys(net, id, entries)
-        } else {
-            console.log(`[SeedDiscovery] No key entries to save`)
-        }
+        return matchedEntries
     }
 }

@@ -16,11 +16,16 @@ mod tests;
 pub struct IdentityMapper;
 
 impl IdentityMapper {
+    /// Maps a frontend payload to the internal Rust IIdentityData structure.
+    /// Ensures that public_key_ids are tracked consistently.
     pub fn map_to_identity(payload: ISaveIdentityPayload) -> IIdentityData {
         let normalized_keys = payload.public_keys
             .iter()
             .enumerate()
-            .filter_map(|(i, IAnyValue(v))| identity_logic::normalize_public_key(i as u32, v))
+            .filter_map(|(i, IAnyValue(v))| {
+                // The index 'i' acts as the default keyId if none is provided in the value
+                identity_logic::normalize_public_key(i as u32, v)
+            })
             .collect::<Vec<IIdentityPublicKey>>();
 
         IIdentityData {
@@ -135,7 +140,9 @@ pub async fn save_identity_with_keys_logic<S: PersistentStore>(
     identity_payload: ISaveIdentityPayload,
     keys: Vec<IPrivateKeyEntry>,
 ) -> Result<IUnifiedCommandResult, String> {
+    // 1. Save Identity metadata
     save_identity_logic(store, network.clone(), identity_payload.clone()).await?;
+    // 2. Save Key material (SAFU)
     save_keys_logic(store, network, identity_payload.identity_id, keys).await?;
 
     Ok(IUnifiedCommandResult {
@@ -143,16 +150,6 @@ pub async fn save_identity_with_keys_logic<S: PersistentStore>(
         error: None,
         payload: None,
     })
-}
-
-pub async fn save_identity_with_keys_inner<R: Runtime>(
-    app: tauri::AppHandle<R>,
-    network: String,
-    identity_payload: ISaveIdentityPayload,
-    keys: Vec<IPrivateKeyEntry>,
-) -> Result<IUnifiedCommandResult, String> {
-    let manager = StoreManager::new(&app);
-    save_identity_with_keys_logic(&manager, network, identity_payload, keys).await
 }
 
 #[tauri::command]
@@ -252,6 +249,7 @@ pub async fn save_keys_logic<S: PersistentStore>(
     {
         let entries = keystore.identities.entry(identity_id.clone()).or_default();
         for k in keys {
+            // Update existing or push new key entry
             if let Some(existing) = entries.iter_mut().find(|e| e.key_id == k.key_id) {
                 *existing = k;
             } else {
@@ -259,6 +257,7 @@ pub async fn save_keys_logic<S: PersistentStore>(
             }
         }
 
+        // Self-Healing: Enrich keys with metadata from the identity record if available
         let current_identities = storage::load_identity_map_internal(store, &network)?;
         if let Some(identity_data) = current_identities.get(&identity_id) {
             identity_logic::enrich_key_entries(entries, identity_data);

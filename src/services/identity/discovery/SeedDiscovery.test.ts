@@ -4,15 +4,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { SeedDiscovery } from './SeedDiscovery'
 import { DAPIService } from './DAPIService'
 import { KeyDerivationService } from '../keyDerivation.service'
+
 vi.mock('../keyDerivation.service', () => ({
     KeyDerivationService: {
-        getPrivateKeyWASM: vi.fn()
+        getPrivateKeyWASM: vi.fn(),
+        cleanup: vi.fn()
     }
 }))
 vi.mock('./DAPIService', () => ({
     DAPIService: {
         queryIdentityByHash: vi.fn(),
-        getDPNSUsername: vi.fn()
+        getDPNSUsername: vi.fn(),
+        getIdentityById: vi.fn()
     }
 }))
 vi.mock('@evonext/utils', () => ({
@@ -36,64 +39,58 @@ describe('SeedDiscovery - Indexing Loop', () => {
             }
         } as any)
     })
-    it('should scan all indices up to the limit and find multiple identities', async () => {
-        // Setup: Identity found at Index 0 and Index 2, but not Index 1
-        vi.mocked(DAPIService.queryIdentityByHash)
-            .mockResolvedValueOnce({
-                success: true,
-                searchType: 'unique',
-                data: { identityId: 'id_0', publicKeys: [] as any[] }
-            }) // Idx 0
-            .mockResolvedValueOnce({
-                success: false,
-                searchType: 'unique'
-            }) // Idx 1 Unique attempt
-            .mockResolvedValueOnce({
-                success: false,
-                searchType: 'non-unique'
-            }) // Idx 1 Non-Unique attempt
-            .mockResolvedValueOnce({
-                success: true,
-                searchType: 'unique',
-                data: { identityId: 'id_2', publicKeys: [] as any[] }
-            }) // Idx 2
-        const results = await discovery.discoverFromSeed('test seed', 'testnet', { maxIdentityIndex: 3 })
-        expect(results).toHaveLength(2)
-        expect(results[0]!.identityId).toBe('id_0')
-        expect(results[1]!.identityId).toBe('id_2')
+    it('should scan indices and derive keys for found identities', async () => {
+        // Setup: Identity found at Index 0 with 2 keys in DAPI
+        // Added searchType to satisfy DAPIHashSearchResult interface
+        vi.mocked(DAPIService.queryIdentityByHash).mockResolvedValueOnce({
+            success: true,
+            searchType: 'unique',
+            data: {
+                identityId: 'id_0',
+                publicKeys: [
+                    { data: 'mock_hex', purpose: 'AUTHENTICATION' },
+                    { data: 'mock_hex', purpose: 'TRANSFER' }
+                ]
+            }
+        })
+        const results = await discovery.discoverFromSeed('test seed', 'testnet', {
+            maxIdentityIndex: 1
+        })
+        expect(results).toHaveLength(1)
+        expect(results[0]?.identityId).toBe('id_0')
+        // Calls: 1 for Search Anchor (Index 0, Key 0), 2 for the keys found in DAPI manifest
         expect(KeyDerivationService.getPrivateKeyWASM).toHaveBeenCalledTimes(3)
+        // Verify key IDs match the array index (0 and 1)
+        expect(mockStore.saveKeys).toHaveBeenCalledWith('testnet', 'id_0', expect.arrayContaining([
+            expect.objectContaining({ keyId: 0, identityId: 'id_0' }),
+            expect.objectContaining({ keyId: 1, identityId: 'id_0' })
+        ]))
     })
-    it('should trigger the Non-Unique fallback if the Unique query fails', async () => {
-        // Setup: Unique fails, but Non-Unique succeeds
-        vi.mocked(DAPIService.queryIdentityByHash)
-            .mockResolvedValueOnce({
-                success: false,
-                searchType: 'unique'
-            }) // Unique attempt
-            .mockResolvedValueOnce({
-                success: true,
-                searchType: 'non-unique',
-                data: { identityId: 'id_fallback' } as any
-            }) // Non-Unique attempt
-        await discovery.discoverFromSeed('test seed', 'testnet', { maxIdentityIndex: 1 })
-        // Verify it was called twice for the same index
-        expect(DAPIService.queryIdentityByHash).toHaveBeenCalledTimes(2)
-        expect(DAPIService.queryIdentityByHash).toHaveBeenNthCalledWith(1, expect.any(String), 'testnet', true)
-        expect(DAPIService.queryIdentityByHash).toHaveBeenNthCalledWith(2, expect.any(String), 'testnet', false)
-    })
-    it('should respect the cancellation signal', async () => {
-        // Stop discovery after index 0
+    it('should respect the cancellation signal and stop the loop', async () => {
         vi.mocked(DAPIService.queryIdentityByHash).mockImplementation(async () => {
             discovery.cancel()
             return {
                 success: true,
                 searchType: 'unique',
-                data: { identityId: 'id_0' } as any
+                data: { identityId: 'id_0', publicKeys: [] }
             }
         })
-        const results = await discovery.discoverFromSeed('test seed', 'testnet', { maxIdentityIndex: 5 })
+        const results = await discovery.discoverFromSeed('test seed', 'testnet', {
+            maxIdentityIndex: 5
+        })
         expect(results).toHaveLength(1)
-        // It should have stopped before index 1
+        // Ensure loop exited before index 1
         expect(DAPIService.queryIdentityByHash).toHaveBeenCalledTimes(1)
+    })
+    it('should handle DAPI failures gracefully', async () => {
+        vi.mocked(DAPIService.queryIdentityByHash).mockResolvedValue({
+            success: false,
+            searchType: 'unique',
+            error: 'DAPI Connectivity Issue'
+        })
+        const results = await discovery.discoverFromSeed('test seed', 'testnet', {
+            maxIdentityIndex: 2
+        })
+        expect(results).toHaveLength(0)
     })
 })

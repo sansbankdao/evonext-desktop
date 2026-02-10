@@ -10,11 +10,13 @@ use tauri::{AppHandle, Runtime};
 #[cfg(test)]
 mod tests;
 
-/// PURE LOGIC: Processes a raw JSON value into a typed IdentityMap
+/// PURE LOGIC: Processes a raw JSON value into a typed IdentityMap.
+/// Filters out internal metadata markers like __active_identity_id.
 pub fn process_raw_identity_map(val: Value) -> IdentityMap {
     let mut identity_map = HashMap::new();
     if let Some(obj) = val.as_object() {
         for (key, value) in obj {
+            // Ignore internal metadata markers
             if key.starts_with("__") {
                 continue;
             }
@@ -23,7 +25,7 @@ pub fn process_raw_identity_map(val: Value) -> IdentityMap {
                     identity_map.insert(key.clone(), identity_data);
                 }
                 Err(e) => {
-                    eprintln!("RECOGNIZED REGRESSION: Identity {} corrupted: {}", key, e);
+                    eprintln!("STORAGE REGRESSION: Identity record {} is corrupted: {}", key, e);
                 }
             }
         }
@@ -53,6 +55,7 @@ pub fn load_identity_map<R: Runtime>(
 }
 
 /// Save the main Identity map (.identity-{network}.json)
+/// Supports an optional active_marker to indicate which identity is currently focused.
 pub fn save_identity_map_internal(
     store: &impl PersistentStore,
     network: &str,
