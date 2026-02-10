@@ -40,7 +40,7 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
-      - name: Clear Cache (Force Rebuild)
+      - name: Clear Rust Cache (Force Rebuild)
         uses: Swatinem/rust-cache@v2
         with:
           key: ${{ runner.os }}-force-clean
@@ -62,35 +62,30 @@ jobs:
         run: |
           node -e "const fs = require('fs'); if (!fs.existsSync('dist')) fs.mkdirSync('dist')"
 
-      - name: Fix Webview2 CI (Windows)
+      - name: Force Webview2 Stub Build (Windows)
         if: matrix.platform == 'windows-latest'
+        shell: pwsh
         run: |
-          # 1. Navigate to the Tauri project directory
-          cd src-tauri
+          # Navigate to the Tauri project directory
+          Set-Location src-tauri
 
-          # 2. Clean webview2-com-sys to force a fresh stub generation
+          # Clean the webview2-com-sys crate to force a rebuild
           cargo clean -p webview2-com-sys
 
-          # 3. Build it with the stub (don't download the DLL)
-          # Set env var BEFORE cargo build
-          export WEBVIEW2_COM_SYS_NO_WEBVIEW2=1
-          cargo build -p webview2-com-sys
+          # Build it with the stub (using PowerShell syntax)
+          $env:WEBVIEW2_COM_SYS_NO_WEBVIEW2 = "1"
 
-          # 4. Rebuild the entire project with the new stub
-          cd ..
-          pnpm run build
+          cargo build -p webview2-com-sys
 
       - name: Run Rust Unit Tests (Windows)
         if: matrix.platform == 'windows-latest'
-        shell: cmd
+        shell: pwsh
         env:
           WEBVIEW2_COM_SYS_NO_WEBVIEW2: 1
-          # This clears system WebView2 references to prevent PATH conflicts
-          PATH: C:\Windows\System32;C:\Windows;C:\Users\runneradmin\.cargo\bin;%PATH%
-          # Force linking to ONLY the local stub
-          RUSTFLAGS: -C link-args=/NODEFAULTLIB:webview2 /VERBOSE
+          # Override PATH to prevent system DLL conflicts
+          PATH: C:\Windows\System32;C:\Users\runneradmin\.cargo\bin;%PATH%
         run: |
-          cd src-tauri
+          Set-Location src-tauri
           cargo test --manifest-path=./Cargo.toml --all-features --no-fail-fast
 
       - name: Run Rust Unit Tests (Unix)
