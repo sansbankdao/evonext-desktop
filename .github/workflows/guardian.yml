@@ -40,9 +40,10 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
-      - name: Rust Cache
+      - name: Clear Rust Cache (Force Webview2 Rebuild)
         uses: Swatinem/rust-cache@v2
         with:
+          key: ${{ runner.os }}-force-clean # Use a unique key to invalidate cache
           workspaces: "./src-tauri -> target"
 
       - name: Install Linux dependencies
@@ -64,22 +65,29 @@ jobs:
       - name: Build and Generate Types
         run: pnpm run build
 
-      - name: Run Rust Unit Tests (Windows)
+      - name: Force Webview2 Stub Build (Windows Only)
         if: matrix.platform == 'windows-latest'
-        shell: bash
-        env:
-          TAURI_WEBVIEW_AUTOMATION: false
         run: |
-          # Clean the webview2-com-sys build artifacts to force a fresh
-          # rebuild with the no-DLL stub, avoiding any cached mismatch.
-          cargo clean --manifest-path=./src-tauri/Cargo.toml -p webview2-com-sys
+          # 1. Clean ONLY the webview2-com-sys crate to force it to re-download/compile
+          cargo clean -p webview2-com-sys
 
-          # This env var tells webview2-com-sys to compile a stub that
-          # returns errors instead of loading WebView2Loader.dll.
-          # Since all tests use MockRuntime, WebView2 is never invoked.
+          # 2. Ensure the env var is set for the cargo process
+          # This tells webview2-com-sys to compile a stub implementation instead of trying to load the DLL.
+          # Since all tests use MockRuntime, they never actually need the real WebView2 DLL.
           export WEBVIEW2_COM_SYS_NO_WEBVIEW2=1
 
-          cargo test --manifest-path=./src-tauri/Cargo.toml --all-features
+          # 3. Rebuild the crate with the stub
+          cargo clean -p webview2-com-sys
+          cargo build -p webview2-com-sys
+
+      - name: Run Rust Unit Tests (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: cmd
+        env:
+          WEBVIEW2_COM_SYS_NO_WEBVIEW2: 1
+          RUSTFLAGS: "-C link-args=/NODEFAULTLIB:webview2" # Prevent linking to system libs
+        run: |
+          cargo test --manifest-path=./src-tauri/Cargo.toml --all-features --verbose
 
       - name: Run Rust Unit Tests (Unix)
         if: matrix.platform != 'windows-latest'
