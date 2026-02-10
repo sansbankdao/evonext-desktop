@@ -43,6 +43,8 @@ jobs:
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
         with:
+          # We use a specific key for Windows to avoid mixing dynamic/static link artifacts
+          key: ${{ runner.os }}-static-link-v1
           workspaces: "./src-tauri -> target"
 
       - name: Install Linux dependencies
@@ -57,29 +59,28 @@ jobs:
         env:
           CI: true
 
-      - name: Update WebView2 Runtime (Windows Only)
-        if: matrix.platform == 'windows-latest'
-        shell: pwsh
-        run: |
-          Write-Host "Updating WebView2 Runtime to latest Evergreen version..."
-          $setupPath = "$env:TEMP\MicrosoftEdgeWebview2Setup.exe"
-          Invoke-WebRequest -Uri "https://go.microsoft.com/fwlink/p/?LinkID=2124703" -OutFile $setupPath
-          Start-Process -FilePath $setupPath -ArgumentList "/silent", "/install" -Wait
-          Write-Host "✅ WebView2 Runtime updated."
-
       - name: Create Placeholder Dist
         run: |
           node -e "const fs = require('fs'); if (!fs.existsSync('dist')) fs.mkdirSync('dist')"
 
       - name: Build and Generate Types
+        env:
+          # Force static linking during the type generation build
+          WEBVIEW2_LINK_STATIC: "1"
         run: pnpm run build
 
       - name: Run Rust Unit Tests
         shell: bash
+        env:
+          # This is the "Magic Bullet" for Windows Tauri CI.
+          # It embeds the WebView2 loader into the test EXE so no DLL is needed.
+          WEBVIEW2_LINK_STATIC: "1"
         run: |
           if [ "${{ matrix.platform }}" == "windows-latest" ]; then
-            # Run directly with cargo in the src-tauri directory
-            cd src-tauri && cargo test --all-features
+            cd src-tauri
+            # Force a rebuild of the webview crate with the static flag
+            cargo clean -p webview2-com-sys
+            cargo test --all-features
           else
             pnpm run test:rust
           fi
