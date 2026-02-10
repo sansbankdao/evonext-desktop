@@ -1,6 +1,6 @@
 // src-tauri/src/main_tests.rs
 
-use crate::setup_environment;
+use evonext::setup_environment;
 
 #[test]
 fn test_main_env_path_pure() {

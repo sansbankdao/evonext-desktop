@@ -2,7 +2,6 @@
 
 use crate::models::{IMnemonic, IPrivateKeyStore};
 use crate::utils::{network_file::get_network_file, StoreManager, PersistentStore};
-use tauri::Runtime;
 
 #[cfg(test)]
 mod tests;
