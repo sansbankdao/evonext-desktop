@@ -3,7 +3,10 @@
 import { invoke } from '@/utils/tauri'
 import { DAPIService } from '@/services/identity/discovery/DAPIService'
 import { KeyDerivationService } from '@/services/identity/keyDerivation.service'
+// @ts-ignore
+import { binToHex } from '@evonext/utils'
 import type { ConnectionResult, DiscoveredIdentity, IIdentityState, IIdentity } from '@/types'
+import type { IPrivateKeyEntry } from '@/types'
 
 async function persistActiveIdentityMarker(identityId: string | null, network: string) {
     try {
@@ -62,7 +65,7 @@ export function connectWriteOnlyActions() {
 
                 // Derive private keys from seed phrase for each public key
                 const now = new Date().toISOString()
-                const privateKeyEntries: any[] = []
+                const privateKeyEntries: IPrivateKeyEntry[] = []
 
                 for (let i = 0; i < publicKeys.length; i++) {
                     const pk = publicKeys[i]
@@ -85,20 +88,25 @@ export function connectWriteOnlyActions() {
                             purpose: Number(pk?.purpose ?? 0),
                             securityLevel: Number(pk?.securityLevel ?? 0),
                             keyType: String(pk?.keyType || pk?.type || 'ECDSA_HASH160'),
+                            // Use the WIF from the wrapped key
                             privateKey: res.privateKey.WIF(),
-                            publicKey: pk?.data || '',
+                            publicKey: pk?.data || binToHex(res.publicKeyBytes), // Use the raw bytes from SDK
                             derivedFromMnemonic: true,
-                            createdAt: now,
-                            lastUsed: now
+                            created_at: now,
+                            last_used: now
                         })
                     } catch (e) {
                         console.warn(`[connectWriteOnly] KeyId ${keyId} derivation skipped:`, e)
                     }
                 }
 
-                // Save derived keys to keystore
+                // FIX: Use the batch 'save_keys' command (plural) instead of loop.
                 if (privateKeyEntries.length > 0) {
-                    await this.saveKeys(network, identity.identityId, privateKeyEntries)
+                    await invoke('save_keys', {
+                        network,
+                        identityId: identity.identityId,
+                        keys: privateKeyEntries
+                    })
                 }
 
                 // Save mnemonic for future use
@@ -112,7 +120,6 @@ export function connectWriteOnlyActions() {
                     revision: typeof revision === 'number' ? revision : Number(revision || 0),
                     publicKeys: publicKeys,
                     username: identity.dpnsUsername || identity.username || identity.identityId,
-                    // Fixed: Use empty string instead of undefined
                     displayName: identity.displayName || identity.dpnsUsername || ''
                 }
 

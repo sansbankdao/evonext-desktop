@@ -155,7 +155,7 @@ export class KeyDerivationService {
                         const privateKeyBuffer = hdKey.privateKey
                         const publicKeyBuffer = hdKey.publicKey
 
-                        // Create PrivateKeyWASM from the private key bytes
+                        // Create PrivateKeyWASM from private key bytes
                         const privateKey = PrivateKeyWASM.fromHex(binToHex(privateKeyBuffer), network)
 
                         // Calculate public key hash
@@ -194,21 +194,30 @@ export class KeyDerivationService {
         }
     }
 
+    /**
+     * Derives a Private Key using the Dash Platform SDK.
+     * Returns a wrapper that includes the raw public key bytes directly from the SDK
+     * to prevent `getPublicKey()` crashes in downstream discovery logic.
+     */
     static async getPrivateKeyWASM(
         source: string,
         network: 'mainnet' | 'testnet' = 'testnet',
         identityIndex: number = 0,
         keyIndex: number = 0
-    ): Promise<{ privateKey: PrivateKeyWASM; sourceType: 'WIF' | 'MNEMONIC' | 'HEX_PRIVATE' }> {
+    ): Promise<{ privateKey: PrivateKeyWASM; publicKeyBytes: Uint8Array; sourceType: 'WIF' | 'MNEMONIC' | 'HEX_PRIVATE' }> {
         const format = this.detectKeyFormat(source)
 
         if (format.format === 'WIF') {
-            // Direct WIF instantiation
             const privateKey = await this.derivePrivateKeyFromWIF(source)
-            return { privateKey, sourceType: 'WIF' }
+            const pubKey = privateKey.getPublicKey()
+            return {
+                privateKey,
+                publicKeyBytes: pubKey.bytes(),
+                sourceType: 'WIF'
+            }
         }
         else if (format.format === 'UNKNOWN' && (source.split(/\s+/).length === 12 || source.split(/\s+/).length === 24)) {
-            // Mnemonic phrase - derive using deriveIdentityPrivateKey
+            // Mnemonic phrase
             const sdk = await this.getSDK(network)
 
             // Create seed from mnemonic
@@ -226,13 +235,29 @@ export class KeyDerivationService {
             )
 
             const privateKeyBuffer = hdKey.privateKey
+            // FIX: Handle potential null from SDK, throw if missing to prevent silent failure
+            const publicKeyBuffer = hdKey.publicKey
+            if (!publicKeyBuffer) {
+                throw new Error("SDK returned null public key buffer")
+            }
+
             const privateKey = PrivateKeyWASM.fromHex(binToHex(privateKeyBuffer), network)
-            return { privateKey, sourceType: 'MNEMONIC' }
+
+            // FIX: Explicitly use the 'publicKeyBuffer' variable in the return object
+            return {
+                privateKey,
+                publicKeyBytes: publicKeyBuffer,
+                sourceType: 'MNEMONIC'
+            }
         }
         else if (format.format === 'HEX_PRIVATE') {
-            // Hex private key
             const privateKey = PrivateKeyWASM.fromHex(source.toLowerCase(), network)
-            return { privateKey, sourceType: 'HEX_PRIVATE' }
+            const pubKey = privateKey.getPublicKey()
+            return {
+                privateKey,
+                publicKeyBytes: pubKey.bytes(),
+                sourceType: 'HEX_PRIVATE'
+            }
         }
         else {
             throw new Error(`Unsupported key format: ${format.description}`)

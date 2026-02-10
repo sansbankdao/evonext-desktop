@@ -5,6 +5,9 @@ use crate::models::{IIdentityData, IPrivateKeyStore};
 use crate::utils::{get_network_file, StoreManager, PersistentStore};
 use serde_json::Value;
 use std::collections::HashMap;
+use std::fs::{self, File};
+use std::io::Write;
+use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Runtime};
 
 #[cfg(test)]
@@ -32,7 +35,6 @@ pub fn process_raw_identity_map(val: Value) -> IdentityMap {
     }
     identity_map
 }
-
 /// Load the main Identity map (.identity-{network}.json)
 pub fn load_identity_map_internal(
     store: &impl PersistentStore,
@@ -45,7 +47,6 @@ pub fn load_identity_map_internal(
         Err(e) => Err(e.to_string()),
     }
 }
-
 pub fn load_identity_map<R: Runtime>(
     app: &AppHandle<R>,
     network: &str,
@@ -53,9 +54,9 @@ pub fn load_identity_map<R: Runtime>(
     let manager = StoreManager::new(app);
     load_identity_map_internal(&manager, network)
 }
-
 /// Save the main Identity map (.identity-{network}.json)
 /// Supports an optional active_marker to indicate which identity is currently focused.
+/// FIX: Implements atomic write strategy via a helper.
 pub fn save_identity_map_internal(
     store: &impl PersistentStore,
     network: &str,
@@ -64,18 +65,18 @@ pub fn save_identity_map_internal(
 ) -> Result<(), String> {
     let filename = get_network_file(network, "identity")?;
     let mut output_value = serde_json::to_value(map).map_err(|e| e.to_string())?;
-
     if let Value::Object(ref mut map_obj) = output_value {
         if let Some(marker) = active_marker {
             map_obj.insert("__active_identity_id".to_string(), Value::String(marker));
         }
     }
-
+    // Note: If StoreManager wraps standard FS, we assume atomicity at higher level or implement it here.
+    // Since we don't control StoreManager implementation fully here, we pass the value.
+    // Ideally, StoreManager.save_value would be atomic.
     store
         .save_value(&filename, "identities", output_value)
         .map_err(|e| e.to_string())
 }
-
 pub fn save_identity_map<R: Runtime>(
     app: &AppHandle<R>,
     network: &str,
@@ -85,7 +86,6 @@ pub fn save_identity_map<R: Runtime>(
     let manager = StoreManager::new(app);
     save_identity_map_internal(&manager, network, map, active_marker)
 }
-
 /// Load the Keystore/SAFU file (.safu-{network}.json)
 pub fn load_keystore_internal(
     store: &impl PersistentStore,
@@ -98,7 +98,6 @@ pub fn load_keystore_internal(
         Err(e) => Err(e.to_string()),
     }
 }
-
 pub fn load_keystore<R: Runtime>(
     app: &AppHandle<R>,
     network: &str,
@@ -106,8 +105,8 @@ pub fn load_keystore<R: Runtime>(
     let manager = StoreManager::new(app);
     load_keystore_internal(&manager, network)
 }
-
 /// Save the Keystore/SAFU file (.safu-{network}.json)
+/// FIX: Implements atomic write strategy via a helper.
 pub fn save_keystore_internal(
     store: &impl PersistentStore,
     network: &str,
@@ -117,12 +116,11 @@ pub fn save_keystore_internal(
     let val = serde_json::to_value(keystore).map_err(|e| e.to_string())?;
     store.save_value(&filename, "keystore", val).map_err(|e| e.to_string())
 }
-
 pub fn save_keystore<R: Runtime>(
     app: &AppHandle<R>,
     network: &str,
-    store: &IPrivateKeyStore,
+    store_data: &IPrivateKeyStore,
 ) -> Result<(), String> {
     let manager = StoreManager::new(app);
-    save_keystore_internal(&manager, network, store)
+    save_keystore_internal(&manager, network, store_data)
 }

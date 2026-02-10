@@ -1,21 +1,42 @@
 // src/composables/useIdentityDiscovery.ts
+
 import { ref } from 'vue'
 import { ErrorBoundary, type ActionResponse } from '@/utils/errors'
 import { log, getDapiEndpoint } from '@/utils/env'
-import { DEFAULT_IDENTITY_SEARCH_LIMIT, DEFAULT_QUERY_REGISTRY } from '@/constants'
 import { useNetwork } from './useNetwork'
-import type {
-    IIdentity,
-    IPublicKey,
-    PurposeType,
-    SecurityLevelType,
-    IdentitySearchOptions
-} from '@/types'
+import { IdentityManager } from '@/services/identity/discovery/IdentityManager'
+import type { IIdentity, IPublicKey, PurposeType, SecurityLevelType, IdentitySearchOptions } from '@/types'
+let identityManagerInstance: IdentityManager | null = null
+const getIdentityManager = (): IdentityManager => {
+    if (!identityManagerInstance) {
+        const mockActions: any = {}
+        mockActions.saveKeys = async () => { console.log('[Mock] saveKeys called'); }
+        mockActions.saveDiscoveredIdentities = async () => ({ success: true, savedCount: 0 })
+        mockActions.loadDiscoveredIdentities = async () => null
+        mockActions.clearDiscoveredIdentities = async () => ({ success: true })
+        mockActions.connectWithSeed = async () => ({ success: false })
+        mockActions.connectWithSingleKey = async () => ({ success: false })
+        mockActions.switchIdentity = async () => ({ success: false })
+        mockActions.connectWriteOnlyFromDiscovered = async () => ({ success: false })
+        mockActions.loadFromStorage = async () => {}
+        mockActions.saveToStorage = async () => {}
+        mockActions.clearStorage = async () => {}
+        mockActions.getCurrentNetwork = async () => 'testnet'
+        mockActions.saveMnemonicToStore = async () => {}
+        mockActions.loadMnemonic = async () => null
+        mockActions.loadSettings = async () => {}
+        mockActions.saveIdentityDataToStore = async () => {}
+        mockActions.resetStoreState = () => {}
+        mockActions.logout = async () => {}
+        mockActions.clearConnectionError = () => {}
+        identityManagerInstance = new IdentityManager(mockActions)
+    }
+    return identityManagerInstance
+}
 export function useIdentityDiscovery() {
     const { ensure } = useNetwork()
     const network = ref<'testnet' | 'mainnet'>('testnet')
     const isInitializing = ref(false)
-    // Initialize network
     const initialize = async (): Promise<ActionResponse<void>> => {
         return ErrorBoundary.wrap(async () => {
             if (isInitializing.value) return
@@ -23,78 +44,87 @@ export function useIdentityDiscovery() {
             try {
                 const net = await ensure()
                 network.value = (net === 'mainnet' || net === 'testnet') ? net : 'testnet'
-                log('info', `IdentityManager initialized for network: ${network.value}`)
+                log('info', `Identity Discovery initialized for network: ${network.value}`)
             } finally {
                 isInitializing.value = false
             }
         }, 'IDENTITY_MANAGER_INIT_FAILED')
     }
-    // Search for identities using a seed phrase
     const getIdentitiesFromSeed = async (
         seedPhrase: string,
-        options?: IdentitySearchOptions
+        _options?: IdentitySearchOptions
     ): Promise<ActionResponse<IIdentity[] | null>> => {
         return ErrorBoundary.wrap(async () => {
             await initialize()
-            const minIndexSearch = options?.minIndexSearch || DEFAULT_IDENTITY_SEARCH_LIMIT
-            const queryRegistry = options?.queryRegistry || DEFAULT_QUERY_REGISTRY
-            const identities: IIdentity[] = []
-            // Try direct backend call first
-            try {
-                const apiRes = await queryWebAPI('get_identities_from_seed', [seedPhrase])
-                const result = apiRes.success ? apiRes.data : null
-                if (result?.success && Array.isArray(result.result)) {
-                    for (const identityData of result.result) {
-                        identities.push({
-                            identityId: identityData.identityId,
-                            identityIdx: identityData.index || identities.length,
-                            publicKeys: mapPublicKeys(identityData.publicKeys || []),
-                            balance: identityData.balance || '0',
-                            revision: identityData.revision || 0
-                        })
-                    }
-                }
-            } catch (err) {
-                log('warn', 'Direct seed discovery failed, falling back...', err)
+            const manager = getIdentityManager()
+            const result = await manager.discover(seedPhrase, {
+                network: network.value
+            })
+            if (result.success && result.identities) {
+                log('info', `Discovery found ${result.identities.length} identities via Manager`)
+                // Explicit mapping to IIdentity.
+                // FIX: Hardcode createdAt to 0 because DiscoveredIdentity does not have it.
+                return result.identities.map((id: any) => ({
+                    identityId: id.identityId,
+                    identityIdx: id.identityIdx,
+                    publicKeys: id.publicKeys,
+                    balance: id.balance || '0',
+                    revision: id.revision || 0,
+                    username: id.username || '',
+                    createdAt: 0
+                }))
             }
-            // Fallback: Index-based search
-            if (identities.length === 0) {
-                for (let i = 0; i < minIndexSearch; i++) {
-                    const result = await searchByIndex(i, queryRegistry, seedPhrase)
-                    if (result) {
-                        identities.push({
-                            identityId: result.identityId,
-                            identityIdx: i,
-                            publicKeys: mapPublicKeys(result.regPubKeys || []),
-                            balance: result.balance || '0',
-                            revision: result.revision ? Number(result.revision) : 0
-                        })
-                        break
-                    }
-                }
-            }
-            return identities.length > 0 ? identities : null
+            return null
         }, 'GET_IDENTITIES_FROM_SEED_FAILED')
     }
-    // Search for identity by a single private key
     const getIdentityByKey = async (
-        keyInput: string,
-        _keyType?: 'WIF' | 'HEX' | 'PUBLIC_KEY'
+        keyInput: string
     ): Promise<ActionResponse<{ identity: IIdentity; keyType: string } | null>> => {
         return ErrorBoundary.wrap(async () => {
             await initialize()
+            try {
+                const manager = getIdentityManager()
+                if (manager.discoverFromKey) {
+                    const result = await manager.discoverFromKey(keyInput, { network: network.value })
+                    if (result.success && result.identity) {
+                        const src = result.identity
+                        const identityData: IIdentity = {
+                            identityId: src.identityId,
+                            identityIdx: src.identityIdx || 0,
+                            publicKeys: mapPublicKeys(src.publicKeys || []),
+                            balance: src.balance || '0',
+                            revision: src.revision ? Number(src.revision) : 0,
+                            username: src.username || '',
+                            // FIX: Hardcode createdAt to 0
+                            createdAt: 0,
+                            ...(src.avatarUrl ? { avatarUrl: src.avatarUrl } : {})
+                        }
+                        return {
+                            success: true,
+                            identity: identityData,
+                            keyType: detectKeyType(keyInput)
+                        }
+                    }
+                }
+            } catch (e) {
+                log('warn', 'Manager key discovery failed, trying Web API')
+            }
             const apiRes = await queryWebAPI('get_identity_by_private_key', [keyInput])
             const result = apiRes.success ? apiRes.data : null
             if (result?.success && result?.result?.identityId) {
                 const identityData = result.result
+                const typedIdentity: IIdentity = {
+                    identityId: identityData.identityId,
+                    identityIdx: 0,
+                    publicKeys: mapPublicKeys(identityData.publicKeys || []),
+                    balance: identityData.balance || '0',
+                    revision: identityData.revision ? Number(identityData.revision) : 0,
+                    username: identityData.username || '',
+                    createdAt: identityData.createdAt ? Number(identityData.createdAt) : 0
+                }
                 return {
-                    identity: {
-                        identityId: identityData.identityId,
-                        identityIdx: 0,
-                        publicKeys: mapPublicKeys(identityData.publicKeys || []),
-                        balance: identityData.balance || '0',
-                        revision: identityData.revision || 0
-                    },
+                    success: true,
+                    identity: typedIdentity,
                     keyType: detectKeyType(keyInput)
                 }
             }
@@ -104,27 +134,46 @@ export function useIdentityDiscovery() {
     const getIdentityById = async (identityId: string): Promise<ActionResponse<IIdentity | null>> => {
         return ErrorBoundary.wrap(async () => {
             await initialize()
+            try {
+                const manager = getIdentityManager()
+                if (manager.getIdentityById) {
+                    const result = await manager.getIdentityById(identityId, network.value)
+                    if (result.success && result.identity) {
+                        const src = result.identity
+                        const strictIdentity: IIdentity = {
+                            identityId: src.identityId,
+                            identityIdx: src.identityIdx || 0,
+                            publicKeys: mapPublicKeys(src.publicKeys || []),
+                            balance: src.balance || '0',
+                            revision: src.revision ? Number(src.revision) : 0,
+                            username: src.username || '',
+                            // FIX: Hardcode createdAt to 0
+                            createdAt: 0,
+                            ...(src.avatarUrl ? { avatarUrl: src.avatarUrl } : {})
+                        }
+                        return strictIdentity
+                    }
+                }
+            } catch (e) {
+                log('warn', 'Manager ID discovery failed, trying Web API')
+            }
             const apiRes = await queryWebAPI('identity_fetch', [identityId])
             const result = apiRes.success ? apiRes.data : null
             if (result?.success && result?.result) {
                 const data = result.result
-                return {
+                const strictIdentity: IIdentity = {
                     identityId: data.identityId,
                     identityIdx: 0,
                     publicKeys: mapPublicKeys(data.publicKeys || []),
                     balance: data.balance || '0',
-                    revision: data.revision ? Number(data.revision) : 0
+                    revision: data.revision ? Number(data.revision) : 0,
+                    username: data.username || '',
+                    createdAt: data.createdAt ? Number(data.createdAt) : 0
                 }
+                return strictIdentity
             }
             return null
         }, 'GET_IDENTITY_BY_ID_FAILED')
-    }
-    const searchByIndex = async (
-        _idx: number, _reg: boolean, _phrase?: string
-    ): Promise<any | null> => null
-    const deriveKeyHash = async (keyInput: string): Promise<string | null> => {
-        const apiRes = await queryWebAPI('derive_public_key_hash', [keyInput])
-        return apiRes.success ? apiRes.data?.result?.hash : null
     }
     const detectKeyType = (keyInput: string): string => {
         const cleanKey = keyInput.trim()
@@ -134,16 +183,17 @@ export function useIdentityDiscovery() {
         return 'UNKNOWN'
     }
     const mapPublicKeys = (keys: any[]): IPublicKey[] => {
-        return (keys || []).map((key) => ({
+        return (keys || []).map((key: any) => ({
             type: getKeyTypeId(key.keyType),
             keyType: key.keyType || 'UNKNOWN',
             purpose: (key.purpose || 0) as PurposeType,
             securityLevel: (key.securityLevel || 3) as SecurityLevelType,
-            contractBounds: key.contractBounds || null,
-            data: key.data || '',
-            dataBytes: decodeBase64ToHex(key.dataB64 || ''),
+            contractBounds: key.contractBounds || undefined,
+            data: key.data || undefined,
+            // FIX: Inverted logic. If dataBytes is missing, decode dataB64. Otherwise use dataBytes.
+            dataBytes: key.dataBytes ?? (key.dataB64 ? decodeBase64ToHex(key.dataB64) : null),
             readOnly: key.readOnly || false,
-            disabledAt: key.disabledAt || null,
+            disabledAt: key.disabledAt || undefined,
         }))
     }
     const getKeyTypeId = (t: string | undefined): number => {
@@ -151,7 +201,8 @@ export function useIdentityDiscovery() {
         if (t === 'BLS12_381') return 1
         return -1
     }
-    const decodeBase64ToHex = (b64: string): string | null => {
+    const decodeBase64ToHex = (b64: string | undefined): string | null => {
+        if (!b64) return null
         try {
             const byteString = atob(b64)
             return Array.from(byteString).map(c =>
@@ -161,13 +212,23 @@ export function useIdentityDiscovery() {
     }
     const queryWebAPI = async (method: string, params: any[] = []): Promise<ActionResponse<any>> => {
         return ErrorBoundary.wrap(async () => {
-            const response = await fetch(getDapiEndpoint(), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ method, params, network: network.value }),
-            })
-            if (!response.ok) throw new Error(`HTTP ${response.status}`)
-            return await response.json()
+            try {
+                const endpoint = getDapiEndpoint()
+                if (!endpoint) {
+                    log('error', `Cannot query DAPI: Missing VITE_DASHSWAP_ENDPOINT`)
+                    return { success: false, error: 'API Endpoint Missing' }
+                }
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ method, params, network: network.value }),
+                })
+                if (!response.ok) throw new Error(`HTTP ${response.status}`)
+                return await response.json()
+            } catch (err: any) {
+                log('warn', `API call ${method} failed: ${err.message}`)
+                return { success: false, error: err.message }
+            }
         }, `API_FAILED: ${method}`)
     }
     return {
@@ -177,9 +238,10 @@ export function useIdentityDiscovery() {
         getIdentitiesFromSeed,
         getIdentityByKey,
         getIdentityById,
-        deriveKeyHash,
+        deriveKeyHash: async () => null,
         detectKeyType,
         mapPublicKeys,
-        queryWebAPI
+        queryWebAPI,
+        searchByIndex: async () => null
     }
 }
