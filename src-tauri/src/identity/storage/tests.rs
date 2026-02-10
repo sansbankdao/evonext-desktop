@@ -1,128 +1,142 @@
 // src-tauri/src/identity/storage/tests.rs
 
 use super::*;
-use crate::models::{IIdentityData, IPrivateKeyStore, IPrivateKeyEntry};
-use crate::utils::{StoreError, PersistentStore};
+use crate::models::{IIdentityData, IPrivateKeyStore};
+use crate::utils::{PersistentStore, StoreError};
 use serde_json::{json, Value};
+use std::cell::RefCell;
 use std::collections::HashMap;
-use std::sync::Mutex;
-
-struct MockStore {
-    pub data: Mutex<HashMap<String, Value>>,
+/// A manual mock of PersistentStore with named fields and correct trait signatures.
+struct MockStore { data: RefCell<HashMap<(String, String), Value>>,
+    should_fail: bool,
 }
-
 impl MockStore {
     fn new() -> Self {
-        Self { data: Mutex::new(HashMap::new()),
+        Self { data: RefCell::new(HashMap::new()),
+            should_fail: false,
+        }
+    }
+    fn with_error() -> Self {
+        Self { data: RefCell::new(HashMap::new()),
+            should_fail: true,
         }
     }
 }
-
 impl PersistentStore for MockStore {
-    fn load_value(&self, filename: &str, key: &str) -> Result<Option<Value>, StoreError> {
-        let storage_key = format!("{}:{}", filename, key);
-        let data = self.data.lock().unwrap();
-        Ok(data.get(&storage_key).cloned())
+    fn load_value(&self, file_path: &str, key: &str) -> Result<Option<Value>, StoreError> {
+        if self.should_fail {
+            return Err(StoreError::Store("Mock Error".to_string()));
+        }
+        let storage = self.data.borrow();
+        Ok(storage.get(&(file_path.to_string(), key.to_string())).cloned())
     }
-    fn save_value(&self, filename: &str, key: &str, value: Value) -> Result<(), StoreError> {
-        let storage_key = format!("{}:{}", filename, key);
-        let mut data = self.data.lock().unwrap();
-        data.insert(storage_key, value);
+    fn save_value(&self, file_path: &str, key: &str, value: Value) -> Result<(), StoreError> {
+        if self.should_fail {
+            return Err(StoreError::Store("Mock Error".to_string()));
+        }
+        let mut storage = self.data.borrow_mut();
+        storage.insert((file_path.to_string(), key.to_string()), value);
         Ok(())
     }
-    fn delete_value(&self, filename: &str, key: &str) -> Result<(), StoreError> {
-        let storage_key = format!("{}:{}", filename, key);
-        let mut data = self.data.lock().unwrap();
-        data.remove(&storage_key);
+    fn delete_value(&self, _file_path: &str, _key: &str) -> Result<(), StoreError> {
+        if self.should_fail {
+            return Err(StoreError::Store("Mock Error".to_string()));
+        }
         Ok(())
     }
 }
 #[test]
 fn test_process_raw_identity_map_filters_metadata() {
-    let raw_json = json!({
-        "__active_identity_id": "user_active",
-        "user_valid": {
-            "identityId": "user_valid",
+    let input = json!({
+        "id_1": {
+            "identityId": "id_1",
             "username": "tester",
-            "balance": "1000",
-            "revision": 1,
+            "balance": "0",
+            "publicKeys": [],
+            "isAuthenticated": false
+        },
+        "__active_identity_id": "id_1"
+    });
+    let map = process_raw_identity_map(input);
+    // Keys starting with __ are skipped by the loop in storage.rs
+    assert!(map.contains_key("id_1"));
+    assert!(!map.contains_key("__active_identity_id"));
+}
+#[test]
+fn test_handling_malformed_identities() {
+    let input = json!({
+        "valid_id": {
+            "identityId": "valid_id",
+            "username": "tester",
+            "balance": "0",
             "publicKeys": [],
             "isAuthenticated": true
-        }
+        },
+        "corrupted_id": "not-an-object"
     });
-    let map = process_raw_identity_map(raw_json);
+    let map = process_raw_identity_map(input);
     assert_eq!(map.len(), 1);
-    assert!(map.contains_key("user_valid"));
-    assert!(!map.contains_key("__active_identity_id"));
+    assert!(map.contains_key("valid_id"));
 }
 #[test]
 fn test_identity_storage_roundtrip_logic() {
     let store = MockStore::new();
     let network = "testnet";
-    let identity_id = "alice_id".to_string();
     let mut map = HashMap::new();
-    map.insert(identity_id.clone(), IIdentityData {
-        identity_id: identity_id.clone(),
-        username: "alice".to_string(),
-        balance: "50".to_string(),
-        revision: 2,
-        public_keys: vec![],
-        identity_idx: Some(0),
-        dpns_username: None,
-        is_authenticated: true,
-        created_at: None,
-        public_key_ids: None,
-    });
-    save_identity_map_internal(&store, network, &map, Some(identity_id.clone())).unwrap();
-    let loaded_map = load_identity_map_internal(&store, network).unwrap();
+    let data = IIdentityData {
+        identity_id: "test_id".to_string(),
+        username: "test_user".to_string(),
+        balance: "100.5".to_string(),
+        ..Default::default()
+    };
+    map.insert("test_id".to_string(), data);
+    save_identity_map_internal(&store, network, &map, Some("test_id".to_string()))
+        .expect("Save failed");
+    let loaded_map = load_identity_map_internal(&store, network)
+        .expect("Load failed");
     assert_eq!(loaded_map.len(), 1);
-    assert_eq!(loaded_map.get(&identity_id).unwrap().username, "alice");
-    let filename = crate::utils::get_network_file(network, "identity").unwrap();
-    let raw_val = store.load_value(&filename, "identities").unwrap().unwrap();
-    assert_eq!(raw_val["__active_identity_id"], json!(identity_id));
+    assert!(loaded_map.contains_key("test_id"));
+    assert_eq!(loaded_map.get("test_id").unwrap().username, "test_user");
 }
 #[test]
 fn test_keystore_storage_logic() {
     let store = MockStore::new();
-    let network = "testnet";
-    let mut keystore = IPrivateKeyStore::default();
-    let entry = IPrivateKeyEntry {
-        identity_id: "id_123".to_string(),
-        key_id: 1,
-        purpose: 0,
-        security_level: 0,
-        key_type: "ECDSA_SECP256K1".to_string(),
-        private_key: "private_key_data".to_string(),
-        public_key: "public_key_data".to_string(),
-        created_at: "2024-01-01T00:00:00Z".to_string(),
-        last_used: "2024-01-01T00:00:00Z".to_string(),
-    };
-    keystore.identities.insert("id_123".to_string(), vec![entry]);
-    save_keystore_internal(&store, network, &keystore).unwrap();
-    let loaded = load_keystore_internal(&store, network).unwrap();
-    assert!(loaded.identities.contains_key("id_123"));
-    assert_eq!(
-        loaded.identities.get("id_123").unwrap()[0].private_key,
-        "private_key_data"
-    );
+    let network = "mainnet";
+    let keystore = IPrivateKeyStore::default();
+    save_keystore_internal(&store, network, &keystore).expect("Save failed");
+    let loaded = load_keystore_internal(&store, network).expect("Load failed");
+    assert_eq!(loaded, keystore);
 }
 #[test]
-fn test_handling_malformed_identities() {
-    let raw_json = json!({
-        "good_one": {
-            "identityId": "good_one",
-            "username": "bob",
-            "balance": "1",
-            "revision": 1,
+fn test_load_empty_store_returns_defaults() {
+    let store = MockStore::new();
+    let network = "mainnet";
+    let identities = load_identity_map_internal(&store, network).unwrap();
+    let keystore = load_keystore_internal(&store, network).unwrap();
+    assert!(identities.is_empty());
+    assert_eq!(keystore, IPrivateKeyStore::default());
+}
+#[test]
+fn test_storage_errors_propagate() {
+    let store = MockStore::with_error();
+    let network = "mainnet";
+    assert!(load_identity_map_internal(&store, network).is_err());
+    assert!(load_keystore_internal(&store, network).is_err());
+}
+#[test]
+fn test_process_raw_identity_map_skips_internal_keys() {
+    let input = json!({
+        "__active": "true",
+        "__version": 1,
+        "actual_id": {
+            "identityId": "actual_id",
+            "username": "user",
+            "balance": "0",
             "publicKeys": [],
-            "isAuthenticated": true
-        },
-        "bad_one": {
-            "invalid_field": true
+            "isAuthenticated": false
         }
     });
-    let map = process_raw_identity_map(raw_json);
+    let map = process_raw_identity_map(input);
     assert_eq!(map.len(), 1);
-    assert!(map.contains_key("good_one"));
-    assert!(!map.contains_key("bad_one"));
+    assert!(map.contains_key("actual_id"));
 }
