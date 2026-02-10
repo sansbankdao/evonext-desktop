@@ -2,9 +2,31 @@
 
 use super::*;
 use crate::models::IAssetDefinition;
-use serde_json::json;
-use tauri::test::{mock_builder, mock_context, MockRuntime, noop_assets};
-use tauri::AppHandle;
+use serde_json::{json, Value};
+use std::sync::Mutex;
+use std::collections::HashMap;
+use crate::utils::{PersistentStore, StoreError};
+
+struct MockStore {
+    storage: Mutex<HashMap<String, Value>>,
+}
+
+impl PersistentStore for MockStore {
+    fn load_value(&self, _path: &str, key: &str) -> Result<Option<Value>, StoreError> {
+        let map = self.storage.lock().unwrap();
+        Ok(map.get(key).cloned())
+    }
+    fn save_value(&self, _path: &str, key: &str, val: Value) -> Result<(), StoreError> {
+        let mut map = self.storage.lock().unwrap();
+        map.insert(key.to_string(), val);
+        Ok(())
+    }
+    fn delete_value(&self, _path: &str, key: &str) -> Result<(), StoreError> {
+        let mut map = self.storage.lock().unwrap();
+        map.remove(key);
+        Ok(())
+    }
+}
 
 #[test]
 fn test_parse_assets_snapshot_regression() {
@@ -16,26 +38,15 @@ fn test_parse_assets_snapshot_regression() {
             "localizations": { "en": { "singularForm": "Dashpool USD" } }
         })
     ];
-
     let assets = parse_assets_from_json(&mock_api_items, "identity_123", "testnet");
-
     assert_eq!(assets.len(), 1);
     assert_eq!(assets[0].symbol, "Dashpool USD");
     assert_eq!(assets[0].balance, Some("1500000".to_string()));
 }
 
 #[test]
-fn test_assets_command_storage_cycle() {
-    // 1. mock_context(noop_assets()) provides a Context without using
-    //    the generate_context! macro. This eliminates the symbol collision.
-    // 2. mock_builder().plugin(...).build(...) ensures that the Store
-    //    plugin's managed state is correctly initialized, fixing the panic.
-    let app = mock_builder()
-        .plugin(tauri_plugin_store::Builder::new().build())
-        .build(mock_context(noop_assets()))
-        .unwrap();
-
-    let handle: AppHandle<MockRuntime> = app.handle().clone();
+fn test_assets_command_storage_cycle_pure() {
+    let store = MockStore { storage: Mutex::new(HashMap::new()) };
     let id = "test_id".to_string();
     let net = "testnet".to_string();
 
@@ -49,15 +60,15 @@ fn test_assets_command_storage_cycle() {
         network: Some(net.clone()),
     }];
 
-    // Test storage inner logic
-    let save_res = save_assets_inner(handle.clone(), id.clone(), net.clone(), assets);
+    // Test storage logic without tauri runtime
+    let save_res = save_assets_logic(&store, id.clone(), net.clone(), assets);
     assert!(save_res.is_ok());
 
-    let loaded = load_assets_inner(handle.clone(), id.clone(), net.clone()).unwrap();
+    let loaded = load_assets_logic(&store, id.clone(), net.clone()).unwrap();
     assert_eq!(loaded.len(), 1);
     assert_eq!(loaded[0].symbol, "DASH");
 
-    let _ = delete_assets_inner(handle.clone(), net.clone());
-    let final_load = load_assets_inner(handle.clone(), id.clone(), net.clone()).unwrap();
+    let _ = delete_assets_logic(&store, net.clone());
+    let final_load = load_assets_logic(&store, id.clone(), net.clone()).unwrap();
     assert_eq!(final_load.len(), 0);
 }

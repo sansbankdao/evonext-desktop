@@ -32,7 +32,7 @@ pub fn process_raw_identity_map(val: Value) -> IdentityMap {
 }
 
 /// Load the main Identity map (.identity-{network}.json)
-pub(crate) fn load_identity_map_internal(
+pub fn load_identity_map_internal(
     store: &impl PersistentStore,
     network: &str,
 ) -> Result<IdentityMap, String> {
@@ -53,7 +53,7 @@ pub fn load_identity_map<R: Runtime>(
 }
 
 /// Save the main Identity map (.identity-{network}.json)
-pub(crate) fn save_identity_map_internal(
+pub fn save_identity_map_internal(
     store: &impl PersistentStore,
     network: &str,
     map: &IdentityMap,
@@ -84,7 +84,7 @@ pub fn save_identity_map<R: Runtime>(
 }
 
 /// Load the Keystore/SAFU file (.safu-{network}.json)
-pub(crate) fn load_keystore_internal(
+pub fn load_keystore_internal(
     store: &impl PersistentStore,
     network: &str,
 ) -> Result<IPrivateKeyStore, String> {
@@ -105,7 +105,7 @@ pub fn load_keystore<R: Runtime>(
 }
 
 /// Save the Keystore/SAFU file (.safu-{network}.json)
-pub(crate) fn save_keystore_internal(
+pub fn save_keystore_internal(
     store: &impl PersistentStore,
     network: &str,
     keystore: &IPrivateKeyStore,

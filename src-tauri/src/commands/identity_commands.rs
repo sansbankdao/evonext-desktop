@@ -2,7 +2,7 @@
 
 use crate::identity::{lib as identity_logic, storage};
 use crate::models::{IIdentityData, IIdentityPublicKey, IPrivateKeyEntry, IAnyValue};
-use crate::utils::StoreManager;
+use crate::utils::{StoreManager, PersistentStore};
 use crate::dapi::client::get_dapi_client;
 use crate::dapi::types::{Network, Identity};
 use chrono::Utc;
@@ -160,7 +160,8 @@ pub async fn save_identity_inner<R: Runtime>(
     payload: ISaveIdentityPayload,
 ) -> Result<IUnifiedCommandResult, String> {
     let identity_id = payload.identity_id.clone();
-    let mut map = storage::load_identity_map(&app, &network)?;
+    let manager = StoreManager::new(&app);
+    let mut map = storage::load_identity_map_internal(&manager, &network)?;
 
     let active_id = payload.active_identity_id.clone().or_else(|| {
         if map.is_empty() { Some(identity_id.clone()) } else { None }
@@ -169,7 +170,7 @@ pub async fn save_identity_inner<R: Runtime>(
     let identity = IdentityMapper::map_to_identity(payload);
     map.insert(identity_id.clone(), identity);
 
-    storage::save_identity_map(&app, &network, &map, active_id)?;
+    storage::save_identity_map_internal(&manager, &network, &map, active_id)?;
 
     Ok(IUnifiedCommandResult {
         success: true,
@@ -193,17 +194,17 @@ pub async fn delete_identity_inner<R: Runtime>(
     network: String,
     identity_id: Option<String>,
 ) -> Result<bool, String> {
+    let manager = StoreManager::new(&app);
     if let Some(id) = identity_id {
-        let mut map = storage::load_identity_map(&app, &network)?;
+        let mut map = storage::load_identity_map_internal(&manager, &network)?;
         if map.remove(&id).is_some() {
-            storage::save_identity_map(&app, &network, &map, None)?;
+            storage::save_identity_map_internal(&manager, &network, &map, None)?;
             return Ok(true);
         }
         Ok(false)
     } else {
         let filename = crate::utils::network_file::get_network_file(&network, "identity")?;
-        StoreManager::new(&app)
-            .delete(filename, "identities")
+        manager.delete_value(&filename, "identities")
             .map(|_| true)
             .map_err(|e| e.to_string())
     }
@@ -226,7 +227,8 @@ pub async fn save_keys_inner<R: Runtime>(
     identity_id: String,
     keys: Vec<IPrivateKeyEntry>,
 ) -> Result<bool, String> {
-    let mut keystore = storage::load_keystore(&app, &network)?;
+    let manager = StoreManager::new(&app);
+    let mut keystore = storage::load_keystore_internal(&manager, &network)?;
     {
         let entries = keystore.identities.entry(identity_id.clone()).or_default();
         for k in keys {
@@ -237,13 +239,13 @@ pub async fn save_keys_inner<R: Runtime>(
             }
         }
 
-        let current_identities = storage::load_identity_map(&app, &network)?;
+        let current_identities = storage::load_identity_map_internal(&manager, &network)?;
         if let Some(identity_data) = current_identities.get(&identity_id) {
             identity_logic::enrich_key_entries(entries, identity_data);
         }
     }
 
-    storage::save_keystore(&app, &network, &keystore)
+    storage::save_keystore_internal(&manager, &network, &keystore)
         .map(|_| true)
         .map_err(|e| e.to_string())
 }
@@ -261,7 +263,8 @@ pub async fn load_keystore_inner<R: Runtime>(
     app: tauri::AppHandle<R>,
     network: String,
 ) -> Result<IAnyValue, String> {
-    let data = storage::load_keystore(&app, &network)?;
+    let manager = StoreManager::new(&app);
+    let data = storage::load_keystore_internal(&manager, &network)?;
     serde_json::to_value(data)
         .map(IAnyValue)
         .map_err(|e| e.to_string())

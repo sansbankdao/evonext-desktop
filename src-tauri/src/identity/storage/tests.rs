@@ -6,17 +6,18 @@ use crate::utils::{StoreError, PersistentStore};
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::Mutex;
-/// A mock implementation of the PersistentStore trait for unit testing.
+
 struct MockStore {
     pub data: Mutex<HashMap<String, Value>>,
 }
+
 impl MockStore {
     fn new() -> Self {
-        Self {
-            data: Mutex::new(HashMap::new()),
+        Self { data: Mutex::new(HashMap::new()),
         }
     }
 }
+
 impl PersistentStore for MockStore {
     fn load_value(&self, filename: &str, key: &str) -> Result<Option<Value>, StoreError> {
         let storage_key = format!("{}:{}", filename, key);
@@ -27,6 +28,12 @@ impl PersistentStore for MockStore {
         let storage_key = format!("{}:{}", filename, key);
         let mut data = self.data.lock().unwrap();
         data.insert(storage_key, value);
+        Ok(())
+    }
+    fn delete_value(&self, filename: &str, key: &str) -> Result<(), StoreError> {
+        let storage_key = format!("{}:{}", filename, key);
+        let mut data = self.data.lock().unwrap();
+        data.remove(&storage_key);
         Ok(())
     }
 }
@@ -70,7 +77,7 @@ fn test_identity_storage_roundtrip_logic() {
     let loaded_map = load_identity_map_internal(&store, network).unwrap();
     assert_eq!(loaded_map.len(), 1);
     assert_eq!(loaded_map.get(&identity_id).unwrap().username, "alice");
-    let filename = get_network_file(network, "identity").unwrap();
+    let filename = crate::utils::get_network_file(network, "identity").unwrap();
     let raw_val = store.load_value(&filename, "identities").unwrap().unwrap();
     assert_eq!(raw_val["__active_identity_id"], json!(identity_id));
 }
@@ -87,7 +94,6 @@ fn test_keystore_storage_logic() {
         key_type: "ECDSA_SECP256K1".to_string(),
         private_key: "private_key_data".to_string(),
         public_key: "public_key_data".to_string(),
-        // derived_from_mnemonic: Some(true),
         created_at: "2024-01-01T00:00:00Z".to_string(),
         last_used: "2024-01-01T00:00:00Z".to_string(),
     };
