@@ -125,7 +125,24 @@ pub async fn save_identity_with_keys(
     identity_payload: ISaveIdentityPayload,
     keys: Vec<IPrivateKeyEntry>,
 ) -> Result<IUnifiedCommandResult, String> {
-    save_identity_with_keys_inner(app, network, identity_payload, keys).await
+    let manager = StoreManager::new(&app);
+    save_identity_with_keys_logic(&manager, network, identity_payload, keys).await
+}
+
+pub async fn save_identity_with_keys_logic<S: PersistentStore>(
+    store: &S,
+    network: String,
+    identity_payload: ISaveIdentityPayload,
+    keys: Vec<IPrivateKeyEntry>,
+) -> Result<IUnifiedCommandResult, String> {
+    save_identity_logic(store, network.clone(), identity_payload.clone()).await?;
+    save_keys_logic(store, network, identity_payload.identity_id, keys).await?;
+
+    Ok(IUnifiedCommandResult {
+        success: true,
+        error: None,
+        payload: None,
+    })
 }
 
 pub async fn save_identity_with_keys_inner<R: Runtime>(
@@ -134,14 +151,8 @@ pub async fn save_identity_with_keys_inner<R: Runtime>(
     identity_payload: ISaveIdentityPayload,
     keys: Vec<IPrivateKeyEntry>,
 ) -> Result<IUnifiedCommandResult, String> {
-    save_identity_inner(app.clone(), network.clone(), identity_payload.clone()).await?;
-    save_keys_inner(app, network, identity_payload.identity_id, keys).await?;
-
-    Ok(IUnifiedCommandResult {
-        success: true,
-        error: None,
-        payload: None,
-    })
+    let manager = StoreManager::new(&app);
+    save_identity_with_keys_logic(&manager, network, identity_payload, keys).await
 }
 
 #[tauri::command]
@@ -151,17 +162,17 @@ pub async fn save_identity(
     network: String,
     payload: ISaveIdentityPayload,
 ) -> Result<IUnifiedCommandResult, String> {
-    save_identity_inner(app, network, payload).await
+    let manager = StoreManager::new(&app);
+    save_identity_logic(&manager, network, payload).await
 }
 
-pub async fn save_identity_inner<R: Runtime>(
-    app: tauri::AppHandle<R>,
+pub async fn save_identity_logic<S: PersistentStore>(
+    store: &S,
     network: String,
     payload: ISaveIdentityPayload,
 ) -> Result<IUnifiedCommandResult, String> {
     let identity_id = payload.identity_id.clone();
-    let manager = StoreManager::new(&app);
-    let mut map = storage::load_identity_map_internal(&manager, &network)?;
+    let mut map = storage::load_identity_map_internal(store, &network)?;
 
     let active_id = payload.active_identity_id.clone().or_else(|| {
         if map.is_empty() { Some(identity_id.clone()) } else { None }
@@ -170,13 +181,22 @@ pub async fn save_identity_inner<R: Runtime>(
     let identity = IdentityMapper::map_to_identity(payload);
     map.insert(identity_id.clone(), identity);
 
-    storage::save_identity_map_internal(&manager, &network, &map, active_id)?;
+    storage::save_identity_map_internal(store, &network, &map, active_id)?;
 
     Ok(IUnifiedCommandResult {
         success: true,
         error: None,
         payload: Some(IAnyValue(serde_json::json!({ "identityId": identity_id }))),
     })
+}
+
+pub async fn save_identity_inner<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    network: String,
+    payload: ISaveIdentityPayload,
+) -> Result<IUnifiedCommandResult, String> {
+    let manager = StoreManager::new(&app);
+    save_identity_logic(&manager, network, payload).await
 }
 
 #[tauri::command]
@@ -218,17 +238,17 @@ pub async fn save_keys(
     identity_id: String,
     keys: Vec<IPrivateKeyEntry>,
 ) -> Result<bool, String> {
-    save_keys_inner(app, network, identity_id, keys).await
+    let manager = StoreManager::new(&app);
+    save_keys_logic(&manager, network, identity_id, keys).await
 }
 
-pub async fn save_keys_inner<R: Runtime>(
-    app: tauri::AppHandle<R>,
+pub async fn save_keys_logic<S: PersistentStore>(
+    store: &S,
     network: String,
     identity_id: String,
     keys: Vec<IPrivateKeyEntry>,
 ) -> Result<bool, String> {
-    let manager = StoreManager::new(&app);
-    let mut keystore = storage::load_keystore_internal(&manager, &network)?;
+    let mut keystore = storage::load_keystore_internal(store, &network)?;
     {
         let entries = keystore.identities.entry(identity_id.clone()).or_default();
         for k in keys {
@@ -239,15 +259,25 @@ pub async fn save_keys_inner<R: Runtime>(
             }
         }
 
-        let current_identities = storage::load_identity_map_internal(&manager, &network)?;
+        let current_identities = storage::load_identity_map_internal(store, &network)?;
         if let Some(identity_data) = current_identities.get(&identity_id) {
             identity_logic::enrich_key_entries(entries, identity_data);
         }
     }
 
-    storage::save_keystore_internal(&manager, &network, &keystore)
+    storage::save_keystore_internal(store, &network, &keystore)
         .map(|_| true)
         .map_err(|e| e.to_string())
+}
+
+pub async fn save_keys_inner<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    network: String,
+    identity_id: String,
+    keys: Vec<IPrivateKeyEntry>,
+) -> Result<bool, String> {
+    let manager = StoreManager::new(&app);
+    save_keys_logic(&manager, network, identity_id, keys).await
 }
 
 #[tauri::command]

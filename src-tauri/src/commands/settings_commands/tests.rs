@@ -2,8 +2,31 @@
 
 use super::*;
 use crate::models::{INotificationSettings, IProfileSettings};
-use tauri::test::{mock_builder, mock_context, MockRuntime, noop_assets};
-use tauri::AppHandle;
+use serde_json::Value;
+use std::sync::Mutex;
+use std::collections::HashMap;
+use crate::utils::{PersistentStore, StoreError};
+
+struct MockStore {
+    storage: Mutex<HashMap<String, Value>>,
+}
+
+impl PersistentStore for MockStore {
+    fn load_value(&self, _path: &str, key: &str) -> Result<Option<Value>, StoreError> {
+        let map = self.storage.lock().unwrap();
+        Ok(map.get(key).cloned())
+    }
+    fn save_value(&self, _path: &str, key: &str, val: Value) -> Result<(), StoreError> {
+        let mut map = self.storage.lock().unwrap();
+        map.insert(key.to_string(), val);
+        Ok(())
+    }
+    fn delete_value(&self, _path: &str, key: &str) -> Result<(), StoreError> {
+        let mut map = self.storage.lock().unwrap();
+        map.remove(key);
+        Ok(())
+    }
+}
 
 fn create_mock_settings() -> IAppSettings {
     IAppSettings {
@@ -16,23 +39,23 @@ fn create_mock_settings() -> IAppSettings {
 }
 
 #[test]
-fn test_settings_lifecycle() {
-    let app = mock_builder()
-        .plugin(tauri_plugin_store::Builder::default().build())
-        .build(mock_context(noop_assets()))
-        .unwrap();
-
-    let handle: AppHandle<MockRuntime> = app.handle().clone();
+fn test_settings_lifecycle_pure() {
+    // No mock_builder()! This test is now CI safe.
+    let store = MockStore { storage: Mutex::new(HashMap::new()) };
     let settings = create_mock_settings();
 
-    let _ = save_settings_inner(handle.clone(), settings.clone());
+    // 1. Test Save
+    save_settings_logic(&store, settings.clone()).expect("Failed to save");
 
-    let load_res = load_settings_inner(handle.clone()).unwrap();
+    // 2. Test Load
+    let load_res = load_settings_logic(&store).unwrap();
     assert!(load_res.is_some());
     assert_eq!(load_res.unwrap().theme, "dark");
 
-    let _ = delete_settings_inner(handle.clone());
+    // 3. Test Delete
+    let _ = delete_settings_logic(&store);
 
-    let final_load = load_settings_inner(handle).unwrap();
+    // 4. Verify None
+    let final_load = load_settings_logic(&store).unwrap();
     assert!(final_load.is_none());
 }

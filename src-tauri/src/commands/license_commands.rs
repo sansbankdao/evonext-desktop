@@ -2,7 +2,7 @@
 
 use crate::constants::LICENSE_FILE;
 use crate::models::{ILicense, ILicenseStoreMap};
-use crate::utils::StoreManager;
+use crate::utils::{StoreManager, PersistentStore};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::Runtime;
 
@@ -38,16 +38,16 @@ pub async fn load_license(
     app_handle: tauri::AppHandle,
     identity_id: String,
 ) -> Result<Option<ILicense>, String> {
-    load_license_inner(app_handle, identity_id).await
+    let manager = StoreManager::new(&app_handle);
+    load_license_logic(&manager, identity_id)
 }
 
-pub async fn load_license_inner<R: Runtime>(
-    app_handle: tauri::AppHandle<R>,
+pub fn load_license_logic<S: PersistentStore>(
+    store: &S,
     identity_id: String,
 ) -> Result<Option<ILicense>, String> {
-    let manager = StoreManager::new(&app_handle);
     // RESILIENT LOAD: If the JSON is "bad" (old types), return None instead of Err
-    let map: Option<ILicenseStoreMap> = manager.load(LICENSE_FILE, "licenses").unwrap_or(None);
+    let map: Option<ILicenseStoreMap> = store.load_data(LICENSE_FILE, "licenses").unwrap_or(None);
 
     match map {
         Some(m) => Ok(m.get(&identity_id).cloned()),
@@ -55,10 +55,31 @@ pub async fn load_license_inner<R: Runtime>(
     }
 }
 
+pub async fn load_license_inner<R: Runtime>(
+    app_handle: tauri::AppHandle<R>,
+    identity_id: String,
+) -> Result<Option<ILicense>, String> {
+    let manager = StoreManager::new(&app_handle);
+    load_license_logic(&manager, identity_id)
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn save_license(app_handle: tauri::AppHandle, payload: ILicense) -> Result<(), String> {
-    save_license_inner(app_handle, payload)
+    let manager = StoreManager::new(&app_handle);
+    save_license_logic(&manager, payload)
+}
+
+pub fn save_license_logic<S: PersistentStore>(
+    store: &S,
+    payload: ILicense,
+) -> Result<(), String> {
+    let mut map: ILicenseStoreMap = store.load_data(LICENSE_FILE, "licenses").unwrap_or_default().unwrap_or_default();
+
+    let key = payload.identity_id.clone();
+    map.insert(key, payload);
+
+    store.save_data(LICENSE_FILE, "licenses", &map).map(|_| ()).map_err(|e| e.to_string())
 }
 
 pub fn save_license_inner<R: Runtime>(
@@ -66,20 +87,23 @@ pub fn save_license_inner<R: Runtime>(
     payload: ILicense,
 ) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
-    // RESILIENT LOAD: If the file on disk is corrupted/old, start with a new Map
-    let mut map: ILicenseStoreMap = manager.load(LICENSE_FILE, "licenses").unwrap_or_default().unwrap_or_default();
-
-    let key = payload.identity_id.clone();
-    map.insert(key, payload);
-
-    // FIXED: Removed .into() from LICENSE_FILE
-    manager.save(LICENSE_FILE, "licenses", &map).map(|_| ()).map_err(|e| e.to_string())
+    save_license_logic(&manager, payload)
 }
 
 #[tauri::command]
 #[specta::specta]
 pub fn delete_license(app_handle: tauri::AppHandle, identity_id: String) -> Result<(), String> {
-    delete_license_inner(app_handle, identity_id)
+    let manager = StoreManager::new(&app_handle);
+    delete_license_logic(&manager, identity_id)
+}
+
+pub fn delete_license_logic<S: PersistentStore>(
+    store: &S,
+    identity_id: String,
+) -> Result<(), String> {
+    let mut map: ILicenseStoreMap = store.load_data(LICENSE_FILE, "licenses").unwrap_or_default().unwrap_or_default();
+    map.remove(&identity_id);
+    store.save_data(LICENSE_FILE, "licenses", &map).map(|_| ()).map_err(|e| e.to_string())
 }
 
 pub fn delete_license_inner<R: Runtime>(
@@ -87,10 +111,5 @@ pub fn delete_license_inner<R: Runtime>(
     identity_id: String,
 ) -> Result<(), String> {
     let manager = StoreManager::new(&app_handle);
-    let mut map: ILicenseStoreMap = manager.load(LICENSE_FILE, "licenses").unwrap_or_default().unwrap_or_default();
-
-    map.remove(&identity_id);
-
-    // FIXED: Removed .into() from LICENSE_FILE
-    manager.save(LICENSE_FILE, "licenses", &map).map(|_| ()).map_err(|e| e.to_string())
+    delete_license_logic(&manager, identity_id)
 }
