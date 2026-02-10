@@ -1,6 +1,6 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Introducing the 4th Release Candidate (Rusty)
+### Introducing the 4th Release Candidate (Rusty Foundation)
 
 This latest version of EvoNext complete the Rust (back-end) foundation.
 
@@ -8,11 +8,10 @@ This latest version of EvoNext complete the Rust (back-end) foundation.
 
 ## Latest Features:
 
-- __Testing:__ Our Rust testing coverage is now ~35% — offering satisfactory protection against unexpected bugs and code regressions.
+- __Testing:__ Our Rust testing coverage is now ~40% — offering satisfactory protection against unexpected bugs and code regressions.
 
 ## Bugfixes:
 
-- __Identity:__ Restore search discovery.
 - __Types:__ Update ALL types to now use `bindings.ts` as the ONLY source of truth.
 
 ## Notes:
