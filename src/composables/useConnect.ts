@@ -19,6 +19,7 @@ export function useConnect() {
     // Discovery State
     const seedDiscoveryResults = ref<DiscoveredIdentity[]>([])
     const selectedSeedIdentity = ref<DiscoveredIdentity | null>(null)
+    const discoveredIdentity = ref<DiscoveredIdentity | null>(null)
     const isSearchingSeed = ref(false)
     const seedDiscoveryError = ref<string | null>(null)
     const discoveryDetails = ref<any>(null)
@@ -29,6 +30,15 @@ export function useConnect() {
         totalIdentities: 0,
         scannedCount: 0,
         foundCount: 0
+    })
+
+    const progressMessage = computed(() => {
+        if (isSearchingSeed.value) {
+            return `Scanning index ${discoveryProgress.value.currentIdentityIndex}...`
+        }
+        return discoveryProgress.value.foundCount > 0
+            ? `Found ${discoveryProgress.value.foundCount} identities`
+            : 'Ready to scan'
     })
 
     const isFormValid = computed(() => {
@@ -57,8 +67,12 @@ export function useConnect() {
                 network: 'testnet'
             })
             seedDiscoveryResults.value = results
-            if (results.length > 0) {
-                selectedSeedIdentity.value = results[0]
+
+            // FIX: Use nullish coalescing to convert 'undefined' to 'null'
+            // This resolves TS2322 once and for all.
+            if (results && results.length > 0) {
+                selectedSeedIdentity.value = results[0] ?? null
+                discoveredIdentity.value = results[0] ?? null
                 discoveryProgress.value.foundCount = results.length
             }
         } catch (e) {
@@ -94,10 +108,11 @@ export function useConnect() {
     const resetDiscovery = () => {
         seedDiscoveryResults.value = []
         selectedSeedIdentity.value = null
+        discoveredIdentity.value = null
         seedDiscoveryError.value = null
     }
 
-    const formatBalance = (val?: string) => {
+    const formatBalance = (val?: string | number) => {
         if (!val) return '0.00 DASH'
         return `${(Number(val) / 100_000_000).toFixed(4)} DASH`
     }
@@ -109,12 +124,15 @@ export function useConnect() {
         manualIdentityId,
         seedDiscoveryResults,
         selectedSeedIdentity,
+        discoveredIdentity,
         isSearchingSeed,
-        isDiscovering: isSearchingSeed, // Alias for tests
+        isDiscovering: isSearchingSeed,
         seedDiscoveryError,
+        privateKeyDiscoveryError: seedDiscoveryError,
         discoveryDetails,
         debugOutput,
         discoveryProgress,
+        progressMessage,
         discoveryStatus: computed(() => isSearchingSeed.value ? 'Searching...' : 'Idle'),
         isFormValid,
         progressPercentage: computed(() => 0),
@@ -125,7 +143,10 @@ export function useConnect() {
         resetDiscovery,
         formatBalance,
         updateConnectionMethod: (val: any) => connectionMethod.value = val,
-        selectSeedIdentity: (id: DiscoveredIdentity) => selectedSeedIdentity.value = id,
+        selectSeedIdentity: (id: DiscoveredIdentity) => {
+            selectedSeedIdentity.value = id
+            discoveredIdentity.value = id
+        },
         handleDiscoverIdentity: startSeedDiscovery,
         closeResults: resetDiscovery,
         useManualIdentity: () => connectionMethod.value = 'privateKey',

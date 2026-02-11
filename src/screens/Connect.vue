@@ -132,7 +132,7 @@
                                             {{ identity.identityId }}
                                         </p>
                                         <p class="text-xs text-slate-600 dark:text-slate-400">
-                                            {{ identity.dpnsUsername || 'No DPNS name' }} • {{ formatBalance(Number(identity.balance)) }} Credits
+                                            {{ identity.dpnsUsername || 'No DPNS name' }} • {{ formatBalance(identity.balance) }} Credits
                                         </p>
                                     </div>
                                     <div v-if="selectedSeedIdentity?.identityId === identity.identityId"
@@ -243,9 +243,9 @@ const {
     seedWords,
     seedDiscoveryResults,
     selectedSeedIdentity,
+    discoveredIdentity,
     seedDiscoveryError,
     manualIdentityId,
-    discoveredIdentity,
     discoveryDetails,
     debugOutput,
     // Status

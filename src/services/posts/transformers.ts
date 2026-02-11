@@ -1,12 +1,10 @@
 // src/services/posts/transformers.ts
 
 import type { IPost, IUser, IPostDocument } from '@/types'
-
 const abbreviateId = (id: string) => {
     if (!id) return '...'
     return `${id.slice(0, 11)}...${id.slice(-4)}`
 }
-
 export function getUserInfo(
     ownerId: string,
     dpnsName?: string | null,
@@ -14,10 +12,8 @@ export function getUserInfo(
     avatarUrl?: string | null
 ): IUser {
     const fallbackAvatar = `https://api.dicebear.com/7.x/identicon/svg?seed=${ownerId}`
-
-    // Ensure string type to fix TS2322
-    const nameStr: string = displayName || (dpnsName ? dpnsName.split('.')[0] : abbreviateId(ownerId));
-
+    // Hardened logic to ensure string type for TS2322
+    const nameStr: string = (displayName || (dpnsName ? dpnsName.split('.')[0] : abbreviateId(ownerId))) ?? 'Unnamed User';
     return {
         identityId: ownerId,
         username: dpnsName ? `@${dpnsName}` : `@${abbreviateId(ownerId)}`,
@@ -27,7 +23,6 @@ export function getUserInfo(
         bio: ''
     }
 }
-
 export function transformPostDocument(
     doc: IPostDocument | any,
     dpnsName?: string | null,
@@ -40,14 +35,12 @@ export function transformPostDocument(
     const updatedAt = doc.updatedAt || doc.$updatedAt
         ? parseInt(String(doc.updatedAt || doc.$updatedAt))
         : null
-
     const author = getUserInfo(
         ownerId,
         dpnsName,
         authorProfile?.displayName,
         authorProfile?.avatarUrl
     )
-
     return {
         id,
         contractId: doc.dataContractId || 'TBD',
@@ -69,7 +62,6 @@ export function transformPostDocument(
         replyToPostId: doc.replyToPostId
     }
 }
-
 export function transformPostDocuments(
     documents: IPostDocument[],
     dpnsNames: Map<string, string> = new Map(),
@@ -80,18 +72,15 @@ export function transformPostDocuments(
     return documents.map((doc) => {
         const ownerId = doc.ownerId || doc.$ownerId || ''
         const id = doc.id || doc.$id || ''
-
         const post = transformPostDocument(
             doc,
             dpnsNames.get(ownerId),
             yapprProfiles.get(ownerId),
             statsMap.get(id)
         )
-
         if (post.replyToPostId && parentPosts.has(post.replyToPostId)) {
             post.replyTo = parentPosts.get(post.replyToPostId)
         }
-
         return post
     })
 }

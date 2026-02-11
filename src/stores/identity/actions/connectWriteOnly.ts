@@ -35,8 +35,8 @@ export function connectWriteOnlyActions() {
                     ? fetchResult.data.publicKeys
                     : []
                 // Map raw DAPI keys to standardized IPublicKey
-                // The 'id' here represents the Public Key Index (Position)
-                const mappedPublicKeys: IPublicKey[] = rawKeys.map((pk, idx) => ({
+                const mappedPublicKeys: IPublicKey[] = rawKeys.map((pk, loopIdx) => ({
+                    idx: pk.id !== undefined ? pk.id : loopIdx,
                     keyType: pk.keyType || 'ECDSA_HASH160',
                     purpose: Number(pk.purpose ?? 0) as any,
                     securityLevel: Number(pk.securityLevel ?? 0) as any,
@@ -48,18 +48,18 @@ export function connectWriteOnlyActions() {
                 for (let i = 0; i < mappedPublicKeys.length; i++) {
                     const pk = mappedPublicKeys[i]!
                     // Performance/Security boundary: only derive first 20 keys
-                    if (pk.id > 20) continue
+                    if (pk.idx > 20) continue
                     try {
                         const res = await KeyDerivationService.getPrivateKeyWASM(
                             seedPhrase,
-                            network,
+                            network as 'mainnet' | 'testnet',
                             identity.identityIdx || 0,
-                            pk.id
+                            pk.idx
                         )
                         if (res?.privateKey) {
                             privateKeyEntries.push({
                                 identityId: identity.identityId,
-                                keyId: pk.id,
+                                keyId: pk.idx,
                                 purpose: pk.purpose,
                                 securityLevel: pk.securityLevel,
                                 keyType: pk.keyType,
@@ -70,7 +70,7 @@ export function connectWriteOnlyActions() {
                             })
                         }
                     } catch (e) {
-                        console.warn(`[ConnectWriteOnly] Derivation failed for key index ${pk.id}`)
+                        console.warn(`[ConnectWriteOnly] Derivation failed for key index ${pk.idx}`)
                     }
                 }
                 if (privateKeyEntries.length > 0) {

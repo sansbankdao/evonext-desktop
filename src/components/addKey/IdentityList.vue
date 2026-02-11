@@ -67,13 +67,6 @@ const getIdentityDisplayName = (identity: IIdentity): string => {
     if (identity.username) return identity.username.split('.')[0] || 'Unnamed Identity'
     return 'Unnamed Identity'
 }
-const getKeyBadgeClass = (key: IPublicKey): string => {
-    const purpose = typeof key.purpose === 'string' ? parseInt(key.purpose) : key.purpose
-    if (purpose === 1 || purpose === 3) return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-    if (purpose === 0) return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
-    if (purpose === 2) return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
-    return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
-}
 const getKeyTypeShort = (key: IPublicKey): string => {
     const purpose = typeof key.purpose === 'string' ? parseInt(key.purpose) : key.purpose
     if (purpose === 1 || purpose === 3) return 'TRANSFER'

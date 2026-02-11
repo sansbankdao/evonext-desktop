@@ -21,7 +21,7 @@
                         Current Keys
                     </label>
                     <div class="space-y-2">
-                        <div v-for="(key, index) in identity.publicKeys || []"
+                        <div v-for="key in identity.publicKeys || []"
                              class="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
                             <div class="space-y-1">
                                 <div class="flex items-center gap-2">
@@ -87,16 +87,11 @@
     </div>
 </template>
 <script setup lang="ts">
-import type { IIdentity, IPublicKey } from '@/types'
+import type { IIdentity } from '@/types'
 defineProps<{
     identity?: IIdentity | null
     hasTransferKey?: boolean
 }>()
-const getKeyIdentifier = (key: IPublicKey, index: number): string => {
-    const purpose = String(key.purpose)
-    const securityLevel = String(key.securityLevel)
-    return `${purpose}-${securityLevel}-${key.keyType}-${index}`
-}
 const getPurposeLabel = (purpose: number | string): string => {
     const purposeNum = typeof purpose === 'string' ? parseInt(purpose) : purpose
     switch(purposeNum) {
