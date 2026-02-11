@@ -8,7 +8,6 @@ import {
     EVONEXT_CONTRACT_ID_MAINNET,
     EVONEXT_CONTRACT_ID_TESTNET
 } from '@/constants'
-
 export async function createNewPostAction(
     this: any,
     content: string,
@@ -24,28 +23,23 @@ export async function createNewPostAction(
 ): Promise<IPost | null> {
     const identityStore = useIdentityStore()
     const settingsStore = useSettingsStore()
-
     if (!identityStore.isAuthenticated) {
         this.error = 'You must be connected to create a post'
         return null
     }
-
     this.isLoading = true
     this.error = null
-
     const currentUserId = identityStore.identityId as string
     const d = new Date()
     const now = d.getTime() / 1000
-
     const network = settingsStore.state.network
     const targetContractId = (network === 'mainnet')
         ? EVONEXT_CONTRACT_ID_MAINNET
         : EVONEXT_CONTRACT_ID_TESTNET
-
     const optimisticPost: IPost = {
-        id: 'opt_' + Date.now(),
         ownerId: currentUserId,
         author: {
+            identityId: currentUserId, // FIX: Added missing identityId
             username: identityStore.identity?.username || 'User',
             displayName: identityStore.identity?.displayName || 'You',
             avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(identityStore.identity?.username || 'You')}&background=8b5cf6&color=fff`,
@@ -68,14 +62,11 @@ export async function createNewPostAction(
         replyToPostId: options?.replyToPostId?.[0],
         contractId: targetContractId
     }
-
     this.upsertPost(optimisticPost)
-
     try {
         const replyId = Array.isArray(options?.replyToPostId)
             ? options.replyToPostId[0]
             : options?.replyToPostId
-
         const createPostParams: ICreatePostParams = {
             content,
             isSensitive: options?.isSensitive ?? false,
@@ -86,9 +77,7 @@ export async function createNewPostAction(
             ...(options?.hashtag && { hashtag: options.hashtag }),
             ...(options?.remix && { remix: options.remix })
         }
-
         const createdPost = await api.createPost(createPostParams)
-
         if (createdPost) {
             this.deletePostById(optimisticPost.id)
             if (!createdPost.contractId) {
@@ -107,7 +96,6 @@ export async function createNewPostAction(
         this.isLoading = false
     }
 }
-
 export async function updateExistingPostAction(
     this: any,
     postId: string,
@@ -123,10 +111,8 @@ export async function updateExistingPostAction(
         this.error = 'You must be connected to update a post'
         return false
     }
-
     this.isLoading = true
     this.error = null
-
     try {
         const currentPost = this.getPostById(postId)
         if (currentPost) {
@@ -137,10 +123,7 @@ export async function updateExistingPostAction(
             }
             this.upsertPost(updatedPost)
         }
-
-        // @ts-ignore - using mutations service
-        const success = await api.updatePost(postId, updates)
-
+        const success = await (api as any).updatePost(postId, updates)
         if (!success && currentPost) {
             this.upsertPost(currentPost)
         } else {
@@ -156,27 +139,21 @@ export async function updateExistingPostAction(
         this.isLoading = false
     }
 }
-
 export async function deletePostByIdAction(this: any, postId: string): Promise<boolean> {
     this.isLoading = true
     this.error = null
-
     try {
         const post = this.getPostById(postId)
         if (!post) {
             this.error = 'Post not found'
             return false
         }
-
         if (post.ownerId !== this.identityId) {
             this.error = 'You can only delete your own posts'
             return false
         }
-
         this.deletePostById(postId)
-        // @ts-ignore - assuming deletePost exists in mutations or fetching
-        const success = await api.deletePost?.(postId) ?? true
-
+        const success = await (api as any).deletePost?.(postId) ?? true
         if (!success) {
             this.upsertPost(post)
         }

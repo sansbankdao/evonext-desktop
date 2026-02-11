@@ -7,7 +7,7 @@ import type { IIdentity, DiscoveryResult } from '@/types/identity'
 export function useIdentity() {
     const store = useIdentityStore()
     const activeIdentity = ref<IIdentity | null>(null)
-    const init = async () => {
+    const init = async (): Promise<void> => {
         await store.loadFromStorage()
     }
     const getIdentityIdx = (identityId: string): number => {
@@ -44,9 +44,13 @@ export function useIdentity() {
                 return { success: false, error: String(e) }
             }
         },
-        searchUserIdentities: async () => store.searchUserIdentities(),
+        searchUserIdentities: async (): Promise<any[]> => {
+            // Explicitly call the store action
+            return store.searchUserIdentities()
+        },
         queryIdentityDetails: (_id: string, _idx: number) => store.refreshIdentity(),
-        getPublicKeys: (identityId: string, network: string) => store.getPublicKeys(identityId, network),
+        getPublicKeys: (identityId: string, network: 'mainnet' | 'testnet') =>
+            store.getPublicKeys(identityId, network),
         connect: (key: string, opts: any) =>
             store.connectWithPrivateKey(key, opts?.discoveredId || '', 'testnet'),
         hasTransferKey: computed(() => {

@@ -4,12 +4,8 @@ import { invoke } from '@/utils/tauri'
 import type {
     IIdentityState,
     ConnectionResult,
-    IPublicKey,
-    PurposeType,
-    SecurityLevelType
 } from '@/types/identity'
 import { transformPublicKeys, validateIdentityData } from '../utils'
-
 export const connectionActions = {
     /**
      * Connects using a 12/24 word seed phrase
@@ -28,25 +24,22 @@ export const connectionActions = {
                 identityId,
                 idx: identityIndex
             })
-
             const mappedPublicKeys = transformPublicKeys(identityData.publicKeys || [])
-
             await invoke('save_identity_data', {
                 network,
                 identityId,
                 identityIdx: identityIndex,
                 publicKeys: mappedPublicKeys,
                 balance: identityData.balance,
-                username: identityData.username
+                username: identityData.username,
+                mnemonic: seedPhrase
             })
-
             this.identityId = identityId
             this.identityIdx = identityIndex
             this.publicKeys = mappedPublicKeys
             this.balance = identityData.balance
             this.isConnected = true
             this.isAuthenticated = true
-
             await this.saveToStorage()
             return { success: true, identityId }
         } catch (e) {
@@ -56,7 +49,6 @@ export const connectionActions = {
             this.isConnecting = false
         }
     },
-
     /**
      * Connects using a single private key (WIF or Hex)
      */
@@ -86,7 +78,6 @@ export const connectionActions = {
             this.isConnecting = false
         }
     },
-
     /**
      * Restores state from local storage
      */
@@ -102,7 +93,6 @@ export const connectionActions = {
             console.warn('[ConnectionStore] No local storage found')
         }
     },
-
     /**
      * Persists current state to local storage
      */
@@ -116,7 +106,6 @@ export const connectionActions = {
             console.error('[ConnectionStore] Save failed:', e)
         }
     },
-
     /**
      * Wipes all local identity data
      */
@@ -127,7 +116,6 @@ export const connectionActions = {
         this.isAuthenticated = false
         await invoke('clear_identity_store')
     },
-
     /**
      * Clears connection-related errors for the UI
      */

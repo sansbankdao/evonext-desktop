@@ -28,15 +28,18 @@ export function connectWriteOnlyActions() {
             this.isConnecting = true
             this.connectionError = null
             try {
-                const network = await this.getCurrentNetwork()
-                const fetchResult = await DAPIService.getIdentityById(identity.identityId, network)
+                // Ensure currentNetwork is treated as the correct Union type
+                const network = (this as any).currentNetwork || 'testnet'
+                const dashNetwork = network as 'mainnet' | 'testnet'
+                const fetchResult = await DAPIService.getIdentityById(identity.identityId, dashNetwork)
                 // Use fetched keys if available, otherwise fallback to discovery data
                 const rawKeys = (fetchResult.success && fetchResult.data)
                     ? fetchResult.data.publicKeys
                     : []
                 // Map raw DAPI keys to standardized IPublicKey
-                const mappedPublicKeys: IPublicKey[] = rawKeys.map((pk, loopIdx) => ({
-                    idx: pk.id !== undefined ? pk.id : loopIdx,
+                const mappedPublicKeys: IPublicKey[] = rawKeys.map((pk: any, loopIdx: number) => ({
+                    // FIX: Check for .idx first, then .id, then fallback to loop index
+                    idx: pk.idx !== undefined ? pk.idx : (pk.id !== undefined ? pk.id : loopIdx),
                     keyType: pk.keyType || 'ECDSA_HASH160',
                     purpose: Number(pk.purpose ?? 0) as any,
                     securityLevel: Number(pk.securityLevel ?? 0) as any,
@@ -47,12 +50,11 @@ export function connectWriteOnlyActions() {
                 const privateKeyEntries: any[] = []
                 for (let i = 0; i < mappedPublicKeys.length; i++) {
                     const pk = mappedPublicKeys[i]!
-                    // Performance/Security boundary: only derive first 20 keys
                     if (pk.idx > 20) continue
                     try {
                         const res = await KeyDerivationService.getPrivateKeyWASM(
                             seedPhrase,
-                            network as 'mainnet' | 'testnet',
+                            dashNetwork,
                             identity.identityIdx || 0,
                             pk.idx
                         )
@@ -74,9 +76,9 @@ export function connectWriteOnlyActions() {
                     }
                 }
                 if (privateKeyEntries.length > 0) {
-                    await this.saveKeys(network, identity.identityId, privateKeyEntries)
+                    await (this as any).saveKeys(dashNetwork, identity.identityId, privateKeyEntries)
                 }
-                await this.saveMnemonicToStore(network, seedPhrase)
+                await (this as any).saveMnemonicToStore(dashNetwork, seedPhrase)
                 // Update RAM State
                 this.identityId = identity.identityId
                 this.publicKeys = mappedPublicKeys

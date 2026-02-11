@@ -6,6 +6,21 @@ import type { IIdentityData, IPrivateKeyEntry } from '@/bindings'
 export type PurposeType = 0 | 1 | 2 | 3
 export type SecurityLevelType = 0 | 1 | 2 | 3 | 4
 
+/**
+ * Structure of a private key stored in the local keystore.
+ */
+export interface PrivateKeyEntry {
+    identityId: string;
+    keyId: number;
+    purpose: number;
+    securityLevel: number;
+    keyType: string;
+    privateKey: string;
+    publicKey: string;
+    derivedFromMnemonic: boolean;
+    createdAt: string;
+}
+
 export interface IPublicKey {
     idx: number;
     type?: number;
@@ -82,6 +97,7 @@ export interface IIdentityActions {
     refreshIdentity: () => Promise<void>;
     fetchBalance: () => Promise<void>;
     loadPublicKeys: () => Promise<IPublicKey[]>;
+    getPublicKeys: (identityId: string, network: 'mainnet' | 'testnet') => Promise<any>;
     switchIdentity: (identityId: string) => Promise<void>;
     deleteIdentity: (identityId: string) => Promise<void>;
     updateIdentityMetadata: (id: string, updates: Partial<IIdentity>) => Promise<void>;

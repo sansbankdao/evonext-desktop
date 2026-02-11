@@ -2,21 +2,35 @@
 
 import { useIdentity } from '@/composables/useIdentity'
 import { invoke } from '@/utils/tauri'
-import type { IIdentityState, IIdentity, IPublicKey } from '@/types/identity'
+import { DAPIService } from '@/services/identity/discovery/DAPIService'
+import type { IIdentityState, IIdentity } from '@/types/identity'
 import { transformPublicKeys } from '../utils'
+
 export const identityActions = {
     /**
      * Lists all local identities stored in the system
      */
-    async searchUserIdentities(this: IIdentityState) {
+    async searchUserIdentities(this: IIdentityState): Promise<IIdentity[]> {
         const identityComposable = useIdentity()
         const response = await identityComposable.searchUserIdentities()
-        return response || []
+        return (response as IIdentity[]) || []
     },
+
+    /**
+     * Fetches current public keys for a specific identity from the network
+     */
+    async getPublicKeys(
+        this: IIdentityState,
+        identityId: string,
+        network: 'mainnet' | 'testnet'
+    ): Promise<any> {
+        return DAPIService.getIdentityById(identityId, network)
+    },
+
     /**
      * Switches the active identity and refreshes its data
      */
-    async switchIdentity(this: IIdentityState, identityId: string) {
+    async switchIdentity(this: IIdentityState, identityId: string): Promise<void> {
         if (this.identityId === identityId) return
         this.isConnecting = true
         try {
@@ -34,18 +48,19 @@ export const identityActions = {
             this.isConnecting = false
         }
     },
+
     /**
      * Refreshes the active identity data from the Dash Platform
      */
-    async refreshIdentity(this: IIdentityState) {
+    async refreshIdentity(this: IIdentityState): Promise<void> {
         if (!this.identityId) return
         const identityComposable = useIdentity()
         const currentIdx = this.identityIdx || 0
-        const response = await identityComposable.queryIdentityDetails(
+        const response: any = await identityComposable.queryIdentityDetails(
             this.identityId,
             currentIdx
         )
-        if (response.success && response.data) {
+        if (response && response.success && response.data) {
             const details = response.data
             const updatedIdentity: IIdentity = {
                 ...this.identities[this.identityId],
@@ -58,6 +73,7 @@ export const identityActions = {
                 displayName: details.displayName || this.displayName
             }
             this.identities[this.identityId] = updatedIdentity
+
             // Sync top-level state if it's the current identity
             this.balance = updatedIdentity.balance
             this.publicKeys = updatedIdentity.publicKeys
@@ -65,10 +81,11 @@ export const identityActions = {
             this.username = updatedIdentity.username || null
         }
     },
+
     /**
      * Removes an identity from the local store
      */
-    async deleteIdentity(this: IIdentityState, identityId: string) {
+    async deleteIdentity(this: IIdentityState, identityId: string): Promise<void> {
         if (this.identities[identityId]) {
             delete this.identities[identityId]
             if (this.identityId === identityId) {
@@ -80,6 +97,7 @@ export const identityActions = {
             await invoke('delete_local_identity', { identityId })
         }
     },
+
     /**
      * Updates local metadata for an identity
      */
@@ -87,7 +105,7 @@ export const identityActions = {
         this: IIdentityState,
         identityId: string,
         updates: Partial<IIdentity>
-    ) {
+    ): Promise<void> {
         if (this.identities[identityId]) {
             this.identities[identityId] = {
                 ...this.identities[identityId],
@@ -100,16 +118,20 @@ export const identityActions = {
             await this.saveToStorage()
         }
     },
+
     /**
      * Action-wrapped public key fetcher
      */
-    async loadPublicKeys(this: IIdentityState): Promise<IPublicKey[]> {
+    async loadPublicKeys(this: IIdentityState): Promise<any[]> {
         if (!this.identityId) return []
-        const identityComposable = useIdentity()
-        const response = await identityComposable.getPublicKeys(
+
+        // Use the actual network context. Defaulting to testnet for safe discovery.
+        const network = 'testnet'
+
+        const response = await this.getPublicKeys(
             this.identityId,
-            this.identityIdx
+            network
         )
-        return response.success ? transformPublicKeys(response.data.publicKeys) : []
+        return (response && response.success) ? transformPublicKeys(response.data.publicKeys) : []
     }
 }
