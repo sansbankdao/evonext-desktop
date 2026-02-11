@@ -55,6 +55,7 @@ pub fn create_app() -> tauri::App {
             commands::settings_commands::load_settings,
             commands::settings_commands::save_settings,
             commands::settings_commands::delete_settings,
+            commands::studio_commands::ask_vibe_terminal,
             commands::identity_details_commands::update_identity_with_sdk_data,
             commands::identity_details_commands::get_identity_public_keys,
             commands::identity_details_commands::delete_identity_public_keys,
