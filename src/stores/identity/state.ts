@@ -1,7 +1,6 @@
 // src/stores/identity/state.ts
 
 import type { IIdentityState, IIdentity, IPublicKey, DiscoveryProgress } from '@/types/identity'
-
 export const useIdentityState = (): IIdentityState => ({
     identityId: null,
     identityIdx: 0,
@@ -21,7 +20,6 @@ export const useIdentityState = (): IIdentityState => ({
     premiumAccess: false,
     connectionError: null,
     discoveryProgress: null as DiscoveryProgress | null,
-
     // Actions mapped as empty stubs for the state definition
     connectWithSeed: async () => ({ success: false }),
     connectWithPrivateKey: async () => ({ success: false }),
@@ -29,6 +27,8 @@ export const useIdentityState = (): IIdentityState => ({
     refreshIdentity: async () => {},
     fetchBalance: async () => {},
     loadPublicKeys: async () => [],
+    // Added to satisfy IIdentityActions interface
+    getPublicKeys: async (_id: string, _net: string) => ({ success: false, data: null }),
     switchIdentity: async () => {},
     deleteIdentity: async () => {},
     updateIdentityMetadata: async () => {},

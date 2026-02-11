@@ -10,10 +10,13 @@ export function useIdentity() {
     const init = async (): Promise<void> => {
         await store.loadFromStorage()
     }
-    const getIdentityIdx = (identityId: string): number => {
-        return store.identities[identityId]?.identityIdx ?? 0
+    const getIdentityIdx = (identityId?: string): number => {
+        const id = identityId || store.identityId
+        if (!id) return 0
+        return store.identities[id]?.identityIdx ?? 0
     }
-    const discoverIdentities = async (mnemonic: string): Promise<DiscoveryResult> => {
+    const discoverIdentities = async (mnemonic: string = ''): Promise<DiscoveryResult> => {
+        if (!mnemonic) return { success: false, error: 'Mnemonic required' }
         try {
             const results = await invoke<any[]>('discover_identities_from_seed', {
                 mnemonic,
@@ -45,7 +48,6 @@ export function useIdentity() {
             }
         },
         searchUserIdentities: async (): Promise<any[]> => {
-            // Explicitly call the store action
             return store.searchUserIdentities()
         },
         queryIdentityDetails: (_id: string, _idx: number) => store.refreshIdentity(),

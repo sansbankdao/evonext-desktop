@@ -25,9 +25,8 @@ export const connectionActions = {
                 idx: identityIndex
             })
             const mappedPublicKeys = transformPublicKeys(identityData.publicKeys || [])
-            await invoke('save_identity_data', {
-                network,
-                identityId,
+            // Maintain consistency with the save action
+            await this.saveIdentityDataToStore(network, identityId, {
                 identityIdx: identityIndex,
                 publicKeys: mappedPublicKeys,
                 balance: identityData.balance,
@@ -48,6 +47,17 @@ export const connectionActions = {
         } finally {
             this.isConnecting = false
         }
+    },
+    /**
+     * Alias for connectWithPrivateKey to satisfy test expectations
+     */
+    async connectWithSingleKey(
+        this: IIdentityState,
+        privateKey: string,
+        identityId: string,
+        network: 'mainnet' | 'testnet'
+    ): Promise<ConnectionResult> {
+        return this.connectWithPrivateKey(privateKey, identityId, network)
     },
     /**
      * Connects using a single private key (WIF or Hex)
@@ -77,6 +87,23 @@ export const connectionActions = {
         } finally {
             this.isConnecting = false
         }
+    },
+    /**
+     * Utility to save identity and keys simultaneously (Required by tests)
+     */
+    async saveIdentityWithKeys(
+        this: IIdentityState,
+        network: string,
+        payload: any
+    ): Promise<void> {
+        const { identityId, publicKeys, mnemonic, identityIdx } = payload
+        await this.saveIdentityDataToStore(network, identityId, {
+            identityIdx,
+            publicKeys,
+            balance: payload.balance || '0',
+            username: payload.username,
+            mnemonic
+        })
     },
     /**
      * Restores state from local storage

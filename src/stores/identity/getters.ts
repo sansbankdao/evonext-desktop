@@ -1,7 +1,6 @@
 // src/stores/identity/getters.ts
 
-import type { IPublicKey, IIdentity, IIdentityState } from '@/types'
-
+import type { IPublicKey, IIdentity, IIdentityState } from '@/types/identity'
 export const useIdentityGetters = {
     getGreeting: (state: IIdentityState) =>
         `Hello, ${state.username || state.identityId || 'Guest'}!`,
@@ -9,6 +8,24 @@ export const useIdentityGetters = {
         state.isAuthenticated && !!state.identityId,
     hasPublicKeys: (state: IIdentityState) =>
         state.publicKeys.length > 0,
+    /**
+     * Returns the Authentication Public Key (Purpose 0)
+     */
+    getAuthPublicKey: (state: IIdentityState): IPublicKey | undefined => {
+        return state.publicKeys.find(k => k.purpose === 0)
+    },
+    /**
+     * Returns the Encryption Public Key (Purpose 1)
+     */
+    getEncryptionPublicKey: (state: IIdentityState): IPublicKey | undefined => {
+        return state.publicKeys.find(k => k.purpose === 1)
+    },
+    /**
+     * Generic key getter by purpose
+     */
+    getPublicKeyByPurpose: (state: IIdentityState) => (purpose: number): IPublicKey | undefined => {
+        return state.publicKeys.find(k => k.purpose === purpose)
+    },
     // Standardized Identity Snapshot for Components
     identity: (state: IIdentityState): IIdentity | null => {
         if (!state.identityId) return null

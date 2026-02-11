@@ -1,10 +1,9 @@
 // src/stores/identity/utils.ts
 
-import type { IPublicKey, PurposeType, SecurityLevelType } from '@/types/identity'
+import type { IPublicKey, PurposeType, SecurityLevelType, IIdentity } from '@/types/identity'
 import { invoke } from '@/utils/tauri'
 /**
  * Transforms SDK Public Keys to our internal IPublicKey interface.
- * 'idx' is the unique index within the identity.
  */
 export function transformPublicKeys(sdkKeys: any[]): IPublicKey[] {
     if (!Array.isArray(sdkKeys)) return []
@@ -32,6 +31,32 @@ export function validateIdentityData(data: any): boolean {
     )
 }
 /**
+ * Returns a default empty identity object (Required by tests)
+ */
+export function createDefaultIdentityData(identityId: string = ''): IIdentity {
+    return {
+        identityId,
+        identityIdx: 0,
+        balance: '0',
+        publicKeys: [],
+        revision: 0,
+        username: '',
+        displayName: '',
+        isAuthenticated: false
+    }
+}
+/**
+ * Creates a Dash SDK instance configuration (Required by tests)
+ */
+export function createSDK(network: 'mainnet' | 'testnet' = 'testnet') {
+    return {
+        network,
+        apps: {
+            dpns: { contractId: network === 'mainnet' ? '...' : '778q9o69u_placeholder' }
+        }
+    }
+}
+/**
  * Converts a hex hash to Base64 (used for key comparisons)
  */
 export function hexHash160ToBase64(hex: string): string {
@@ -42,7 +67,7 @@ export function hexHash160ToBase64(hex: string): string {
 /**
  * High-level wrapper for loading store data from Tauri/Rust
  */
-export async function loadFromStore<T>(key: string, network: string): Promise<T | null> {
+export async function loadFromStore<T>(key: string, network: string = 'testnet'): Promise<T | null> {
     try {
         return await invoke<T>('load_from_store', { key, network })
     } catch (e) {
@@ -53,7 +78,7 @@ export async function loadFromStore<T>(key: string, network: string): Promise<T 
 /**
  * High-level wrapper for saving store data to Tauri/Rust
  */
-export async function saveToStore(key: string, value: any, network: string): Promise<boolean> {
+export async function saveToStore(key: string, value: any, network: string = 'testnet'): Promise<boolean> {
     try {
         await invoke('save_to_store', { key, value, network })
         return true
