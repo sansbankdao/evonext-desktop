@@ -15,7 +15,7 @@ describe('crypto service', () => {
             const input = new Uint8Array([1, 2, 3])
             vi.mocked(invoke).mockResolvedValue([10, 20])
             const result = await hash160(input)
-            expect(invoke).toHaveBeenCalledWith('hash160', { data: [1, 2, 3] })
+            expect(invoke).toHaveBeenCalledWith('hash160', { input: [1, 2, 3] })
             expect(result).toBeInstanceOf(Uint8Array)
             expect(Array.from(result)).toEqual([10, 20])
         })
@@ -23,7 +23,7 @@ describe('crypto service', () => {
             const input = [4, 5, 6]
             vi.mocked(invoke).mockResolvedValue([30])
             await hash160(input)
-            expect(invoke).toHaveBeenCalledWith('hash160', { data: [4, 5, 6] })
+            expect(invoke).toHaveBeenCalledWith('hash160', { input: [4, 5, 6] })
         })
         it('should handle objects with buffer (WASM Memory)', async () => {
             const buffer = new ArrayBuffer(2)
@@ -32,7 +32,7 @@ describe('crypto service', () => {
             view[1] = 8
             vi.mocked(invoke).mockResolvedValue([9])
             await hash160({ buffer })
-            expect(invoke).toHaveBeenCalledWith('hash160', { data: [7, 8] })
+            expect(invoke).toHaveBeenCalledWith('hash160', { input: [7, 8] })
         })
         it('should throw error for empty data', async () => {
             await expect(hash160([])).rejects.toThrow('hash160 input data is empty')
@@ -45,7 +45,7 @@ describe('crypto service', () => {
         it('should call tauri random_bytes and return Uint8Array', async () => {
             vi.mocked(invoke).mockResolvedValue([255, 128])
             const result = await randomBytes(2)
-            expect(invoke).toHaveBeenCalledWith('random_bytes', { length: 2 })
+            expect(invoke).toHaveBeenCalledWith('random_bytes', { len: 2 })
             expect(result).toEqual(new Uint8Array([255, 128]))
         })
     })
