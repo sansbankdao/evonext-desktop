@@ -22,18 +22,25 @@ export function getUserInfo(
 }
 export function transformPostDocument(
     doc: IPostDocument | any,
-    dpnsName?: string | null
+    dpnsName?: string | null,
+    authorProfile?: any,
+    stats?: any
 ): IPost {
-    const ownerId = doc.ownerId || doc.$ownerId || ''
-    // Crucial: Restoring the 'id' (Document Hash) to the hydrated post
     const id = doc.id || doc.$id || ''
-    const createdAt = parseInt(String(doc.createdAt || doc.$createdAt || Date.now()))
+    const ownerId = doc.ownerId || doc.$ownerId || ''
+    const createdAt = parseInt(String(doc.createdAt || doc.$createdAt ||
+        Date.now()))
     const updatedAt = doc.updatedAt || doc.$updatedAt
         ? parseInt(String(doc.updatedAt || doc.$updatedAt))
         : createdAt
-    const author = getUserInfo(ownerId, dpnsName)
+    const author = getUserInfo(
+        ownerId,
+        dpnsName,
+        authorProfile?.displayName,
+        authorProfile?.avatarUrl
+    )
     return {
-        id, // Refactored: Ensured document id is present
+        id,
         contractId: doc.dataContractId || 'TBD',
         ownerId,
         author,
@@ -41,9 +48,10 @@ export function transformPostDocument(
         createdAt,
         updatedAt,
         views: 0,
-        likes: 0,
-        remixes: 0,
-        replies: 0,
+        likes: stats?.likes || 0,
+        liked: stats?.liked || false,
+        remixes: stats?.remixes || 0,
+        replies: stats?.replies || 0,
         isSensitive: !!doc.isSensitive,
         language: doc.language || 'en',
         mediaUrls: doc.mediaUrls || doc.mediaUrl || []
@@ -51,10 +59,23 @@ export function transformPostDocument(
 }
 export function transformPostDocuments(
     documents: IPostDocument[],
-    dpnsNames: Map<string, string> = new Map()
+    dpnsNames: Map<string, string> = new Map(),
+    yapprProfiles: Map<string, any> = new Map(),
+    statsMap: Map<string, any> = new Map(),
+    parentPosts: Map<string, IPost> = new Map()
 ): IPost[] {
     return documents.map((doc) => {
         const ownerId = doc.ownerId || doc.$ownerId || ''
-        return transformPostDocument(doc, dpnsNames.get(ownerId))
+        const id = doc.id || doc.$id || ''
+        const post = transformPostDocument(
+            doc,
+            dpnsNames.get(ownerId),
+            yapprProfiles.get(ownerId),
+            statsMap.get(id)
+        )
+        if (post.replyToPostId && parentPosts.has(post.replyToPostId)) {
+            post.replyTo = parentPosts.get(post.replyToPostId)
+        }
+        return post
     })
 }

@@ -1,7 +1,11 @@
 // src/stores/identity/state.ts
 
-import type { IIdentityState, IIdentity, IPublicKey, DiscoveryProgress } from '@/types/identity'
-import type { IIdentityData } from '@/bindings'
+import type {
+    IIdentityState,
+    IIdentity,
+    IPublicKey,
+    DiscoveryProgress
+} from '@/types/identity'
 export const useIdentityState = (): IIdentityState => ({
     // Identification
     identityId: null,
@@ -9,6 +13,8 @@ export const useIdentityState = (): IIdentityState => ({
     username: null,
     displayName: "",
     identity: null,
+    // Storage
+    identities: {} as Record<string, IIdentity>,
     // Assets
     balance: '0',
     // Protocol Data
@@ -21,12 +27,17 @@ export const useIdentityState = (): IIdentityState => ({
     premiumAccess: false,
     connectionError: null,
     discoveryProgress: null as DiscoveryProgress | null,
-    // Storage
-    identities: {} as Record<string, IIdentityData>,
     // Action Stubs
-    saveDiscoveredIdentities: async () => ({ success: false, savedCount: 0 }),
-    connectWithSingleKey: async () => ({ success: false }),
-    saveKeys: async () => ({ success: false }),
+    saveDiscoveredIdentities: async () => ({
+        success: false,
+        savedCount: 0
+    }),
+    connectWithSingleKey: async () => ({
+        success: false
+    }),
+    saveKeys: async () => ({
+        success: false
+    }),
     loadFromStorage: async () => {},
     saveToStorage: async () => {},
     clearStorage: async () => {},

@@ -5,14 +5,14 @@ import type { IIdentityData, IPrivateKeyEntry } from '@/bindings'
 export type PurposeType = 0 | 1 | 2 | 3
 export type SecurityLevelType = 0 | 1 | 2 | 3 | 4
 export interface IPublicKey {
-    idx: number; // Refactored from id
+    idx: number;
     type?: number;
     keyType: string;
     purpose: PurposeType;
-    security_level?: number; // Support Rust naming
+    security_level?: number;
     securityLevel: SecurityLevelType;
-    data?: string; // Added to resolve component errors
-    dataBytes?: string; // Added to resolve test errors
+    data?: string;
+    dataBytes?: string;
     dataB64?: string;
     readOnly: boolean;
     disabledAt?: string | null;
@@ -86,7 +86,7 @@ export interface IIdentityActions {
     ) => Promise<void>;
     saveIdentityDataToStore: (
         network: string,
-        identityId: string, any
+        identityId: string,any
     ) => Promise<void>;
 }
 export interface IIdentityState extends IIdentityActions {
@@ -96,8 +96,6 @@ export interface IIdentityState extends IIdentityActions {
     displayName: string | null;
     identity: IIdentity | null;
     balance: string;
-    balanceBigInt?: bigint;
-    dashBigInt?: bigint;
     publicKeys: IPublicKey[];
     revision: number;
     isAuthenticated: boolean;
@@ -106,12 +104,13 @@ export interface IIdentityState extends IIdentityActions {
     connectionError: string | null;
     premiumAccess: boolean;
     discoveryProgress: DiscoveryProgress | null;
+    identities: Record<string, IIdentity>;
 }
 export interface DiscoveryResult {
     success: boolean;
     identities?: DiscoveredIdentity[];
     error?: string;
-    debug?: any; // Added to resolve BaseDiscovery error
+    debug?: any;
 }
 export interface DiscoveryOptions {
     network: 'mainnet' | 'testnet';
