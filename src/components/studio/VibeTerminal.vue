@@ -70,7 +70,7 @@ async function askVibe() {
                 </div>
 
                 <div class="relative mt-auto">
-                    <input v-model="vibeInput" @keyup.enter="askVibe" :disabled="isThinking" type="text" placeholder="Ask Vibe Terminal..."
+                    <input v-model="vibeInput" @keyup.enter="askVibe" :disabled="isThinking" type="text" placeholder="Ask Domino..."
                         class="w-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-2 px-4 pr-10 focus:ring-2 focus:ring-cyan-500 outline-none transition-all" />
                     <button @click="askVibe" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full">
                         <PaperAirplaneIcon class="w-5 h-5 text-cyan-500" />

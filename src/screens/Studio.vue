@@ -22,8 +22,8 @@ const currentContext = computed(() => {
 
 const tabs = [
     { key: 'readme', name: 'README' },
-    { key: 'html', name: 'HTML' },
-    { key: 'js', name: 'SCRIPT' },
+    { key: 'html', name: 'BODY' },
+    { key: 'js', name: 'ACTION' },
     { key: 'css', name: 'STYLE' },
 ]
 </script>
