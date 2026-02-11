@@ -13,14 +13,10 @@ export async function hash160(
 
         // Handle different input types
         if (Array.isArray(data)) {
-            // It is already a number array (standard JS or Rust result)
             dataArray = data
         } else if (data instanceof Uint8Array) {
-            // Convert TypedArray to standard number array
             dataArray = Array.from(data)
         } else if (data && typeof data === 'object' && 'buffer' in data) {
-            // Handle WASM Memory View (which has a .buffer property)
-            // We create a new view from the ArrayBuffer to safely copy it
             const uint8View = new Uint8Array(data.buffer)
             dataArray = Array.from(uint8View)
         } else {
@@ -32,8 +28,7 @@ export async function hash160(
              throw new Error('hash160 input data is empty')
         }
 
-        // The key 'data' matches the Rust command definition
-        const result = await invoke<number[]>('hash160', { data: dataArray })
+        const result = await invoke<number[]>('hash160', { input: dataArray })
 
         return new Uint8Array(result)
     } catch (err) {
@@ -48,7 +43,7 @@ export async function hash160(
 export async function randomBytes(length: number): Promise<Uint8Array> {
     try {
         const result = await invoke<number[]>('random_bytes', {
-            length
+            len: length
         })
         return new Uint8Array(result)
     } catch (err) {
