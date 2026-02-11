@@ -3,56 +3,41 @@
 import type { IPublicKey, IIdentity, IIdentityState } from '@/types'
 
 export const useIdentityGetters = {
-    getGreeting: (state: IIdentityState) => `Hello, ${state.username || 'Guest'}!`,
-
-    // Avoid name collision with state.isConnected
+    getGreeting: (state: IIdentityState) =>
+        `Hello, ${state.username || state.identityId || 'Guest'}!`,
     isConnectedComputed: (state: IIdentityState) =>
-        state.isAuthenticated && !!state.username,
-
-    hasPublicKeys: (state: IIdentityState) => state.publicKeys.length > 0,
-
-    getAuthPublicKey: (state: IIdentityState) => {
-        return state.publicKeys.find((key: IPublicKey) => key.purpose === 0)
-    },
-
-    getEncryptionPublicKey: (state: IIdentityState) => {
-        return state.publicKeys.find((key: IPublicKey) => key.purpose === 1)
-    },
-
-    // Safe IIdentity snapshot for components
+        state.isAuthenticated && !!state.identityId,
+    hasPublicKeys: (state: IIdentityState) =>
+        state.publicKeys.length > 0,
+    // Standardized Identity Snapshot for Components
     identity: (state: IIdentityState): IIdentity | null => {
         if (!state.identityId) return null
-
         return {
             identityId: state.identityId,
+            identityIdx: state.identityIdx || 0,
             username: state.username || '',
             displayName: state.displayName || '',
             balance: state.balance || '0',
             publicKeys: state.publicKeys || [],
             revision: state.revision || 0,
-            isAuthenticated: state.isAuthenticated,
-            identityIdx: state.identity?.identityIdx ?? 0
+            isAuthenticated: state.isAuthenticated
         } as IIdentity
     },
-
     displayName: (state: IIdentityState): string => {
         return state.displayName || state.username || state.identityId || 'Guest'
     },
-
     formattedBalance: (state: IIdentityState): string => {
         const balance = state.balance
-        // Fixed: Compare against string "0"
-        if (!balance || balance === "0" || balance === "0.00") return '0 DASH'
-
+        if (!balance || balance === "0") return '0 DASH'
         try {
-            const dash = BigInt(String(balance)) / BigInt(100_000_000_000)
-            return `${dash.toLocaleString()} DASH`
+            // Dash Platform uses Duflones (10^8 per DASH)
+            const dash = Number(BigInt(String(balance))) / 100_000_000
+            return `${dash.toLocaleString(undefined, { minimumFractionDigits: 2 })} DASH`
         } catch {
-            return '0 DASH (invalid balance)'
+            return '0 DASH'
         }
     },
-
     publicKeysCount: (state: IIdentityState): number => {
         return state.publicKeys?.length || 0
-    },
+    }
 }

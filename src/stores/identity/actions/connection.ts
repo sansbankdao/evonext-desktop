@@ -5,28 +5,12 @@ import { ErrorBoundary } from '@/utils/errors'
 import { KeyDerivationService } from '@/services/identity/keyDerivation.service'
 import { DAPIService } from '@/services/identity/discovery/DAPIService'
 import { usePlatform } from '@/composables/usePlatform'
-import type {
-    ConnectionResult,
-    IIdentity
-} from '@/types'
-
-async function persistActiveIdentityMarker(identityId: string | null, network: string) {
-    try {
-        if (identityId) {
-            await invoke('update_active_identity_marker', {
-                network: network,
-                activeId: identityId
-            })
-        }
-    } catch (e) {
-        console.error('Failed to persist active identity marker:', e)
-    }
-}
+import type { ConnectionResult, IIdentity, IPublicKey } from '@/types'
 export const connectionActions = () => ({
     async connectWithSeed(
         this: any,
         seedPhrase: string,
-        network: 'mainnet' | 'testnet' = 'mainnet',
+        network: 'mainnet' | 'testnet' = 'testnet',
         targetId: string,
         identityIndex: number = 0
     ): Promise<ConnectionResult> {
@@ -35,132 +19,98 @@ export const connectionActions = () => ({
             this.connectionError = null
             try {
                 const { initialize, reset } = usePlatform()
-                reset()
+                await reset()
                 await initialize({
                     network,
-                    wallet: {
-                        mnemonic: seedPhrase,
-                        unsafeOptions: { skipSynchronizationBeforeHeight: 950000 }
-                    }
+                    wallet: { mnemonic: seedPhrase }
                 })
                 await this.saveMnemonicToStore(network, seedPhrase)
                 const fetchResult = await DAPIService.getIdentityById(targetId, network)
                 if (!fetchResult.success || !fetchResult.data) {
-                    throw new Error(fetchResult.error || `Failed to fetch identity ${targetId}`)
+                    throw new Error(fetchResult.error || 'Identity not found')
                 }
                 const identityData = fetchResult.data
-                const publicKeys = identityData.publicKeys || []
-                // Key Derivation Loop
-                const now = new Date().toISOString()
+                const dapiKeys = identityData.publicKeys || []
                 const privateKeyEntries: any[] = []
-                for (let i = 0; i < publicKeys.length; i++) {
-                    const pk = publicKeys[i]
-                    const keyId = (pk.id !== undefined && pk.id !== null) ? Number(pk.id) : i
-                    if (keyId > 10) continue
+                // Map DAPI Keys to IPublicKey (adding 'id' index)
+                const mappedPublicKeys: IPublicKey[] = dapiKeys.map((pk, idx) => ({
+                    keyType: pk.keyType,
+                    purpose: pk.purpose as any,
+                    securityLevel: pk.securityLevel as any,
+                    data: pk.data,
+                    readOnly: pk.readOnly,
+                    disabledAt: pk.disabledAt
+                }))
+                // Derivation
+                for (let i = 0; i < mappedPublicKeys.length; i++) {
+                    const pk = mappedPublicKeys[i]!
                     try {
                         const res = await KeyDerivationService.getPrivateKeyWASM(
-                            seedPhrase, network, identityIndex, keyId
+                            seedPhrase, network, identityIndex, pk.id
                         )
                         privateKeyEntries.push({
                             identityId: targetId,
-                            keyId: keyId,
-                            purpose: Number(pk.purpose ?? 0),
-                            securityLevel: Number(pk.securityLevel ?? 0),
-                            keyType: String(pk.keyType || pk.type || 'ECDSA_HASH160'),
+                            keyId: pk.id,
+                            purpose: pk.purpose,
+                            securityLevel: pk.securityLevel,
+                            keyType: pk.keyType,
                             privateKey: res.privateKey.WIF(),
-                            publicKey: pk.data || '',
-                            derivedFromMnemonic: true,
-                            createdAt: now,
-                            lastUsed: now
+                            publicKey: pk.data,
+                            createdAt: new Date().toISOString()
                         })
-                    } catch (e) {
-                        console.warn(`[Connect] KeyId ${keyId} derivation skipped`)
-                    }
+                    } catch (e) { /* skip */ }
                 }
                 const identityPayload: IIdentity = {
                     identityId: targetId,
                     identityIdx: identityIndex,
-                    balance: String(identityData.balance || '0'),
-                    revision: Number(identityData.revision || 0),
-                    publicKeys
+                    balance: String(identityData.balance),
+                    revision: Number(identityData.revision),
+                    publicKeys: mappedPublicKeys
                 }
-                // ATOMIC SYNC TO DISK
-                await this.saveIdentityWithKeys(network, {
-                    ...identityPayload,
-                    activeIdentityId: targetId
-                }, privateKeyEntries)
-                // Update RAM
-                this.isAuthenticated = true
-                this.username = targetId
+                await this.saveIdentityWithKeys(network, identityPayload, privateKeyEntries)
+                // Update Store State
                 this.identityId = targetId
                 this.identity = identityPayload
-                this.publicKeys = publicKeys
+                this.publicKeys = mappedPublicKeys
                 this.balance = identityPayload.balance
+                this.revision = identityPayload.revision
+                this.isAuthenticated = true
                 this.isConnected = true
-                await persistActiveIdentityMarker(targetId, network)
                 return { success: true, identityId: targetId, identity: identityPayload }
             } finally {
                 this.isConnecting = false
             }
-        }, 'CONNECT_WITH_SEED_FAILED')
+        }, 'CONNECT_FAILED')
     },
     async connectWithSingleKey(
         this: any,
         privateKey: string,
         identityId: string,
-        network: 'mainnet' | 'testnet' = 'mainnet'
+        network: 'mainnet' | 'testnet' = 'testnet'
     ): Promise<ConnectionResult> {
         return ErrorBoundary.wrap(async () => {
             this.isConnecting = true
             try {
-                const trimmedId = identityId.trim()
-                const { initialize, reset } = usePlatform()
-                reset()
-                await initialize({
-                    network,
-                    wallet: { privateKey, unsafeOptions: { skipSynchronizationBeforeHeight: 950000 } }
-                })
-                const fetchResult = await DAPIService.getIdentityById(trimmedId, network)
+                const fetchResult = await DAPIService.getIdentityById(identityId, network)
                 if (!fetchResult.success || !fetchResult.data) throw new Error('DAPI Fetch failed')
                 const identityData = fetchResult.data
-                const publicKeys = identityData.publicKeys || []
-                const now = new Date().toISOString()
-                const pkEntry = {
-                    identityId: trimmedId,
-                    keyId: 0,
-                    purpose: 0,
-                    securityLevel: 0,
-                    keyType: 'ECDSA_HASH160',
-                    privateKey: privateKey,
-                    publicKey: '',
-                    derivedFromMnemonic: false,
-                    createdAt: now,
-                    lastUsed: now
-                }
-                const identityPayload: IIdentity = {
-                    identityId: trimmedId,
-                    identityIdx: 0,
-                    balance: String(identityData.balance || '0'),
-                    revision: Number(identityData.revision || 0),
-                    publicKeys
-                }
-                // ATOMIC SYNC
-                await this.saveIdentityWithKeys(network, {
-                    ...identityPayload,
-                    activeIdentityId: trimmedId
-                }, [pkEntry])
-                // Update RAM
+                const mappedPublicKeys: IPublicKey[] = (identityData.publicKeys || []).map((pk, idx) => ({
+                    keyType: pk.keyType,
+                    purpose: pk.purpose as any,
+                    securityLevel: pk.securityLevel as any,
+                    data: pk.data,
+                    readOnly: pk.readOnly,
+                    disabledAt: pk.disabledAt
+                }))
+                this.identityId = identityId
+                this.publicKeys = mappedPublicKeys
+                this.balance = String(identityData.balance)
                 this.isAuthenticated = true
-                this.identityId = trimmedId
-                this.identity = identityPayload
-                this.publicKeys = publicKeys
-                this.balance = identityPayload.balance
                 this.isConnected = true
-                await persistActiveIdentityMarker(trimmedId, network)
-                return { success: true, identityId: trimmedId }
+                return { success: true, identityId }
             } finally {
                 this.isConnecting = false
             }
-        }, 'CONNECT_WITH_SINGLE_KEY_FAILED')
+        }, 'CONNECT_KEY_FAILED')
     }
 })

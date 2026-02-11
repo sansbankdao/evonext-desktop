@@ -1,52 +1,37 @@
 // src/stores/identity/state.ts
 
-import type { IIdentityState } from '@/types'
+import type { IIdentityState, IIdentity, IPublicKey, DiscoveryProgress } from '@/types/identity'
 import type { IIdentityData } from '@/bindings'
-
 export const useIdentityState = (): IIdentityState => ({
-    username: null,
+    // Identification
     identityId: null,
     identityIdx: 0,
-    displayName: null,
+    username: null,
+    displayName: "",
     identity: null,
+    // Assets
     balance: '0',
-    balanceBigInt: undefined,
-    dashBigInt: undefined,
-    publicKeys: [],
+    // Protocol Data
+    publicKeys: [] as IPublicKey[],
     revision: 0,
+    // Auth & UI State
     isAuthenticated: false,
+    isConnected: false,
+    isConnecting: false,
     premiumAccess: false,
     connectionError: null,
-    isConnecting: false,
-    isConnected: false,
-    lastConnected: null,
-    discoveryProgress: undefined,
+    discoveryProgress: null as DiscoveryProgress | null,
+    // Storage
     identities: {} as Record<string, IIdentityData>,
-    keystore: null,
-    connectWithSeed: async () => ({ success: false, error: 'Not implemented' }),
-    connectWithSingleKey: async () => ({ success: false, error: 'Not implemented' }),
-    connectWriteOnlyFromDiscovered: async () => ({ success: false, error: 'Not implemented' }),
-    logout: async () => {},
+    // Action Stubs
     saveDiscoveredIdentities: async () => ({ success: false, savedCount: 0 }),
-    loadDiscoveredIdentities: async () => null,
-    clearDiscoveredIdentities: async () => ({ success: false }),
+    connectWithSingleKey: async () => ({ success: false }),
     saveKeys: async () => ({ success: false }),
-    saveToStorage: async () => {},
     loadFromStorage: async () => {},
+    saveToStorage: async () => {},
     clearStorage: async () => {},
-    loadKeystore: async () => ({ success: false }),
-    deleteIdentity: async () => ({ success: false }),
-    saveIdentityWithKeys: async () => ({ success: false }),
-    saveIdentity: async () => ({ success: false }),
-    searchUserIdentities: async () => ({ success: false }),
-    queryIdentityDetails: async () => ({ success: false }),
-    getPublicKeys: async () => ({ success: false }),
-    getCurrentNetwork: async () => 'mainnet',
+    getCurrentNetwork: async () => 'testnet',
+    clearConnectionError: () => {},
     saveMnemonicToStore: async () => {},
-    loadMnemonic: async () => null,
-    loadSettings: async () => null,
     saveIdentityDataToStore: async () => {},
-    switchIdentity: async () => ({ success: false, error: 'Not implemented' }),
-    resetStoreState: () => {},
-    clearConnectionError: () => {}
 })

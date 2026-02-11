@@ -4,15 +4,12 @@ import { KeyDiscovery } from './KeyDiscovery'
 import { SeedDiscovery, type ProgressCallback } from './SeedDiscovery'
 import { DAPIService } from './DAPIService'
 import { KeyDerivationService } from '../keyDerivation.service'
-import {
-    type IDiscoveredIdentity
-} from '@/bindings'
 import type {
     DiscoveryResult,
     DiscoveryOptions,
     IIdentityActions,
-} from '@/types'
-
+    DiscoveredIdentity,
+} from '@/types/identity'
 export class IdentityManager {
     private keyDiscovery: KeyDiscovery
     private seedDiscovery: SeedDiscovery
@@ -38,17 +35,6 @@ export class IdentityManager {
     ): Promise<DiscoveryResult> {
         return await this.seedDiscovery.discover(seedPhrase, options)
     }
-    async discover(
-        input: string,
-        options: DiscoveryOptions = { network: 'testnet' }
-    ): Promise<DiscoveryResult> {
-        if (!input?.trim()) return { success: false, error: 'Invalid input.' }
-        const words = input.trim().split(/\s+/)
-        if (words.length === 12 || words.length === 24) {
-            return this.discoverFromSeed(input, options)
-        }
-        return this.discoverFromKey(input, options)
-    }
     async getIdentityById(
         identityId: string,
         network: 'mainnet' | 'testnet' = 'testnet'
@@ -58,18 +44,24 @@ export class IdentityManager {
             if (result.success && result.data) {
                 const id = result.data.identityId
                 const dpnsUsername = await DAPIService.getDPNSUsername(id, network)
-                const identity: IDiscoveredIdentity = {
+                const identity: DiscoveredIdentity = {
                     identityId: id,
-                    balance: result.data.balance?.toString() || '0',
                     identityIdx: 0,
+                    balance: result.data.balance?.toString() || '0',
+                    revision: Number(result.data.revision || 0),
                     dpnsUsername: dpnsUsername || null,
-                    keyType: 'identity_id',
-                    discoveredAt: new Date().toISOString()
+                    publicKeys: (result.data.publicKeys || []).map((pk: any, idx: number) => ({
+                        idx,
+                        keyType: pk.keyType,
+                        purpose: pk.purpose,
+                        securityLevel: pk.securityLevel,
+                        data: pk.data,
+                        readOnly: pk.readOnly
+                    }))
                 }
                 return {
                     success: true,
-                    identity: identity as any,
-                    identities: null
+                    identities: [identity]
                 }
             }
             return { success: false, error: 'No identity found' }
