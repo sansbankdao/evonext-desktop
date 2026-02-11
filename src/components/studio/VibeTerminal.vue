@@ -30,9 +30,9 @@ async function askVibe() {
 
     try {
         const response = await invoke<string>('ask_vibe_terminal', {
-            prompt: userPrompt,
+            convoid: props.activeTab,
             context: props.contextCode,
-            fileName: props.activeTab
+            prompt: userPrompt,
         })
         chatHistory.value.push({ role: 'assistant', content: response })
     } catch (e) {
