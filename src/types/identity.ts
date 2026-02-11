@@ -2,13 +2,8 @@
 
 //@ts-nocheck
 import type { IIdentityData, IPrivateKeyEntry } from '@/bindings'
-
 export type PurposeType = 0 | 1 | 2 | 3
 export type SecurityLevelType = 0 | 1 | 2 | 3 | 4
-
-/**
- * Structure of a private key stored in the local keystore.
- */
 export interface PrivateKeyEntry {
     identityId: string;
     keyId: number;
@@ -20,7 +15,6 @@ export interface PrivateKeyEntry {
     derivedFromMnemonic: boolean;
     createdAt: string;
 }
-
 export interface IPublicKey {
     idx: number;
     type?: number;
@@ -33,7 +27,6 @@ export interface IPublicKey {
     readOnly: boolean;
     disabledAt?: string | null;
 }
-
 export interface IUser {
     identityId: string;
     username: string;
@@ -43,7 +36,6 @@ export interface IUser {
     verified?: boolean;
     bio?: string;
 }
-
 export interface IIdentity {
     identityId: string;
     identityIdx: number;
@@ -56,7 +48,6 @@ export interface IIdentity {
     isAuthenticated?: boolean;
     createdAt?: number;
 }
-
 export interface DiscoveredIdentity {
     identityId: string;
     identityIdx: number;
@@ -66,30 +57,37 @@ export interface DiscoveredIdentity {
     revision?: number;
     dpnsUsername?: string | null;
 }
-
+export interface RustDiscoveredIdentity {
+    identity_id: string;
+    identity_idx: number;
+    dpns_username: string | null;
+    balance: string | null;
+    key_type: 'seed' | 'private';
+    discovered_key: string | null;
+    discovered_at: string;
+}
+export interface RustDiscoveredIdentitiesStore {
+    identities: Record<string, RustDiscoveredIdentity>;
+}
 export interface DiscoveryProgress {
     currentIdentityIndex: number;
     totalIdentities: number;
     scannedCount: number;
     foundCount: number;
 }
-
 export interface DiscoveryOptions {
     network: 'mainnet' | 'testnet';
     checkPortfolios?: boolean;
 }
-
 export interface ScanProgress {
     phase: string;
     progress: number;
 }
-
 export interface ConnectionResult {
     success: boolean;
     identityId?: string;
     error?: string;
 }
-
 export interface IIdentityActions {
     connectWithSeed: (phrase: string, net: string, id: string, idx: number) => Promise<ConnectionResult>;
     connectWithPrivateKey: (key: string, id: string, net: string) => Promise<ConnectionResult>;
@@ -112,7 +110,6 @@ export interface IIdentityActions {
     getCurrentNetwork: () => Promise<string>;
     loadKeystore: (network: string) => Promise<any>;
 }
-
 export interface IIdentityState extends IIdentityActions {
     identityId: string | null;
     identityIdx: number;
@@ -133,7 +130,6 @@ export interface IIdentityState extends IIdentityActions {
     discoveryProgress: DiscoveryProgress | null;
     identities: Record<string, IIdentity>;
 }
-
 export interface DiscoveryResult {
     success: boolean;
     identities?: DiscoveredIdentity[];

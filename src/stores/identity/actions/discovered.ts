@@ -1,4 +1,5 @@
-// src/stores/identity/actions/discovered.ts - NEW FILE
+// src/stores/identity/actions/discovered.ts
+
 import { invoke } from '@/utils/tauri'
 import type { IIdentityState, DiscoveredIdentity, RustDiscoveredIdentitiesStore } from '@/types'
 import { log } from '@/utils/env'

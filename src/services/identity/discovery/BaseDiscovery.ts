@@ -19,6 +19,24 @@ export abstract class BaseDiscovery {
     protected validateNetwork(network?: 'mainnet' | 'testnet'): 'mainnet' | 'testnet' {
         return network || this.network
     }
+    protected isSeedPhrase(input: string): boolean {
+        return typeof input === 'string' && input.trim().split(/\s+/).length >= 12
+    }
+    protected isPrivateKey(input: string): boolean {
+        // Basic check for hex or WIF length
+        return typeof input === 'string' && (input.length === 64 || input.length === 51 || input.length === 52)
+    }
+    protected isPublicKey(input: string): boolean {
+        return typeof input === 'string' && (input.length === 66 || input.length === 130)
+    }
+    protected extractAssociatedKeys(keys: any[]): any[] {
+        return Array.isArray(keys) ? keys : []
+    }
+    protected handleError(error: any, context: string): DiscoveryResult {
+        const message = error instanceof Error ? error.message : String(error)
+        console.error(`[Discovery][${context}]`, message)
+        return this.createErrorResult(message, this.createDebugInfo(context, { error: message }))
+    }
     protected parseIdentityData(identityData: any): DiscoveredIdentity {
         return {
             identityId: identityData.identityId || identityData.id || '',

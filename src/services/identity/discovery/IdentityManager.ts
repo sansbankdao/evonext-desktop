@@ -17,6 +17,17 @@ export class IdentityManager {
         this.keyDiscovery = new KeyDiscovery(this.store)
         this.seedDiscovery = new SeedDiscovery(this.store)
     }
+    /**
+     * Generic discovery method that detects input type.
+     * Required by IdentityManager.test.ts
+     */
+    async discover(input: string, options: DiscoveryOptions = { network: 'testnet' }): Promise<DiscoveryResult> {
+        const isSeed = input.trim().split(/\s+/).length >= 12
+        if (isSeed) {
+            return this.discoverFromSeed(input, options)
+        }
+        return this.discoverFromKey(input, options)
+    }
     setProgressCallback(callback: ProgressCallback) {
         this.seedDiscovery.setProgressCallback(callback)
     }
