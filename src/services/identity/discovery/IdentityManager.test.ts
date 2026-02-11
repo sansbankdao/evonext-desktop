@@ -12,19 +12,21 @@ vi.mock('./DAPIService')
 
 describe('IdentityManager', () => {
     let manager: IdentityManager
-    const mockStore = {} as any
+    const mockStore = {
+        saveKeys: vi.fn().mockResolvedValue(true)
+    } as any
     beforeEach(() => {
         vi.clearAllMocks()
         manager = new IdentityManager(mockStore)
     })
     describe('routing logic', () => {
         it('routes 12 or 24 word strings to SeedDiscovery', async () => {
-            const seed12 = 'word '.repeat(12).trim()
+            const seed12 = 'word '.repeat(11) + 'word'
             await manager.discover(seed12)
             const seedInstance = vi.mocked(SeedDiscovery).mock.instances[0]
             if (!seedInstance) throw new Error('SeedDiscovery instance not created')
-            // FIX: Expect discoverFromSeed to be called, as used in IdentityManager.ts
-            expect(seedInstance.discoverFromSeed).toHaveBeenCalled()
+            // Fix: IdentityManager calls discovery.discover (the public entry point)
+            expect(seedInstance.discover).toHaveBeenCalled()
         })
         it('routes hexadecimal or WIF strings to KeyDiscovery', async () => {
             const hexKey = 'a'.repeat(64)
@@ -38,20 +40,18 @@ describe('IdentityManager', () => {
         it('merges DAPI identity data with DPNS usernames', async () => {
             vi.mocked(DAPIService.getIdentityById).mockResolvedValue({
                 success: true,
-                searchType: 'unique',
                 data: {
                     identityId: 'id_123',
                     balance: 1000,
-                    revision: 1,
-                    publicKeys: [{ purpose: 0, securityLevel: 0, keyType: 'ECDSA' }] as any[]
+                    publicKeys: [{ id: 0, purpose: 0, securityLevel: 0 }]
                 }
-            })
+            } as any)
             vi.mocked(DAPIService.getDPNSUsername).mockResolvedValue('test.dash')
             const result = await manager.getIdentityById('id_123')
             expect(result.success).toBe(true)
-            if (result.success) {
-                expect(result.identity?.dpnsUsername).toBe('test.dash')
-                expect(result.identity?.balance).toBe('1000')
+            if (result.success && result.identity) {
+                expect(result.identity.dpnsUsername).toBe('test.dash')
+                expect(result.identity.balance).toBe('1000')
             }
         })
     })

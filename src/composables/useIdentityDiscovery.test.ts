@@ -1,21 +1,55 @@
 // src/composables/useIdentityDiscovery.test.ts
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { setActivePinia, createPinia } from 'pinia'
 import { useIdentityDiscovery } from './useIdentityDiscovery'
+
+// Mock dependencies
 vi.mock('./useNetwork', () => ({
     useNetwork: () => ({
         ensure: vi.fn().mockResolvedValue('testnet')
     })
 }))
+
 vi.mock('@/utils/env', () => ({
     log: vi.fn(),
     getDapiEndpoint: () => 'https://mock-api.dev'
 }))
+
+// Mock the identity store to prevent runtime errors during initialization
+vi.mock('@/stores/identity', () => ({
+    useIdentityStore: () => ({
+        network: 'testnet',
+        connectionError: null,
+        identityId: null,
+        identity: null,
+        balance: '0',
+        publicKeys: [],
+        revision: 0,
+        username: null,
+        displayName: null,
+        premiumAccess: false,
+        isConnecting: false,
+        isAuthenticated: false,
+        isConnected: false,
+        lastConnected: null,
+        saveKeys: vi.fn().mockResolvedValue(undefined),
+        saveIdentityDataToStore: vi.fn().mockResolvedValue(undefined),
+        saveMnemonicToStore: vi.fn().mockResolvedValue(undefined),
+        getCurrentNetwork: vi.fn().mockResolvedValue('testnet'),
+        loadSettings: vi.fn().mockResolvedValue(undefined),
+        logout: vi.fn().mockResolvedValue(undefined),
+        resetStoreState: vi.fn()
+    })
+}))
 describe('useIdentityDiscovery Composable', () => {
-    const discovery = useIdentityDiscovery()
+    let discovery: ReturnType<typeof useIdentityDiscovery>
     beforeEach(() => {
+        // Ensure Pinia is active for each test
+        setActivePinia(createPinia())
         vi.clearAllMocks()
         vi.stubGlobal('fetch', vi.fn())
+        discovery = useIdentityDiscovery()
     })
     describe('Key Detection & Utils', () => {
         it('detectKeyType should identify WIF and HEX', () => {

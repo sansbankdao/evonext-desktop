@@ -13,7 +13,15 @@ export function connectWriteOnlyActions() {
             identity: DiscoveredIdentity,
             seedPhrase: string
         ): Promise<ConnectionResult> {
-            if (!identity?.identityId || !seedPhrase) return { success: false, error: 'Missing input' }
+            // Updated to match test expectations
+            if (!identity?.identityId) {
+                this.connectionError = 'No discovered identity'
+                return { success: false, error: this.connectionError }
+            }
+            if (!seedPhrase) {
+                this.connectionError = 'Seed phrase is required'
+                return { success: false, error: this.connectionError }
+            }
             this.isConnecting = true
             this.connectionError = null
             try {
@@ -27,7 +35,7 @@ export function connectWriteOnlyActions() {
                 for (let i = 0; i < publicKeys.length; i++) {
                     const pk = publicKeys[i]
                     const keyId = pk?.id !== undefined ? Number(pk.id) : i
-                    if (keyId > 10) continue
+                    if (keyId > 20) continue // Security/Performance boundary
                     try {
                         const res = await KeyDerivationService.getPrivateKeyWASM(
                             seedPhrase,
@@ -35,18 +43,20 @@ export function connectWriteOnlyActions() {
                             identity.identityIdx || 0,
                             keyId
                         )
-                        privateKeyEntries.push({
-                            identityId: identity.identityId,
-                            keyId,
-                            purpose: Number(pk?.purpose ?? 0),
-                            securityLevel: Number(pk?.securityLevel ?? 0),
-                            keyType: String(pk?.keyType || 'ECDSA_HASH160'),
-                            privateKey: res.privateKey.WIF(),
-                            publicKey: pk?.data || binToHex(res.publicKeyBytes),
-                            derivedFromMnemonic: true,
-                            createdAt: new Date().toISOString()
-                        })
-                    } catch (e) { /* skip */ }
+                        if (res?.privateKey) {
+                            privateKeyEntries.push({
+                                identityId: identity.identityId,
+                                keyId,
+                                purpose: Number(pk?.purpose ?? 0),
+                                securityLevel: Number(pk?.securityLevel ?? 0),
+                                keyType: String(pk?.keyType || 'ECDSA_HASH160'),
+                                privateKey: res.privateKey.WIF(),
+                                publicKey: pk?.data || (res.publicKeyBytes ? binToHex(res.publicKeyBytes) : ''),
+                                derivedFromMnemonic: true,
+                                createdAt: new Date().toISOString()
+                            })
+                        }
+                    } catch (e) { /* continue */ }
                 }
                 if (privateKeyEntries.length > 0) {
                     await this.saveKeys(network, identity.identityId, privateKeyEntries)
