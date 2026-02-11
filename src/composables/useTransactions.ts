@@ -1,4 +1,5 @@
 // src/composables/useTransactions.ts
+
 import { computed, ref } from 'vue'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 import { usePlatform } from './usePlatform'
@@ -12,6 +13,7 @@ import type {
     ITransaction,
     TokenTransition
 } from '@/types'
+
 // FIXED: Made privateKey explicitly optional to prevent 'exactOptionalPropertyTypes' errors
 interface SendCreditParams {
     identityId: string

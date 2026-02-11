@@ -1,4 +1,5 @@
 // src/composables/useDocuments.ts
+
 import { computed, ref } from 'vue'
 import { PrivateKeyWASM } from 'pshenmic-dpp'
 import { usePlatform } from './usePlatform'
@@ -11,6 +12,7 @@ import type {
     ITxSuccess,
     ITxError,
 } from '@/types'
+
 export function useDocuments() {
     const platform = usePlatform()
     const keys = useKeyManagement()
