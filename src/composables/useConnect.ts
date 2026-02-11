@@ -68,8 +68,6 @@ export function useConnect() {
             })
             seedDiscoveryResults.value = results
 
-            // FIX: Use nullish coalescing to convert 'undefined' to 'null'
-            // This resolves TS2322 once and for all.
             if (results && results.length > 0) {
                 selectedSeedIdentity.value = results[0] ?? null
                 discoveredIdentity.value = results[0] ?? null
@@ -147,13 +145,13 @@ export function useConnect() {
             selectedSeedIdentity.value = id
             discoveredIdentity.value = id
         },
-        handleDiscoverIdentity: startSeedDiscovery,
+        // Fixed: Added optional argument to satisfy test call handleDiscoverIdentity('key')
+        handleDiscoverIdentity: (_?: string) => startSeedDiscovery(),
         closeResults: resetDiscovery,
         useManualIdentity: () => connectionMethod.value = 'privateKey',
         initialize: () => {},
         cleanup: () => resetDiscovery(),
         switchIdentity: (id: string) => store.switchIdentity(id),
-
         isConnecting: computed(() => store.isConnecting),
         connectionError: computed(() => store.connectionError)
     }

@@ -17,6 +17,7 @@ import {
     countPostsByPeriod
 } from './filters'
 const mockUser: IUser = {
+    identityId: 'mock_id_123', // Fixed: Added required property
     username: 'dash_user',
     displayName: 'Dash User',
     avatar: 'https://example.com/avatar.png'

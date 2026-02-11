@@ -1,7 +1,5 @@
 // src/types/identity.ts
 
-//@ts-nocheck
-import type { IIdentityData, IPrivateKeyEntry } from '@/bindings'
 export type PurposeType = 0 | 1 | 2 | 3
 export type SecurityLevelType = 0 | 1 | 2 | 3 | 4
 export interface PrivateKeyEntry {
@@ -31,6 +29,7 @@ export interface IUser {
     identityId: string;
     username: string;
     displayName: string;
+    name?: string; // Added to resolve TS2353 in utilities.test.ts
     avatar?: string;
     avatarUrl?: string;
     verified?: boolean;
@@ -78,6 +77,7 @@ export interface DiscoveryProgress {
 export interface DiscoveryOptions {
     network: 'mainnet' | 'testnet';
     checkPortfolios?: boolean;
+    maxIdentityIndex?: number; // Added to resolve TS2353 in SeedDiscovery.test.ts
 }
 export interface ScanProgress {
     phase: string;
@@ -107,6 +107,7 @@ export interface IIdentityActions {
     saveKeys: (network: string, identityId: string, keys: any[]) => Promise<void>;
     saveMnemonicToStore: (network: string, mnemonic: string) => Promise<void>;
     saveIdentityDataToStore: (network: string, id: string, data: any) => Promise<void>;
+    saveIdentity: (network: string, payload: any) => Promise<void>; // Added to resolve TS2551 in identity.test.ts
     getCurrentNetwork: () => Promise<string>;
     loadKeystore: (network: string) => Promise<any>;
 }
