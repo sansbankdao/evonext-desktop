@@ -30,7 +30,7 @@ pub fn setup_menus<R: Runtime>(app_handle: &AppHandle<R>) -> tauri::Result<()> {
 
     // 3. Studio Menu
     let studio_menu = SubmenuBuilder::new(app_handle, "Studio")
-        .text("studio", "Open Studio")
+        .text("studio", "Creator Studio")
         .text("launcher", "Token Launcher")
         .build()?;
 
