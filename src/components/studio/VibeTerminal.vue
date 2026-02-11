@@ -33,13 +33,11 @@ async function askVibe() {
         context: props.contextCode,
         prompt: userPrompt,
     }
-alert(`DOMINO REQUEST ${JSON.stringify(request)}`)
+
     try {
         const response = await invoke<string>('ask_vibe_terminal', request)
-alert(`DOMINO RESPONSE ${JSON.stringify(response)}`)
         chatHistory.value.push({ role: 'assistant', content: response })
     } catch (e) {
-alert(JSON.stringify(e))
         chatHistory.value.push({ role: 'assistant', content: "Error connecting to Vibe Terminal." })
     } finally {
         isThinking.value = false
