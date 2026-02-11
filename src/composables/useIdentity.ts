@@ -3,7 +3,7 @@
 import { ref, computed } from 'vue'
 import { invoke } from '@/utils/tauri'
 import { useIdentityStore } from '@/stores/identity'
-import type { IIdentity, IPublicKey } from '@/types/identity'
+import type { IIdentity, IPublicKey, DiscoveryResult } from '@/types/identity'
 
 export function useIdentity() {
     const store = useIdentityStore()
@@ -13,25 +13,23 @@ export function useIdentity() {
         await store.loadFromStorage()
     }
 
-    const refreshIdentity = async () => {
-        await store.refreshIdentity()
+    const getIdentityIdx = (identityId: string): number => {
+        return store.identities[identityId]?.identityIdx ?? 0
     }
 
-    const logout = async () => {
-        await store.clearStorage()
-    }
-
-    const getDpnsUsername = async (identityId: string) => {
+    const discoverIdentities = async (mnemonic: string): Promise<DiscoveryResult> => {
         try {
-            const name = await invoke<string>('get_dpns_name', { identityId })
-            return { success: true, data: name }
+            const results = await invoke<any[]>('discover_identities_from_seed', {
+                mnemonic,
+                network: 'testnet'
+            })
+            return { success: true, identities: results }
         } catch (e) {
             return { success: false, error: String(e) }
         }
     }
 
     return {
-        // State
         activeIdentity,
         identityId: computed(() => store.identityId),
         isConnected: computed(() => store.isConnected),
@@ -39,16 +37,25 @@ export function useIdentity() {
         balance: computed(() => store.balance),
         publicKeys: computed(() => store.publicKeys),
 
-        // Methods
         init,
-        refreshIdentity,
-        logout,
-        getDpnsUsername,
+        refreshIdentity: () => store.refreshIdentity(),
+        logout: () => store.clearStorage(),
+        getIdentityIdx,
+        discoverIdentities,
 
-        // Passthroughs to Store Actions
-        searchUserIdentities: () => store.searchUserIdentities(),
+        getDpnsUsername: async (identityId: string) => {
+            try {
+                const name = await invoke<string>('get_dpns_name', { identityId })
+                return { success: true, data: name }
+            } catch (e) {
+                return { success: false, error: String(e) }
+            }
+        },
+
+        searchUserIdentities: async () => store.searchUserIdentities(),
         queryIdentityDetails: (id: string, idx: number) => store.refreshIdentity(),
-        connect: (key: string, opts: any) => store.connectWithPrivateKey(key, opts.discoveredId, 'testnet'),
+        connect: (key: string, opts: any) =>
+            store.connectWithPrivateKey(key, opts?.discoveredId || '', 'testnet'),
 
         hasTransferKey: computed(() => {
             return store.publicKeys.some(k => k.purpose === 1 || k.purpose === 3)

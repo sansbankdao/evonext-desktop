@@ -3,26 +3,18 @@
 import type { IIdentityState, IIdentity, IPublicKey, DiscoveryProgress } from '@/types/identity'
 
 export const useIdentityState = (): IIdentityState => ({
-    // Identification
     identityId: null,
     identityIdx: 0,
     username: null,
     displayName: "",
     identity: null,
-
-    // Storage
     identities: {} as Record<string, IIdentity>,
-
-    // Assets
     balance: '0',
+    formattedBalance: '0.00 DASH',
     balanceBigInt: BigInt(0),
     dashBigInt: BigInt(0),
-
-    // Protocol Data
     publicKeys: [] as IPublicKey[],
     revision: 0,
-
-    // Auth & UI State
     isAuthenticated: false,
     isConnected: false,
     isConnecting: false,
@@ -30,8 +22,7 @@ export const useIdentityState = (): IIdentityState => ({
     connectionError: null,
     discoveryProgress: null as DiscoveryProgress | null,
 
-    // Action Stubs (Required for interface compliance)
-    saveDiscoveredIdentities: async () => ({ success: false, savedCount: 0 }),
+    // Actions mapped as empty stubs for the state definition
     connectWithSeed: async () => ({ success: false }),
     connectWithPrivateKey: async () => ({ success: false }),
     connectWriteOnlyFromDiscovered: async () => ({ success: false }),
@@ -46,4 +37,9 @@ export const useIdentityState = (): IIdentityState => ({
     saveToStorage: async () => {},
     clearStorage: async () => {},
     clearConnectionError: () => {},
+    saveKeys: async () => {},
+    saveMnemonicToStore: async () => {},
+    saveIdentityDataToStore: async () => {},
+    getCurrentNetwork: async () => 'testnet',
+    loadKeystore: async () => null,
 })

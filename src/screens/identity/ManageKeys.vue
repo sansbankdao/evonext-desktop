@@ -1,4 +1,4 @@
-<!-- src/screens/Identity/ManageKeys.vue -->
+<!-- src/screens/identity/ManageKeys.vue -->
 <template>
     <main>
         <Header :title="`Manage Keys - ${displayName}`" />
@@ -84,11 +84,13 @@
                                 <p class="text-slate-500">No keys registered</p>
                             </div>
                             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div v-for="key in keys" :key="key.id"
-                                     :class="`bg-white dark:bg-slate-800 rounded-xl border-2 transition-all duration-200 p-5 flex flex-col relative
-                                         ${key.disabledAt ? 'opacity-75 grayscale' : ''}
-                                         ${!localKeys[key.id!] ? 'border-amber-400 bg-amber-500/5' : 'border-slate-200 dark:border-slate-700'}
-                                     `">
+                                <div v-for="key in keys" :key="key.idx"
+                                    :class="[
+                                        'bg-white dark:bg-slate-800 rounded-xl border-2 transition-all duration-200 p-5 flex flex-col relative',
+                                        key.disabledAt ? 'opacity-75 grayscale' : '',
+                                        !localKeys[key.idx] ? 'border-amber-400 bg-amber-500/5' : 'border-slate-200 dark:border-slate-700'
+                                    ]"
+                                >
                                     <div class="flex items-start justify-between mb-4">
                                         <div class="space-y-3 flex-1">
                                             <div class="flex items-center gap-3">
@@ -101,14 +103,14 @@
                                                     <h3 class="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-wide">
                                                         {{ getPurposeLabel(key.purpose) }}
                                                         <span v-if="key.disabledAt" class="text-xs text-red-500 border border-red-200 px-2 py-0.5 rounded">Disabled</span>
-                                                        <span v-if="!localKeys[key.id!]" class="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-md font-bold">Orphaned</span>
+                                                        <span v-if="!localKeys[key.idx]" class="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-md font-bold">Orphaned</span>
                                                     </h3>
                                                     <div class="flex flex-wrap gap-2 mt-1">
                                                         <span :class="getSecurityLevelClass(key.securityLevel)" class="px-2 py-0.5 text-xs font-semibold rounded-full border border-transparent">
                                                             {{ getSecurityLevelLabel(key.securityLevel) }}
                                                         </span>
                                                         <span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs rounded-full border border-slate-200 dark:border-slate-600">
-                                                            {{ key.type }}
+                                                            {{ key.keyType }}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -116,7 +118,7 @@
                                             <div class="space-y-2 pl-13">
                                                 <div class="flex items-center justify-between text-sm">
                                                     <span class="text-slate-500 min-w-[60px]">Key ID:</span>
-                                                    <span class="font-mono text-xs bg-slate-50 dark:bg-slate-900 px-2 py-1 rounded text-slate-700">{{ key.id ?? 'N/A' }}</span>
+                                                    <span class="font-mono text-xs bg-slate-50 dark:bg-slate-900 px-2 py-1 rounded text-slate-700">{{ key.idx ?? 'N/A' }}</span>
                                                 </div>
                                                 <div v-if="key.data" class="text-sm">
                                                     <div class="text-slate-500 mb-1">Public Key Data:</div>
@@ -129,11 +131,11 @@
                                     </div>
                                     <!-- Key Availability Actions -->
                                     <div class="mt-auto pt-4">
-                                        <template v-if="!localKeys[key.id!]">
+                                        <template v-if="!localKeys[key.idx]">
                                             <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg mb-3">
                                                 <p class="text-[11px] text-amber-700 dark:text-amber-400 font-medium">Private key missing from local storage. Signing restricted.</p>
                                             </div>
-                                            <button @click="openImportModal(key.id!)" class="w-full flex items-center justify-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white py-2.5 px-4 text-xs font-bold transition-all shadow-md">
+                                            <button @click="openImportModal(key.idx)" class="w-full flex items-center justify-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white py-2.5 px-4 text-xs font-bold transition-all shadow-md">
                                                 Import Private Key
                                             </button>
                                         </template>
@@ -147,8 +149,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Debug Section & Actions Grid (Omitted for brevity but kept in final code) -->
-                    <!-- ... All existing Action components and footer sections ... -->
                 </div>
             </div>
             <!-- IMPORT MODAL -->
@@ -207,12 +207,9 @@ import { onMounted, ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { invoke } from '@/utils/tauri'
 import Header from '@/components/Header.vue'
-// import { useIdentityStore } from '@/stores/identity'
 import { useNetwork } from '@/composables/useNetwork'
 import type { IPublicKey } from '@/types'
-
 const route = useRoute()
-// const identityStore = useIdentityStore()
 const { ensure } = useNetwork()
 // Existing State
 const loading = ref(true)
@@ -231,69 +228,32 @@ const importKeyInput = ref('')
 const isDebugOpen = ref(false)
 const debugLiveStatus = ref<string>('Waiting')
 const debugLiveData = ref<any>(null)
-// const debugMapStatus = ref<string>('Waiting')
-// const debugMapData = ref<any>(null)
-
 const shortId = computed(() => {
     const id = identityId.value
     return id ? `${id.slice(0, 8)}...${id.slice(-8)}` : '...'
 })
-
 const hasTransferKey = computed(() => {
     return keys.value.some(key => key.purpose === 3 && !key.disabledAt)
 })
-
-// const checkLocalKeys = async () => {
-//     try {
-//         const activeNetwork = await ensure()
-//         // 1. Load the raw keystore
-//         const keystore: any = await invoke('load_private_keys', { network: activeNetwork })
-
-//         // 2. Get keys ONLY for this specific identity
-//         const identityPrivates = keystore?.identities?.[identityId.value] || []
-
-//         // 3. Create a map of IDs that actually have a private key entry saved
-//         const map: Record<number, boolean> = {}
-//         identityPrivates.forEach((k: any) => {
-//             // Only mark as locally present if the private_key field isn't empty
-//             if (k.privateKey && k.privateKey.length > 0) {
-//                 map[k.keyId] = true
-//             }
-//         })
-
-//         localKeys.value = map
-//         console.log(`[KeyManager] Local keys for ${identityId.value}:`, map)
-//     } catch (e) {
-//         console.warn('Failed to verify local keys', e)
-//     }
-// }
-
 const fetchData = async () => {
     loading.value = true
     debugLiveStatus.value = 'Syncing...'
-
     try {
         identityId.value = String(route.params.id)
-
         // 1. Resolve Network
         const activeNetwork = await ensure()
         network.value = activeNetwork as 'mainnet' | 'testnet'
-
         // 2. Load Local Keystore (safu) and map existence strictly
         console.log(`[KeyManager] Verifying local keys for ${identityId.value} in Keystore...`)
         const keystore: any = await invoke('load_private_keys', { network: network.value })
         const identityPrivates = keystore?.identities?.[identityId.value] || []
-
         const map: Record<number, boolean> = {}
         identityPrivates.forEach((k: any) => {
-            // Only consider a key present if the privateKey string is actually there
             if (k.privateKey && k.privateKey.trim().length > 0) {
                 map[k.keyId] = true
             }
         })
         localKeys.value = map
-        console.log(`[KeyManager] Verified local key mapping:`, map)
-
         // 3. Fetch Network Identity Details (SDK)
         debugLiveStatus.value = `Invoking get_identity_public_keys (${network.value})...`
         try {
@@ -301,15 +261,12 @@ const fetchData = async () => {
                 identityId: identityId.value,
                 network: network.value
             })
-
             debugLiveStatus.value = 'Success'
             debugLiveData.value = sdkData
-
             let keysList: any[] = sdkData?.publicKeys || sdkData?.keys || (Array.isArray(sdkData) ? sdkData : [])
-
             if (keysList.length > 0) {
                 keys.value = keysList.map((k: any) => ({
-                    id: k.id,
+                    idx: k.id !== undefined ? k.id : k.idx,
                     type: k.type || k.type_ || 'ECDSA_HASH160',
                     keyType: k.type || k.type_ || 'ECDSA_HASH160',
                     purpose: k.purpose,
@@ -318,23 +275,20 @@ const fetchData = async () => {
                     readOnly: k.readOnly ?? false,
                     disabledAt: k.disabledAt ?? null,
                 }))
-
                 displayName.value = sdkData.username || sdkData.displayName || identityId.value.slice(0, 8)
-                return // Exit on success
+                return
             }
             throw new Error('Empty Network Response')
         } catch (e: any) {
             console.warn('Network fetch failed, falling back to local identity map', e)
             debugLiveStatus.value = `Failed: ${e.message}. Using fallback.`
-
-            // 4. Fallback: Load from Identity Map (Rust identities file)
+            // 4. Fallback: Load from Identity Map
             const identityMap = await invoke<Record<string, any>>('load_identities_map', { network: network.value })
             if (identityMap && identityMap[identityId.value]) {
                 const rawData = identityMap[identityId.value]
                 displayName.value = rawData.username || rawData.displayName || identityId.value.slice(0, 8)
-
                 keys.value = (rawData.publicKeys || []).map((k: any) => ({
-                    id: k.id,
+                    idx: k.id !== undefined ? k.id : k.idx,
                     type: k.type || k.type_ || 'ECDSA_HASH160',
                     keyType: k.type || k.type_ || 'ECDSA_HASH160',
                     purpose: k.purpose,
@@ -352,15 +306,13 @@ const fetchData = async () => {
         loading.value = false
     }
 }
-
 const openImportModal = (id: number) => {
     targetKeyId.value = id
     importKeyInput.value = ''
     showImportModal.value = true
 }
-
 const handleImport = async () => {
-    if (!targetKeyId.value || !importKeyInput.value) return
+    if (targetKeyId.value === null || !importKeyInput.value) return
     try {
         const success = await invoke('save_imported_key', {
             identityId: identityId.value,
@@ -371,39 +323,46 @@ const handleImport = async () => {
         if (success) {
             showNotification('success', 'Key imported into local storage')
             showImportModal.value = false
-            await fetchData() // refresh UI
+            await fetchData()
         }
     } catch (e: any) {
         showNotification('error', `Import failed: ${e}`)
     }
 }
-
-// Helpers...
 const getPurposeLabel = (purpose: number) => {
     switch(purpose) {
-        case 0: return 'AUTHENTICATION'; case 1: return 'ENCRYPTION'; case 2: return 'DECRYPTION'; case 3: return 'TRANSFER'; default: return `Purpose ${purpose}`
+        case 0: return 'AUTHENTICATION';
+        case 1: return 'ENCRYPTION';
+        case 2: return 'DECRYPTION';
+        case 3: return 'TRANSFER';
+        default: return `Purpose ${purpose}`
     }
 }
-
 const getSecurityLevelLabel = (level: number) => {
     switch(level) {
-        case 0: return 'MASTER'; case 1: return 'CRITICAL'; case 2: return 'HIGH'; case 3: return 'MEDIUM'; case 4: return 'LOW'; default: return `Level ${level}`
+        case 0: return 'MASTER';
+        case 1: return 'CRITICAL';
+        case 2: return 'HIGH';
+        case 3: return 'MEDIUM';
+        case 4: return 'LOW';
+        default: return `Level ${level}`
     }
 }
-
 const getSecurityLevelClass = (level: number) => {
     if (level === 0) return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
     if (level === 1) return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
     if (level === 3) return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'
     return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
 }
-
-const getKeyIconClass = (purpose: number) => purpose === 3 ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
-const getKeyIcon = (purpose: number) => purpose === 3 ? 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' : 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'
+const getKeyIconClass = (purpose: number) =>
+    purpose === 3 ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
+const getKeyIcon = (purpose: number) =>
+    purpose === 3
+        ? 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'
+        : 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'
 const showUnimplemented = () => showNotification('info', 'Unimplemented')
 const showNotification = (type: any, message: string) => {
     window.dispatchEvent(new CustomEvent('notification', { detail: { type, message } }))
 }
-
 onMounted(fetchData)
 </script>

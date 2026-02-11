@@ -11,7 +11,6 @@ export interface IPublicKey {
     type?: number;
     keyType: string;
     purpose: PurposeType;
-    security_level?: number;
     securityLevel: SecurityLevelType;
     data?: string;
     dataBytes?: string;
@@ -60,6 +59,16 @@ export interface DiscoveryProgress {
     foundCount: number;
 }
 
+export interface DiscoveryOptions {
+    network: 'mainnet' | 'testnet';
+    checkPortfolios?: boolean;
+}
+
+export interface ScanProgress {
+    phase: string;
+    progress: number;
+}
+
 export interface ConnectionResult {
     success: boolean;
     identityId?: string;
@@ -67,27 +76,25 @@ export interface ConnectionResult {
 }
 
 export interface IIdentityActions {
-    // Connection
     connectWithSeed: (phrase: string, net: string, id: string, idx: number) => Promise<ConnectionResult>;
     connectWithPrivateKey: (key: string, id: string, net: string) => Promise<ConnectionResult>;
     connectWriteOnlyFromDiscovered: (id: DiscoveredIdentity, phrase: string) => Promise<ConnectionResult>;
-
-    // Refreshing
     refreshIdentity: () => Promise<void>;
     fetchBalance: () => Promise<void>;
     loadPublicKeys: () => Promise<IPublicKey[]>;
-
-    // Management
     switchIdentity: (identityId: string) => Promise<void>;
     deleteIdentity: (identityId: string) => Promise<void>;
     updateIdentityMetadata: (id: string, updates: Partial<IIdentity>) => Promise<void>;
     searchUserIdentities: () => Promise<IIdentity[]>;
-
-    // Storage
     loadFromStorage: () => Promise<void>;
     saveToStorage: () => Promise<void>;
     clearStorage: () => Promise<void>;
     clearConnectionError: () => void;
+    saveKeys: (network: string, identityId: string, keys: any[]) => Promise<void>;
+    saveMnemonicToStore: (network: string, mnemonic: string) => Promise<void>;
+    saveIdentityDataToStore: (network: string, id: string, data: any) => Promise<void>;
+    getCurrentNetwork: () => Promise<string>;
+    loadKeystore: (network: string) => Promise<any>;
 }
 
 export interface IIdentityState extends IIdentityActions {
@@ -97,8 +104,9 @@ export interface IIdentityState extends IIdentityActions {
     displayName: string | null;
     identity: IIdentity | null;
     balance: string;
-    balanceBigInt: bigint; // Restored for Overview.vue
-    dashBigInt: bigint;    // Restored for Overview.vue
+    formattedBalance: string;
+    balanceBigInt: bigint;
+    dashBigInt: bigint;
     publicKeys: IPublicKey[];
     revision: number;
     isAuthenticated: boolean;
@@ -113,6 +121,7 @@ export interface IIdentityState extends IIdentityActions {
 export interface DiscoveryResult {
     success: boolean;
     identities?: DiscoveredIdentity[];
+    identity?: DiscoveredIdentity;
     error?: string;
     debug?: any;
 }

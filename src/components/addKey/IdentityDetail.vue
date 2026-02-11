@@ -5,19 +5,16 @@
             <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
                 Selected Identity Details
             </h3>
-
             <div class="space-y-4">
                 <!-- Identifier -->
                 <div>
                     <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                         Identifier
                     </label>
-
                     <div class="font-mono text-sm bg-slate-200 dark:bg-slate-800 px-3 py-2 rounded-lg truncate">
-                        {{ identity.id }}
+                        {{ identity.identityId }}
                     </div>
                 </div>
-
                 <!-- Current Keys -->
                 <div>
                     <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -25,7 +22,6 @@
                     </label>
                     <div class="space-y-2">
                         <div v-for="(key, index) in identity.publicKeys || []"
-                             :key="getKeyIdentifier(key, index)"
                              class="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
                             <div class="space-y-1">
                                 <div class="flex items-center gap-2">
@@ -37,12 +33,10 @@
                                         {{ getSecurityLevelLabel(key.securityLevel) }}
                                     </span>
                                 </div>
-
                                 <div class="text-xs text-slate-500 dark:text-slate-400">
                                     {{ key.type || key.keyType }}
                                 </div>
                             </div>
-
                             <div class="text-right">
                                 <div v-if="key.readOnly" class="text-xs text-amber-600 dark:text-amber-400">
                                     Read Only
@@ -51,7 +45,6 @@
                         </div>
                     </div>
                 </div>
-
                 <!-- Transfer Key Status -->
                 <template v-if="hasTransferKey !== undefined">
                     <div v-if="hasTransferKey" class="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-4">
@@ -59,19 +52,16 @@
                             <svg class="h-5 w-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-
                             <div>
                                 <h4 class="font-semibold text-green-800 dark:text-green-300">
                                     TRANSFER Key Already Present
                                 </h4>
-
                                 <p class="text-sm text-green-700 dark:text-green-400">
                                     This identity already has a TRANSFER key, so sending transactions is already enabled.
                                 </p>
                             </div>
                         </div>
                     </div>
-
                     <div v-else class="rounded-lg bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-2 border-amber-400/30 p-4">
                         <div class="flex items-start gap-4">
                             <div class="flex-shrink-0">
@@ -81,38 +71,13 @@
                                     </svg>
                                 </div>
                             </div>
-
                             <div class="flex-1">
                                 <h4 class="text-lg font-semibold text-amber-800 dark:text-amber-300">
                                     TRANSFER Key Required
                                 </h4>
-
                                 <p class="mt-2 text-amber-700 dark:text-amber-400">
-                                    This identity is missing a TRANSFER key. Without it, you cannot send transactions. Adding a TRANSFER key will require a small fee for the identity update.
+                                    This identity is missing a TRANSFER key. Without it, you cannot send transactions.
                                 </p>
-
-                                <div class="mt-4 space-y-3">
-                                    <div class="flex items-center gap-2 text-sm">
-                                        <div class="size-2 rounded-full bg-amber-500"></div>
-                                        <span class="text-amber-700 dark:text-amber-300">
-                                            Enables sending credits and tokens
-                                        </span>
-                                    </div>
-
-                                    <div class="flex items-center gap-2 text-sm">
-                                        <div class="size-2 rounded-full bg-amber-500"></div>
-                                        <span class="text-amber-700 dark:text-amber-300">
-                                            Requires an identity update transaction
-                                        </span>
-                                    </div>
-
-                                    <div class="flex items-center gap-2 text-sm">
-                                        <div class="size-2 rounded-full bg-amber-500"></div>
-                                        <span class="text-amber-700 dark:text-amber-300">
-                                            Costs a small fee in credits
-                                        </span>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -121,21 +86,17 @@
         </div>
     </div>
 </template>
-
 <script setup lang="ts">
 import type { IIdentity, IPublicKey } from '@/types'
-
 defineProps<{
     identity?: IIdentity | null
     hasTransferKey?: boolean
 }>()
-
 const getKeyIdentifier = (key: IPublicKey, index: number): string => {
-    const purpose = typeof key.purpose === 'string' ? key.purpose : key.purpose.toString()
-    const securityLevel = typeof key.securityLevel === 'string' ? key.securityLevel : key.securityLevel.toString()
+    const purpose = String(key.purpose)
+    const securityLevel = String(key.securityLevel)
     return `${purpose}-${securityLevel}-${key.keyType}-${index}`
 }
-
 const getPurposeLabel = (purpose: number | string): string => {
     const purposeNum = typeof purpose === 'string' ? parseInt(purpose) : purpose
     switch(purposeNum) {
@@ -146,7 +107,6 @@ const getPurposeLabel = (purpose: number | string): string => {
         default: return `Purpose ${purpose}`
     }
 }
-
 const getSecurityLevelLabel = (level: number | string): string => {
     const levelNum = typeof level === 'string' ? parseInt(level) : level
     switch(levelNum) {
@@ -158,7 +118,6 @@ const getSecurityLevelLabel = (level: number | string): string => {
         default: return `Level ${level}`
     }
 }
-
 const getSecurityLevelClass = (level: number | string): string => {
     const levelNum = typeof level === 'string' ? parseInt(level) : level
     switch(levelNum) {
