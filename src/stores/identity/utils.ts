@@ -1,99 +1,75 @@
 // src/stores/identity/utils.ts
 
-// @ts-ignore
-import { binToHex } from '@evonext/utils'
+import type { IPublicKey, PurposeType, SecurityLevelType } from '@/types/identity'
 import { invoke } from '@/utils/tauri'
-import { DashPlatformSDK } from 'dash-platform-sdk'
-import type { IIdentity, IPublicKey } from '@/types'
 /**
- * Convert hex string to base64
- */
-export function hexHash160ToBase64(hex: string): string {
-    const matches = hex.match(/.{2}/g)
-    if (!matches) throw new Error(`Invalid hex string: ${hex}`)
-    const bytes = new Uint8Array(matches.map(byte => parseInt(byte, 16)))
-    return btoa(String.fromCharCode(...Array.from(bytes)))
-}
-/**
- * Create SDK instance for network
- */
-export function createSDK(network: 'testnet' | 'mainnet'): DashPlatformSDK {
-    return new DashPlatformSDK({ network })
-}
-/**
- * Save data to Tauri store with error handling
- */
-export async function saveToStore<T>(command: string, payload: T): Promise<void> {
-    try {
-        await invoke(command, { payload })
-    } catch (error) {
-        console.error(`Failed to save to ${command}:`, error)
-        throw error
-    }
-}
-/**
- * Load data from Tauri store with error handling
- */
-export async function loadFromStore<T>(command: string): Promise<T | null> {
-    try {
-        const data = await invoke<T>(command)
-        return data || null
-    } catch (error) {
-        console.error(`Failed to load from ${command}:`, error)
-        return null
-    }
-}
-/**
- * Transform SDK public keys to IdentityPublicKey format
+ * Transforms SDK Public Keys to our internal IPublicKey interface.
+ * 'idx' is the unique index within the identity.
  */
 export function transformPublicKeys(sdkKeys: any[]): IPublicKey[] {
-    return sdkKeys.map((key: any) => {
-        let hexData = ''
-        if (key.data instanceof Uint8Array) {
-            hexData = binToHex(key.data)
-        } else if (typeof key.data === 'string') {
-            hexData = key.data
-        }
-        return {
-            type: key.type_ || key.type || '',
-            keyType: key.type_ || key.type || '',
-            purpose: key.purpose || key.purposeNumber || 0,
-            securityLevel: key.security_level || key.securityLevel || key.securityLevelNumber || 0,
-            data: hexData,
-            dataBytes: hexData,
-            readOnly: key.read_only || key.readOnly || false,
-            disabledAt: key.disabled_at || key.disabledAt || null,
-            createdAt: key.created_at || null
-        }
-    })
+    if (!Array.isArray(sdkKeys)) return []
+    return sdkKeys.map((key: any) => ({
+        idx: key.id !== undefined ? key.id : (key.idx !== undefined ? key.idx : 0),
+        type: key.type,
+        keyType: key.keyType || 'ECDSA_HASH160',
+        purpose: (key.purpose ?? 0) as PurposeType,
+        securityLevel: (key.securityLevel ?? 0) as SecurityLevelType,
+        data: key.data || '',
+        dataBytes: key.dataBytes || '',
+        dataB64: key.dataB64 || '',
+        readOnly: !!key.readOnly,
+        disabledAt: key.disabledAt || null
+    }))
 }
 /**
- * Validate identity data
+ * Validates the structure of identity data
  */
 export function validateIdentityData(data: any): boolean {
     return !!(
         data &&
-        typeof data.username === 'string' &&
         typeof data.identityId === 'string' &&
-        typeof data.identityIdx === 'number' &&
-        (data.balance === null || typeof data.balance === 'string') &&
-        typeof data.is_authenticated === 'boolean'
+        Array.isArray(data.publicKeys)
     )
 }
 /**
- * Create default identity data
+ * Converts a hex hash to Base64 (used for key comparisons)
  */
-export function createDefaultIdentityData(username: string = ''): IIdentity {
+export function hexHash160ToBase64(hex: string): string {
+    if (!hex) return ''
+    const buffer = Buffer.from(hex, 'hex')
+    return buffer.toString('base64')
+}
+/**
+ * High-level wrapper for loading store data from Tauri/Rust
+ */
+export async function loadFromStore<T>(key: string, network: string): Promise<T | null> {
+    try {
+        return await invoke<T>('load_from_store', { key, network })
+    } catch (e) {
+        console.error(`[StoreUtil] Failed to load ${key}:`, e)
+        return null
+    }
+}
+/**
+ * High-level wrapper for saving store data to Tauri/Rust
+ */
+export async function saveToStore(key: string, value: any, network: string): Promise<boolean> {
+    try {
+        await invoke('save_to_store', { key, value, network })
+        return true
+    } catch (e) {
+        console.error(`[StoreUtil] Failed to save ${key}:`, e)
+        return false
+    }
+}
+/**
+ * Creates a Dash SDK instance configuration
+ */
+export function createSDKConfig(network: 'mainnet' | 'testnet') {
     return {
-        identityId: '',
-        identityIdx: 0,
-        balance: '0',
-        revision: 0,
-        publicKeys: [],
-        username,
-        publicKeyIds: [],
-        isAuthenticated: false,
-        createdAt: 1234567890,
-        displayName: ''
+        network,
+        apps: {
+            dpns: { contractId: network === 'mainnet' ? '...' : '778q9o69u_placeholder' }
+        }
     }
 }

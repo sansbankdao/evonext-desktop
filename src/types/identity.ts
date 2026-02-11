@@ -2,8 +2,10 @@
 
 //@ts-nocheck
 import type { IIdentityData, IPrivateKeyEntry } from '@/bindings'
+
 export type PurposeType = 0 | 1 | 2 | 3
 export type SecurityLevelType = 0 | 1 | 2 | 3 | 4
+
 export interface IPublicKey {
     idx: number;
     type?: number;
@@ -17,6 +19,7 @@ export interface IPublicKey {
     readOnly: boolean;
     disabledAt?: string | null;
 }
+
 export interface IUser {
     identityId: string;
     username: string;
@@ -26,6 +29,7 @@ export interface IUser {
     verified?: boolean;
     bio?: string;
 }
+
 export interface IIdentity {
     identityId: string;
     identityIdx: number;
@@ -38,6 +42,7 @@ export interface IIdentity {
     isAuthenticated?: boolean;
     createdAt?: number;
 }
+
 export interface DiscoveredIdentity {
     identityId: string;
     identityIdx: number;
@@ -47,48 +52,44 @@ export interface DiscoveredIdentity {
     revision?: number;
     dpnsUsername?: string | null;
 }
+
 export interface DiscoveryProgress {
     currentIdentityIndex: number;
     totalIdentities: number;
     scannedCount: number;
     foundCount: number;
 }
+
 export interface ConnectionResult {
     success: boolean;
     identityId?: string;
     error?: string;
 }
+
 export interface IIdentityActions {
-    saveDiscoveredIdentities: (
-        identities: DiscoveredIdentity[],
-        network: string,
-        keyType: string
-    ) => Promise<any>;
-    connectWithSingleKey: (
-        privateKey: string,
-        identityId: string,
-        network: string,
-        preloaded?: any
-    ) => Promise<any>;
-    saveKeys: (
-        network: string,
-        identityId: string,
-        keys: any[]
-    ) => Promise<any>;
+    // Connection
+    connectWithSeed: (phrase: string, net: string, id: string, idx: number) => Promise<ConnectionResult>;
+    connectWithPrivateKey: (key: string, id: string, net: string) => Promise<ConnectionResult>;
+    connectWriteOnlyFromDiscovered: (id: DiscoveredIdentity, phrase: string) => Promise<ConnectionResult>;
+
+    // Refreshing
+    refreshIdentity: () => Promise<void>;
+    fetchBalance: () => Promise<void>;
+    loadPublicKeys: () => Promise<IPublicKey[]>;
+
+    // Management
+    switchIdentity: (identityId: string) => Promise<void>;
+    deleteIdentity: (identityId: string) => Promise<void>;
+    updateIdentityMetadata: (id: string, updates: Partial<IIdentity>) => Promise<void>;
+    searchUserIdentities: () => Promise<IIdentity[]>;
+
+    // Storage
     loadFromStorage: () => Promise<void>;
     saveToStorage: () => Promise<void>;
     clearStorage: () => Promise<void>;
-    getCurrentNetwork: () => Promise<string>;
     clearConnectionError: () => void;
-    saveMnemonicToStore: (
-        network: string,
-        phrase: string
-    ) => Promise<void>;
-    saveIdentityDataToStore: (
-        network: string,
-        identityId: string,any
-    ) => Promise<void>;
 }
+
 export interface IIdentityState extends IIdentityActions {
     identityId: string | null;
     identityIdx: number;
@@ -96,6 +97,8 @@ export interface IIdentityState extends IIdentityActions {
     displayName: string | null;
     identity: IIdentity | null;
     balance: string;
+    balanceBigInt: bigint; // Restored for Overview.vue
+    dashBigInt: bigint;    // Restored for Overview.vue
     publicKeys: IPublicKey[];
     revision: number;
     isAuthenticated: boolean;
@@ -106,18 +109,10 @@ export interface IIdentityState extends IIdentityActions {
     discoveryProgress: DiscoveryProgress | null;
     identities: Record<string, IIdentity>;
 }
+
 export interface DiscoveryResult {
     success: boolean;
     identities?: DiscoveredIdentity[];
     error?: string;
     debug?: any;
 }
-export interface DiscoveryOptions {
-    network: 'mainnet' | 'testnet';
-    maxIdentityIndex?: number;
-}
-export type RustDiscoveredIdentitiesStore = Record<string, DiscoveredIdentity>;
-export type PrivateKeyEntry = IPrivateKeyEntry;
-export type SDKIdentityDetails = any;
-export type ScanProgress = DiscoveryProgress;
-export type AssociatedKey = any;

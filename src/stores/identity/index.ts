@@ -2,26 +2,26 @@
 
 import { defineStore } from 'pinia'
 import { useIdentityState } from './state'
-import { useIdentityGetters } from './getters'
-import { connectionActions } from './actions/connection'
-import { balanceActions } from './actions/balance'
 import { identityActions } from './actions/identity'
-import { discoveredIdentitiesActions } from './actions/discovered'
-import { unifiedActions } from './actions/unified'
-import { connectWriteOnlyActions } from './actions/connectWriteOnly'
+import { connectionActions } from './actions/connection'
 
-// Combine all actions
-const useIdentityActions = {
-    ...connectionActions(),
-    ...identityActions(),
-    ...balanceActions(),
-    ...discoveredIdentitiesActions(),
-    ...unifiedActions(),
-    ...connectWriteOnlyActions(),
-}
-
+/**
+ * Identity Store
+ * Manages the active Dash Identity, local identity records, and connection state.
+ */
 export const useIdentityStore = defineStore('identity', {
-    state: () => useIdentityState(),
-    actions: useIdentityActions,
-    getters: useIdentityGetters,
+    state: useIdentityState,
+
+    getters: {
+        isConnectedComputed: (state) => !!state.identityId,
+        getGreeting: (state) => `Hello, ${state.displayName || 'User'}`,
+        publicKeysCount: (state) => state.publicKeys.length,
+        hasPublicKeys: (state) => state.publicKeys.length > 0,
+        identity: (state) => state.identityId ? state.identities[state.identityId] : null
+    },
+
+    actions: {
+        ...identityActions,
+        ...connectionActions
+    }
 })

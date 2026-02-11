@@ -1,11 +1,7 @@
 // src/stores/identity/state.ts
 
-import type {
-    IIdentityState,
-    IIdentity,
-    IPublicKey,
-    DiscoveryProgress
-} from '@/types/identity'
+import type { IIdentityState, IIdentity, IPublicKey, DiscoveryProgress } from '@/types/identity'
+
 export const useIdentityState = (): IIdentityState => ({
     // Identification
     identityId: null,
@@ -13,13 +9,19 @@ export const useIdentityState = (): IIdentityState => ({
     username: null,
     displayName: "",
     identity: null,
+
     // Storage
     identities: {} as Record<string, IIdentity>,
+
     // Assets
     balance: '0',
+    balanceBigInt: BigInt(0),
+    dashBigInt: BigInt(0),
+
     // Protocol Data
     publicKeys: [] as IPublicKey[],
     revision: 0,
+
     // Auth & UI State
     isAuthenticated: false,
     isConnected: false,
@@ -27,22 +29,21 @@ export const useIdentityState = (): IIdentityState => ({
     premiumAccess: false,
     connectionError: null,
     discoveryProgress: null as DiscoveryProgress | null,
-    // Action Stubs
-    saveDiscoveredIdentities: async () => ({
-        success: false,
-        savedCount: 0
-    }),
-    connectWithSingleKey: async () => ({
-        success: false
-    }),
-    saveKeys: async () => ({
-        success: false
-    }),
+
+    // Action Stubs (Required for interface compliance)
+    saveDiscoveredIdentities: async () => ({ success: false, savedCount: 0 }),
+    connectWithSeed: async () => ({ success: false }),
+    connectWithPrivateKey: async () => ({ success: false }),
+    connectWriteOnlyFromDiscovered: async () => ({ success: false }),
+    refreshIdentity: async () => {},
+    fetchBalance: async () => {},
+    loadPublicKeys: async () => [],
+    switchIdentity: async () => {},
+    deleteIdentity: async () => {},
+    updateIdentityMetadata: async () => {},
+    searchUserIdentities: async () => [],
     loadFromStorage: async () => {},
     saveToStorage: async () => {},
     clearStorage: async () => {},
-    getCurrentNetwork: async () => 'testnet',
     clearConnectionError: () => {},
-    saveMnemonicToStore: async () => {},
-    saveIdentityDataToStore: async () => {},
 })

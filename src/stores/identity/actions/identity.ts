@@ -1,215 +1,115 @@
 // src/stores/identity/actions/identity.ts
 
-import { commands } from '@/bindings'
-import type {
-    ISaveIdentityPayload,
-    IPrivateKeyEntry,
-    IIdentityData
-} from '@/bindings'
-import { ErrorBoundary } from '@/utils/errors'
-import { log } from '@/utils/env'
 import { useIdentity } from '@/composables/useIdentity'
-
-export const identityActions = () => ({
-    async saveIdentityWithKeys(this: any, network: string, identityPayload: any, keys: any[]) {
-        return await ErrorBoundary.wrap(async () => {
-            const sanitizedIdentity: ISaveIdentityPayload = {
-                identityId: identityPayload.identityId,
-                username: identityPayload.username || identityPayload.identityId || 'default_user',
-                identityIdx: identityPayload.identityIdx ?? 0,
-                dpnsUsername: identityPayload.dpnsUsername ?? null,
-                balance: String(identityPayload.balance ?? '0'),
-                publicKeys: identityPayload.publicKeys ?? [],
-                revision: identityPayload.revision ?? 0,
-                createdAt: identityPayload.createdAt ?? new Date().toISOString(),
-                activeIdentityId: identityPayload.activeIdentityId ?? identityPayload.identityId
-            }
-            const normalizedKeys: IPrivateKeyEntry[] = keys.map(k => {
-                const privateKey = k.privateKey ?? k.private_key
-                if (!privateKey) throw new Error('Missing privateKey in payload')
-                return {
-                    identityId: identityPayload.identityId,
-                    keyId: k.keyId ?? k.key_id ?? 0,
-                    purpose: k.purpose ?? 3,
-                    securityLevel: k.securityLevel ?? k.security_level ?? 0,
-                    keyType: k.keyType ?? k.key_type ?? 'ECDSA_SECP256K1',
-                    privateKey: privateKey,
-                    publicKey: k.publicKey ?? k.public_key ?? '',
-                    derivedFromMnemonic: k.derivedFromMnemonic ?? k.derived_from_mnemonic ?? true,
-                    createdAt: k.createdAt ?? k.created_at ?? new Date().toISOString(),
-                    lastUsed: new Date().toISOString()
-                }
-            })
-            const response = await commands.saveIdentityWithKeys(
-                network,
-                sanitizedIdentity,
-                normalizedKeys
-            )
-            if (response.status === 'error') throw new Error(response.error)
-
-            // Patch local RAM state for Identities
-            if (this.identities) {
-                const updatedIdentity: IIdentityData = {
-                    ...sanitizedIdentity,
-                    isAuthenticated: true,
-                    publicKeyIds: null
-                }
-                this.identities[identityPayload.identityId] = updatedIdentity
-                if (identityPayload.activeIdentityId || !this.identityId) {
-                    this.identityId = identityPayload.identityId
-                }
-            }
-
-            // Patch local RAM state for Keystore reactively
-            if (this.keystore) {
-                this.keystore = {
-                    ...this.keystore,
-                    identities: {
-                        ...this.keystore.identities,
-                        [identityPayload.identityId]: normalizedKeys
-                    }
-                }
-            }
-
-            log('debug', `Identity ${identityPayload.identityId} and keys saved atomically.`)
-            return response.data
-        }, 'SAVE_IDENTITY_WITH_KEYS_FAILED')
+import { invoke } from '@/utils/tauri'
+import type { IIdentityState, IIdentity, IPublicKey } from '@/types/identity'
+import { transformPublicKeys } from '../utils'
+export const identityActions = {
+    /**
+     * Lists all local identities stored in the system
+     */
+    async searchUserIdentities(this: IIdentityState) {
+        const identityComposable = useIdentity()
+        const response = await identityComposable.searchUserIdentities()
+        return response || []
     },
-
-    async saveIdentity(this: any, network: string, payload: any) {
-        return await ErrorBoundary.wrap(async () => {
-            const sanitizedPayload: ISaveIdentityPayload = {
-                identityId: payload.identityId,
-                username: payload.username || payload.identityId || 'default_user',
-                identityIdx: payload.identityIdx ?? 0,
-                dpnsUsername: payload.dpnsUsername ?? null,
-                balance: String(payload.balance ?? '0'),
-                publicKeys: payload.publicKeys ?? [],
-                revision: payload.revision ?? 0,
-                createdAt: payload.createdAt ?? new Date().toISOString(),
-                activeIdentityId: payload.activeIdentityId ?? payload.identityId
-            }
-            const response = await commands.saveIdentity(network, sanitizedPayload)
-            if (response.status === 'error') throw new Error(response.error)
-            if (this.identities) {
-                const updatedIdentity: IIdentityData = {
-                    ...sanitizedPayload,
-                    isAuthenticated: true,
-                    publicKeyIds: null
-                }
-                this.identities[payload.identityId] = updatedIdentity
-                if (payload.activeIdentityId || !this.identityId) {
-                    this.identityId = payload.identityId
-                }
-            }
-            log('debug', `Identity ${payload.identityId} saved and store patched.`)
-            return response.data
-        }, 'SAVE_IDENTITY_FAILED')
+    /**
+     * Switches the active identity and refreshes its data
+     */
+    async switchIdentity(this: IIdentityState, identityId: string) {
+        if (this.identityId === identityId) return
+        this.isConnecting = true
+        try {
+            const identity = this.identities[identityId]
+            if (!identity) throw new Error('Identity not found in local store')
+            this.identityId = identityId
+            this.identityIdx = identity.identityIdx
+            this.username = identity.username || null
+            this.displayName = identity.displayName || ""
+            await this.refreshIdentity()
+            await this.saveToStorage()
+        } catch (e) {
+            console.error('[IdentityStore] Switch failed:', e)
+        } finally {
+            this.isConnecting = false
+        }
     },
-
-    async saveKeys(this: any, network: string, identityId: string, keys: any[]) {
-        return await ErrorBoundary.wrap(async () => {
-            const normalizedKeys: IPrivateKeyEntry[] = keys.map(k => {
-                const privateKey = k.privateKey ?? k.private_key
-                if (!privateKey) {
-                    throw new Error('Missing privateKey in payload')
-                }
-                return {
-                    identityId: identityId,
-                    keyId: k.keyId ?? k.key_id ?? 0,
-                    purpose: k.purpose ?? 3,
-                    securityLevel: k.securityLevel ?? k.security_level ?? 0,
-                    keyType: k.keyType ?? k.key_type ?? 'ECDSA_SECP256K1',
-                    privateKey: privateKey,
-                    publicKey: k.publicKey ?? k.public_key ?? '',
-                    derivedFromMnemonic: k.derivedFromMnemonic ?? k.derived_from_mnemonic ?? true,
-                    createdAt: k.createdAt ?? k.created_at ?? new Date().toISOString(),
-                    lastUsed: new Date().toISOString()
-                }
-            })
-            const response = await commands.saveKeys(network, identityId, normalizedKeys)
-            if (response.status === 'error') throw new Error(response.error)
-
-            // Patch Keystore reactively
-            if (this.keystore) {
-                this.keystore = {
-                    ...this.keystore,
-                    identities: {
-                        ...this.keystore.identities,
-                        [identityId]: normalizedKeys
-                    }
-                }
-            }
-            return response.data
-        }, 'SAVE_KEYS_FAILED')
-    },
-
-    async loadKeystore(this: any, network: string) {
-        return await ErrorBoundary.wrap(async () => {
-            const response = await commands.loadKeystore(network)
-            if (response.status === 'error') throw new Error(response.error)
-
-            // FIX: Removed the 'if (this.keystore)' check so data is assigned
-            // even if the property was previously null.
-            this.keystore = response.data
-            return response.data
-        }, 'LOAD_KEYSTORE_FAILED')
-    },
-
-    async deleteIdentity(this: any, network: string, identityId: string | null = null) {
-        return await ErrorBoundary.wrap(async () => {
-            const response = await commands.deleteIdentity(network, identityId)
-            if (response.status === 'error') throw new Error(response.error)
-            if (identityId && this.identities) {
-                delete this.identities[identityId]
-                if (this.identityId === identityId) this.identityId = null
-                // Also remove from keystore
-                if (this.keystore?.identities) {
-                    delete this.keystore.identities[identityId]
-                }
-            } else {
-                this.identities = {}
-                this.identityId = null
-                if (this.keystore) this.keystore.identities = {}
-            }
-            return response.data
-        }, 'DELETE_IDENTITY_FAILED')
-    },
-
-    async searchUserIdentities(this: any) {
-        return await ErrorBoundary.wrap(async () => {
-            const identityComposable = useIdentity()
-            const response = await identityComposable.searchUserIdentities()
-            const identities = response.data || []
-            this.discoveredIdentities = identities
-            return identities
-        }, 'SEARCH_USER_IDENTITIES_FAILED')
-    },
-
-    async queryIdentityDetails(this: any, identityId: string, identityIdx: number, sdk?: any) {
-        return await ErrorBoundary.wrap(async () => {
-            const identityComposable = useIdentity()
-            const response = await identityComposable.queryIdentityDetails(identityId, identityIdx, sdk)
+    /**
+     * Refreshes the active identity data from the Dash Platform
+     */
+    async refreshIdentity(this: IIdentityState) {
+        if (!this.identityId) return
+        const identityComposable = useIdentity()
+        const currentIdx = this.identityIdx || 0
+        const response = await identityComposable.queryIdentityDetails(
+            this.identityId,
+            currentIdx
+        )
+        if (response.success && response.data) {
             const details = response.data
-            if (this.identities && this.identities[identityId]) {
-                this.identities[identityId] = { ...this.identities[identityId], ...details }
+            const updatedIdentity: IIdentity = {
+                ...this.identities[this.identityId],
+                identityId: this.identityId,
+                identityIdx: currentIdx,
+                balance: details.balance || '0',
+                revision: details.revision || 0,
+                publicKeys: transformPublicKeys(details.publicKeys || []),
+                username: details.username || this.username,
+                displayName: details.displayName || this.displayName
             }
-            return details
-        }, 'QUERY_IDENTITY_DETAILS_FAILED')
+            this.identities[this.identityId] = updatedIdentity
+            // Sync top-level state if it's the current identity
+            this.balance = updatedIdentity.balance
+            this.publicKeys = updatedIdentity.publicKeys
+            this.revision = updatedIdentity.revision
+            this.username = updatedIdentity.username || null
+        }
     },
-
-    async getPublicKeys(this: any) {
-        return await ErrorBoundary.wrap(async () => {
-            if (this.publicKeys?.length > 0) return this.publicKeys
-            if (this.identityId) {
-                const identityComposable = useIdentity()
-                const response = await identityComposable.queryIdentityDetails(
-                    this.identityId,
-                    this.identity?.identityIdx || 0
-                )
-                return response.data?.publicKeys || []
+    /**
+     * Removes an identity from the local store
+     */
+    async deleteIdentity(this: IIdentityState, identityId: string) {
+        if (this.identities[identityId]) {
+            delete this.identities[identityId]
+            if (this.identityId === identityId) {
+                this.identityId = null
+                this.isConnected = false
+                this.isAuthenticated = false
             }
-            return []
-        }, 'GET_PUBLIC_KEYS_FAILED')
+            await this.saveToStorage()
+            await invoke('delete_local_identity', { identityId })
+        }
+    },
+    /**
+     * Updates local metadata for an identity
+     */
+    async updateIdentityMetadata(
+        this: IIdentityState,
+        identityId: string,
+        updates: Partial<IIdentity>
+    ) {
+        if (this.identities[identityId]) {
+            this.identities[identityId] = {
+                ...this.identities[identityId],
+                ...updates
+            }
+            if (this.identityId === identityId) {
+                if (updates.username) this.username = updates.username
+                if (updates.displayName) this.displayName = updates.displayName
+            }
+            await this.saveToStorage()
+        }
+    },
+    /**
+     * Action-wrapped public key fetcher
+     */
+    async loadPublicKeys(this: IIdentityState): Promise<IPublicKey[]> {
+        if (!this.identityId) return []
+        const identityComposable = useIdentity()
+        const response = await identityComposable.getPublicKeys(
+            this.identityId,
+            this.identityIdx
+        )
+        return response.success ? transformPublicKeys(response.data.publicKeys) : []
     }
-})
+}

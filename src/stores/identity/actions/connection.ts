@@ -1,116 +1,137 @@
 // src/stores/identity/actions/connection.ts
 
 import { invoke } from '@/utils/tauri'
-import { ErrorBoundary } from '@/utils/errors'
-import { KeyDerivationService } from '@/services/identity/keyDerivation.service'
-import { DAPIService } from '@/services/identity/discovery/DAPIService'
-import { usePlatform } from '@/composables/usePlatform'
-import type { ConnectionResult, IIdentity, IPublicKey } from '@/types'
-export const connectionActions = () => ({
+import type {
+    IIdentityState,
+    ConnectionResult,
+    IPublicKey,
+    PurposeType,
+    SecurityLevelType
+} from '@/types/identity'
+import { transformPublicKeys, validateIdentityData } from '../utils'
+
+export const connectionActions = {
+    /**
+     * Connects using a 12/24 word seed phrase
+     */
     async connectWithSeed(
-        this: any,
+        this: IIdentityState,
         seedPhrase: string,
-        network: 'mainnet' | 'testnet' = 'testnet',
-        targetId: string,
-        identityIndex: number = 0
+        network: 'mainnet' | 'testnet',
+        identityId: string,
+        identityIndex: number
     ): Promise<ConnectionResult> {
-        return ErrorBoundary.wrap(async () => {
-            this.isConnecting = true
-            this.connectionError = null
-            try {
-                const { initialize, reset } = usePlatform()
-                await reset()
-                await initialize({
-                    network,
-                    wallet: { mnemonic: seedPhrase }
-                })
-                await this.saveMnemonicToStore(network, seedPhrase)
-                const fetchResult = await DAPIService.getIdentityById(targetId, network)
-                if (!fetchResult.success || !fetchResult.data) {
-                    throw new Error(fetchResult.error || 'Identity not found')
-                }
-                const identityData = fetchResult.data
-                const dapiKeys = identityData.publicKeys || []
-                const privateKeyEntries: any[] = []
-                // Map DAPI Keys to IPublicKey (adding 'id' index)
-                const mappedPublicKeys: IPublicKey[] = dapiKeys.map((pk, idx) => ({
-                    keyType: pk.keyType,
-                    purpose: pk.purpose as any,
-                    securityLevel: pk.securityLevel as any,
-                    data: pk.data,
-                    readOnly: pk.readOnly,
-                    disabledAt: pk.disabledAt
-                }))
-                // Derivation
-                for (let i = 0; i < mappedPublicKeys.length; i++) {
-                    const pk = mappedPublicKeys[i]!
-                    try {
-                        const res = await KeyDerivationService.getPrivateKeyWASM(
-                            seedPhrase, network, identityIndex, pk.id
-                        )
-                        privateKeyEntries.push({
-                            identityId: targetId,
-                            keyId: pk.id,
-                            purpose: pk.purpose,
-                            securityLevel: pk.securityLevel,
-                            keyType: pk.keyType,
-                            privateKey: res.privateKey.WIF(),
-                            publicKey: pk.data,
-                            createdAt: new Date().toISOString()
-                        })
-                    } catch (e) { /* skip */ }
-                }
-                const identityPayload: IIdentity = {
-                    identityId: targetId,
-                    identityIdx: identityIndex,
-                    balance: String(identityData.balance),
-                    revision: Number(identityData.revision),
-                    publicKeys: mappedPublicKeys
-                }
-                await this.saveIdentityWithKeys(network, identityPayload, privateKeyEntries)
-                // Update Store State
-                this.identityId = targetId
-                this.identity = identityPayload
-                this.publicKeys = mappedPublicKeys
-                this.balance = identityPayload.balance
-                this.revision = identityPayload.revision
-                this.isAuthenticated = true
-                this.isConnected = true
-                return { success: true, identityId: targetId, identity: identityPayload }
-            } finally {
-                this.isConnecting = false
-            }
-        }, 'CONNECT_FAILED')
+        this.isConnecting = true
+        this.connectionError = null
+        try {
+            const identityData = await invoke<any>('get_identity_details', {
+                identityId,
+                idx: identityIndex
+            })
+
+            const mappedPublicKeys = transformPublicKeys(identityData.publicKeys || [])
+
+            await invoke('save_identity_data', {
+                network,
+                identityId,
+                identityIdx: identityIndex,
+                publicKeys: mappedPublicKeys,
+                balance: identityData.balance,
+                username: identityData.username
+            })
+
+            this.identityId = identityId
+            this.identityIdx = identityIndex
+            this.publicKeys = mappedPublicKeys
+            this.balance = identityData.balance
+            this.isConnected = true
+            this.isAuthenticated = true
+
+            await this.saveToStorage()
+            return { success: true, identityId }
+        } catch (e) {
+            this.connectionError = String(e)
+            return { success: false, error: String(e) }
+        } finally {
+            this.isConnecting = false
+        }
     },
-    async connectWithSingleKey(
-        this: any,
+
+    /**
+     * Connects using a single private key (WIF or Hex)
+     */
+    async connectWithPrivateKey(
+        this: IIdentityState,
         privateKey: string,
         identityId: string,
-        network: 'mainnet' | 'testnet' = 'testnet'
+        network: 'mainnet' | 'testnet'
     ): Promise<ConnectionResult> {
-        return ErrorBoundary.wrap(async () => {
-            this.isConnecting = true
-            try {
-                const fetchResult = await DAPIService.getIdentityById(identityId, network)
-                if (!fetchResult.success || !fetchResult.data) throw new Error('DAPI Fetch failed')
-                const identityData = fetchResult.data
-                const mappedPublicKeys: IPublicKey[] = (identityData.publicKeys || []).map((pk, idx) => ({
-                    keyType: pk.keyType,
-                    purpose: pk.purpose as any,
-                    securityLevel: pk.securityLevel as any,
-                    data: pk.data,
-                    readOnly: pk.readOnly,
-                    disabledAt: pk.disabledAt
-                }))
+        this.isConnecting = true
+        try {
+            const result = await invoke<any>('connect_single_key', {
+                privateKey,
+                identityId,
+                network
+            })
+            if (result) {
                 this.identityId = identityId
-                this.publicKeys = mappedPublicKeys
-                this.balance = String(identityData.balance)
-                this.isAuthenticated = true
                 this.isConnected = true
+                await this.refreshIdentity()
                 return { success: true, identityId }
-            } finally {
-                this.isConnecting = false
             }
-        }, 'CONNECT_KEY_FAILED')
+            return { success: false, error: 'Connection failed' }
+        } catch (e) {
+            return { success: false, error: String(e) }
+        } finally {
+            this.isConnecting = false
+        }
+    },
+
+    /**
+     * Restores state from local storage
+     */
+    async loadFromStorage(this: IIdentityState) {
+        try {
+            const data = await invoke<any>('load_identity_store')
+            if (data && validateIdentityData(data)) {
+                this.identityId = data.identityId
+                this.identities = data.identities || {}
+                this.isConnected = !!this.identityId
+            }
+        } catch (e) {
+            console.warn('[ConnectionStore] No local storage found')
+        }
+    },
+
+    /**
+     * Persists current state to local storage
+     */
+    async saveToStorage(this: IIdentityState) {
+        try {
+            await invoke('save_identity_store', {
+                identityId: this.identityId,
+                identities: this.identities
+            })
+        } catch (e) {
+            console.error('[ConnectionStore] Save failed:', e)
+        }
+    },
+
+    /**
+     * Wipes all local identity data
+     */
+    async clearStorage(this: IIdentityState) {
+        this.identityId = null
+        this.identities = {}
+        this.isConnected = false
+        this.isAuthenticated = false
+        await invoke('clear_identity_store')
+    },
+
+    /**
+     * Clears connection-related errors for the UI
+     */
+    clearConnectionError(this: IIdentityState) {
+        this.connectionError = null
     }
-})
+}

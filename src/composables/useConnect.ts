@@ -1,113 +1,95 @@
 // src/composables/useConnect.ts
 
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useIdentityStore } from '@/stores/identity'
-import { storeToRefs } from 'pinia'
-import { getIdentityManager } from '@/services/identity/discovery/IdentityManager'
-import { useNetwork } from '@/composables/useNetwork'
-import { useNotification } from '@/composables/useNotification'
-import type {
-    DiscoveredIdentity,
-    DiscoveryResult
-} from '@/types/identity'
+import type { DiscoveredIdentity } from '@/types/identity'
+import { invoke } from '@/utils/tauri'
+
 export function useConnect() {
-    const { showSuccess, showError } = useNotification()
     const store = useIdentityStore()
-    const { ensure } = useNetwork()
-    const { isConnecting, connectionError, discoveryProgress } = storeToRefs(store)
+    const router = useRouter()
+
+    // UI State
+    const connectionMethod = ref<'seed' | 'privateKey'>('seed')
+    const seedWordCount = ref<'12' | '24'>('12')
     const seedWords = ref<string[]>(Array(12).fill(''))
+    const manualIdentityId = ref('')
+
+    // Discovery State
     const seedDiscoveryResults = ref<DiscoveredIdentity[]>([])
     const selectedSeedIdentity = ref<DiscoveredIdentity | null>(null)
-    const isSearchingSeed = ref(false)
-    const manualIdentityId = ref('')
-    const privateKeyInput = ref('')
-    const connectionMethod = ref<'seed' | 'privateKey'>('seed')
-    const privateKeyDiscoveryError = ref<string | null>(null)
-    const seedDiscoveryError = ref<string | null>(null)
-    const seedWordCount = computed(() => seedWords.value.filter(w => w.length > 0).length)
-    const progressPercentage = computed(() => store.discoveryProgress?.scannedCount || 0)
+    const isDiscovering = ref(false)
+    const discoveryProgress = ref(0)
+    const progressMessage = ref('')
+
+    const handlePaste = (words: string[]) => {
+        if (words.length === 12 || words.length === 24) {
+            seedWordCount.value = words.length === 12 ? '12' : '24'
+            seedWords.value = words
+        }
+    }
+
     const startSeedDiscovery = async () => {
-        if (isSearchingSeed.value) return
-        isSearchingSeed.value = true
+        isDiscovering.value = true
         seedDiscoveryResults.value = []
-        seedDiscoveryError.value = null
+        progressMessage.value = 'Scanning Platform...'
+
         try {
-            const network = await ensure()
-            const manager = getIdentityManager(store)
-            const seedPhrase = seedWords.value.join(' ').trim()
-            const result: DiscoveryResult = await manager.discoverFromSeed(seedPhrase, {
-                network: network as 'mainnet' | 'testnet',
-                maxIdentityIndex: 5
+            const mnemonic = seedWords.value.join(' ')
+            const results = await invoke<DiscoveredIdentity[]>('discover_identities_from_seed', {
+                mnemonic,
+                network: 'testnet'
             })
-            if (result.success && result.identities?.length) {
-                seedDiscoveryResults.value = result.identities
-                selectedSeedIdentity.value = result.identities[0] || null
+            seedDiscoveryResults.value = results
+            if (results.length > 0) {
+                selectedSeedIdentity.value = results[0]
             }
-        } catch (err: any) {
-            seedDiscoveryError.value = err.message
-            showError(err.message || 'Seed discovery failed')
+        } catch (e) {
+            store.connectionError = String(e)
         } finally {
-            isSearchingSeed.value = false
+            isDiscovering.value = false
         }
     }
+
     const handleConnect = async () => {
-        const network = await ensure()
-        try {
-            if (connectionMethod.value === 'seed' && selectedSeedIdentity.value) {
-                const identity = selectedSeedIdentity.value
-                await store.connectWithSeed(
-                    seedWords.value.join(' '),
-                    network as any,
-                    identity.identityId,
-                    identity.identityIdx
-                )
-            } else {
-                const id = manualIdentityId.value.trim()
-                const pk = privateKeyInput.value.trim()
-                if (!id || !pk) throw new Error('Identity ID and Private Key are required')
-                await store.connectWithSingleKey(pk, id, network as any)
-            }
-            showSuccess(`Successfully connected: ${store.identityId}`)
-        } catch (err: any) {
-            showError(err.message || 'Connection failed')
-            store.connectionError = err.message
+        let result
+        if (connectionMethod.value === 'seed') {
+            if (!selectedSeedIdentity.value) return
+            result = await store.connectWithSeed(
+                seedWords.value.join(' '),
+                'testnet',
+                selectedSeedIdentity.value.identityId,
+                selectedSeedIdentity.value.identityIdx
+            )
+        } else {
+            result = await store.connectWithPrivateKey(
+                manualIdentityId.value,
+                '', // Let Rust derive ID if possible
+                'testnet'
+            )
+        }
+
+        if (result.success) {
+            router.push('/')
         }
     }
-    const handlePaste = (text: string) => {
-        const words = text.trim().split(/\s+/)
-        if (words.length >= 12) {
-            seedWords.value = words.slice(0, 12)
-        }
-    }
+
     return {
-        seedWords,
-        seedDiscoveryResults,
-        selectedSeedIdentity,
-        isSearchingSeed,
-        manualIdentityId,
-        privateKeyInput,
-        isConnecting,
-        connectionError,
-        discoveryProgress,
-        startSeedDiscovery,
-        handleConnect,
-        selectSeedIdentity: (id: DiscoveredIdentity) => { selectedSeedIdentity.value = id },
-        // Added for test/UI compatibility
         connectionMethod,
         seedWordCount,
-        seedDiscoveryError,
-        privateKeyDiscoveryError,
+        seedWords,
+        manualIdentityId,
+        seedDiscoveryResults,
+        selectedSeedIdentity,
+        isDiscovering,
+        discoveryProgress,
+        progressMessage,
         handlePaste,
-        handleDiscoverIdentity: async () => {},
-        progressPercentage,
-        progressMessage: computed(() => store.discoveryProgress ? `Scanning index ${store.discoveryProgress.currentIdentityIndex}` : ''),
-        cleanup: () => {},
-        switchIdentity: async (identityId: string) => {},
-        resetDiscovery: () => { seedDiscoveryResults.value = [] },
-        closeResults: () => { seedDiscoveryResults.value = [] },
-        useManualIdentity: () => { connectionMethod.value = 'privateKey' },
-        initialize: async () => {},
-        formatBalance: (b: string) => b,
-        updateConnectionMethod: (m: 'seed' | 'privateKey') => { connectionMethod.value = m }
+        startSeedDiscovery,
+        handleConnect,
+        isConnecting: computed(() => store.isConnecting),
+        connectionError: computed(() => store.connectionError),
+        progressPercentage: computed(() => Math.round(discoveryProgress.value * 100))
     }
 }
