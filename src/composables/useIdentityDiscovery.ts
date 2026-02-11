@@ -5,31 +5,47 @@ import { ErrorBoundary, type ActionResponse } from '@/utils/errors'
 import { log, getDapiEndpoint } from '@/utils/env'
 import { useNetwork } from './useNetwork'
 import { IdentityManager } from '@/services/identity/discovery/IdentityManager'
-import type { IIdentity, IPublicKey, PurposeType, SecurityLevelType, IdentitySearchOptions } from '@/types'
+import type { IIdentity, IPublicKey, PurposeType, SecurityLevelType, IdentitySearchOptions, IIdentityActions } from '@/types'
+
+// Singleton instance to hold the manager
 let identityManagerInstance: IdentityManager | null = null
-const getIdentityManager = (): IdentityManager => {
-    if (!identityManagerInstance) {
-        const mockActions: any = {}
-        mockActions.saveKeys = async () => { console.log('[Mock] saveKeys called'); }
-        mockActions.saveDiscoveredIdentities = async () => ({ success: true, savedCount: 0 })
-        mockActions.loadDiscoveredIdentities = async () => null
-        mockActions.clearDiscoveredIdentities = async () => ({ success: true })
-        mockActions.connectWithSeed = async () => ({ success: false })
-        mockActions.connectWithSingleKey = async () => ({ success: false })
-        mockActions.switchIdentity = async () => ({ success: false })
-        mockActions.connectWriteOnlyFromDiscovered = async () => ({ success: false })
-        mockActions.loadFromStorage = async () => {}
-        mockActions.saveToStorage = async () => {}
-        mockActions.clearStorage = async () => {}
-        mockActions.getCurrentNetwork = async () => 'testnet'
-        mockActions.saveMnemonicToStore = async () => {}
-        mockActions.loadMnemonic = async () => null
-        mockActions.loadSettings = async () => {}
-        mockActions.saveIdentityDataToStore = async () => {}
-        mockActions.resetStoreState = () => {}
-        mockActions.logout = async () => {}
-        mockActions.clearConnectionError = () => {}
-        identityManagerInstance = new IdentityManager(mockActions)
+
+/**
+ * Gets or creates the IdentityManager instance.
+ * If a custom store is provided, it creates a new instance with that store.
+ * This fixes the regression where tests were spying on a different store object
+ * than the one used by the singleton.
+ */
+const getIdentityManager = (store?: IIdentityActions): IdentityManager => {
+    // Create default stubs if no store is provided
+    const defaultActions: IIdentityActions = {
+        saveKeys: async () => { console.log('[Mock] saveKeys called'); },
+        saveDiscoveredIdentities: async () => ({ success: true, savedCount: 0 }),
+        loadDiscoveredIdentities: async () => null,
+        clearDiscoveredIdentities: async () => ({ success: true }),
+        connectWithSeed: async () => ({ success: false }),
+        connectWithSingleKey: async () => ({ success: false }),
+        switchIdentity: async () => ({ success: false }),
+        connectWriteOnlyFromDiscovered: async () => ({ success: false }),
+        loadFromStorage: async () => {},
+        saveToStorage: async () => {},
+        clearStorage: async () => {},
+        getCurrentNetwork: async () => 'testnet',
+        saveMnemonicToStore: async () => {},
+        loadMnemonic: async () => null,
+        loadSettings: async () => {},
+        saveIdentityDataToStore: async () => {},
+        resetStoreState: () => {},
+        logout: async () => {},
+        clearConnectionError: () => {}
+    }
+    const effectiveStore = store || defaultActions
+    // In a test scenario or specific component, we might need to reset the instance
+    // or create a new one with the specific store passed in.
+    // For this refactor, we will recreate the instance if a store is explicitly passed,
+    // otherwise we use the singleton.
+    if (!identityManagerInstance || store) {
+        identityManagerInstance = new IdentityManager(effectiveStore)
     }
     return identityManagerInstance
 }
@@ -62,8 +78,7 @@ export function useIdentityDiscovery() {
             })
             if (result.success && result.identities) {
                 log('info', `Discovery found ${result.identities.length} identities via Manager`)
-                // Explicit mapping to IIdentity.
-                // FIX: Hardcode createdAt to 0 because DiscoveredIdentity does not have it.
+                // Explicit mapping to IIdentity
                 return result.identities.map((id: any) => ({
                     identityId: id.identityId,
                     identityIdx: id.identityIdx,
@@ -71,6 +86,7 @@ export function useIdentityDiscovery() {
                     balance: id.balance || '0',
                     revision: id.revision || 0,
                     username: id.username || '',
+                    // SAFETY: DO NOT READ id.createdAt. DiscoveredIdentity does not have it.
                     createdAt: 0
                 }))
             }
@@ -95,7 +111,7 @@ export function useIdentityDiscovery() {
                             balance: src.balance || '0',
                             revision: src.revision ? Number(src.revision) : 0,
                             username: src.username || '',
-                            // FIX: Hardcode createdAt to 0
+                            // SAFETY: DO NOT READ src.createdAt. DiscoveredIdentityWithKeys does not have it.
                             createdAt: 0,
                             ...(src.avatarUrl ? { avatarUrl: src.avatarUrl } : {})
                         }
@@ -147,7 +163,7 @@ export function useIdentityDiscovery() {
                             balance: src.balance || '0',
                             revision: src.revision ? Number(src.revision) : 0,
                             username: src.username || '',
-                            // FIX: Hardcode createdAt to 0
+                            // SAFETY: DO NOT READ src.createdAt. DiscoveredIdentityWithKeys does not have it.
                             createdAt: 0,
                             ...(src.avatarUrl ? { avatarUrl: src.avatarUrl } : {})
                         }
@@ -190,7 +206,7 @@ export function useIdentityDiscovery() {
             securityLevel: (key.securityLevel || 3) as SecurityLevelType,
             contractBounds: key.contractBounds || undefined,
             data: key.data || undefined,
-            // FIX: Inverted logic. If dataBytes is missing, decode dataB64. Otherwise use dataBytes.
+            // Inverted logic to satisfy test: decode dataB64 if dataBytes is missing
             dataBytes: key.dataBytes ?? (key.dataB64 ? decodeBase64ToHex(key.dataB64) : null),
             readOnly: key.readOnly || false,
             disabledAt: key.disabledAt || undefined,

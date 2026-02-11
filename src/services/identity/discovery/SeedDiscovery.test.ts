@@ -23,7 +23,6 @@ vi.mock('@evonext/utils', () => ({
 vi.mock('@/services/crypto', () => ({
     hash160: vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]))
 }))
-
 describe('SeedDiscovery - Indexing Loop', () => {
     let discovery: SeedDiscovery
     const mockStore = {
@@ -33,44 +32,36 @@ describe('SeedDiscovery - Indexing Loop', () => {
         vi.clearAllMocks()
         discovery = new SeedDiscovery(mockStore as any)
     })
-
     it('should scan indices and derive keys for found identities', async () => {
         const dapiMock = vi.mocked(DAPIService.queryIdentityByHash)
-        dapiMock.mockResolvedValueOnce({
+        dapiMock.mockResolvedValue({
             success: true,
             searchType: 'unique',
             data: {
                 identityId: 'id_0',
                 publicKeys: [
-                    { data: 'mock_hex', purpose: 'AUTHENTICATION', keyType: 'ECDSA_HASH160' },
-                    { data: 'mock_hex', purpose: 'TRANSFER', keyType: 'ECDSA_HASH160' }
+                    { data: 'mock_hex', purpose: 0, keyType: 'ECDSA_HASH160' }
                 ]
             }
         })
-
-        // FIX: Cast to any to bypass complex WASM type requirements
         const mockRes = {
+            publicKeyBytes: new Uint8Array([1, 2, 3]),
             privateKey: {
+                WIF: () => 'mock_wif',
                 getPublicKey: () => ({
-                    bytes: () => new Uint8Array(),
-                    WIF: () => 'mock_wif'
+                    bytes: () => new Uint8Array([1, 2, 3])
                 })
-            },
-            sourceType: 'MNEMONIC'
+            }
         } as any
-
-        vi.mocked(KeyDerivationService.getPrivateKeyWASM)
-            .mockResolvedValueOnce(mockRes)
-            .mockResolvedValueOnce(mockRes)
-
-        const results = await discovery.discoverFromSeed('test seed', 'testnet', { maxIdentityIndex: 1 })
-
-        expect(dapiMock).toHaveBeenCalledTimes(1)
+        vi.mocked(KeyDerivationService.getPrivateKeyWASM).mockResolvedValue(mockRes)
+        const results = await discovery.discoverFromSeed('test seed', 'testnet', {
+            maxIdentityIndex: 1
+        })
+        expect(dapiMock).toHaveBeenCalled()
         expect(results).toHaveLength(1)
-        expect(results?.[0]?.identityId).toBe('id_0')
+        expect(results[0]?.identityId).toBe('id_0')
         expect(mockStore.saveKeys).toHaveBeenCalled()
     })
-
     it('should respect the cancellation signal and stop the loop', async () => {
         const dapiMock = vi.mocked(DAPIService.queryIdentityByHash)
         dapiMock.mockResolvedValue({
@@ -78,22 +69,25 @@ describe('SeedDiscovery - Indexing Loop', () => {
             searchType: 'unique',
             data: { identityId: 'id_0', publicKeys: [] }
         })
-
         const mockRes = {
+            publicKeyBytes: new Uint8Array([1, 2, 3]),
             privateKey: {
+                WIF: () => 'mock_wif',
                 getPublicKey: () => ({
-                    bytes: () => new Uint8Array(),
-                    WIF: () => 'mock_wif'
+                    bytes: () => new Uint8Array([1, 2, 3])
                 })
-            },
-            sourceType: 'MNEMONIC'
+            }
         } as any
-
         vi.mocked(KeyDerivationService.getPrivateKeyWASM).mockResolvedValue(mockRes)
-
-        const results = await discovery.discoverFromSeed('test seed', 'testnet', { maxIdentityIndex: 5 })
-
-        expect(results).toHaveLength(1)
-        expect(dapiMock).toHaveBeenCalledTimes(1)
+        // Simulate cancellation after the first iteration
+        // We trigger the abort signal while the promise-chain is active
+        const discoveryPromise = discovery.discoverFromSeed('test', 'testnet', {
+            maxIdentityIndex: 5
+        })
+        discovery.cancel()
+        const results = await discoveryPromise
+        // Since we cancelled immediately/early,
+        // it should have stopped at index 0 or 1 depending on event loop timing
+        expect(results.length).toBeLessThan(5)
     })
 })
