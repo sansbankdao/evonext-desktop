@@ -12,17 +12,21 @@ import { type IPrivateKeyEntry, type IDiscoveredIdentity } from '@/bindings'
 // @ts-ignore
 import { binToHex } from '@evonext/utils'
 import { hash160 } from '@/services/crypto'
+
 export type ProgressCallback = (details: any) => void
+
 export class SeedDiscovery extends BaseDiscovery {
     private controller: AbortController
     private store: IIdentityActions
     private progressCallback: ProgressCallback | null = null
+
     constructor(store: IIdentityActions) {
         super()
         this.store = store
         this.controller = new AbortController()
         this.ensureHUD()
     }
+
     private ensureHUD() {
         if (typeof document === 'undefined') return
         let hud = document.getElementById('__discovery_debug_hud')
@@ -39,6 +43,7 @@ export class SeedDiscovery extends BaseDiscovery {
             this.logToHUD('SYSTEM', '=== IDENTITY DISCOVERY ENGINE ONLINE ===')
         }
     }
+
     private logToHUD(level: string, message: any) {
         if (typeof document === 'undefined') return
         const hud = document.getElementById('__discovery_debug_hud')
@@ -51,11 +56,13 @@ export class SeedDiscovery extends BaseDiscovery {
         hud.appendChild(entry)
         hud.scrollTop = hud.scrollHeight
     }
+
     async discover(input: string, options?: DiscoveryOptions): Promise<DiscoveryResult> {
         const network = options?.network || 'testnet'
         this.logToHUD('SYSTEM', `DISCOVERY START: Network=${network.toUpperCase()}`)
         this.controller.abort()
         this.controller = new AbortController()
+
         try {
             const identities = await this.discoverFromSeed(input, network as 'mainnet' | 'testnet', options)
             this.logToHUD('SUCCESS', `DISCOVERY END: Found ${identities.length} identities.`)
@@ -69,17 +76,21 @@ export class SeedDiscovery extends BaseDiscovery {
             return { success: false, error: err.message || 'Discovery failed', identities: [] }
         }
     }
+
     cancel(): void {
         this.controller.abort()
         this.logToHUD('WARN', 'User sent cancellation signal.')
     }
+
     setProgressCallback(callback: ProgressCallback): void {
         this.progressCallback = callback
     }
+
     protected updateProgress(details: any) {
         if (this.progressCallback) this.progressCallback(details)
         window.dispatchEvent(new CustomEvent('discovery:progress', { detail: details }))
     }
+
     private async _derivePrivateKeys(
         phrase: string,
         net: 'mainnet' | 'testnet',
@@ -90,13 +101,16 @@ export class SeedDiscovery extends BaseDiscovery {
         const entries: IPrivateKeyEntry[] = []
         const now = new Date().toISOString()
         const checkLimit = dapiKeys.length > 0 ? dapiKeys.length : 1
+
         for (let k = 0; k < checkLimit; k++) {
             try {
                 const res = await KeyDerivationService.getPrivateKeyWASM(phrase, net, idx, k)
                 const bytes = res.publicKeyBytes || res.privateKey?.getPublicKey?.()?.bytes?.()
                 if (!bytes) continue
+
                 const localHash = binToHex(await hash160(bytes))
                 const matchedKey = dapiKeys.find((dk: any) => dk.data === localHash)
+
                 if (matchedKey || dapiKeys.length === 0) {
                     entries.push({
                         identityId: identityId,
@@ -110,10 +124,11 @@ export class SeedDiscovery extends BaseDiscovery {
                         lastUsed: now
                     })
                 }
-            } catch (e) { /* skip */ }
+            } catch (e) { /* skip derivation error for specific index */ }
         }
         return entries
     }
+
     async discoverFromSeed(
         seedPhrase: string,
         network: 'mainnet' | 'testnet',
@@ -122,41 +137,48 @@ export class SeedDiscovery extends BaseDiscovery {
         const found: IDiscoveredIdentity[] = []
         const limit = options?.maxIdentityIndex ?? 5
         const signal = this.controller.signal
+
         for (let i = 0; i < limit; i++) {
             if (signal.aborted) break
+
             this.updateProgress({ currentIdentityIndex: i, totalIdentities: limit })
             this.logToHUD('INFO', `Checking Index ${i}...`)
+
             try {
-                // KeyDerivationService.getPrivateKeyWASM returns the derived key info
                 const res = await KeyDerivationService.getPrivateKeyWASM(seedPhrase, network, i, 0)
-                // Get public key bytes from the result
                 const bytes = res.publicKeyBytes || res.privateKey?.getPublicKey?.()?.bytes?.()
+
                 if (!bytes) {
-                    this.logToHUD('ERROR', `Index ${i}: Could not extract public key bytes.`)
+                    this.logToHUD('ERROR', `Index ${i}: Extraction failed.`)
                     continue
                 }
-                // Call the fixed hash160 service
+
                 const pubKeyHash = binToHex(await hash160(bytes))
                 this.logToHUD('SYSTEM', `DAPI QUERY: ${pubKeyHash}`)
+
                 let result = await DAPIService.queryIdentityByHash(pubKeyHash, network, true)
                 if (!result.success || !result.data) {
                     result = await DAPIService.queryIdentityByHash(pubKeyHash, network, false)
                 }
+
                 if (result.success && result.data) {
                     const id = result.data.identityId
                     this.logToHUD('SUCCESS', `ID FOUND: ${id}`)
+
                     const keys = await this._derivePrivateKeys(
                         seedPhrase, network, i, id, result.data.publicKeys || []
                     )
+
                     if (keys.length > 0) {
                         await this.store.saveKeys(network, id, keys)
                         this.logToHUD('INFO', `Keys secured in keystore.`)
                     }
+
                     found.push({
                         identityId: id,
                         balance: result.data.balance || '0',
                         identityIdx: i,
-                        dpnsUsername: result.data.dpnsUsername || result.data.username || null,
+                        dpnsUsername: await DAPIService.getDPNSUsername(id, network),
                         keyType: 'seed',
                         discoveredAt: new Date().toISOString()
                     })

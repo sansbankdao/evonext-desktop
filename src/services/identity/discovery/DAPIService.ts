@@ -1,131 +1,84 @@
 // src/services/identity/discovery/DAPIService.ts
 
-import { invoke } from '@/utils/tauri'
-
+import { commands } from '@/bindings'
+import type { DapiIdentityResponse } from '@/bindings'
 export interface DAPIHashSearchResult {
     success: boolean
-    data?: any
+    data?: DapiIdentityResponse
     error?: string
     searchType: 'unique' | 'non-unique' | 'none'
-    debug?: any
 }
-
 export class DAPIService {
     static async queryIdentityByHash(
         publicKeyHash: string,
         network: 'mainnet' | 'testnet',
         unique: boolean
     ): Promise<DAPIHashSearchResult> {
-        const method = unique
-            ? 'get_identity_by_public_key_hash'
-            : 'get_identity_by_non_unique_public_key_hash'
-        console.log(`[DAPI] Calling ${method} with hash ${publicKeyHash} on ${network}`)
-
+        const searchType = unique ? 'unique' : 'non-unique'
         try {
-            const data = await invoke<any>(method, {
-                publicKeyHash: publicKeyHash,
-                network: network
-            })
-            console.log(`[DAPI] Response for ${publicKeyHash}:`, data)
-            // Normalize: Rust often returns an array even for unique lookups
-            const identityData = Array.isArray(data)
-                ? (data.length > 0 ? data[0] : null)
-                : data
-            if (identityData) {
+            const result = unique
+                ? await commands.getIdentityByPublicKeyHash(publicKeyHash, network)
+                : await commands.getIdentityByNonUniquePublicKeyHash(publicKeyHash, network)
+            if (result.status === 'ok') {
                 return {
                     success: true,
-                    data: identityData,
-                    searchType: unique ? 'unique' : 'non-unique'
+                    data: result.data,
+                    searchType
                 }
             }
             return {
                 success: false,
-                error: 'No identity found',
-                searchType: unique ? 'unique' : 'non-unique'
+                error: result.error,
+                searchType
             }
         } catch (e: any) {
-            console.error(`[DAPI] Exception for ${publicKeyHash}:`, e)
             return {
                 success: false,
-                error: e.message || 'Unknown Rust Error',
-                searchType: unique ? 'unique' : 'non-unique'
+                error: e.message || String(e),
+                searchType
             }
-        }
-    }
-    static async getDPNSUsername(
-        identityId: string,
-        network: 'mainnet' | 'testnet'
-    ): Promise<string | null> {
-        console.log(`[DAPI] Getting DPNS username for ${identityId} on ${network}`)
-        try {
-            const data = await invoke<any>('get_dpns_username', {
-                identityId: identityId,
-                withProof: false,
-                network: network
-            })
-            console.log(`[DAPI] DPNS response for ${identityId}:`, data)
-            if (typeof data === 'string') return data
-            if (data && typeof data === 'object') {
-                const inner = data.result || data
-                if (typeof inner === 'string') return inner
-                if (Array.isArray(inner)) return inner[0]?.username || inner[0] || null
-                return inner.username || null
-            }
-            return null
-        } catch (e) {
-            console.error(`[DAPI] Exception getting DPNS for ${identityId}:`, e)
-            return null
         }
     }
     static async getIdentityById(
         identityId: string,
         network: 'mainnet' | 'testnet'
     ): Promise<DAPIHashSearchResult> {
-        console.log(`[DAPI] Getting identity by ID: ${identityId} on ${network}`)
         try {
-            const data = await invoke<any>('get_identity_info', {
-                identityId: identityId,
-                withProof: false,
-                network: network
-            })
-            console.log(`[DAPI] Identity by ID response for ${identityId}:`, data)
-            const identityData = Array.isArray(data)
-                ? (data.length > 0 ? data[0] : null)
-                : data
-            if (identityData) {
+            const result = await commands.getIdentityInfo(identityId, network)
+            if (result.status === 'ok') {
                 return {
                     success: true,
-                    data: identityData,
+                    data: result.data,
                     searchType: 'none'
                 }
             }
-            return {
-                success: false,
-                error: 'Identity not found',
-                searchType: 'none'
-            }
+            return { success: false, error: result.error, searchType: 'none' }
         } catch (e: any) {
-            console.error(`[DAPI] Exception getting identity ${identityId}:`, e)
-            return {
-                success: false,
-                error: e.message || String(e),
-                searchType: 'none'
-            }
+            return { success: false, error: String(e), searchType: 'none' }
         }
     }
-    // Restored full functionality for multiple usernames
+    static async getDPNSUsername(
+        identityId: string,
+        network: 'mainnet' | 'testnet'
+    ): Promise<string | null> {
+        try {
+            const res = await commands.getDpnsUsername(identityId, network)
+            return res.status === 'ok' ? res.data : null
+        } catch (e) {
+            return null
+        }
+    }
     static async getDPNSUsernames(
         identityId: string,
         network: 'mainnet' | 'testnet'
     ): Promise<string[] | null> {
         try {
-            const data = await invoke<any>('get_dpns_usernames', {
-                identityId,
-                withProof: false,
-                network
-            })
-            const list = data?.result || data
-            return Array.isArray(list) ? list : null
+            const res = await commands.getDpnsUsernames(identityId, network)
+            if (res.status === 'ok') {
+                const list = res.data
+                return Array.isArray(list) ? list.map(item => item.username || item) : null
+            }
+            return null
         } catch (e) {
             return null
         }

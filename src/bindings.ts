@@ -238,7 +238,7 @@ async getPosts(dataContractId: string, documentType: string, whereClause: JsonVa
     else return { status: "error", error: e  as any };
 }
 },
-async getIdentityInfo(identityId: string, network: string | null) : Promise<Result<JsonValue[], string>> {
+async getIdentityInfo(identityId: string, network: string | null) : Promise<Result<DapiIdentityResponse, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_identity_info", { identityId, network }) };
 } catch (e) {
@@ -358,7 +358,7 @@ async getTotalCreditsInPlatform(network: string | null) : Promise<Result<JsonVal
     else return { status: "error", error: e  as any };
 }
 },
-async getIdentityByPublicKeyHash(publicKeyHash: string, network: string | null) : Promise<Result<JsonValue[], string>> {
+async getIdentityByPublicKeyHash(publicKeyHash: string, network: string | null) : Promise<Result<DapiIdentityResponse, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_identity_by_public_key_hash", { publicKeyHash, network }) };
 } catch (e) {
@@ -366,7 +366,7 @@ async getIdentityByPublicKeyHash(publicKeyHash: string, network: string | null) 
     else return { status: "error", error: e  as any };
 }
 },
-async getIdentityByNonUniquePublicKeyHash(publicKeyHash: string, network: string | null) : Promise<Result<JsonValue[], string>> {
+async getIdentityByNonUniquePublicKeyHash(publicKeyHash: string, network: string | null) : Promise<Result<DapiIdentityResponse, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_identity_by_non_unique_public_key_hash", { publicKeyHash, network }) };
 } catch (e) {
@@ -386,6 +386,8 @@ async getIdentityByNonUniquePublicKeyHash(publicKeyHash: string, network: string
 
 /** user-defined types **/
 
+export type DapiIdentityResponse = { identityId: string; publicKeyHash: string; balance: string; revision: string; publicKeys: DapiPublicKey[] }
+export type DapiPublicKey = { purpose: number; securityLevel: number; keyType: string; data: string; dataB64: string; readOnly: boolean; disabledAt: string | null }
 export type IAppSettings = { network: string; theme: string; notifications: INotificationSettings; profile: IProfileSettings; activeIdentityId: string | null }
 export type IAssetDefinition = { identityId: string; name: string; symbol: string; balance: string | null; assetId?: string | null; decimals: number | null; network: string | null }
 export type IDiscoveredIdentity = { identityId: string; balance: string; identityIdx: number | null; dpnsUsername: string | null; keyType: string; discoveredAt: string }
