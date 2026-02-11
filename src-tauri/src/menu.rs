@@ -1,7 +1,7 @@
 // src-tauri/src/menu.rs
 
 use tauri::{
-    menu::{CheckMenuItemBuilder, MenuBuilder, SubmenuBuilder, MenuId},
+    menu::{MenuBuilder, SubmenuBuilder, MenuId, MenuItemBuilder},
     AppHandle, Emitter, Runtime,
 };
 
@@ -16,40 +16,91 @@ pub enum MenuAction {
 }
 
 pub fn setup_menus<R: Runtime>(app_handle: &AppHandle<R>) -> tauri::Result<()> {
-    let identities_menu = SubmenuBuilder::new(app_handle, "Identity")
-        .text("connect", "Connect an Identity...")
-        .text("register", "Register a New Identity...")
+    // 1. App/General Menu
+    let app_menu_item = SubmenuBuilder::new(app_handle, "App")
+        .text("about", "About")
         .separator()
         .text("exit", "Exit")
         .build()?;
 
-    let _check_privacy_item = CheckMenuItemBuilder::new("Show balances")
-        .id("balance_visibility")
-        .checked(true)
+    // 2. NEW: Top-level Bootstrap Item
+    let bootstrap_item = MenuItemBuilder::new("Bootstrap")
+        .id("bootstrap")
         .build(app_handle)?;
 
-    let app_menu = MenuBuilder::new(app_handle)
-        .items(&[&identities_menu])
+    // 3. Studio Menu
+    let studio_menu = SubmenuBuilder::new(app_handle, "Studio")
+        .text("studio", "Open Studio")
+        .text("launcher", "Token Launcher")
         .build()?;
 
-    app_handle.set_menu(app_menu)?;
+    // 4. Identity Menu
+    let identities_menu = SubmenuBuilder::new(app_handle, "Identity")
+        .text("identity_home", "My Identity")
+        .text("connect", "Connect an Identity...")
+        .text("register", "Register a New Identity...")
+        .build()?;
+
+    // 5. Wallet / Assets Menu
+    let wallet_menu = SubmenuBuilder::new(app_handle, "Wallet")
+        .text("wallet", "Overview")
+        .text("portfolio", "Portfolio")
+        .text("asset", "Asset Explorer")
+        .separator()
+        .text("settings", "Settings")
+        .build()?;
+
+    // Build the main menu bar
+    // We insert &bootstrap_item directly into the items array
+    let menu = MenuBuilder::new(app_handle)
+        .items(&[
+            &app_menu_item,
+            &studio_menu,
+            &identities_menu,
+            &wallet_menu,
+            &bootstrap_item,
+        ])
+        .build()?;
+
+    app_handle.set_menu(menu)?;
     Ok(())
 }
 
 pub fn handle_menu_event<R: Runtime>(app: &AppHandle<R>, event: tauri::menu::MenuEvent) {
     match determine_action(event.id()) {
-        MenuAction::Navigate(path) => { let _ = app.emit("navigate", path); }
-        MenuAction::Exit => { app.exit(0); }
+        MenuAction::Navigate(path) => {
+            let _ = app.emit("navigate", path);
+        }
+        MenuAction::Exit => {
+            app.exit(0);
+        }
         MenuAction::None => {}
     }
 }
 
-/// Extracted logic to make it testable without triggering unimplemented mock exits
 pub(crate) fn determine_action(id: &MenuId) -> MenuAction {
     let id_str = id.as_ref();
     match id_str {
-        "about" => MenuAction::Navigate("/about".into()),
+        // Top-level items
+        "bootstrap" => MenuAction::Navigate("/bootstrap".into()),
+
+        // Studio
+        "studio" => MenuAction::Navigate("/studio".into()),
+        "launcher" => MenuAction::Navigate("/launcher".into()),
+
+        // Identity
+        "identity_home" => MenuAction::Navigate("/identity".into()),
+        "connect" => MenuAction::Navigate("/connect".into()),
+        "register" => MenuAction::Navigate("/identity/register".into()),
+
+        // Wallet & Assets
+        "wallet" => MenuAction::Navigate("/wallet".into()),
+        "portfolio" => MenuAction::Navigate("/portfolio".into()),
         "asset" => MenuAction::Navigate("/asset".into()),
+
+        // Settings & General
+        "settings" => MenuAction::Navigate("/settings".into()),
+        "about" => MenuAction::Navigate("/about".into()),
         "exit" | "quit" => MenuAction::Exit,
         _ => MenuAction::None,
     }
