@@ -21,19 +21,23 @@ export class ErrorBoundary {
     ): Promise<ActionResponse<T>> {
         try {
             const data = await fn();
-            // If the inner function returned a result object, return it directly
             if (data && typeof data === 'object' && 'success' in data) {
-                return data as ActionResponse<T>
+                return data as ActionResponse<T>;
             }
-
-            return { success: true, data }
+            return { success: true, data };
         } catch (error: any) {
-            console.error(`[${errorCode}]:`, error)
+            console.error(`[${errorCode}]:`, error);
+            let message = 'An unexpected error occurred';
+            if (typeof error === 'string') {
+                message = error;
+            } else if (error instanceof Error) {
+                message = error.message;
+            }
             return {
                 success: false,
-                error: error.message || 'An unexpected error occurred',
+                error: message,
                 code: errorCode
-            }
+            };
         }
     }
 }

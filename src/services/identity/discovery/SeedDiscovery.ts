@@ -3,15 +3,12 @@
 import { BaseDiscovery } from './BaseDiscovery'
 import { DAPIService } from './DAPIService'
 import { KeyDerivationService } from '../keyDerivation.service'
-import {
-    type IDiscoveredIdentity,
-    type IPrivateKeyEntry
-} from '@/bindings'
 import type {
     IIdentityActions,
     DiscoveryOptions,
     DiscoveryResult,
 } from '@/types'
+import { type IPrivateKeyEntry, type IDiscoveredIdentity } from '@/bindings'
 // @ts-ignore
 import { binToHex } from '@evonext/utils'
 import { hash160 } from '@/services/crypto'
@@ -47,36 +44,34 @@ export class SeedDiscovery extends BaseDiscovery {
         }
     }
 
-    private logToHUD(level: string, message: string) {
+    private logToHUD(level: string, message: any) {
         if (typeof document === 'undefined') return
         const hud = document.getElementById('__discovery_debug_hud')
         if (!hud) return
         const entry = document.createElement('div')
         const color = level === 'ERROR' ? '#fb7185' : level === 'SUCCESS' ? '#4ade80' : level === 'SYSTEM' ? '#22d3ee' : '#94a3b8'
         const time = new Date().toLocaleTimeString()
-        entry.innerHTML = `<span style="color: grey;">[${time}]</span> <span style="color: ${color}; font-weight: bold;">[${level}]</span> ${message}`
+        const msgString = typeof message === 'string' ? message : JSON.stringify(message)
+        entry.innerHTML = `<span style="color: grey;">[${time}]</span> <span style="color: ${color}; font-weight: bold;">[${level}]</span> ${msgString}`
         hud.appendChild(entry)
         hud.scrollTop = hud.scrollHeight
     }
 
     async discover(input: string, options?: DiscoveryOptions): Promise<DiscoveryResult> {
-        this.ensureHUD()
         const network = options?.network || 'testnet'
         this.logToHUD('SYSTEM', `DISCOVERY START: Network=${network.toUpperCase()}`)
-
         this.controller.abort()
         this.controller = new AbortController()
-
         try {
             const identities = await this.discoverFromSeed(input, network as 'mainnet' | 'testnet', options)
             this.logToHUD('SUCCESS', `DISCOVERY END: Found ${identities.length} identities.`)
             return {
                 success: true,
-                identities: identities as any, // Type cast for UI compatibility
+                identities: identities as any,
                 debug: { step: 'completed', network, count: identities.length }
             }
         } catch (err: any) {
-            this.logToHUD('ERROR', `ENGINE CRASH: ${err.message}`)
+            this.logToHUD('ERROR', `ENGINE CRASH: ${err.message || err}`)
             return { success: false, error: err.message || 'Discovery failed', identities: [] }
         }
     }
@@ -105,16 +100,13 @@ export class SeedDiscovery extends BaseDiscovery {
         const entries: IPrivateKeyEntry[] = []
         const now = new Date().toISOString()
         const checkLimit = dapiKeys.length > 0 ? dapiKeys.length : 1
-
         for (let k = 0; k < checkLimit; k++) {
             try {
                 const res = await KeyDerivationService.getPrivateKeyWASM(phrase, net, idx, k)
                 const bytes = res.publicKeyBytes || res.privateKey?.getPublicKey?.()?.bytes?.()
                 if (!bytes) continue
-
                 const localHash = binToHex(await hash160(bytes))
                 const matchedKey = dapiKeys.find((dk: any) => dk.data === localHash)
-
                 if (matchedKey || dapiKeys.length === 0) {
                     entries.push({
                         identityId: identityId,
@@ -148,6 +140,7 @@ export class SeedDiscovery extends BaseDiscovery {
             this.logToHUD('INFO', `Checking Index ${i}...`)
 
             try {
+                // KeyDerivationService.getPrivateKeyWASM returns raw data, not ActionResponse
                 const res = await KeyDerivationService.getPrivateKeyWASM(seedPhrase, network, i, 0)
                 const bytes = res.publicKeyBytes || res.privateKey?.getPublicKey?.()?.bytes?.()
                 if (!bytes) continue
@@ -164,18 +157,15 @@ export class SeedDiscovery extends BaseDiscovery {
                     const id = result.data.identityId
                     this.logToHUD('SUCCESS', `ID FOUND: ${id}`)
 
-                    // 1. Derive private keys
                     const keys = await this._derivePrivateKeys(
                         seedPhrase, network, i, id, result.data.publicKeys || []
                     )
 
-                    // 2. Persist keys immediately into secure store
                     if (keys.length > 0) {
                         await this.store.saveKeys(network, id, keys)
                         this.logToHUD('INFO', `Keys secured in keystore.`)
                     }
 
-                    // 3. Return a clean object matching Rust's IDiscoveredIdentity
                     found.push({
                         identityId: id,
                         balance: result.data.balance || '0',
@@ -186,7 +176,7 @@ export class SeedDiscovery extends BaseDiscovery {
                     })
                 }
             } catch (e: any) {
-                this.logToHUD('ERROR', `Index ${i} error: ${e.message}`)
+                this.logToHUD('ERROR', `Index ${i} error: ${e.message || e}`)
             }
         }
         return found

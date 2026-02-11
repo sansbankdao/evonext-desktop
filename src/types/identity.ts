@@ -1,14 +1,11 @@
 // src/types/identity.ts
 
 import type { IIdentityData } from '@/bindings'
-
 export type PurposeType = 0 | 1 | 2 | 3
 export type SecurityLevelType = 0 | 1 | 2 | 3 | 4
-
 export interface DiscoveredIdentityWithKeys extends DiscoveredIdentity {
     derivedKeys?: DerivedKeyInfo[];
 }
-
 export interface IPublicKey {
     type: number;
     keyType: string;
@@ -21,12 +18,10 @@ export interface IPublicKey {
     disabledAt?: string | null;
     id?: number;
 }
-
 export interface IPrivateKey extends IPublicKey {
     privateKeyHex: string;
     privateKeyWif: string;
 }
-
 export interface IKeyTypes {
     masterKey: IPrivateKey | IPublicKey;
     authCritical: IPrivateKey | IPublicKey;
@@ -34,7 +29,6 @@ export interface IKeyTypes {
     transferKey: IPrivateKey | IPublicKey;
     encryptionKey: IPrivateKey | IPublicKey;
 }
-
 export interface IUser {
     docId?: string;
     username: string;
@@ -53,14 +47,13 @@ export interface IUser {
     joinedAt?: Date;
     revision?: number;
 }
-
 export interface IIdentity {
     id?: string;
     identityId: string;
     identityIdx: number;
-    balance: string; // Synced with Rust
+    balance: string;
     publicKeys: IPublicKey[];
-    revision: number; // Synced with Rust
+    revision: number;
     username?: string;
     avatarUrl?: string;
     displayName?: string;
@@ -69,7 +62,6 @@ export interface IIdentity {
     isAuthenticated?: boolean;
     createdAt?: number;
 }
-
 export interface DiscoveredIdentity {
     id?: string;
     identityId: string;
@@ -83,7 +75,6 @@ export interface DiscoveredIdentity {
     revision?: number;
     dpnsUsername?: string | null;
 }
-
 export interface RustDiscoveredIdentity {
     identityId: string;
     identityIdx: number;
@@ -93,12 +84,10 @@ export interface RustDiscoveredIdentity {
     discoveredKey?: string | null;
     discoveredAt: string;
 }
-
 export interface RustDiscoveredIdentitiesStore {
     identities: Record<string, RustDiscoveredIdentity>;
     lastScan?: string | null;
 }
-
 export interface DiscoveryProgress {
     currentIdentityIndex: number;
     totalIdentities: number;
@@ -110,57 +99,59 @@ export interface DiscoveryProgress {
     currentPublicKeyHash?: string;
     currentPath?: string;
 }
-
-// Map now uses the official Data Model from Specta
 export interface IIdentityStoreMap {
     [key: string]: IIdentityData;
 }
-
 export interface ConnectionResult {
     success: boolean;
     identityId?: string;
     identity?: IIdentity;
     error?: string;
 }
-
 export interface StoredMnemonic {
     seedPhrase: string;
 }
-
+// Added IKeystore interface to represent the Rust-backed local keystore
+export interface IKeystore {
+    identities: Record<string, IPrivateKeyEntry[]>;
+}
 // --- STORE ACTIONS SIGNATURES ---
 export interface IIdentityActions {
     // Discovery Storage
     saveDiscoveredIdentities: (identities: DiscoveredIdentity[], network: 'mainnet' | 'testnet', keyType: 'seed' | 'private') => Promise<{ success: boolean; savedCount: number, error?: string }>;
     loadDiscoveredIdentities: (network: 'mainnet' | 'testnet') => Promise<RustDiscoveredIdentitiesStore | null>;
     clearDiscoveredIdentities: (network: 'mainnet' | 'testnet') => Promise<{ success: boolean; error?: string }>;
-
     // Connection
     connectWithSeed: (seedPhrase: string, network: 'mainnet' | 'testnet', targetId: string, identityIdx: number) => Promise<ConnectionResult>;
     connectWithSingleKey: (privateKey: string, identityId: string, network: 'mainnet' | 'testnet', preloaded?: any) => Promise<ConnectionResult>;
     switchIdentity: (targetIdentityId: string) => Promise<ConnectionResult>;
-
     // Restore legacy action required by ConnectSeedForm
     connectWriteOnlyFromDiscovered: (identity: DiscoveredIdentity, seedPhrase: string) => Promise<ConnectionResult>;
-
     // Core Storage / Persistence
-    saveKeys: (network: 'mainnet' | 'testnet', identityId: string, keys: any[]) => Promise<void>;
+    saveKeys: (network: 'mainnet' | 'testnet', identityId: string, keys: any[]) => Promise<any>;
     loadFromStorage: () => Promise<void>;
     saveToStorage: (networkOverride?: 'mainnet' | 'testnet') => Promise<void>;
     clearStorage: () => Promise<void>;
     getCurrentNetwork: () => Promise<'mainnet' | 'testnet'>;
-
-    // Helpers (Internal or specialized)
+    // Added missing persistence actions
+    loadKeystore: (network: string) => Promise<any>;
+    deleteIdentity: (network: string, identityId: string | null) => Promise<any>;
+    saveIdentityWithKeys: (network: string, identityPayload: any, keys: any[]) => Promise<any>;
+    saveIdentity: (network: string, payload: any) => Promise<any>;
+    // Identity Details & Search
+    searchUserIdentities: () => Promise<any>;
+    queryIdentityDetails: (identityId: string, identityIdx: number, sdk?: any) => Promise<any>;
+    getPublicKeys: () => Promise<any>;
+    // Helpers
     saveMnemonicToStore: (network: 'mainnet' | 'testnet', seedPhrase: string) => Promise<void>;
     loadMnemonic: (network: 'mainnet' | 'testnet') => Promise<{ seedPhrase: string } | null>;
     loadSettings: () => Promise<any>;
     saveIdentityDataToStore: (network: 'mainnet' | 'testnet', targetId: string, data: any) => Promise<void>;
     resetStoreState: () => void;
-
     // Auth
     logout: () => Promise<void>;
     clearConnectionError: () => void;
 }
-
 // --- STORE STATE / ACTIONS INTERFACE ---
 export interface IIdentityState extends IIdentityActions {
     username: string | null;
@@ -168,11 +159,11 @@ export interface IIdentityState extends IIdentityActions {
     identityIdx?: number;
     displayName: string | null;
     identity: IIdentity | null;
-    balance: string; // Enforce non-nullable string
+    balance: string;
     balanceBigInt?: bigint | undefined;
     dashBigInt?: bigint | undefined;
     publicKeys: IPublicKey[];
-    revision: number; // Enforce non-nullable number
+    revision: number;
     isAuthenticated: boolean;
     premiumAccess: boolean;
     connectionError: string | null;
@@ -180,22 +171,21 @@ export interface IIdentityState extends IIdentityActions {
     isConnecting: boolean;
     lastConnected: number | null;
     discoveryProgress?: DiscoveryProgress | null | undefined;
-    identities: IIdentityStoreMap; // Renamed from identitiesMap
+    identities: IIdentityStoreMap;
+    // Resolved ts(2353): added keystore to state interface
+    keystore: IKeystore | null;
 }
-
 export interface SDKIdentityDetails {
     identity: any;
     identityIdx: number;
     publicKeys: any[];
     revision: number;
 }
-
 export interface IdentitySearchOptions {
     minIndexSearch?: number;
     queryRegistry?: boolean;
     signatureScheme?: 'ecdsa' | 'bls' | 'hash160';
 }
-
 export interface IdentitySearchResult {
     identities?: IIdentity[];
     username?: string;
@@ -203,7 +193,6 @@ export interface IdentitySearchResult {
     publicKeys?: IPublicKey[];
     error?: string;
 }
-
 export interface StorageKeys {
     mnemonic: string;
     privateKeys: string;
@@ -212,7 +201,6 @@ export interface StorageKeys {
     settings: string;
     discoveredIdentities: string;
 }
-
 export interface KeyGenerationResult {
     masterKey: any;
     authCritical: any;
@@ -220,14 +208,12 @@ export interface KeyGenerationResult {
     transferKey: any;
     encryptionKey: any;
 }
-
 export interface IdentityLookupResult {
     success: boolean;
     identity?: DiscoveredIdentity;
     error?: string;
     debug?: any;
 }
-
 export interface IdentityDiscoveryDetails {
     detectedKeyType: string;
     keyDescription: string;
@@ -239,7 +225,6 @@ export interface IdentityDiscoveryDetails {
         derivedFromInput: boolean;
     }>;
 }
-
 export interface IPrivateKeyEntry {
     identityId: string;
     keyId: number;
@@ -252,9 +237,7 @@ export interface IPrivateKeyEntry {
     created_at?: string;
     last_used?: string;
 }
-
 export type PrivateKeyEntry = IPrivateKeyEntry;
-
 export interface QueryTrace {
     step: number;
     identityIndex: number;
@@ -265,7 +248,6 @@ export interface QueryTrace {
     found: boolean;
     id?: string;
 }
-
 export interface ScanProgress {
     currentIdentityIndex: number;
     currentKeyIndex: number;
@@ -277,7 +259,6 @@ export interface ScanProgress {
     scannedCount: number;
     foundCount: number;
 }
-
 export interface DiscoveryResult {
     success: boolean
     identities?: DiscoveredIdentityWithKeys[] | null
@@ -296,7 +277,6 @@ export interface DiscoveryResult {
         error?: string;
     }
 }
-
 export interface DiscoveryOptions {
     network: 'mainnet' | 'testnet';
     maxIdentityIndex?: number;
@@ -304,7 +284,6 @@ export interface DiscoveryOptions {
     maxKeyIndex?: number;
     node?: any;
 }
-
 export interface DerivedKeyInfo {
     keyId: number;
     purpose: number;
@@ -316,7 +295,6 @@ export interface DerivedKeyInfo {
     createdAt?: string;
     lastUsed?: string;
 }
-
 export interface AssociatedKey {
     purpose: string;
     securityLevel: string;
@@ -324,7 +302,6 @@ export interface AssociatedKey {
     data: string;
     derivedFromInput: boolean;
 }
-
 export interface DiscoveryDetails {
     detectedKeyType: string | null;
     associatedKeys: AssociatedKey[];

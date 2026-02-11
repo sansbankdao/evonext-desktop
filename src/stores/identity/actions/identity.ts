@@ -46,7 +46,8 @@ export const identityActions = () => ({
                 normalizedKeys
             )
             if (response.status === 'error') throw new Error(response.error)
-            // Patch local RAM state
+
+            // Patch local RAM state for Identities
             if (this.identities) {
                 const updatedIdentity: IIdentityData = {
                     ...sanitizedIdentity,
@@ -58,13 +59,23 @@ export const identityActions = () => ({
                     this.identityId = identityPayload.identityId
                 }
             }
-            if (this.keystore?.identities) {
-                this.keystore.identities[identityPayload.identityId] = normalizedKeys
+
+            // Patch local RAM state for Keystore reactively
+            if (this.keystore) {
+                this.keystore = {
+                    ...this.keystore,
+                    identities: {
+                        ...this.keystore.identities,
+                        [identityPayload.identityId]: normalizedKeys
+                    }
+                }
             }
+
             log('debug', `Identity ${identityPayload.identityId} and keys saved atomically.`)
             return response.data
         }, 'SAVE_IDENTITY_WITH_KEYS_FAILED')
     },
+
     async saveIdentity(this: any, network: string, payload: any) {
         return await ErrorBoundary.wrap(async () => {
             const sanitizedPayload: ISaveIdentityPayload = {
@@ -95,6 +106,7 @@ export const identityActions = () => ({
             return response.data
         }, 'SAVE_IDENTITY_FAILED')
     },
+
     async saveKeys(this: any, network: string, identityId: string, keys: any[]) {
         return await ErrorBoundary.wrap(async () => {
             const normalizedKeys: IPrivateKeyEntry[] = keys.map(k => {
@@ -117,20 +129,33 @@ export const identityActions = () => ({
             })
             const response = await commands.saveKeys(network, identityId, normalizedKeys)
             if (response.status === 'error') throw new Error(response.error)
-            if (this.keystore?.identities) {
-                this.keystore.identities[identityId] = normalizedKeys
+
+            // Patch Keystore reactively
+            if (this.keystore) {
+                this.keystore = {
+                    ...this.keystore,
+                    identities: {
+                        ...this.keystore.identities,
+                        [identityId]: normalizedKeys
+                    }
+                }
             }
             return response.data
         }, 'SAVE_KEYS_FAILED')
     },
+
     async loadKeystore(this: any, network: string) {
         return await ErrorBoundary.wrap(async () => {
             const response = await commands.loadKeystore(network)
             if (response.status === 'error') throw new Error(response.error)
-            if (this.keystore) this.keystore = response.data
+
+            // FIX: Removed the 'if (this.keystore)' check so data is assigned
+            // even if the property was previously null.
+            this.keystore = response.data
             return response.data
         }, 'LOAD_KEYSTORE_FAILED')
     },
+
     async deleteIdentity(this: any, network: string, identityId: string | null = null) {
         return await ErrorBoundary.wrap(async () => {
             const response = await commands.deleteIdentity(network, identityId)
@@ -138,13 +163,19 @@ export const identityActions = () => ({
             if (identityId && this.identities) {
                 delete this.identities[identityId]
                 if (this.identityId === identityId) this.identityId = null
+                // Also remove from keystore
+                if (this.keystore?.identities) {
+                    delete this.keystore.identities[identityId]
+                }
             } else {
                 this.identities = {}
                 this.identityId = null
+                if (this.keystore) this.keystore.identities = {}
             }
             return response.data
         }, 'DELETE_IDENTITY_FAILED')
     },
+
     async searchUserIdentities(this: any) {
         return await ErrorBoundary.wrap(async () => {
             const identityComposable = useIdentity()
@@ -154,6 +185,7 @@ export const identityActions = () => ({
             return identities
         }, 'SEARCH_USER_IDENTITIES_FAILED')
     },
+
     async queryIdentityDetails(this: any, identityId: string, identityIdx: number, sdk?: any) {
         return await ErrorBoundary.wrap(async () => {
             const identityComposable = useIdentity()
@@ -165,6 +197,7 @@ export const identityActions = () => ({
             return details
         }, 'QUERY_IDENTITY_DETAILS_FAILED')
     },
+
     async getPublicKeys(this: any) {
         return await ErrorBoundary.wrap(async () => {
             if (this.publicKeys?.length > 0) return this.publicKeys

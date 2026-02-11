@@ -63,31 +63,29 @@ export function useIdentity() {
                  log('warn', 'No identity ID found in store to search for.')
                  return null
             }
-            const primaryIdentity: any = {
-                identityIdx: 0
-            }
             const sdk = await getSDK()
-            if (primaryIdentity?.id) {
+            // FIX: Use identityId (from store) instead of the non-existent primaryIdentity.id
+            if (identityId) {
                 try {
-                    const dpnsRes = await getDpnsUsername(primaryIdentity.id)
+                    const dpnsRes = await getDpnsUsername(identityId)
                     const dpnsUsername = dpnsRes.success ? dpnsRes.data : null
                     if (dpnsUsername) {
                         store.username = dpnsUsername
                     } else {
-                        store.username = primaryIdentity.id
+                        store.username = identityId
                     }
                 } catch (dpnsError: any) {
-                    store.username = primaryIdentity.id
+                    store.username = identityId
                 }
             } else {
                 store.username = null
             }
-            store.identity = primaryIdentity || null
             store.isAuthenticated = true
             try {
+                // FIX: Pass identityId correctly here
                 const detailRes = await queryIdentityDetails(
-                    primaryIdentity.id,
-                    primaryIdentity.identityIdx || 0,
+                    identityId,
+                    store.identityIdx || 0,
                     sdk
                 )
                 await store.fetchBalance()
@@ -128,8 +126,10 @@ export function useIdentity() {
         sdk?: any
     ): Promise<ActionResponse<SDKIdentityDetails>> {
         return ErrorBoundary.wrap(async () => {
+            if (!identityId) throw new Error('identityId is required for protocol lookup')
             let sdkInstance = sdk || await getSDK()
             const identity = await sdkInstance.identities.getIdentityByIdentifier(identityId)
+            if (!identity) throw new Error(`Identity ${identityId} not found on network`)
             const publicKeys = identity.getPublicKeys()
             const revision = identity.revision || BigInt(0)
             const formattedKeys = publicKeys.map((key: any) => ({
@@ -174,9 +174,9 @@ export function useIdentity() {
     }
     async function discoverIdentities(): Promise<DiscoveredIdentity[]> {
         const res = await searchUserIdentities()
-        if (res.success && res.data) {
+        if (res.success && res.data && store.identityId) {
             return [{
-                identityId: store.identityId!,
+                identityId: store.identityId,
                 identityIdx: res.data.identityIdx,
                 publicKeys: res.data.publicKeys,
                 revision: res.data.revision,
@@ -206,7 +206,7 @@ export function useIdentity() {
     return {
         identityId: computed({
             get: () => store.identityId,
-            set: (v: string | null) => store.identityId = v
+            set: (v: string | null) => { store.identityId = v }
         }),
         publicKeys: computed(() => store.publicKeys),
         balance: computed(() => store.balance),
