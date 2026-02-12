@@ -12,8 +12,23 @@ import type {
     IIdentityActions,
     DiscoveryResult,
     DiscoveryOptions,
-    IPublicKey
+    IPublicKey,
+    PurposeType,
+    SecurityLevelType
 } from '@/types/identity'
+// Mapping for DAPI string enums to numeric codes used internally
+const PURPOSE_MAP: Record<string, number> = {
+    'AUTHENTICATION': 0,
+    'ENCRYPTION': 1,
+    'DECRYPTION': 2,
+    'TRANSFER': 3,
+}
+const SECURITY_LEVEL_MAP: Record<string, number> = {
+    'MASTER': 0,
+    'CRITICAL': 1,
+    'HIGH': 2,
+    'MEDIUM': 3,
+}
 export class KeyDiscovery extends BaseDiscovery {
     private store: IIdentityActions
     constructor(store: IIdentityActions) {
@@ -40,13 +55,13 @@ export class KeyDiscovery extends BaseDiscovery {
             if (format.format.includes('PUBKEY')) {
                 const pubBytes = hexToBin(clean.toLowerCase())
                 const hashed = await hash160(pubBytes)
-                publicKeyHash = binToHex(Array.from(hashed))
+                publicKeyHash = binToHex(hashed)
             } else {
                 privateKeyInstance = this.getPrivateKeyInstance(clean, network)
                 if (!privateKeyInstance) throw new Error("Invalid private key format")
                 const pubBytes = privateKeyInstance.getPublicKey().bytes()
                 const hashed = await hash160(pubBytes)
-                publicKeyHash = binToHex(Array.from(hashed))
+                publicKeyHash = binToHex(hashed)
             }
             // 2. Query DAPI
             const result = await DAPIService.queryIdentityByHash(publicKeyHash, network, true)
@@ -55,12 +70,12 @@ export class KeyDiscovery extends BaseDiscovery {
             if (result.success && data && typeof id === 'string') {
                 const identityId: string = id
                 // 3. Map DAPI keys to frontend IPublicKey interface
-                // Use 'any' cast to handle variation in SDK property names (idx vs id)
+                // DAPI returns strings for purpose/securityLevel, we map to numeric codes
                 const mappedKeys: IPublicKey[] = (data.publicKeys || []).map((pk: any, index: number) => ({
                     idx: pk.idx ?? pk.id ?? index,
                     keyType: pk.keyType || 'ECDSA_HASH160',
-                    purpose: (pk.purpose ?? 0) as any,
-                    securityLevel: (pk.securityLevel ?? 0) as any,
+                    purpose: this.parsePurpose(pk.purpose),
+                    securityLevel: this.parseSecurityLevel(pk.securityLevel),
                     data: pk.data || '',
                     readOnly: !!pk.readOnly,
                     disabledAt: pk.disabledAt || null
@@ -99,6 +114,34 @@ export class KeyDiscovery extends BaseDiscovery {
             console.error('[KeyDiscovery] Error:', error)
             return { success: false, error: error.message || 'Discovery failed' }
         }
+    }
+    /**
+     * Converts DAPI string-based purpose to numeric PurposeType.
+     * Handles both string enums and numeric values for backwards compatibility.
+     */
+    private parsePurpose(value: any): PurposeType {
+        if (typeof value === 'number' && [0, 1, 2, 3].includes(value)) {
+            return value as PurposeType
+        }
+        if (typeof value === 'string') {
+            const mapped = PURPOSE_MAP[value.toUpperCase()]
+            if (mapped !== undefined) return mapped as PurposeType
+        }
+        return 0
+    }
+    /**
+     * Converts DAPI string-based securityLevel to numeric SecurityLevelType.
+     * Handles both string enums and numeric values for backwards compatibility.
+     */
+    private parseSecurityLevel(value: any): SecurityLevelType {
+        if (typeof value === 'number' && [0, 1, 2, 3, 4].includes(value)) {
+            return value as SecurityLevelType
+        }
+        if (typeof value === 'string') {
+            const mapped = SECURITY_LEVEL_MAP[value.toUpperCase()]
+            if (mapped !== undefined) return mapped as SecurityLevelType
+        }
+        return 3
     }
     private getPrivateKeyInstance(keyInput: string, network: string): any {
         try {

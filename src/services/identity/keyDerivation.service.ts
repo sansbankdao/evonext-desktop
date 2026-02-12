@@ -159,7 +159,7 @@ export class KeyDerivationService {
                         const privateKey = PrivateKeyWASM.fromHex(binToHex(privateKeyBuffer), network)
 
                         // Calculate public key hash
-                        const publicKeyHash = binToHex(hash160(publicKeyBuffer as Uint8Array))
+                        const publicKeyHash = binToHex(await hash160(publicKeyBuffer as Uint8Array))
 
                         keys.push({
                             keyIndex: keyInfo.index,
@@ -172,7 +172,6 @@ export class KeyDerivationService {
                         })
 
                         console.log(`[KeyDerivation] Derived key: identity=${identityIdx}, key=${keyInfo.index}, hash=${publicKeyHash.substring(0, 16)}...`)
-
                     } catch (error) {
                         console.warn(`[KeyDerivation] Failed key ${keyInfo.index} identity ${identityIdx}:`, error)
                     }
@@ -183,12 +182,10 @@ export class KeyDerivationService {
                     keys,
                     success: keys.length > 0
                 })
-
                 console.log(`[KeyDerivation] Completed identity ${identityIdx} with ${keys.length} keys`)
             }
 
             return results
-
         } catch (error: any) {
             throw new Error(`Failed to derive keys: ${error.message}`)
         }

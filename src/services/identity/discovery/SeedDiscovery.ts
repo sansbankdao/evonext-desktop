@@ -13,6 +13,19 @@ import { type IPrivateKeyEntry, type IDiscoveredIdentity } from '@/bindings'
 import { binToHex } from '@evonext/utils'
 import { hash160 } from '@/services/crypto'
 export type ProgressCallback = (details: any) => void
+// Mapping for DAPI string enums to numeric codes used internally
+const PURPOSE_MAP: Record<string, number> = {
+    'AUTHENTICATION': 0,
+    'ENCRYPTION': 1,
+    'DECRYPTION': 2,
+    'TRANSFER': 3,
+}
+const SECURITY_LEVEL_MAP: Record<string, number> = {
+    'MASTER': 0,
+    'CRITICAL': 1,
+    'HIGH': 2,
+    'MEDIUM': 3,
+}
 export class SeedDiscovery extends BaseDiscovery {
     private controller: AbortController
     private store: IIdentityActions
@@ -21,7 +34,7 @@ export class SeedDiscovery extends BaseDiscovery {
         super()
         this.store = store
         this.controller = new AbortController()
-        this.ensureHUD()
+        // this.ensureHUD()
     }
     private ensureHUD() {
         if (typeof document === 'undefined') return
@@ -80,6 +93,20 @@ export class SeedDiscovery extends BaseDiscovery {
         if (this.progressCallback) this.progressCallback(details)
         window.dispatchEvent(new CustomEvent('discovery:progress', { detail: details }))
     }
+    /**
+     * Converts DAPI string-based purpose/securityLevel to numeric codes.
+     * Handles both string enums and numeric values for backwards compatibility.
+     */
+    private parsePurpose(value: any): number {
+        if (typeof value === 'number') return value
+        if (typeof value === 'string') return PURPOSE_MAP[value.toUpperCase()] ?? 0
+        return 0
+    }
+    private parseSecurityLevel(value: any): number {
+        if (typeof value === 'number') return value
+        if (typeof value === 'string') return SECURITY_LEVEL_MAP[value.toUpperCase()] ?? 3
+        return 3
+    }
     private async _derivePrivateKeys(
         phrase: string,
         net: 'mainnet' | 'testnet',
@@ -101,8 +128,8 @@ export class SeedDiscovery extends BaseDiscovery {
                     entries.push({
                         identityId: identityId,
                         keyId: k,
-                        purpose: Number(matchedKey?.purpose ?? 0),
-                        securityLevel: Number(matchedKey?.securityLevel ?? 3),
+                        purpose: this.parsePurpose(matchedKey?.purpose),
+                        securityLevel: this.parseSecurityLevel(matchedKey?.securityLevel),
                         keyType: String(matchedKey?.keyType || 'ECDSA_HASH160'),
                         privateKey: res.privateKey?.WIF?.() || '',
                         publicKey: localHash,

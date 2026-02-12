@@ -11,12 +11,14 @@ use std::collections::HashMap;
 
 #[cfg(test)]
 mod tests;
-
+/// Represents a public key as returned by the DAPI Web API endpoint.
+/// Note: Purpose and SecurityLevel are strings ("AUTHENTICATION", "MASTER", etc.)
+/// not numeric codes, as per the Web API response format.
 #[derive(Debug, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct DapiPublicKey {
-    pub purpose: u8,
-    pub security_level: u8,
+    pub purpose: String,
+    pub security_level: String,
     pub key_type: String,
     pub data: String,
     pub data_b64: String,
@@ -24,46 +26,77 @@ pub struct DapiPublicKey {
     pub disabled_at: Option<String>,
 }
 
+/// Represents an Identity as returned by the DAPI Web API endpoint.
+/// The Web API wrapper transforms raw responses into this camelCase format.
 #[derive(Debug, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct DapiIdentityResponse {
     pub identity_id: String,
-    pub public_key_hash: String,
+    /// This field is often null in responses, as the public key hash is an input
+    /// parameter, not a property of the identity itself.
+    #[serde(default)]
+    pub public_key_hash: Option<String>,
     pub balance: String,
     pub revision: String,
+    #[serde(default)]
     pub public_keys: Vec<DapiPublicKey>,
 }
 
 fn extract_first_as_response(res: Vec<Value>) -> Result<DapiIdentityResponse, String> {
     let first = res.get(0)
         .ok_or_else(|| "DAPI returned an empty result".to_string())?;
-
     let mut target = if let Some(inner) = first.get("result") {
         inner.clone()
     } else {
         first.clone()
     };
-
-    // Fix Borrow Checker Error E0502:
-    // Extract the string representation BEFORE mutating the object
+    // Handle potential numeric disabledAt in publicKeys
     if let Some(keys) = target.get_mut("publicKeys").and_then(|k| k.as_array_mut()) {
         for key in keys {
-            let disabled_val = key.get("disabledAt").and_then(|d| {
-                if d.is_number() { Some(d.to_string()) } else { None }
-            });
-
-            if let Some(val_string) = disabled_val {
-                if let Some(obj) = key.as_object_mut() {
-                    obj.insert("disabledAt".to_string(), json!(val_string));
+            if let Some(obj) = key.as_object_mut() {
+                // Convert numeric disabledAt to string if present
+                if let Some(d) = obj.get("disabledAt") {
+                    if d.is_number() {
+                        obj.insert("disabledAt".to_string(), json!(d.to_string()));
+                    }
+                }
+                // Ensure purpose/securityLevel are strings (API returns strings, but be defensive)
+                for field in &["purpose", "securityLevel"] {
+                    if let Some(val) = obj.get(*field) {
+                        if val.is_number() {
+                            if let Some(s) = val.as_u64().map(|n| purpose_code_to_string(n as u8)) {
+                                obj.insert(field.to_string(), json!(s));
+                            }
+                        }
+                    }
                 }
             }
         }
     }
-
+    // Ensure defaults for optional fields
+    if let Some(obj) = target.as_object_mut() {
+        if !obj.contains_key("publicKeys") {
+            obj.insert("publicKeys".to_string(), json!([]));
+        }
+        if !obj.contains_key("publicKeyHash") {
+            obj.insert("publicKeyHash".to_string(), json!(null));
+        }
+    }
     serde_json::from_value(target.clone())
         .map_err(|e| format!("Serialization error: {}. Raw: {}", e, target))
 }
 
+/// Converts numeric purpose codes to their string representations.
+/// Used for normalizing responses if DAPI returns numeric codes.
+fn purpose_code_to_string(code: u8) -> String {
+    match code {
+        0 => "AUTHENTICATION".to_string(),
+        1 => "ENCRYPTION".to_string(),
+        2 => "DECRYPTION".to_string(),
+        3 => "TRANSFER".to_string(),
+        _ => format!("UNKNOWN_{}", code),
+    }
+}
 #[tauri::command]
 #[specta::specta]
 pub async fn get_identity_by_public_key_hash(
