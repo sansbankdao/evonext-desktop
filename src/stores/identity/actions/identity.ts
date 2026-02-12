@@ -6,43 +6,45 @@ import { DAPIService } from '@/services/identity/discovery/DAPIService'
 import { commands } from '@/bindings'
 import type { IIdentityState, IIdentity } from '@/types/identity'
 import { transformPublicKeys } from '../utils'
-
 /**
- * Normalizes command responses to ensure a consistent { success, data, error }
- * structure regardless of the underlying Rust implementation details.
+ * Normalizes command responses based on the Rust Specta/Standard.
+ * Handles {success, data, error}, {success, payload, error}, and raw objects.
  */
-function normalizeResult<T>(res: any): { success: boolean; data: T | null; error: { message: string } | null } {
-    const isSuccess = !!(res?.success || res?.status === 'success' || res?.status === 'ok');
-
-    // Extract data/payload
-    let data = res?.data ?? res?.payload ?? null;
-
-    // Handle cases where the response itself is the data (no success/status wrapper)
-    if (res && typeof res === 'object' && !res.hasOwnProperty('success') && !res.hasOwnProperty('status') && !res.hasOwnProperty('error')) {
-        data = res;
+export function normalizeResult<T>(res: any): { success: boolean; data: T | null; error: { message: string } | null } {
+    const isSuccess = !!(res?.success === true || res?.status === 'success' || res?.status === 'ok');
+    let data: T | null = null;
+    if (isSuccess) {
+        if (res && typeof res === 'object') {
+            if (res.hasOwnProperty('data')) {
+                data = res.data;
+            } else if (res.hasOwnProperty('payload')) {
+                data = res.payload;
+            } else if (Object.keys(res).length === 1 && (res.hasOwnProperty('success') || res.hasOwnProperty('status'))) {
+                // It is just a success flag with no payload
+                data = null;
+            } else {
+                // Compatibility for raw mock objects or responses where the object itself is the data
+                data = res;
+            }
+        } else {
+            data = res;
+        }
     }
-
-    // Extract and normalize error
     let errorObj: { message: string } | null = null;
     if (!isSuccess) {
-        const rawError = res?.error ?? (res && !res.success && !res.status ? res : null);
+        const rawError = res?.error ?? res?.errorMessage ?? res?.message ?? res;
         if (typeof rawError === 'string') {
             errorObj = { message: rawError };
         } else if (rawError && typeof rawError === 'object') {
-            errorObj = { message: rawError.message || JSON.stringify(rawError) };
+            const msg = rawError.message || rawError.error?.message || rawError.error || JSON.stringify(rawError);
+            errorObj = { message: String(msg) };
         } else {
             errorObj = { message: 'Unknown error' };
         }
     }
-
     return { success: isSuccess, data, error: errorObj };
 }
-
 export const identityActions = {
-    /**
-     * Syncs a new or updated identity into the store.
-     * Guaranteed unified response from Rust backend.
-     */
     async saveIdentity(this: any, network: string, payload: any): Promise<any> {
         const fullPayload = {
             username: payload.username || '',
@@ -68,7 +70,7 @@ export const identityActions = {
     async loadKeystore(this: any, network: string): Promise<any> {
         const response = await commands.loadKeystore(network)
         const result = normalizeResult<any>(response)
-        if (result.success) {
+        if (result.success && result.data) {
             this.keystore = result.data
         }
         return result

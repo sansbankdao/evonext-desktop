@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useIdentityStore } from '../index'
 import { commands } from '@/bindings'
-
 vi.mock('@/bindings', () => ({
     commands: {
         saveIdentity: vi.fn(),
@@ -14,7 +13,6 @@ vi.mock('@/bindings', () => ({
         deleteIdentity: vi.fn()
     }
 }))
-
 describe('Identity Store - Persistence & Normalization', () => {
     let store: any
     beforeEach(() => {
@@ -26,8 +24,11 @@ describe('Identity Store - Persistence & Normalization', () => {
     describe('loadKeystore', () => {
         it('should update store keystore on success', async () => {
             const mockKeystoreData = { identities: { 'id_1': [] } }
+            // Alignment: Use 'data' key for normalizeResult
             vi.mocked(commands.loadKeystore).mockResolvedValue({
-                status: 'success',mockKeystoreData
+                success: true,
+                data: mockKeystoreData,
+                error: null
             } as any)
             const result = await store.loadKeystore('testnet')
             expect(result.success).toBe(true)
@@ -35,19 +36,20 @@ describe('Identity Store - Persistence & Normalization', () => {
         })
         it('should return error object on failed keystore load', async () => {
             vi.mocked(commands.loadKeystore).mockResolvedValue({
-                status: 'error',
+                success: false,
+                data: null,
                 error: 'Disk locked'
             } as any)
             const result = await store.loadKeystore('testnet')
             expect(result.success).toBe(false)
-            // Use 'as any' to resolve TS(2339)
-            expect((result.error as any).message).toContain('Disk locked')
+            expect(result.error.message).toContain('Disk locked')
         })
     })
     describe('saveIdentityWithKeys (Error Paths)', () => {
         it('should handle API error response', async () => {
-            vi.mocked(commands.saveIdentityWithKeys).mockResolvedValue({
-                status: 'error',
+            // Note: Store's saveIdentityWithKeys calls this.saveIdentity internally
+            vi.mocked(commands.saveIdentity).mockResolvedValue({
+                success: false,
                 error: 'DB Error'
             } as any)
             const result = await store.saveIdentityWithKeys(
@@ -56,8 +58,7 @@ describe('Identity Store - Persistence & Normalization', () => {
                 [{ privateKey: 'wif' }]
             )
             expect(result.success).toBe(false)
-            // Use 'as any' to resolve TS(2339)
-            expect((result.error as any).message).toContain('DB Error')
+            expect(result.error.message).toContain('DB Error')
         })
     })
 })

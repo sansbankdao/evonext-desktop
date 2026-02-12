@@ -3,18 +3,20 @@
 import { invoke } from '@/utils/tauri'
 import type { ConnectionResult } from '@/types/identity'
 import { transformPublicKeys, validateIdentityData } from '../utils'
-
+import { normalizeResult } from './identity'
 export const connectionActions = {
     async connectWithSeed(this: any, seedPhrase: string, network: string, identityId: string, identityIndex: number): Promise<ConnectionResult> {
         this.isConnecting = true
         this.connectionError = null
         try {
-            const rawData = await invoke<any>('get_identity_details', { identityId, idx: identityIndex, network })
-            const identityData = rawData?.data || rawData
-            if (!identityData) throw new Error('Identity details not found')
-
+            const raw = await invoke<any>('get_identity_details', { identityId, idx: identityIndex, network })
+            const resDetails = normalizeResult<any>(raw)
+            if (!resDetails.success || !resDetails.data) {
+                throw new Error(resDetails.error?.message || 'Identity details not found')
+            }
+            const identityData = resDetails.data
             const mappedPublicKeys = transformPublicKeys(identityData.publicKeys || [])
-            const res = await this.saveIdentityWithKeys(network, {
+            const resSave = await this.saveIdentityWithKeys(network, {
                 identityId,
                 identityIdx: identityIndex,
                 publicKeys: mappedPublicKeys,
@@ -22,7 +24,7 @@ export const connectionActions = {
                 username: identityData.username || '',
                 mnemonic: seedPhrase
             })
-            if (res.success) {
+            if (resSave.success) {
                 this.identityId = identityId
                 this.identityIdx = identityIndex
                 this.publicKeys = mappedPublicKeys
@@ -32,7 +34,7 @@ export const connectionActions = {
                 await this.saveToStorage()
                 return { success: true, identityId }
             }
-            return { success: false, error: res.error?.message || 'Connection failed' }
+            return { success: false, error: resSave.error?.message || 'Connection failed' }
         } catch (e: any) {
             const errorMsg = e?.message || String(e)
             this.connectionError = errorMsg
@@ -47,23 +49,25 @@ export const connectionActions = {
     async connectWithPrivateKey(this: any, privateKey: string, identityId: string, network: string): Promise<ConnectionResult> {
         this.isConnecting = true
         try {
-            const rawData = await invoke<any>('get_identity_details', { identityId, network })
-            const identityData = rawData?.data || rawData
-            if (!identityData) throw new Error('Identity details not found')
-
-            const res = await this.saveIdentityWithKeys(network, {
+            const raw = await invoke<any>('get_identity_details', { identityId, network })
+            const resDetails = normalizeResult<any>(raw)
+            if (!resDetails.success || !resDetails.data) {
+                throw new Error(resDetails.error?.message || 'Identity details not found')
+            }
+            const identityData = resDetails.data
+            const resSave = await this.saveIdentityWithKeys(network, {
                 identityId,
                 publicKeys: [{ id: 0, privateKey, purpose: 3, securityLevel: 0 }],
                 balance: identityData.balance || '0',
                 username: identityData.username || ''
             })
-            if (res.success) {
+            if (resSave.success) {
                 this.identityId = identityId
                 this.isConnected = true
                 await this.refreshIdentity()
                 return { success: true, identityId }
             }
-            return { success: false, error: res.error?.message || 'Connection failed' }
+            return { success: false, error: resSave.error?.message || 'Connection failed' }
         } catch (e: any) {
             return { success: false, error: e?.message || String(e) }
         } finally {
