@@ -4,6 +4,7 @@ import { ref, computed } from 'vue'
 import { invoke } from '@/utils/tauri'
 import { useIdentityStore } from '@/stores/identity'
 import type { IIdentity, DiscoveryResult } from '@/types/identity'
+
 export function useIdentity() {
     const store = useIdentityStore()
     const activeIdentity = ref<IIdentity | null>(null)
@@ -53,8 +54,13 @@ export function useIdentity() {
         queryIdentityDetails: (_id: string, _idx: number) => store.refreshIdentity(),
         getPublicKeys: (identityId: string, network: 'mainnet' | 'testnet') =>
             store.getPublicKeys(identityId, network),
-        connect: (key: string, opts: any) =>
-            store.connectWithPrivateKey(key, opts?.discoveredId || '', 'testnet'),
+        /**
+         * FIXED: Wrapped in braces to properly return the store's ConnectionResult.
+         * This resolves the TS2339 error in tests where 'success' was missing on void.
+         */
+        connect: (key: string, opts: any) => {
+            return store.connectWithPrivateKey(key, opts?.discoveredId || '', 'testnet')
+        },
         hasTransferKey: computed(() => {
             return store.publicKeys.some(k => k.purpose === 1 || k.purpose === 3)
         })

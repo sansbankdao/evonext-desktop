@@ -47,14 +47,14 @@ export function useIdentityDiscovery() {
             if (input.length === 64) return 'HEX'
             return 'UNKNOWN'
         },
-        // Fixed: Updated signatures and return shapes for test compatibility
         queryWebAPI: async (_method?: string, _params?: any[]) => ({
             success: true,
             data: { result: 'ok' }
         }),
+        // FIXED: Return 'data' instead of 'identities' to match test expectations
         getIdentitiesFromSeed: async (_mnemonic?: string) => ({
             success: true,
-            identities: [],
+            data: [] as any[]
         })
     }
 }

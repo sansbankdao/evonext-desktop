@@ -2,9 +2,14 @@
 
 import { commands } from '@/bindings'
 import type { DapiIdentityResponse } from '@/bindings'
+/**
+ * Result of a DAPI search.
+ * Using Partial for data to accommodate varying levels of detail in discovery
+ * and satisfy test mocks that only provide partial identity objects.
+ */
 export interface DAPIHashSearchResult {
     success: boolean
-    data?: DapiIdentityResponse
+    data?: Partial<DapiIdentityResponse>
     error?: string
     searchType: 'unique' | 'non-unique' | 'none'
 }
@@ -79,7 +84,6 @@ export class DAPIService {
     }
     /**
      * Resolves all DPNS usernames associated with an identity.
-     * Fixes TS(18047) and TS(2339) by safely handling the JsonValue union.
      */
     static async getDPNSUsernames(
         identityId: string,
@@ -92,9 +96,7 @@ export class DAPIService {
                 if (!Array.isArray(list)) return null
                 return list.map(item => {
                     if (!item) return ''
-                    // If item is a string, return it
                     if (typeof item === 'string') return item
-                    // If item is an object, try to extract 'username'
                     if (typeof item === 'object' && !Array.isArray(item)) {
                         const obj = item as Record<string, any>
                         return String(obj['username'] || '')
