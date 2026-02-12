@@ -20,6 +20,7 @@ const emit = defineEmits(['toggle'])
 const vibeInput = ref('')
 const isThinking = ref(false)
 const chatHistory = ref<{role: string, content: string}[]>([])
+const htmlDisplay = ref<string>('')
 
 const _parseNonCodeSections = (_src: string) => {
     // Temporarily replace code blocks
@@ -30,6 +31,45 @@ const _parseNonCodeSections = (_src: string) => {
         return '\0'
     })
 
+    // Create a custom renderer
+    const renderer = {
+        // <code>
+        code({ tokens }: { tokens: string; depth: number; }): string {
+            const text = this.parser.parseInline(tokens)
+
+            return `
+                <code class="border-4 border-rose-400 rounded-xl">
+                    ${text}
+                </code>`
+        },
+
+        // h1, h2, h3
+        heading({ tokens, depth }: { tokens: string; depth: number; }): string {
+            const text = this.parser.parseInline(tokens)
+            const escapedText = text.toLowerCase().replace(/[^\w]+/g, '-')
+
+            return `
+                <h${depth} class="text-2xl font-bold text-rose-600">
+                <a name="${escapedText}" class="anchor" href="#${escapedText}">
+                    <span class="header-link"></span>
+                </a>
+                ${text}
+                </h${depth}>`
+        },
+
+        // <ol>, <ul>
+        list({ tokens }: { tokens: string; depth: number; }): string {
+            const text = this.parser.parseInline(tokens)
+
+            return `
+                <li class="list-decimal pl-5">
+                    ${text}
+                </li>`
+        }
+    }
+
+    marked.use({ renderer })
+
     // Parse markdown on non-code parts
     let result = marked.parse(_src) as string
 
@@ -39,24 +79,25 @@ const _parseNonCodeSections = (_src: string) => {
     return result
 }
 
-function _addTailwindToCodeBlocks(_html: string) {
-    // Step 1: Handle block code <pre><code>
-    _html = _html.replace(
-        /<pre><code([^>]*)>([\s\S]*?)<\/code><\/pre>/g,
-        '<pre class="block my-2 py-3 px-2 bg-slate-800 border border-sky-600 rounded-lg overflow-x-auto text-slate-100 font-mono text-xs"><code$1 class="block">$2</code></pre>'
-    )
+// function _addTailwindToCodeBlocks(_html: string) {
+//     // Step 1: Handle block code <pre><code>
+//     _html = _html.replace(
+//         /<pre><code([^>]*)>([\s\S]*?)<\/code><\/pre>/g,
+//         '<pre class="block my-2 py-3 px-2 bg-slate-800 border border-sky-600 rounded-lg overflow-x-auto text-slate-100 font-mono text-xs"><code$1 class="block">$2</code></pre>'
+//     )
 
-    // Step 2: Handle remaining inline <code> (not inside <pre>)
-    return _html.replace(
-        /<code>([\s\S]*?)<\/code>/g,
-        '<code class="inline-flex px-1 py-0.5 bg-slate-600 border border-sky-400 rounded text-slate-100 font-mono text-xs">$1</code>'
-    )
-}
+//     // Step 2: Handle remaining inline <code> (not inside <pre>)
+//     return _html.replace(
+//         /<code>([\s\S]*?)<\/code>/g,
+//         '<code class="inline-flex px-1 py-0.5 bg-slate-600 border border-sky-400 rounded text-slate-100 font-mono text-xs">$1</code>'
+//     )
+// }
 
 const displayContent = ((_source: any) => {
     if (!_source) return 'please wait...'
-
-    return _addTailwindToCodeBlocks(_parseNonCodeSections(_source))
+    htmlDisplay.value = _parseNonCodeSections(_source)
+    // return _addTailwindToCodeBlocks(_parseNonCodeSections(_source))
+    return _parseNonCodeSections(_source)
 })
 
 async function askVibe() {
@@ -74,11 +115,20 @@ async function askVibe() {
     }
 
     try {
+        /* Make (remote) Vibe Terminal API request. */
         const response = await invoke<string>('ask_vibe_terminal', request)
-        chatHistory.value.push({ role: 'assistant', content: response })
+            .catch(err => {
+                console.error(err)
+                chatHistory.value.push({ role: 'assistant', content: err.message })
+            })
+
+        /* Add chat history. */
+        chatHistory.value.push({ role: 'assistant', content: response as string })
     } catch (e) {
+        /* Add chat history. */
         chatHistory.value.push({ role: 'assistant', content: "Error connecting to Vibe Terminal." })
     } finally {
+        /* Stop thinking. */
         isThinking.value = false
     }
 }
@@ -129,6 +179,9 @@ async function askVibe() {
                 <section>
                     <div class="h-20 p-3 border-2 rounded-xl text-xs font-mono overflow-auto">
                         {{ chatHistory[chatHistory.length - 1]?.content }}
+                    </div>
+                    <div class="h-20 p-3 border-2 rounded-xl text-xs font-mono overflow-auto">
+                        {{ htmlDisplay }}
                     </div>
                 </section>
             </div>
