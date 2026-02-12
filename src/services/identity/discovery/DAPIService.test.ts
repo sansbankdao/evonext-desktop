@@ -23,7 +23,8 @@ describe('DAPIService - Response Handling', () => {
             const result = await DAPIService.getIdentityById('id_123', 'testnet')
 
             expect(result.success).toBe(true)
-            expect(result.data.identityId).toBe('id_123')
+            // FIXED: Added ! assertion because success: true guarantees data presence in this test context
+            expect(result.data!.identityId).toBe('id_123')
         })
 
         it('should handle array returns (Rust behavior normalization)', async () => {
@@ -32,7 +33,8 @@ describe('DAPIService - Response Handling', () => {
             const result = await DAPIService.getIdentityById('id_123', 'testnet')
 
             expect(result.success).toBe(true)
-            expect(result.data.identityId).toBe('id_from_array')
+            // FIXED: Added ! assertion
+            expect(result.data!.identityId).toBe('id_from_array')
         })
 
         it('should handle errors by catching the thrown invoke', async () => {
@@ -53,6 +55,8 @@ describe('DAPIService - Response Handling', () => {
 
             expect(result.success).toBe(true)
             expect(result.searchType).toBe('unique')
+            // FIXED: Added ! assertion
+            expect(result.data!.identityId).toBe('unique_id')
             expect(invoke).toHaveBeenCalledWith('get_identity_by_public_key_hash', expect.anything())
         })
 
@@ -63,6 +67,8 @@ describe('DAPIService - Response Handling', () => {
 
             expect(result.success).toBe(true)
             expect(result.searchType).toBe('non-unique')
+            // FIXED: Added ! assertion
+            expect(result.data!.identityId).toBe('non_unique_id')
             expect(invoke).toHaveBeenCalledWith('get_identity_by_non_unique_public_key_hash', expect.anything())
         })
 
