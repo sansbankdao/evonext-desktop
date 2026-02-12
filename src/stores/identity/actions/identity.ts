@@ -6,6 +6,18 @@ import { DAPIService } from '@/services/identity/discovery/DAPIService'
 import { commands } from '@/bindings'
 import type { IIdentityState, IIdentity } from '@/types/identity'
 import { transformPublicKeys } from '../utils'
+/**
+ * Normalizes command responses to ensure a consistent { success, data, error }
+ * structure regardless of the underlying Rust implementation details.
+ */
+function normalizeResult<T>(res: any): { success: boolean; data: T | null; error: any } {
+    const success = !!(res?.success || (res as any)?.status === 'success' || (res as any)?.status === 'ok');
+    return {
+        success,
+        data: res?.data ?? res?.payload ?? null,
+        error: res?.error ?? null
+    };
+}
 export const identityActions = {
     /**
      * Syncs a new or updated identity into the store.
@@ -20,23 +32,26 @@ export const identityActions = {
             ...payload
         }
         const response = await commands.saveIdentity(network, fullPayload)
-        if (response.success) {
+        const result = normalizeResult<any>(response)
+        if (result.success) {
             this.identities[fullPayload.identityId] = {
                 ...fullPayload,
                 identityId: fullPayload.identityId
             }
         }
-        return response
+        return result
     },
     async saveKeys(this: any, network: string, identityId: string, keys: any[]): Promise<any> {
-        return await commands.saveKeys(network, identityId, keys)
+        const response = await commands.saveKeys(network, identityId, keys)
+        return normalizeResult<boolean>(response)
     },
     async loadKeystore(this: any, network: string): Promise<any> {
         const response = await commands.loadKeystore(network)
-        if (response.success) {
-            this.keystore = response.data
+        const result = normalizeResult<any>(response)
+        if (result.success) {
+            this.keystore = result.data
         }
-        return response
+        return result
     },
     async searchUserIdentities(this: IIdentityState): Promise<IIdentity[]> {
         const identityComposable = useIdentity()

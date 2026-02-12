@@ -8,7 +8,10 @@ export const connectionActions = {
         this.isConnecting = true
         this.connectionError = null
         try {
-            const identityData = await invoke<any>('get_identity_details', { identityId, idx: identityIndex, network })
+            const rawData = await invoke<any>('get_identity_details', { identityId, idx: identityIndex, network })
+            // Unwrapping unified result if present
+            const identityData = rawData?.data || rawData;
+            if (!identityData) throw new Error('Identity details not found');
             const mappedPublicKeys = transformPublicKeys(identityData.publicKeys || [])
             const res = await this.saveIdentityWithKeys(network, {
                 identityId,
@@ -28,10 +31,10 @@ export const connectionActions = {
                 await this.saveToStorage()
                 return { success: true, identityId }
             }
-            return res
+            return { success: false, error: res.error?.message || 'Connection failed' }
         } catch (e) {
             this.connectionError = String(e)
-            return { success: false, error: { message: String(e) } as any }
+            return { success: false, error: String(e) }
         } finally {
             this.isConnecting = false
         }
@@ -42,8 +45,9 @@ export const connectionActions = {
     async connectWithPrivateKey(this: any, privateKey: string, identityId: string, network: string): Promise<ConnectionResult> {
         this.isConnecting = true
         try {
-            const identityData = await invoke<any>('get_identity_details', { identityId, network })
-            // const mappedPublicKeys = transformPublicKeys(identityData.publicKeys || [])
+            const rawData = await invoke<any>('get_identity_details', { identityId, network })
+            const identityData = rawData?.data || rawData;
+            if (!identityData) throw new Error('Identity details not found');
             const res = await this.saveIdentityWithKeys(network, {
                 identityId,
                 publicKeys: [{ id: 0, privateKey, purpose: 3, securityLevel: 0 }],
@@ -56,9 +60,9 @@ export const connectionActions = {
                 await this.refreshIdentity()
                 return { success: true, identityId }
             }
-            return res
+            return { success: false, error: res.error?.message || 'Connection failed' }
         } catch (e) {
-            return { success: false, error: { message: String(e) } as any }
+            return { success: false, error: String(e) }
         } finally {
             this.isConnecting = false
         }
