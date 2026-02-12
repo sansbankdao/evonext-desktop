@@ -24,7 +24,7 @@ async fn test_dapi_request_validation_failure_pure() {
     let mut params = HashMap::new();
     params.insert("wrong_key".to_string(), json!(123));
 
-    // No AppHandle needed now!
+    // Calls the pure logic version restored in dapi_commands.rs
     let res = dapi_request_inner("getIdentity".into(), params, None).await;
     assert!(res.is_err());
 }

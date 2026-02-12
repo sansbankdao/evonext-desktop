@@ -302,21 +302,27 @@ pub async fn dapi_request(
     params: HashMap<String, Value>,
     network: Option<String>,
 ) -> ICommandResult<Vec<Value>> {
-    let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
+    cmd_res!(dapi_request_inner(method, params, network).await)
+}
 
-    cmd_res!(async {
-        let method_info = MethodParamInfo::for_method(&method).map_err(|e| e.to_string())?;
-        let mut params_array = Vec::new();
-        for param_name in &method_info.required_params {
-            if let Some(value) = params.get(*param_name) {
-                params_array.push(value.clone());
-            } else {
-                params_array.push(Value::Null);
-            }
+pub async fn dapi_request_inner(
+    method: String,
+    params: HashMap<String, Value>,
+    network: Option<String>,
+) -> Result<Vec<Value>, String> {
+    let current_network = network.and_then(|n| Network::from_str(&n)).unwrap_or(Network::Testnet);
+    let method_info = MethodParamInfo::for_method(&method).map_err(|e| e.to_string())?;
+
+    let mut params_array = Vec::new();
+    for param_name in &method_info.required_params {
+        if let Some(value) = params.get(*param_name) {
+            params_array.push(value.clone());
+        } else {
+            params_array.push(Value::Null);
         }
-        let client = get_dapi_client();
-        client.request::<Value>(method, params_array, current_network).await.map_err(|e| e.to_string())
-    }.await)
+    }
+    let client = get_dapi_client();
+    client.request::<Value>(method, params_array, current_network).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
