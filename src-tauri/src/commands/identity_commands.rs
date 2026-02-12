@@ -1,10 +1,11 @@
 // src-tauri/src/commands/identity_commands.rs
 
 use crate::identity::{lib as identity_logic, storage};
-use crate::models::{IIdentityData, IIdentityPublicKey, IPrivateKeyEntry, IAnyValue};
+use crate::models::{IIdentityData, IIdentityPublicKey, IPrivateKeyEntry, IAnyValue, ICommandResult};
 use crate::utils::{StoreManager, PersistentStore};
 use crate::dapi::client::get_dapi_client;
 use crate::dapi::types::{Network, Identity};
+use crate::cmd_res; // Import the macro from crate root
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -14,6 +15,7 @@ use tauri::Runtime;
 mod tests;
 
 pub struct IdentityMapper;
+
 impl IdentityMapper {
     /// Maps a frontend payload to the internal Rust IIdentityData structure.
     /// Ensures that public_key_ids are tracked consistently.
@@ -72,8 +74,8 @@ pub async fn discover_and_save_identity(
     app: tauri::AppHandle,
     identity_id: String,
     network: String,
-) -> Result<IUnifiedCommandResult, String> {
-    discover_and_save_identity_inner(app, identity_id, network).await
+) -> ICommandResult<IUnifiedCommandResult> {
+    cmd_res!(discover_and_save_identity_inner(app, identity_id, network).await)
 }
 pub async fn discover_and_save_identity_inner<R: Runtime>(
     app: tauri::AppHandle<R>,
@@ -117,9 +119,9 @@ pub async fn save_identity_with_keys(
     network: String,
     identity_payload: ISaveIdentityPayload,
     keys: Vec<IPrivateKeyEntry>,
-) -> Result<IUnifiedCommandResult, String> {
+) -> ICommandResult<IUnifiedCommandResult> {
     let manager = StoreManager::new(&app);
-    save_identity_with_keys_logic(&manager, network, identity_payload, keys).await
+    cmd_res!(save_identity_with_keys_logic(&manager, network, identity_payload, keys).await)
 }
 pub async fn save_identity_with_keys_logic<S: PersistentStore>(
     store: &S,
@@ -143,9 +145,9 @@ pub async fn save_identity(
     app: tauri::AppHandle,
     network: String,
     payload: ISaveIdentityPayload,
-) -> Result<IUnifiedCommandResult, String> {
+) -> ICommandResult<IUnifiedCommandResult> {
     let manager = StoreManager::new(&app);
-    save_identity_logic(&manager, network, payload).await
+    cmd_res!(save_identity_logic(&manager, network, payload).await)
 }
 pub async fn save_identity_logic<S: PersistentStore>(
     store: &S,
@@ -180,8 +182,8 @@ pub async fn delete_identity(
     app: tauri::AppHandle,
     network: String,
     identity_id: Option<String>,
-) -> Result<bool, String> {
-    delete_identity_inner(app, network, identity_id).await
+) -> ICommandResult<bool> {
+    cmd_res!(delete_identity_inner(app, network, identity_id).await)
 }
 pub async fn delete_identity_inner<R: Runtime>(
     app: tauri::AppHandle<R>,
@@ -210,9 +212,9 @@ pub async fn save_keys(
     network: String,
     identity_id: String,
     keys: Vec<IPrivateKeyEntry>,
-) -> Result<bool, String> {
+) -> ICommandResult<bool> {
     let manager = StoreManager::new(&app);
-    save_keys_logic(&manager, network, identity_id, keys).await
+    cmd_res!(save_keys_logic(&manager, network, identity_id, keys).await)
 }
 pub async fn save_keys_logic<S: PersistentStore>(
     store: &S,
@@ -224,14 +226,12 @@ pub async fn save_keys_logic<S: PersistentStore>(
     {
         let entries = keystore.identities.entry(identity_id.clone()).or_default();
         for k in keys {
-            // Update existing or push new key entry
             if let Some(existing) = entries.iter_mut().find(|e| e.key_id == k.key_id) {
                 *existing = k;
             } else {
                 entries.push(k);
             }
         }
-        // Self-Healing: Enrich keys with metadata from the identity record if available
         let current_identities = storage::load_identity_map_internal(store, &network)?;
         if let Some(identity_data) = current_identities.get(&identity_id) {
             identity_logic::enrich_key_entries(entries, identity_data);
@@ -255,8 +255,8 @@ pub async fn save_keys_inner<R: Runtime>(
 pub async fn load_keystore(
     app: tauri::AppHandle,
     network: String,
-) -> Result<IAnyValue, String> {
-    load_keystore_inner(app, network).await
+) -> ICommandResult<IAnyValue> {
+    cmd_res!(load_keystore_inner(app, network).await)
 }
 pub async fn load_keystore_inner<R: Runtime>(
     app: tauri::AppHandle<R>,

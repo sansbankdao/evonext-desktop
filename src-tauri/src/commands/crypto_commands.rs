@@ -1,5 +1,8 @@
 // src-tauri/src/commands/crypto_commands.rs
 
+use crate::models::ICommandResult;
+use crate::cmd_res;
+
 #[cfg(test)]
 mod tests;
 
@@ -8,8 +11,8 @@ mod tests;
 pub fn hash160(
     _app: tauri::AppHandle,
     input: Vec<u8>
-) -> Result<Vec<u8>, String> {
-    hash160_logic(input)
+) -> ICommandResult<Vec<u8>> {
+    cmd_res!(hash160_logic(input))
 }
 
 /// Pure logic version: No tauri types, no Runtime required.
@@ -28,8 +31,8 @@ pub fn hash160_logic(
 pub fn random_bytes(
     _app: tauri::AppHandle,
     len: u32,
-) -> Result<Vec<u8>, String> {
-    random_bytes_logic(len)
+) -> ICommandResult<Vec<u8>> {
+    cmd_res!(random_bytes_logic(len))
 }
 
 /// Pure logic version: No tauri types, no Runtime required.

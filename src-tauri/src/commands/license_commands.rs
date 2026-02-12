@@ -1,8 +1,9 @@
 // src-tauri/src/commands/license_commands.rs
 
 use crate::constants::LICENSE_FILE;
-use crate::models::{ILicense, ILicenseStoreMap};
+use crate::models::{ILicense, ILicenseStoreMap, ICommandResult};
 use crate::utils::{StoreManager, PersistentStore};
+use crate::cmd_res;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::Runtime;
 
@@ -14,8 +15,8 @@ mod tests;
 pub async fn refresh_license(
     app_handle: tauri::AppHandle,
     identity_id: String,
-) -> Result<ILicense, String> {
-    refresh_license_inner(app_handle, identity_id).await
+) -> ICommandResult<ILicense> {
+    cmd_res!(refresh_license_inner(app_handle, identity_id).await)
 }
 
 pub async fn refresh_license_inner<R: Runtime>(
@@ -37,9 +38,9 @@ pub async fn refresh_license_inner<R: Runtime>(
 pub async fn load_license(
     app_handle: tauri::AppHandle,
     identity_id: String,
-) -> Result<Option<ILicense>, String> {
+) -> ICommandResult<Option<ILicense>> {
     let manager = StoreManager::new(&app_handle);
-    load_license_logic(&manager, identity_id)
+    cmd_res!(load_license_logic(&manager, identity_id))
 }
 
 pub fn load_license_logic<S: PersistentStore>(
@@ -65,9 +66,9 @@ pub async fn load_license_inner<R: Runtime>(
 
 #[tauri::command]
 #[specta::specta]
-pub fn save_license(app_handle: tauri::AppHandle, payload: ILicense) -> Result<(), String> {
+pub fn save_license(app_handle: tauri::AppHandle, payload: ILicense) -> ICommandResult<()> {
     let manager = StoreManager::new(&app_handle);
-    save_license_logic(&manager, payload)
+    cmd_res!(save_license_logic(&manager, payload))
 }
 
 pub fn save_license_logic<S: PersistentStore>(
@@ -92,9 +93,9 @@ pub fn save_license_inner<R: Runtime>(
 
 #[tauri::command]
 #[specta::specta]
-pub fn delete_license(app_handle: tauri::AppHandle, identity_id: String) -> Result<(), String> {
+pub fn delete_license(app_handle: tauri::AppHandle, identity_id: String) -> ICommandResult<()> {
     let manager = StoreManager::new(&app_handle);
-    delete_license_logic(&manager, identity_id)
+    cmd_res!(delete_license_logic(&manager, identity_id))
 }
 
 pub fn delete_license_logic<S: PersistentStore>(

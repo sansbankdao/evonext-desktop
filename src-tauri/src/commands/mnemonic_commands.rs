@@ -1,7 +1,8 @@
 // src-tauri/src/commands/mnemonic_commands.rs
 
-use crate::models::{IMnemonic, IPrivateKeyStore};
+use crate::models::{IMnemonic, IPrivateKeyStore, ICommandResult};
 use crate::utils::{network_file::get_network_file, StoreManager, PersistentStore};
+use crate::cmd_res;
 
 #[cfg(test)]
 mod tests;
@@ -11,9 +12,9 @@ mod tests;
 pub fn load_mnemonic(
     app_handle: tauri::AppHandle,
     network: String,
-) -> Result<Option<IMnemonic>, String> {
+) -> ICommandResult<Option<IMnemonic>> {
     let manager = StoreManager::new(&app_handle);
-    load_mnemonic_logic(&manager, network)
+    cmd_res!(load_mnemonic_logic(&manager, network))
 }
 
 pub fn load_mnemonic_logic<S: PersistentStore>(
@@ -30,16 +31,18 @@ pub fn load_mnemonic_logic<S: PersistentStore>(
         }
     }
 }
+
 #[tauri::command]
 #[specta::specta]
 pub fn save_mnemonic(
     app_handle: tauri::AppHandle,
     network: String,
     payload: IMnemonic,
-) -> Result<(), String> {
+) -> ICommandResult<()> {
     let manager = StoreManager::new(&app_handle);
-    save_mnemonic_logic(&manager, network, payload)
+    cmd_res!(save_mnemonic_logic(&manager, network, payload))
 }
+
 pub fn save_mnemonic_logic<S: PersistentStore>(
     store: &S,
     network: String,
@@ -53,15 +56,17 @@ pub fn save_mnemonic_logic<S: PersistentStore>(
     keystore.mnemonic = Some(payload);
     store.save_data(&filename, "keystore", &keystore).map_err(|e| e.to_string())
 }
+
 #[tauri::command]
 #[specta::specta]
 pub fn delete_mnemonic(
     app_handle: tauri::AppHandle,
     network: String,
-) -> Result<(), String> {
+) -> ICommandResult<()> {
     let manager = StoreManager::new(&app_handle);
-    delete_mnemonic_logic(&manager, network)
+    cmd_res!(delete_mnemonic_logic(&manager, network))
 }
+
 pub fn delete_mnemonic_logic<S: PersistentStore>(
     store: &S,
     network: String,

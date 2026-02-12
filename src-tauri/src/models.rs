@@ -8,6 +8,42 @@ use specta::Type;
 #[cfg(test)]
 mod tests;
 
+// =====================================================
+// Unified Protocol Model (THE SOURCE OF TRUTH)
+// =====================================================
+#[derive(Serialize, Deserialize, Clone, Debug, Type, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ICommandResult<T: Type> {
+    pub success: bool,
+    pub data: Option<T>,
+    pub error: Option<String>,
+}
+impl<T: Type> ICommandResult<T> {
+    pub fn ok(data: T) -> Self {
+        Self {
+            success: true,
+            data: Some(data),
+            error: None,
+        }
+    }
+    pub fn err(message: &str) -> Self {
+        Self {
+            success: false,
+            data: None,
+            error: Some(message.to_string()),
+        }
+    }
+}
+/// Helper macro to convert standard Result to ICommandResult
+#[macro_export]
+macro_rules! cmd_res {
+    ($result:expr) => {
+        match $result {
+            Ok(data) => $crate::models::ICommandResult::ok(data),
+            Err(e) => $crate::models::ICommandResult::err(&e.to_string()),
+        }
+    };
+}
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 pub struct IAnyValue(pub serde_json::Value);
 

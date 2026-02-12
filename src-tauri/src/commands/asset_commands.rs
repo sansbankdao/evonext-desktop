@@ -2,9 +2,10 @@
 
 use serde_json::Value;
 use tauri::Runtime;
-use crate::models::{IAssetDefinition, IAssetStoreMap, IAssets};
+use crate::models::{IAssetDefinition, IAssetStoreMap, IAssets, ICommandResult};
 use crate::utils::{StoreManager, PersistentStore, network_file::get_network_file};
 use crate::identity::storage::{load_identity_map_internal, save_identity_map_internal};
+use crate::cmd_res;
 
 #[cfg(test)]
 mod tests;
@@ -58,8 +59,9 @@ pub fn discover_assets(
     app_handle: tauri::AppHandle,
     identity_id: String,
     network: String
-) -> Result<IAssets, String> {
-    discover_assets_inner(app_handle, identity_id, network)
+) -> ICommandResult<IAssets> {
+    // let manager = StoreManager::new(&app_handle);
+    cmd_res!(discover_assets_inner(app_handle, identity_id, network))
 }
 
 pub fn discover_assets_inner<R: Runtime>(
@@ -106,8 +108,8 @@ pub async fn fetch_identity_tokens(
     app: tauri::AppHandle,
     identity_id: String,
     network: String,
-) -> Result<IAssets, String> {
-    fetch_identity_tokens_inner(app, identity_id, network).await
+) -> ICommandResult<IAssets> {
+    cmd_res!(fetch_identity_tokens_inner(app, identity_id, network).await)
 }
 
 pub async fn fetch_identity_tokens_inner<R: Runtime>(
@@ -158,9 +160,9 @@ pub fn load_assets(
     app_handle: tauri::AppHandle,
     identity_id: String,
     network: String,
-) -> Result<IAssets, String> {
+) -> ICommandResult<IAssets> {
     let manager = StoreManager::new(&app_handle);
-    load_assets_logic(&manager, identity_id, network)
+    cmd_res!(load_assets_logic(&manager, identity_id, network))
 }
 
 pub fn load_assets_logic<S: PersistentStore>(
@@ -182,9 +184,9 @@ pub fn save_assets(
     identity_id: String,
     network: String,
     payload: IAssets,
-) -> Result<(), String> {
+) -> ICommandResult<()> {
     let manager = StoreManager::new(&app_handle);
-    save_assets_logic(&manager, identity_id, network, payload)
+    cmd_res!(save_assets_logic(&manager, identity_id, network, payload))
 }
 
 pub fn save_assets_logic<S: PersistentStore>(
@@ -206,9 +208,9 @@ pub fn save_assets_logic<S: PersistentStore>(
 pub fn delete_assets(
     app_handle: tauri::AppHandle,
     network: String,
-) -> Result<(), String> {
+) -> ICommandResult<()> {
     let manager = StoreManager::new(&app_handle);
-    delete_assets_logic(&manager, network)
+    cmd_res!(delete_assets_logic(&manager, network))
 }
 
 pub fn delete_assets_logic<S: PersistentStore>(
