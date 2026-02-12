@@ -1,10 +1,12 @@
 // src/services/posts/transformers.ts
 
 import type { IPost, IUser, IPostDocument } from '@/types'
+
 const abbreviateId = (id: string) => {
     if (!id) return '...'
     return `${id.slice(0, 11)}...${id.slice(-4)}`
 }
+
 export function getUserInfo(
     ownerId: string,
     dpnsName?: string | null,
@@ -23,26 +25,30 @@ export function getUserInfo(
         bio: ''
     }
 }
+
 export function transformPostDocument(
     doc: IPostDocument | any,
     dpnsName?: string | null,
     authorProfile?: any,
     stats?: any
 ): IPost {
+    // RESOLVED: Correctly extract id from document fallbacks
     const id = doc.id || doc.$id || ''
     const ownerId = doc.ownerId || doc.$ownerId || ''
     const createdAt = parseInt(String(doc.createdAt || doc.$createdAt || Date.now()))
     const updatedAt = doc.updatedAt || doc.$updatedAt
         ? parseInt(String(doc.updatedAt || doc.$updatedAt))
         : null
+
     const author = getUserInfo(
         ownerId,
         dpnsName,
         authorProfile?.displayName,
         authorProfile?.avatarUrl
     )
+
     return {
-        id,
+        id, // Correctly mapped to IPost.id
         contractId: doc.dataContractId || 'TBD',
         ownerId,
         author,
@@ -62,6 +68,7 @@ export function transformPostDocument(
         replyToPostId: doc.replyToPostId
     }
 }
+
 export function transformPostDocuments(
     documents: IPostDocument[],
     dpnsNames: Map<string, string> = new Map(),
@@ -78,6 +85,7 @@ export function transformPostDocuments(
             yapprProfiles.get(ownerId),
             statsMap.get(id)
         )
+
         if (post.replyToPostId && parentPosts.has(post.replyToPostId)) {
             post.replyTo = parentPosts.get(post.replyToPostId)
         }

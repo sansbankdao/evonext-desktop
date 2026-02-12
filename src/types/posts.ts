@@ -1,7 +1,13 @@
 // src/types/posts.ts
 
 import type { IUser } from './identity'
+
+/**
+ * Base properties shared across documents and UI models
+ * FIXED: Added 'id' here so it propagates to ALL post types.
+ */
 interface IPostBase {
+    id: string;
     content: string;
     isSensitive: boolean;
     language: string;
@@ -11,6 +17,10 @@ interface IPostBase {
     mentionIds?: string[] | undefined;
     replyToPostId?: string | undefined;
 }
+
+/**
+ * Media object for rich UI rendering
+ */
 export interface IMedia {
     type: 'image' | 'video' | 'gif';
     url: string;
@@ -19,6 +29,11 @@ export interface IMedia {
     width?: number | undefined;
     height?: number | undefined;
 }
+
+/**
+ * The literal shape of a Post as stored on the Dash Platform.
+ * Now inherits 'id' from IPostBase.
+ */
 export interface IPostDocument extends IPostBase {
     ownerId: string;
     dataContractId: string;
@@ -28,6 +43,11 @@ export interface IPostDocument extends IPostBase {
     $id?: string;
     $ownerId?: string;
 }
+
+/**
+ * The "Hydrated" Post object used throughout the Vue application.
+ * Now inherits 'id' from IPostBase.
+ */
 export interface IPost extends IPostBase {
     contractId: string;
     documentId?: string | undefined;
@@ -46,6 +66,7 @@ export interface IPost extends IPostBase {
     replyTo?: IPost | undefined;
     quotedPost?: IPost | undefined;
 }
+
 export interface ICreatePostParams {
     content: string;
     isSensitive?: boolean | undefined;
@@ -56,6 +77,7 @@ export interface ICreatePostParams {
     mentionIds?: string[] | undefined;
     replyToPostId?: string | undefined;
 }
+
 export interface IUpdatePostParams {
     documentId: string;
     content?: string | undefined;
@@ -65,12 +87,14 @@ export interface IUpdatePostParams {
     mediaUrl?: string[] | undefined;
     mentionIds?: string[] | undefined;
 }
+
 export interface IPostStats {
     likes: number;
     remixes: number;
     replies: number;
     bookmarks?: number | undefined;
 }
+
 export interface IComment {
     author: IUser;
     content: string;
@@ -79,6 +103,7 @@ export interface IComment {
     liked?: boolean | undefined;
     postId: string;
 }
+
 export interface INotification {
     type: 'like' | 'remix' | 'follow' | 'reply' | 'mention';
     from: IUser;
@@ -86,6 +111,7 @@ export interface INotification {
     createdAt: Date;
     read: boolean;
 }
+
 export interface ILikeDocument {
     postId: string;
     ownerId: string;
@@ -94,6 +120,7 @@ export interface ILikeDocument {
     createdAt: number;
     updatedAt: number | null;
 }
+
 export interface IPostsState {
     posts: IPost[];
     userPosts: IPost[];
@@ -102,16 +129,18 @@ export interface IPostsState {
     isLoading: boolean;
     error: string | null;
     lastFetched: Date | null;
-    nextPage: string | undefined; // Added to resolve TS2339 in state.test.ts
+    nextPage: string | undefined;
     hasNextPage: boolean;
     limit: number;
     offset: number;
 }
+
 export interface PostsFetchResult {
     posts: IPost[];
     nextPage?: string | undefined;
     hasNextPage: boolean;
 }
+
 export interface PostsFetchOptions {
     id?: string | undefined;
     ownerId?: string | undefined;
@@ -122,6 +151,7 @@ export interface PostsFetchOptions {
     language?: string | undefined;
     orderBy?: 'newest' | 'oldest' | undefined;
 }
+
 export interface IPostFilters {
     language?: string | undefined;
     fromDate?: Date | undefined;

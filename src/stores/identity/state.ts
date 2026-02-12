@@ -1,6 +1,7 @@
 // src/stores/identity/state.ts
 
 import type { IIdentityState, IIdentity, IPublicKey, DiscoveryProgress } from '@/types/identity'
+
 export const useIdentityState = (): IIdentityState => ({
     identityId: null,
     identityIdx: 0,
@@ -40,6 +41,8 @@ export const useIdentityState = (): IIdentityState => ({
     saveKeys: async () => {},
     saveMnemonicToStore: async () => {},
     saveIdentityDataToStore: async () => {},
+    // RESOLVED: Implemented missing action for IIdentityActions interface
+    saveIdentity: async (_network: string, _payload: any) => {},
     getCurrentNetwork: async () => 'testnet',
     loadKeystore: async () => null,
 })

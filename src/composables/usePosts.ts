@@ -15,17 +15,14 @@ export function usePosts() {
     const identityStore = useIdentityStore()
     const settingsStore = useSettingsStore()
 
-    // Local UI State
     const activeTab = ref<'posts' | 'remix'>('posts')
     const searchQuery = ref('')
     const languageFilter = ref<string>('')
     const sortBy = ref<filters.SortOrder>('newest')
     const sensitiveFilter = ref<filters.SensitiveFilter>('show')
 
-    // Debounced search
     const debouncedSearch = useDebounce(searchQuery, 500)
 
-    // Computed Wrappers
     const isAuthenticated = computed(() => identityStore.isAuthenticated)
     const currentUserId = computed(() => identityStore.identityId || '')
     const currentNetwork = computed(() => {
@@ -33,7 +30,6 @@ export function usePosts() {
         return (net === 'mainnet' || net === 'testnet') ? net : 'testnet'
     })
 
-    // Filter Logic
     const filteredPosts = computed(() => {
         const filterOptions: FilterOptions = {
             searchQuery: debouncedSearch.value,
@@ -53,7 +49,6 @@ export function usePosts() {
         return filters.filterPosts(postsStore.sortedUserPosts, filterOptions)
     })
 
-    // Actions - Delegate strictly to Store
     function fetchPosts(options?: PostsFetchOptions) {
         return postsStore.fetchPosts(options)
     }
@@ -74,7 +69,7 @@ export function usePosts() {
     }
 
     function bookmarkPost(postId: string) {
-        if (stats.isPostBookmarked(postId)) { // Or check store.bookmarkedPosts
+        if (stats.isPostBookmarked(postId)) {
             return postsStore.unbookmarkPostById(postId)
         }
         return postsStore.bookmarkPostById(postId)
@@ -92,14 +87,12 @@ export function usePosts() {
         return postsStore.refreshPostStats(postId)
     }
 
-    // UI Helpers
     function clearFilters() {
         searchQuery.value = ''
         languageFilter.value = ''
         sortBy.value = 'newest'
     }
 
-    // Auto-refresh logic
     let refreshInterval: ReturnType<typeof setInterval>
     function startAutoRefresh(intervalMs = 120000) {
         stopAutoRefresh()
@@ -116,15 +109,12 @@ export function usePosts() {
     })
 
     return {
-        // State
         activeTab,
         searchQuery,
         debouncedSearch,
         languageFilter,
         sortBy,
         sensitiveFilter,
-
-        // Store Data
         isLoading: computed(() => postsStore.isLoading),
         error: computed(() => postsStore.error),
         posts: filteredPosts,
@@ -132,20 +122,14 @@ export function usePosts() {
         totalPosts: computed(() => postsStore.posts.length),
         lastFetched: computed(() => postsStore.lastFetched),
         hasMore: computed(() => postsStore.hasNextPage),
-
-        // Debug (mapped from store state)
-        debugStats: computed(() => (postsStore as any).debug), // Cast if using strict types without state update
-
-        // Computed Helpers
+        debugStats: computed(() => (postsStore as any).debug),
         uniqueLanguages: computed(() => filters.getUniqueLanguages(postsStore.posts)),
         uniqueHashtags: computed(() => filters.getUniqueHashtags(postsStore.posts)),
-        bookmarkedPosts: computed(() => postsStore.posts.filter(p => stats.isPostBookmarked(p.id!))),
-
+        // RESOLVED: Accessed guaranteed id property on IPost
+        bookmarkedPosts: computed(() => postsStore.posts.filter(p => stats.isPostBookmarked(p.id))),
         isAuthenticated,
         currentUserId,
         currentNetwork,
-
-        // Actions
         fetchPosts,
         fetchMorePosts,
         createPost,
@@ -158,8 +142,6 @@ export function usePosts() {
         setTab: (tab: 'posts' | 'remix') => activeTab.value = tab,
         startAutoRefresh,
         stopAutoRefresh,
-
-        // Getters
         getPostById: (id: string) => postsStore.getPostById(id),
         isPostLiked: (id: string) => postsStore.isPostLiked(id),
         stats: {

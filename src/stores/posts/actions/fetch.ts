@@ -151,7 +151,8 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
         if (replyToIds.size > 0) {
             const targetContractId = network === 'testnet' ? EVONEXT_CONTRACT_ID_TESTNET : EVONEXT_CONTRACT_ID_MAINNET
             const idsToFetch = Array.from(replyToIds)
-            const existingIds = new Set(finalDocuments.map(d => d.id))
+            // RESOLVED: id property now exists on IPostDocument
+            const existingIds = new Set(finalDocuments.map(d => d.id || (d as any).$id))
             const missingIds = idsToFetch.filter(id => !existingIds.has(id))
 
             if (missingIds.length > 0) {
@@ -163,7 +164,7 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
         const profiles = new Map<string, any>()
         const yapprProfiles = new Map<string, any>()
         const dpnsNames = new Map<string, string>()
-        const ownerIds = [...new Set(allDocsToProcess.map(doc => doc.ownerId || ''))].filter(Boolean)
+        const ownerIds = [...new Set(allDocsToProcess.map(doc => doc.ownerId || doc.$ownerId || ''))].filter(Boolean)
 
         await Promise.all(
             ownerIds.map(async (ownerId) => {
@@ -206,22 +207,26 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
         const parentPostsMap = new Map<string, IPost>()
         const transformedParents = transformers.transformPostDocuments(
             parentDocuments,
-            profiles,
+            dpnsNames,
             yapprProfiles,
-            dpnsNames
+            new Map()
         )
+        // RESOLVED: Use correct mapping for parent resolution
         transformedParents.forEach(p => { if (p.id) parentPostsMap.set(p.id, p) })
 
         const posts = transformers.transformPostDocuments(
             finalDocuments,
-            profiles,
-            yapprProfiles,
             dpnsNames,
+            yapprProfiles,
+            new Map(),
             parentPostsMap
         )
 
         const postsWithSource = posts.map(post => {
-            const sourceDoc = uniqueDocuments.find(d => d.ownerId === post.ownerId && Math.abs(d.createdAt - post.createdAt) < 2)
+            const sourceDoc = uniqueDocuments.find(d =>
+                (d.ownerId === post.ownerId || (d as any).$ownerId === post.ownerId) &&
+                Math.abs(d.createdAt - post.createdAt) < 2
+            )
             return {
                 ...post,
                 contractId: sourceDoc?.dataContractId || ''

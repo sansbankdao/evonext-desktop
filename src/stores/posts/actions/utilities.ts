@@ -6,16 +6,7 @@ import { usePosts } from '@/composables/usePosts'
 export async function refreshPostStatsAction(this: any, postId: string): Promise<void> {
     try {
         const composable = usePosts()
-
-        // Delegate to composable to fetch stats
         await composable.refreshPostStats(postId)
-
-        // Note: The composable's refreshPostStats fetches the data
-        // and updates the post in the store using upsertPost.
-        // Since 'this' is the store, the data is already updated.
-        // We just need to ensure userPosts is synced if necessary, though
-        // upsertPost applies to the source of truth.
-
     } catch (error) {
         console.error('Error refreshing post stats:', error)
     }
@@ -44,13 +35,12 @@ export function updatePostAuthorAction(this: any, postId: string, author: Partia
                 ...author
             }
         }
-        // Use the composable/store helper to update and sync arrays
         this.upsertPost(updatedPost)
     }
 }
 
 export function upsertPostAction(this: any, post: IPost): void {
-    // Check if post already exists
+    // RESOLVED: Property 'id' is guaranteed on IPost
     const existingIndex = this.posts.findIndex((p: IPost) => p.id === post.id)
 
     if (existingIndex !== -1) {
@@ -59,7 +49,6 @@ export function upsertPostAction(this: any, post: IPost): void {
         this.posts.unshift(post)
     }
 
-    // Also update in userPosts if owned by user (or if it's already in there)
     if (this.userPosts.some((p: IPost) => p.ownerId === post.ownerId) || post.ownerId === this.identityId) {
         const userExistingIndex = this.userPosts.findIndex((p: IPost) => p.id === post.id)
 
@@ -73,10 +62,7 @@ export function upsertPostAction(this: any, post: IPost): void {
 
 export async function initializeLikedPostsAction(this: any, userId?: string): Promise<void> {
     if (!userId) return
-
     try {
-        // This would fetch the user's liked posts from blockchain
-        // For now, we'll initialize from local storage
         const storedLikes = localStorage.getItem(`likedPosts_${userId}`)
         if (storedLikes) {
             this.likedPosts = JSON.parse(storedLikes)

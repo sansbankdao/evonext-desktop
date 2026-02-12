@@ -2,9 +2,9 @@
 
 import type { IPost } from '@/types/posts'
 
-// Define getters flatly inside the object, then export default
 const getters = {
     getPostById: (state: any) => (id: string) => {
+        // RESOLVED: Recognizes p.id as a mandatory field
         return state.posts.find((post: IPost) => post.id === id)
     },
 
@@ -37,5 +37,4 @@ const getters = {
     }
 }
 
-// EXPORT DEFAULT (Flat structure for Pinia)
 export default getters
