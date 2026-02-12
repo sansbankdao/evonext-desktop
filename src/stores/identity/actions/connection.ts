@@ -3,15 +3,16 @@
 import { invoke } from '@/utils/tauri'
 import type { ConnectionResult } from '@/types/identity'
 import { transformPublicKeys, validateIdentityData } from '../utils'
+
 export const connectionActions = {
     async connectWithSeed(this: any, seedPhrase: string, network: string, identityId: string, identityIndex: number): Promise<ConnectionResult> {
         this.isConnecting = true
         this.connectionError = null
         try {
             const rawData = await invoke<any>('get_identity_details', { identityId, idx: identityIndex, network })
-            // Unwrapping unified result if present
-            const identityData = rawData?.data || rawData;
-            if (!identityData) throw new Error('Identity details not found');
+            const identityData = rawData?.data || rawData
+            if (!identityData) throw new Error('Identity details not found')
+
             const mappedPublicKeys = transformPublicKeys(identityData.publicKeys || [])
             const res = await this.saveIdentityWithKeys(network, {
                 identityId,
@@ -32,9 +33,10 @@ export const connectionActions = {
                 return { success: true, identityId }
             }
             return { success: false, error: res.error?.message || 'Connection failed' }
-        } catch (e) {
-            this.connectionError = String(e)
-            return { success: false, error: String(e) }
+        } catch (e: any) {
+            const errorMsg = e?.message || String(e)
+            this.connectionError = errorMsg
+            return { success: false, error: errorMsg }
         } finally {
             this.isConnecting = false
         }
@@ -46,8 +48,9 @@ export const connectionActions = {
         this.isConnecting = true
         try {
             const rawData = await invoke<any>('get_identity_details', { identityId, network })
-            const identityData = rawData?.data || rawData;
-            if (!identityData) throw new Error('Identity details not found');
+            const identityData = rawData?.data || rawData
+            if (!identityData) throw new Error('Identity details not found')
+
             const res = await this.saveIdentityWithKeys(network, {
                 identityId,
                 publicKeys: [{ id: 0, privateKey, purpose: 3, securityLevel: 0 }],
@@ -61,8 +64,8 @@ export const connectionActions = {
                 return { success: true, identityId }
             }
             return { success: false, error: res.error?.message || 'Connection failed' }
-        } catch (e) {
-            return { success: false, error: String(e) }
+        } catch (e: any) {
+            return { success: false, error: e?.message || String(e) }
         } finally {
             this.isConnecting = false
         }

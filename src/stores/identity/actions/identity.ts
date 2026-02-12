@@ -6,18 +6,38 @@ import { DAPIService } from '@/services/identity/discovery/DAPIService'
 import { commands } from '@/bindings'
 import type { IIdentityState, IIdentity } from '@/types/identity'
 import { transformPublicKeys } from '../utils'
+
 /**
  * Normalizes command responses to ensure a consistent { success, data, error }
  * structure regardless of the underlying Rust implementation details.
  */
-function normalizeResult<T>(res: any): { success: boolean; data: T | null; error: any } {
-    const success = !!(res?.success || (res as any)?.status === 'success' || (res as any)?.status === 'ok');
-    return {
-        success,
-        data: res?.data ?? res?.payload ?? null,
-        error: res?.error ?? null
-    };
+function normalizeResult<T>(res: any): { success: boolean; data: T | null; error: { message: string } | null } {
+    const isSuccess = !!(res?.success || res?.status === 'success' || res?.status === 'ok');
+
+    // Extract data/payload
+    let data = res?.data ?? res?.payload ?? null;
+
+    // Handle cases where the response itself is the data (no success/status wrapper)
+    if (res && typeof res === 'object' && !res.hasOwnProperty('success') && !res.hasOwnProperty('status') && !res.hasOwnProperty('error')) {
+        data = res;
+    }
+
+    // Extract and normalize error
+    let errorObj: { message: string } | null = null;
+    if (!isSuccess) {
+        const rawError = res?.error ?? (res && !res.success && !res.status ? res : null);
+        if (typeof rawError === 'string') {
+            errorObj = { message: rawError };
+        } else if (rawError && typeof rawError === 'object') {
+            errorObj = { message: rawError.message || JSON.stringify(rawError) };
+        } else {
+            errorObj = { message: 'Unknown error' };
+        }
+    }
+
+    return { success: isSuccess, data, error: errorObj };
 }
+
 export const identityActions = {
     /**
      * Syncs a new or updated identity into the store.
