@@ -19,12 +19,10 @@ export function normalizeResult<T>(res: any): { success: boolean; data: T | null
                 data = res.data;
             } else if (res.hasOwnProperty('payload')) {
                 data = res.payload;
-            } else if (Object.keys(res).length === 1 && (res.hasOwnProperty('success') || res.hasOwnProperty('status'))) {
-                // It is just a success flag with no payload
-                data = null;
             } else {
-                // Compatibility for raw mock objects or responses where the object itself is the data
-                data = res;
+                // If it is success: true but has other keys, the object itself might be the data (raw mocks)
+                const otherKeys = Object.keys(res).filter(k => k !== 'success' && k !== 'status');
+                data = otherKeys.length > 0 ? res : null;
             }
         } else {
             data = res;

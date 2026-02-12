@@ -8,7 +8,6 @@ vi.mock('@/bindings', () => ({
     commands: {
         saveIdentity: vi.fn(),
         saveKeys: vi.fn(),
-        saveIdentityWithKeys: vi.fn(),
         loadKeystore: vi.fn(),
         deleteIdentity: vi.fn()
     }
@@ -24,7 +23,6 @@ describe('Identity Store - Persistence & Normalization', () => {
     describe('loadKeystore', () => {
         it('should update store keystore on success', async () => {
             const mockKeystoreData = { identities: { 'id_1': [] } }
-            // Alignment: Use 'data' key for normalizeResult
             vi.mocked(commands.loadKeystore).mockResolvedValue({
                 success: true,
                 data: mockKeystoreData,
@@ -47,7 +45,6 @@ describe('Identity Store - Persistence & Normalization', () => {
     })
     describe('saveIdentityWithKeys (Error Paths)', () => {
         it('should handle API error response', async () => {
-            // Note: Store's saveIdentityWithKeys calls this.saveIdentity internally
             vi.mocked(commands.saveIdentity).mockResolvedValue({
                 success: false,
                 error: 'DB Error'

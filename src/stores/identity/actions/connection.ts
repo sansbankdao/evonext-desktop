@@ -78,9 +78,9 @@ export const connectionActions = {
         const payload = keysOverride
             ? { ...identityOrPayload, publicKeys: keysOverride }
             : identityOrPayload
-        const res = await (this as any).saveIdentity(network, payload)
+        const res = await this.saveIdentity(network, payload)
         if (res.success && payload.publicKeys) {
-            await (this as any).saveKeys(network, payload.identityId, payload.publicKeys)
+            await this.saveKeys(network, payload.identityId, payload.publicKeys)
         }
         return res
     },
