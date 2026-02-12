@@ -44,8 +44,8 @@ describe('SeedDiscovery - Indexing Loop', () => {
                     dataB64: 'mock_hex',
                     // FIXED: Changed keyType from number (0) to string ('ECDSA_HASH160')
                     keyType: 'ECDSA_HASH160',
-                    purpose: 0,
-                    securityLevel: 0,
+                    purpose: 'AUTHENTICATION',
+                    securityLevel: 'MASTER',
                     readOnly: false,
                     disabledAt: null
                 }]

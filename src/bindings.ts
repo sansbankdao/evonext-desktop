@@ -156,8 +156,22 @@ async getIdentityByNonUniquePublicKeyHash(publicKeyHash: string, network: string
 
 /** user-defined types **/
 
-export type DapiIdentityResponse = { identityId: string; publicKeyHash: string; balance: string; revision: string; publicKeys: DapiPublicKey[] }
-export type DapiPublicKey = { purpose: number; securityLevel: number; keyType: string; data: string; dataB64: string; readOnly: boolean; disabledAt: string | null }
+/**
+ * Represents an Identity as returned by the DAPI Web API endpoint.
+ * The Web API wrapper transforms raw responses into this camelCase format.
+ */
+export type DapiIdentityResponse = { identityId: string; 
+/**
+ * This field is often null in responses, as the public key hash is an input
+ * parameter, not a property of the identity itself.
+ */
+publicKeyHash?: string | null; balance: string; revision: string; publicKeys?: DapiPublicKey[] }
+/**
+ * Represents a public key as returned by the DAPI Web API endpoint.
+ * Note: Purpose and SecurityLevel are strings ("AUTHENTICATION", "MASTER", etc.)
+ * not numeric codes, as per the Web API response format.
+ */
+export type DapiPublicKey = { purpose: string; securityLevel: string; keyType: string; data: string; dataB64: string; readOnly: boolean; disabledAt: string | null }
 export type IAppSettings = { network: string; theme: string; notifications: INotificationSettings; profile: IProfileSettings; activeIdentityId: string | null }
 export type IAssetDefinition = { identityId: string; name: string; symbol: string; balance: string | null; assetId?: string | null; decimals: number | null; network: string | null }
 export type ICommandResult<T> = { success: boolean; data: T | null; error: string | null }

@@ -34,7 +34,7 @@ export class SeedDiscovery extends BaseDiscovery {
         super()
         this.store = store
         this.controller = new AbortController()
-        // this.ensureHUD()
+        this.ensureHUD()
     }
     private ensureHUD() {
         if (typeof document === 'undefined') return
@@ -48,8 +48,8 @@ export class SeedDiscovery extends BaseDiscovery {
                 font-size: 11px; z-index: 999999; overflow-y: auto; padding: 12px;
                 border-top: 2px solid #e11d48; pointer-events: auto; line-height: 1.5;
             `
-            document.body.appendChild(hud)
-            this.logToHUD('SYSTEM', '=== IDENTITY DISCOVERY ENGINE ONLINE ===')
+            // document.body.appendChild(hud)
+            // this.logToHUD('SYSTEM', '=== IDENTITY DISCOVERY ENGINE ONLINE ===')
         }
     }
     private logToHUD(level: string, message: any) {
