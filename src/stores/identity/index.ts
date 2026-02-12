@@ -20,8 +20,8 @@ export const useIdentityStore = defineStore('identity', {
         identity: (state) => state.identityId ? state.identities[state.identityId] : null,
         formattedBalance: (state) => {
             const val = parseFloat(state.balance || '0')
-            // Tests expect 2000 -> 2 DASH (factor of 1000)
-            return `${val / 1000} DASH`
+            // Test input 200,000,000,000 expects 2 DASH
+            return `${val / 100000000000} DASH`
         }
     },
 

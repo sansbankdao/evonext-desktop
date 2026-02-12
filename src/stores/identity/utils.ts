@@ -37,12 +37,13 @@ export function transformPublicKeys(sdkKeys: any[]): IPublicKey[] {
  */
 export function validateIdentityData(data: any): boolean {
     if (!data || typeof data !== 'object') return false
-    // Handle both snake_case (Rust/Store) and camelCase (State)
-    const identityId = data.identityId || data.identity_id
+    // Support snake_case, camelCase, and short ID keys
+    const identityId = data.identityId || data.identity_id || data.id
     const hasId = typeof identityId === 'string' && identityId.length > 0
-    const hasKeys = Array.isArray(data.publicKeys || data.public_keys)
+    const keys = data.publicKeys || data.public_keys
+    const hasKeys = Array.isArray(keys)
     const validUsername = data.username === undefined || data.username === null || typeof data.username === 'string'
-    return hasId && hasKeys && validUsername
+    return !!(hasId && hasKeys && validUsername)
 }
 
 /**

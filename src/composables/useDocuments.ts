@@ -16,6 +16,7 @@ export function useDocuments() {
     const keys = useKeyManagement()
     const loading = ref(false)
     const error = ref<string | null>(null)
+
     const createDocument = async (
         _identityId: string,
         _dataContract: string,
@@ -26,13 +27,16 @@ export function useDocuments() {
         return ErrorBoundary.wrap(async () => {
             loading.value = true
             error.value = null
+
             if (!_documentType) {
                 throw new Error('documentType is required')
             }
+
             const transferWif = await keys.getTransferKey(_identityId)
             if (!transferWif) {
                 throw new Error('No transfer key found')
             }
+
             const sdk = await platform.getSDK()
             const data = {}
             const document = sdk.documents.create(
@@ -41,6 +45,7 @@ export function useDocuments() {
                 data,
                 _identityId
             )
+
             const identityNonce = BigInt(1)
             const stateTransition = sdk.documents.createStateTransition(
                 document,
@@ -50,26 +55,31 @@ export function useDocuments() {
                     tokenPaymentInfo: _tokenPaymentInfo,
                 },
             )
+
             const privKey = PrivateKeyWASM.fromWIF(transferWif.privateKey)
             const identity = await sdk.identities.getIdentityByIdentifier(_identityId)
             const identityPublicKeys = identity.getPublicKeys()
             const publicKeyId = 3
             const pubKey = identityPublicKeys[publicKeyId]
+
             if (!pubKey) {
                 throw new Error(`Transfer public key ${publicKeyId} not found`)
             }
+
             stateTransition.sign(privKey, pubKey)
             await sdk.stateTransitions.broadcast(stateTransition)
             await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+
             const hash = stateTransition.hash(false)
             log('info', `Document creation successful. Hash: ${hash}`)
+
             loading.value = false
             return {
-                success: true,
                 txid: hash
-            } as ITransactionResult
+            }
         }, 'CREATE_DOCUMENT_FAILED')
     }
+
     return {
         loading: computed(() => loading.value),
         error: computed(() => error.value),

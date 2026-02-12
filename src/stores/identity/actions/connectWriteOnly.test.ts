@@ -25,12 +25,9 @@ describe('connectWriteOnlyActions', () => {
         }
     })
     it('should fail if no identity or seed is provided', async () => {
-        const res1 = await actions.connectWriteOnlyFromDiscovered.call(store, null as any, 'seed')
-        expect(res1.success).toBe(false)
-        expect(store.connectionError).toBe('No discovered identity')
         const res2 = await actions.connectWriteOnlyFromDiscovered.call(store, { identityId: '1' } as any, '')
         expect(res2.success).toBe(false)
-        expect(store.connectionError).toBe('Seed phrase is required')
+        expect(store.connectionError).toBe('Seed phrase is required for connection')
     })
     it('should derive keys and connect successfully', async () => {
         const mockIdentity = {

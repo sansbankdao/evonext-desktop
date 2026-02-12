@@ -4,8 +4,9 @@ import type { IPost, IUser, IPostDocument } from '@/types'
 
 const abbreviateId = (id: string) => {
     if (!id) return '...'
-    // Test expects: 12...defg (2 chars start, 4 chars end)
-    return `${id.slice(0, 2)}...${id.slice(-4)}`
+    if (id.length <= 10) return id
+    const cleanId = id.startsWith('identity_') ? id.slice(9) : id
+    return `${cleanId.slice(0, 2)}...${cleanId.slice(-4)}`
 }
 
 export function getUserInfo(
@@ -48,6 +49,12 @@ export function transformPostDocument(
 
     const author = getUserInfo(ownerId, authorProfile, authorProfile, dpnsName)
 
+    // Handle replyToPostId being either a string or an array of strings
+    let replyToPostId = doc.replyToPostId || doc.data?.replyToPostId
+    if (Array.isArray(replyToPostId)) {
+        replyToPostId = replyToPostId[0]
+    }
+
     return {
         id,
         contractId: doc.dataContractId || 'TBD',
@@ -66,7 +73,7 @@ export function transformPostDocument(
         mediaUrls: doc.mediaUrls || doc.mediaUrl || [],
         hashtag: doc.hashtag,
         remix: doc.remix,
-        replyToPostId: doc.replyToPostId || doc.data?.replyToPostId
+        replyToPostId
     }
 }
 
@@ -87,7 +94,6 @@ export function transformPostDocuments(
             statsMap.get(id)
         )
 
-        // Ensure both replyTo and quotedPost are mapped for tests
         if (post.replyToPostId && parentPosts.has(post.replyToPostId)) {
             const parent = parentPosts.get(post.replyToPostId)
             post.replyTo = parent

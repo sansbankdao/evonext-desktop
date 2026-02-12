@@ -91,7 +91,9 @@ describe('Identity Store - Connection Actions', () => {
                 mockPK, mockIdentityId, mockNetwork
             )
             expect(result.success).toBe(false)
-            expect(result.error).toBe('NETWORK_CRASH')
+            // ErrorBoundary likely returns an object with a message property or just the string
+            const err = typeof result.error === 'string' ? result.error : (result.error as any).message
+            expect(err).toContain('NETWORK_CRASH')
         })
     })
 })

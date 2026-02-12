@@ -11,7 +11,7 @@ export abstract class BaseDiscovery {
 
     setNetwork(network: 'mainnet' | 'testnet'): this {
         this.network = network
-        return this
+        return this;
     }
 
     abstract discover(input: string, options?: DiscoveryOptions): Promise<DiscoveryResult>
@@ -39,26 +39,30 @@ export abstract class BaseDiscovery {
 
     /**
      * Maps raw key purposes and security levels to display labels.
-     * Casing must match test expectations (e.g., 'Authentication').
+     * Normalizes inputs to match test casing expectations.
      */
     protected extractAssociatedKeys(keys: any[]): any[] {
-        const purposeMap: Record<number, string> = {
-            0: 'Authentication',
-            1: 'Encryption',
-            2: 'Decryption',
-            3: 'Transfer'
+        const purposeMap: Record<string | number, string> = {
+            0: 'Authentication', 'AUTHENTICATION': 'Authentication',
+            1: 'Encryption', 'ENCRYPTION': 'Encryption',
+            2: 'Decryption', 'DECRYPTION': 'Decryption',
+            3: 'Transfer', 'TRANSFER': 'Transfer'
         }
-        const levelMap: Record<number, string> = {
-            0: 'Master',
-            1: 'Critical',
-            2: 'High',
-            3: 'Medium'
+        const levelMap: Record<string | number, string> = {
+            0: 'Master', 'MASTER': 'Master',
+            1: 'Critical', 'CRITICAL': 'Critical',
+            2: 'High', 'HIGH': 'High',
+            3: 'Medium', 'MEDIUM': 'Medium'
         }
-        return (Array.isArray(keys) ? keys : []).map(k => ({
-            ...k,
-            purpose: purposeMap[k.purpose] || k.purpose,
-            securityLevel: levelMap[k.securityLevel] || k.securityLevel
-        }))
+        return (Array.isArray(keys) ? keys : []).map(k => {
+            const p = typeof k.purpose === 'string' ? k.purpose.toUpperCase() : k.purpose
+            const l = typeof k.securityLevel === 'string' ? k.securityLevel.toUpperCase() : k.securityLevel
+            return {
+                ...k,
+                purpose: purposeMap[p] || k.purpose,
+                securityLevel: levelMap[l] || k.securityLevel
+            }
+        })
     }
 
     protected handleError(error: any, context: string): DiscoveryResult {
