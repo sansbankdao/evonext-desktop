@@ -28,7 +28,8 @@ export function getUserInfo(
         identityId: ownerId,
         username: dpnsName ? `@${dpnsName}` : `@${abbreviateId(ownerId)}`,
         displayName,
-        avatarUrl: yapprProfile?.avatarUrl || fallbackAvatar,
+        avatar: yapprProfile?.avatarUrl || fallbackAvatar, // FIXED: Changed avatarUrl to avatar to match IUser and Test
+        avatarUrl: yapprProfile?.avatarUrl || fallbackAvatar, // Maintain parity for older code
         verified: !!dpnsName,
         bio: yapprProfile?.publicMessage || ''
     }

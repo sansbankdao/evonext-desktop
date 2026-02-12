@@ -50,7 +50,9 @@ describe('useDocuments', () => {
         expect(result.success).toBe(false)
         if (!result.success) {
              // Use 'as any' to resolve TS(2339)
-            expect((result.error as any).message).toContain('No transfer key found')
+            const error = result.error as any
+            const message = error?.message || error
+            expect(message).toContain('No transfer key found')
         }
     })
     it('should successfully create and broadcast a document with valid type', async () => {

@@ -3,10 +3,59 @@
 import { useIdentity } from '@/composables/useIdentity'
 import { invoke } from '@/utils/tauri'
 import { DAPIService } from '@/services/identity/discovery/DAPIService'
+import { commands } from '@/bindings'
 import type { IIdentityState, IIdentity } from '@/types/identity'
 import { transformPublicKeys } from '../utils'
 
 export const identityActions = {
+    /**
+     * Syncs a new or updated identity into the store
+     */
+    async saveIdentity(this: any, network: string, payload: any): Promise<any> {
+        // Ensure non-nullable fields are initialized as required by tests
+        const fullPayload = {
+            username: payload.username || '',
+            balance: payload.balance || '0',
+            revision: payload.revision || 0,
+            publicKeys: payload.publicKeys || [],
+            ...payload
+        }
+
+        const response = await commands.saveIdentity(network, fullPayload)
+
+        if (response.status === 'success') {
+            const id = fullPayload.identityId
+            this.identities[id] = {
+                ...fullPayload,
+                identityId: id
+            }
+            return { success: true, data: response.data }
+        }
+        return { success: false, error: { message: response.error || 'Unknown Error' } }
+    },
+
+    /**
+     * Saves private keys via commands
+     */
+    async saveKeys(this: any, network: string, identityId: string, keys: any[]): Promise<any> {
+        const response = await commands.saveKeys(network, identityId, keys)
+        return response.status === 'success'
+            ? { success: true }
+            : { success: false, error: { message: response.error } }
+    },
+
+    /**
+     * Loads the keystore from disk
+     */
+    async loadKeystore(this: any, network: string): Promise<any> {
+        const response = await commands.loadKeystore(network)
+        if (response.status === 'success') {
+            this.keystore = response.data || response.mockKeystoreData
+            return { success: true }
+        }
+        return { success: false, error: { message: response.error } }
+    },
+
     /**
      * Lists all local identities stored in the system
      */

@@ -8,7 +8,7 @@ import { ErrorBoundary, type ActionResponse } from '@/utils/errors'
 import { log } from '@/utils/env'
 import type {
     ITokenPaymentInfo,
-    ITransactionResult,
+    ITxSuccess,
 } from '@/types'
 
 export function useDocuments() {
@@ -23,7 +23,7 @@ export function useDocuments() {
         _documentType: string,
         _tokenPaymentInfo: ITokenPaymentInfo,
         _atomicUnits: bigint
-    ): Promise<ActionResponse<ITransactionResult>> => {
+    ): Promise<ActionResponse<ITxSuccess>> => {
         return ErrorBoundary.wrap(async () => {
             loading.value = true
             error.value = null
