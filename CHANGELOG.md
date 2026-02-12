@@ -1,18 +1,18 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Introducing the 4th Release Candidate (Rusty Foundation)
+### Introducing the 5th Release Candidate (Domino)
 
-This latest version of EvoNext complete the Rust (back-end) foundation.
+This latest version of EvoNext introduces Domino, as our resident MiniApp software engineer assistant.
 
 # Changelog
 
 ## Latest Features:
 
-- __Testing:__ Our Rust testing coverage is now ~40% — offering satisfactory protection against unexpected bugs and code regressions.
+- __Studio:__ Introduced our 1st AI assistant, Domino, to assist Creators with building mini apps.
 
 ## Bugfixes:
 
-- __Types:__ Update ALL types to now use `bindings.ts` as the ONLY source of truth.
+- __Types:__ Using AI to cleanse the LAST (most difficult) bugs from the codebase; `bindings.ts` now serves as the definitive guardian for the front-end.
 
 ## Notes:
 

@@ -7,7 +7,7 @@ import {
     PaperAirplaneIcon,
     ChevronDownIcon
 } from '@heroicons/vue/24/outline'
-import { marked } from 'marked'
+import { marked, type RendererObject, type Tokens } from 'marked'
 
 const props = defineProps<{
     isOpen: boolean,
@@ -32,39 +32,26 @@ const _parseNonCodeSections = (_src: string) => {
     })
 
     // Create a custom renderer
-    const renderer = {
-        // <code>
-        code({ tokens }: { tokens: string; depth: number; }): string {
-            const text = this.parser.parseInline(tokens)
-
-            return `
-                <code class="border-4 border-rose-400 rounded-xl">
-                    ${text}
-                </code>`
+    const renderer: Partial<RendererObject> = {
+        code({ text, lang }: Tokens.Code) {
+            const escaped = marked.parseInline(text) as string
+            return `<pre class="code-block"><code class="language-${lang}">${escaped}</code></pre>`
         },
 
-        // h1, h2, h3
-        heading({ tokens, depth }: { tokens: string; depth: number; }): string {
-            const text = this.parser.parseInline(tokens)
-            const escapedText = text.toLowerCase().replace(/[^\w]+/g, '-')
-
-            return `
-                <h${depth} class="text-2xl font-bold text-rose-600">
-                <a name="${escapedText}" class="anchor" href="#${escapedText}">
-                    <span class="header-link"></span>
-                </a>
-                ${text}
-                </h${depth}>`
+        heading({ text, depth }: Tokens.Heading) {
+            // Use parseInline to handle any inline formatting in the heading text
+            const parsedText = marked.parseInline(text) as string
+            return `<h${depth} class="heading depth-${depth}">${parsedText}</h${depth}>`
         },
 
-        // <ol>, <ul>
-        list({ tokens }: { tokens: string; depth: number; }): string {
-            const text = this.parser.parseInline(tokens)
-
-            return `
-                <li class="list-decimal pl-5">
-                    ${text}
-                </li>`
+        list({ ordered, items }: Tokens.List) {
+            const tag = ordered ? 'ol' : 'ul'
+            const listItems = items.map(item => {
+            // Each list item has `text` and potentially nested tokens
+            const content = marked.parseInline(item.text) as string
+            return `<li>${content}</li>`
+            }).join('')
+            return `<${tag} class="list">${listItems}</${tag}>`
         }
     }
 
