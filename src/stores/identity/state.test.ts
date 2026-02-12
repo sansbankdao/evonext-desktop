@@ -1,5 +1,7 @@
 // src/stores/identity/state.test.ts
 
+// src/stores/identity/state.test.ts
+
 import { describe, it, expect } from 'vitest'
 import { useIdentityState } from './state'
 

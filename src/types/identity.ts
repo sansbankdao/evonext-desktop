@@ -104,10 +104,11 @@ export interface IIdentityActions {
     saveToStorage: () => Promise<void>;
     clearStorage: () => Promise<void>;
     clearConnectionError: () => void;
-    saveKeys: (network: string, identityId: string, keys: any[]) => Promise<void>;
-    saveMnemonicToStore: (network: string, mnemonic: string) => Promise<void>;
-    saveIdentityDataToStore: (network: string, id: string, data: any) => Promise<void>;
-    saveIdentity: (network: string, payload: any) => Promise<void>; // Added to resolve TS2551 in identity.test.ts
+    // Updated to return Result Objects to align with app logic and Vitest suites
+    saveKeys: (network: string, identityId: string, keys: any[]) => Promise<{ success: boolean; error?: any }>;
+    saveMnemonicToStore: (network: string, mnemonic: string) => Promise<{ success: boolean; error?: any }>;
+    saveIdentityDataToStore: (network: string, id: string, data: any) => Promise<{ success: boolean; error?: any }>;
+    saveIdentity: (network: string, payload: any) => Promise<{ success: boolean; error?: any }>;
     getCurrentNetwork: () => Promise<string>;
     loadKeystore: (network: string) => Promise<any>;
 }

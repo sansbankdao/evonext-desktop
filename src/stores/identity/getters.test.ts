@@ -7,7 +7,7 @@ describe('Identity Getters', () => {
         username: 'alice',
         identityId: 'id123',
         isAuthenticated: true,
-        balance: '200000000000', // 2 DASH
+        balance: '200000000', // 2 DASH (1 DASH = 100,000,000 Duflones)
         publicKeys: [
             { purpose: 0, data: 'key0' },
             { purpose: 1, data: 'key1' }
