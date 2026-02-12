@@ -6,373 +6,143 @@
 
 
 export const commands = {
-async discoverAssets(identityId: string, network: string) : Promise<Result<IAssetDefinition[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("discover_assets", { identityId, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async discoverAssets(identityId: string, network: string) : Promise<ICommandResult<IAssetDefinition[]>> {
+    return await TAURI_INVOKE("discover_assets", { identityId, network });
 },
-async fetchIdentityTokens(identityId: string, network: string) : Promise<Result<IAssetDefinition[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("fetch_identity_tokens", { identityId, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async fetchIdentityTokens(identityId: string, network: string) : Promise<ICommandResult<IAssetDefinition[]>> {
+    return await TAURI_INVOKE("fetch_identity_tokens", { identityId, network });
 },
-async loadAssets(identityId: string, network: string) : Promise<Result<IAssetDefinition[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("load_assets", { identityId, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async loadAssets(identityId: string, network: string) : Promise<ICommandResult<IAssetDefinition[]>> {
+    return await TAURI_INVOKE("load_assets", { identityId, network });
 },
-async saveAssets(identityId: string, network: string, payload: IAssetDefinition[]) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("save_assets", { identityId, network, payload }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async saveAssets(identityId: string, network: string, payload: IAssetDefinition[]) : Promise<ICommandResult<null>> {
+    return await TAURI_INVOKE("save_assets", { identityId, network, payload });
 },
-async deleteAssets(network: string) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("delete_assets", { network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async deleteAssets(network: string) : Promise<ICommandResult<null>> {
+    return await TAURI_INVOKE("delete_assets", { network });
 },
-async hash160(input: number[]) : Promise<Result<number[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("hash160", { input }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async hash160(input: number[]) : Promise<ICommandResult<number[]>> {
+    return await TAURI_INVOKE("hash160", { input });
 },
-async randomBytes(len: number) : Promise<Result<number[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("random_bytes", { len }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async randomBytes(len: number) : Promise<ICommandResult<number[]>> {
+    return await TAURI_INVOKE("random_bytes", { len });
 },
-async saveIdentity(network: string, payload: ISaveIdentityPayload) : Promise<Result<IUnifiedCommandResult, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("save_identity", { network, payload }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async saveIdentity(network: string, payload: ISaveIdentityPayload) : Promise<ICommandResult<IUnifiedCommandResult>> {
+    return await TAURI_INVOKE("save_identity", { network, payload });
 },
-async saveIdentityWithKeys(network: string, identityPayload: ISaveIdentityPayload, keys: IPrivateKeyEntry[]) : Promise<Result<IUnifiedCommandResult, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("save_identity_with_keys", { network, identityPayload, keys }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async saveIdentityWithKeys(network: string, identityPayload: ISaveIdentityPayload, keys: IPrivateKeyEntry[]) : Promise<ICommandResult<IUnifiedCommandResult>> {
+    return await TAURI_INVOKE("save_identity_with_keys", { network, identityPayload, keys });
 },
-async discoverAndSaveIdentity(identityId: string, network: string) : Promise<Result<IUnifiedCommandResult, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("discover_and_save_identity", { identityId, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async discoverAndSaveIdentity(identityId: string, network: string) : Promise<ICommandResult<IUnifiedCommandResult>> {
+    return await TAURI_INVOKE("discover_and_save_identity", { identityId, network });
 },
-async deleteIdentity(network: string, identityId: string | null) : Promise<Result<boolean, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("delete_identity", { network, identityId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async deleteIdentity(network: string, identityId: string | null) : Promise<ICommandResult<boolean>> {
+    return await TAURI_INVOKE("delete_identity", { network, identityId });
 },
-async saveKeys(network: string, identityId: string, keys: IPrivateKeyEntry[]) : Promise<Result<boolean, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("save_keys", { network, identityId, keys }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async saveKeys(network: string, identityId: string, keys: IPrivateKeyEntry[]) : Promise<ICommandResult<boolean>> {
+    return await TAURI_INVOKE("save_keys", { network, identityId, keys });
 },
-async loadKeystore(network: string) : Promise<Result<any, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("load_keystore", { network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async loadKeystore(network: string) : Promise<ICommandResult<any>> {
+    return await TAURI_INVOKE("load_keystore", { network });
 },
-async loadLicense(identityId: string) : Promise<Result<ILicense | null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("load_license", { identityId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async loadLicense(identityId: string) : Promise<ICommandResult<ILicense | null>> {
+    return await TAURI_INVOKE("load_license", { identityId });
 },
-async saveLicense(payload: ILicense) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("save_license", { payload }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async saveLicense(payload: ILicense) : Promise<ICommandResult<null>> {
+    return await TAURI_INVOKE("save_license", { payload });
 },
-async deleteLicense(identityId: string) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("delete_license", { identityId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async deleteLicense(identityId: string) : Promise<ICommandResult<null>> {
+    return await TAURI_INVOKE("delete_license", { identityId });
 },
-async refreshLicense(identityId: string) : Promise<Result<ILicense, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("refresh_license", { identityId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async refreshLicense(identityId: string) : Promise<ICommandResult<ILicense>> {
+    return await TAURI_INVOKE("refresh_license", { identityId });
 },
-async loadMnemonic(network: string) : Promise<Result<IMnemonic | null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("load_mnemonic", { network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async loadMnemonic(network: string) : Promise<ICommandResult<IMnemonic | null>> {
+    return await TAURI_INVOKE("load_mnemonic", { network });
 },
-async saveMnemonic(network: string, payload: IMnemonic) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("save_mnemonic", { network, payload }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async saveMnemonic(network: string, payload: IMnemonic) : Promise<ICommandResult<null>> {
+    return await TAURI_INVOKE("save_mnemonic", { network, payload });
 },
-async deleteMnemonic(network: string) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("delete_mnemonic", { network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async deleteMnemonic(network: string) : Promise<ICommandResult<null>> {
+    return await TAURI_INVOKE("delete_mnemonic", { network });
 },
-async loadSettings() : Promise<Result<IAppSettings | null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("load_settings") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async loadSettings() : Promise<ICommandResult<IAppSettings | null>> {
+    return await TAURI_INVOKE("load_settings");
 },
-async saveSettings(settings: IAppSettings) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("save_settings", { settings }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async saveSettings(settings: IAppSettings) : Promise<ICommandResult<null>> {
+    return await TAURI_INVOKE("save_settings", { settings });
 },
-async deleteSettings() : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("delete_settings") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async deleteSettings() : Promise<ICommandResult<null>> {
+    return await TAURI_INVOKE("delete_settings");
 },
-async updateIdentityWithSdkData(network: string, identityId: string, publicKeys: IIdentityPublicKey[], revision: number, publicKeyIds: number[]) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("update_identity_with_sdk_data", { network, identityId, publicKeys, revision, publicKeyIds }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async updateIdentityWithSdkData(network: string, identityId: string, publicKeys: IIdentityPublicKey[], revision: number, publicKeyIds: number[]) : Promise<ICommandResult<null>> {
+    return await TAURI_INVOKE("update_identity_with_sdk_data", { network, identityId, publicKeys, revision, publicKeyIds });
 },
-async getIdentityPublicKeys(network: string, identityId: string) : Promise<Result<IIdentityPublicKey[] | null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_identity_public_keys", { network, identityId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getIdentityPublicKeys(network: string, identityId: string) : Promise<ICommandResult<IIdentityPublicKey[] | null>> {
+    return await TAURI_INVOKE("get_identity_public_keys", { network, identityId });
 },
-async deleteIdentityPublicKeys(network: string, identityId: string) : Promise<Result<null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("delete_identity_public_keys", { network, identityId }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async deleteIdentityPublicKeys(network: string, identityId: string) : Promise<ICommandResult<null>> {
+    return await TAURI_INVOKE("delete_identity_public_keys", { network, identityId });
 },
-async dapiRequest(method: string, params: Partial<{ [key in string]: JsonValue }>, network: string | null) : Promise<Result<JsonValue[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("dapi_request", { method, params, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async dapiRequest(method: string, params: Partial<{ [key in string]: JsonValue }>, network: string | null) : Promise<ICommandResult<JsonValue[]>> {
+    return await TAURI_INVOKE("dapi_request", { method, params, network });
 },
-async dapiRequestArray(method: string, paramsArray: JsonValue[], network: string | null) : Promise<Result<JsonValue[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("dapi_request_array", { method, paramsArray, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async dapiRequestArray(method: string, paramsArray: JsonValue[], network: string | null) : Promise<ICommandResult<JsonValue[]>> {
+    return await TAURI_INVOKE("dapi_request_array", { method, paramsArray, network });
 },
-async getPosts(dataContractId: string, documentType: string, whereClause: JsonValue | null, orderBy: JsonValue | null, limit: number | null, network: string | null) : Promise<Result<JsonValue[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_posts", { dataContractId, documentType, whereClause, orderBy, limit, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getPosts(dataContractId: string, documentType: string, whereClause: JsonValue | null, orderBy: JsonValue | null, limit: number | null, network: string | null) : Promise<ICommandResult<JsonValue[]>> {
+    return await TAURI_INVOKE("get_posts", { dataContractId, documentType, whereClause, orderBy, limit, network });
 },
-async getIdentityInfo(identityId: string, network: string | null) : Promise<Result<DapiIdentityResponse, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_identity_info", { identityId, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getIdentityInfo(identityId: string, network: string | null) : Promise<ICommandResult<DapiIdentityResponse>> {
+    return await TAURI_INVOKE("get_identity_info", { identityId, network });
 },
-async getIdentityBalance(identityId: string, network: string | null) : Promise<Result<JsonValue[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_identity_balance", { identityId, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getIdentityBalance(identityId: string, network: string | null) : Promise<ICommandResult<JsonValue[]>> {
+    return await TAURI_INVOKE("get_identity_balance", { identityId, network });
 },
-async getIdentityById(identityId: string, network: string | null) : Promise<Result<JsonValue, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_identity_by_id", { identityId, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getIdentityById(identityId: string, network: string | null) : Promise<ICommandResult<JsonValue>> {
+    return await TAURI_INVOKE("get_identity_by_id", { identityId, network });
 },
-async getTokenBalances(identityId: string, tokenIds: string[], network: string | null) : Promise<Result<JsonValue[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_token_balances", { identityId, tokenIds, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getTokenBalances(identityId: string, tokenIds: string[], network: string | null) : Promise<ICommandResult<JsonValue[]>> {
+    return await TAURI_INVOKE("get_token_balances", { identityId, tokenIds, network });
 },
-async resolveDpnsName(username: string, network: string | null) : Promise<Result<JsonValue[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("resolve_dpns_name", { username, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async resolveDpnsName(username: string, network: string | null) : Promise<ICommandResult<JsonValue[]>> {
+    return await TAURI_INVOKE("resolve_dpns_name", { username, network });
 },
-async getDpnsUsername(identityId: string, network: string | null) : Promise<Result<string | null, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_dpns_username", { identityId, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getDpnsUsername(identityId: string, network: string | null) : Promise<ICommandResult<string | null>> {
+    return await TAURI_INVOKE("get_dpns_username", { identityId, network });
 },
-async getDpnsUsernames(identityId: string, network: string | null) : Promise<Result<JsonValue[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_dpns_usernames", { identityId, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getDpnsUsernames(identityId: string, network: string | null) : Promise<ICommandResult<JsonValue[]>> {
+    return await TAURI_INVOKE("get_dpns_usernames", { identityId, network });
 },
-async getPlatformStatus(network: string | null) : Promise<Result<JsonValue[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_platform_status", { network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getPlatformStatus(network: string | null) : Promise<ICommandResult<JsonValue[]>> {
+    return await TAURI_INVOKE("get_platform_status", { network });
 },
-async getIdentitiesBalances(identityIds: string[], network: string | null) : Promise<Result<JsonValue[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_identities_balances", { identityIds, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getIdentitiesBalances(identityIds: string[], network: string | null) : Promise<ICommandResult<JsonValue[]>> {
+    return await TAURI_INVOKE("get_identities_balances", { identityIds, network });
 },
-async getDataContractInfo(contractId: string, network: string | null) : Promise<Result<JsonValue[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_data_contract_info", { contractId, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getDataContractInfo(contractId: string, network: string | null) : Promise<ICommandResult<JsonValue[]>> {
+    return await TAURI_INVOKE("get_data_contract_info", { contractId, network });
 },
-async getTokenContractInfo(contractId: string, network: string | null) : Promise<Result<JsonValue[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_token_contract_info", { contractId, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getTokenContractInfo(contractId: string, network: string | null) : Promise<ICommandResult<JsonValue[]>> {
+    return await TAURI_INVOKE("get_token_contract_info", { contractId, network });
 },
-async getTokenStatuses(tokenIds: string[], network: string | null) : Promise<Result<JsonValue[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_token_statuses", { tokenIds, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getTokenStatuses(tokenIds: string[], network: string | null) : Promise<ICommandResult<JsonValue[]>> {
+    return await TAURI_INVOKE("get_token_statuses", { tokenIds, network });
 },
-async getTotalSupply(tokenId: string, network: string | null) : Promise<Result<JsonValue[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_total_supply", { tokenId, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getTotalSupply(tokenId: string, network: string | null) : Promise<ICommandResult<JsonValue[]>> {
+    return await TAURI_INVOKE("get_total_supply", { tokenId, network });
 },
-async getCurrentEpoch(network: string | null) : Promise<Result<JsonValue[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_current_epoch", { network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getCurrentEpoch(network: string | null) : Promise<ICommandResult<JsonValue[]>> {
+    return await TAURI_INVOKE("get_current_epoch", { network });
 },
-async getTotalCreditsInPlatform(network: string | null) : Promise<Result<JsonValue[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_total_credits_in_platform", { network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getTotalCreditsInPlatform(network: string | null) : Promise<ICommandResult<JsonValue[]>> {
+    return await TAURI_INVOKE("get_total_credits_in_platform", { network });
 },
-async getIdentityByPublicKeyHash(publicKeyHash: string, network: string | null) : Promise<Result<DapiIdentityResponse, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_identity_by_public_key_hash", { publicKeyHash, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getIdentityByPublicKeyHash(publicKeyHash: string, network: string | null) : Promise<ICommandResult<DapiIdentityResponse>> {
+    return await TAURI_INVOKE("get_identity_by_public_key_hash", { publicKeyHash, network });
 },
-async getIdentityByNonUniquePublicKeyHash(publicKeyHash: string, network: string | null) : Promise<Result<DapiIdentityResponse, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_identity_by_non_unique_public_key_hash", { publicKeyHash, network }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
+async getIdentityByNonUniquePublicKeyHash(publicKeyHash: string, network: string | null) : Promise<ICommandResult<DapiIdentityResponse>> {
+    return await TAURI_INVOKE("get_identity_by_non_unique_public_key_hash", { publicKeyHash, network });
 }
 }
 
@@ -390,6 +160,7 @@ export type DapiIdentityResponse = { identityId: string; publicKeyHash: string; 
 export type DapiPublicKey = { purpose: number; securityLevel: number; keyType: string; data: string; dataB64: string; readOnly: boolean; disabledAt: string | null }
 export type IAppSettings = { network: string; theme: string; notifications: INotificationSettings; profile: IProfileSettings; activeIdentityId: string | null }
 export type IAssetDefinition = { identityId: string; name: string; symbol: string; balance: string | null; assetId?: string | null; decimals: number | null; network: string | null }
+export type ICommandResult<T> = { success: boolean; data: T | null; error: string | null }
 export type IDiscoveredIdentity = { identityId: string; balance: string; identityIdx: number | null; dpnsUsername: string | null; keyType: string; discoveredAt: string }
 export type IIdentityData = { identityId: string; username: string; balance: string; revision?: number; publicKeys: IIdentityPublicKey[]; identityIdx?: number | null; dpnsUsername?: string | null; isAuthenticated: boolean; createdAt?: string | null; publicKeyIds?: number[] | null }
 export type IIdentityPublicKey = { id: number; type: string; purpose: number; securityLevel: number; data: string; readOnly: boolean; disabledAt: string | null }
