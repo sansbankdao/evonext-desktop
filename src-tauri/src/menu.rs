@@ -17,21 +17,22 @@ pub enum MenuAction {
 
 pub fn setup_menus<R: Runtime>(app_handle: &AppHandle<R>) -> tauri::Result<()> {
     // 1. App/General Menu
-    let app_menu_item = SubmenuBuilder::new(app_handle, "App")
+    let app_menu_item = SubmenuBuilder::new(app_handle, "Ξvolution")
         .text("about", "About")
+        .text("bootstrap", "Bootstrap Campaign")
         .separator()
         .text("exit", "Exit")
         .build()?;
 
-    // 2. Studio Menu
-    let studio_menu = SubmenuBuilder::new(app_handle, "Studio")
-        .text("studio", "Creator Studio")
+    // 2. Creators Menu
+    let services_menu = SubmenuBuilder::new(app_handle, "For Creators")
+        .text("studio", "MiniApp Studio")
         .text("launcher", "Token Launcher")
         .build()?;
 
     // 3. Identity Menu
-    let identities_menu = SubmenuBuilder::new(app_handle, "Identity")
-        .text("identity_home", "My Identity")
+    let identities_menu = SubmenuBuilder::new(app_handle, "Platform")
+        .text("identity_home", "Identity Manager")
         .text("connect", "Connect an Identity...")
         .text("register", "Register a New Identity...")
         .build()?;
@@ -39,17 +40,18 @@ pub fn setup_menus<R: Runtime>(app_handle: &AppHandle<R>) -> tauri::Result<()> {
     // 4. Wallet / Assets Menu
     let wallet_menu = SubmenuBuilder::new(app_handle, "Wallet")
         .text("wallet", "Overview")
+        .separator()
         .text("portfolio", "Portfolio")
         .text("asset", "Asset Explorer")
-        .separator()
-        .text("settings", "Settings")
         .build()?;
 
     // 5. Help Menu
     let help_menu = SubmenuBuilder::new(app_handle, "Help")
-        .text("about", "About")
+        .text("settings", "Settings")
         .separator()
-        .text("bootstrap", "Bootstrap")
+        .text("stakeline", "Claim Your Stakeline")
+        .separator()
+        .text("about", "About")
         .build()?;
 
     // Build the main menu bar
@@ -57,7 +59,7 @@ pub fn setup_menus<R: Runtime>(app_handle: &AppHandle<R>) -> tauri::Result<()> {
     let menu = MenuBuilder::new(app_handle)
         .items(&[
             &app_menu_item,
-            &studio_menu,
+            &services_menu,
             &identities_menu,
             &wallet_menu,
             &help_menu,
@@ -83,7 +85,7 @@ pub fn handle_menu_event<R: Runtime>(app: &AppHandle<R>, event: tauri::menu::Men
 pub(crate) fn determine_action(id: &MenuId) -> MenuAction {
     let id_str = id.as_ref();
     match id_str {
-        // Top-level items
+        // Evolution
         "bootstrap" => MenuAction::Navigate("/bootstrap".into()),
 
         // Studio
@@ -103,6 +105,7 @@ pub(crate) fn determine_action(id: &MenuId) -> MenuAction {
         // Settings & General
         "settings" => MenuAction::Navigate("/settings".into()),
         "about" => MenuAction::Navigate("/about".into()),
+        "stakeline" => MenuAction::Navigate("/stakeline".into()),
         "exit" | "quit" => MenuAction::Exit,
         _ => MenuAction::None,
     }
