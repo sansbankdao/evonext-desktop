@@ -19,6 +19,7 @@
             :disabled="isSearching"
             :is-ready="validationState.isValid"
             @submit="handleDiscovery"
+            @paste="handlePasteFromGrid"
         />
 
         <!-- 3. Discover Identity Button -->
@@ -65,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useIdentityStore } from '@/stores/identity'
 import { useDebounce } from '@/composables/useDebounce'
@@ -109,7 +110,12 @@ const emit = defineEmits<Emits>()
 const store = useIdentityStore()
 const router = useRouter()
 const { showSuccess, showError } = useNotification()
-const { validatePhrase, isValidWord } = useMnemonicValidator()
+const { validatePhrase, isValidWord, initWordlist } = useMnemonicValidator()
+
+// Initialize wordlist on mount
+onMounted(() => {
+    initWordlist()
+})
 
 // Local State
 const localWordCount = ref<'12' | '24'>(props.wordCount)
@@ -128,6 +134,12 @@ const debouncedPhrase = useDebounce(phrase, 300)
 const validationState = computed(() =>
     validatePhrase(seedWords.value, targetWordCount.value)
 )
+
+// Handle paste from MnemonicGrid
+const handlePasteFromGrid = (words: string[]) => {
+    // Forward the paste event to parent
+    emit('paste', words)
+}
 
 // Sync Props to Parent
 watch(localWordCount, (val) => {
@@ -151,11 +163,11 @@ watch(() => props.seedWords, (newVal) => {
     }
 })
 
-// Validation Watcher
+// Validation Watcher - REMOVED the paste emission
 watch(debouncedPhrase, () => {
     const isValid = validationState.value.isValid
     emit('validate', isValid)
-    if (isValid) emit('paste', seedWords.value)
+    // REMOVED: if (isValid) emit('paste', seedWords.value) - No longer needed
 }, { immediate: true })
 
 // Actions

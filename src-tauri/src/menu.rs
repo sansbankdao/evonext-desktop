@@ -48,8 +48,7 @@ pub fn setup_menus<R: Runtime>(app_handle: &AppHandle<R>) -> tauri::Result<()> {
     // 5. Help Menu
     let help_menu = SubmenuBuilder::new(app_handle, "Help")
         .text("settings", "Settings")
-        .separator()
-        .text("stakeline", "Claim Your Stakeline")
+        .text("plus", "ΞvoNext Plus+")
         .separator()
         .text("about", "About")
         .build()?;
@@ -105,7 +104,7 @@ pub(crate) fn determine_action(id: &MenuId) -> MenuAction {
         // Settings & General
         "settings" => MenuAction::Navigate("/settings".into()),
         "about" => MenuAction::Navigate("/about".into()),
-        "stakeline" => MenuAction::Navigate("/stakeline".into()),
+        "plus" => MenuAction::Navigate("/plus".into()),
         "exit" | "quit" => MenuAction::Exit,
         _ => MenuAction::None,
     }

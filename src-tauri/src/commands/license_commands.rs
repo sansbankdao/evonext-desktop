@@ -23,7 +23,7 @@ pub async fn refresh_license_inner<R: Runtime>(
     app_handle: tauri::AppHandle<R>,
     identity_id: String,
 ) -> Result<ILicense, String> {
-    let url = format!("https://evonext.app/v1/stakeline/status?identityId={}", identity_id);
+    let url = format!("https://evonext.app/v1/plus/status?identityId={}", identity_id);
     let mut api_data = reqwest::get(url).await.map_err(|e| e.to_string())?.json::<ILicense>().await.map_err(|e| e.to_string())?;
 
     let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();

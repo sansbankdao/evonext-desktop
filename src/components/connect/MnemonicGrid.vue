@@ -1,5 +1,5 @@
 <!-- src/components/connect/MnemonicGrid.vue -->
- <template>
+<template>
     <div class="space-y-4">
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 relative">
             <div v-for="(_word, index) in seedWords" :key="index" class="relative group">
@@ -83,6 +83,7 @@ const props = defineProps<{
 const emit = defineEmits<{
     (e: 'update:modelValue', val: string[]): void
     (e: 'submit'): void
+    (e: 'paste', words: string[]): void // <-- ADDED: Emit paste event
 }>()
 
 const { isValidWord, getSuggestions, initWordlist } = useMnemonicValidator()
@@ -194,6 +195,7 @@ const handlePaste = (event: ClipboardEvent) => {
     seedWords.value = newWords
     fieldBlurred.value = Array(totalSlots).fill(true) // Validate all
     emit('update:modelValue', seedWords.value)
+    emit('paste', newWords) // <-- ADDED: Emit paste event with the words
 
     nextTick(() => {
          // Focus first empty

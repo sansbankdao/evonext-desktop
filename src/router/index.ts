@@ -122,8 +122,8 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('@/screens/Settings.vue')
             },
             {
-                path: 'stakeline',
-                component: () => import('@/screens/Stakeline.vue')
+                path: 'plus',
+                component: () => import('@/screens/Plus.vue')
             },
             {
                 path: 'studio',
@@ -211,7 +211,7 @@ router.beforeEach(async (to, _from, next) => {
 
             // Fallback: Redirect if no license discovered
             console.warn(`Access denied to ${to.path}. Identity ID: ${Identity.identityId}`)
-            return next('/stakeline')
+            return next('/plus')
         }
 
         next()

@@ -1,4 +1,4 @@
-<!-- src/screens/Stakeline.vue -->
+<!-- src/screens/Plus.vue -->
 <template>
     <main class="min-h-screen bg-slate-50 dark:bg-slate-950 pb-32 overflow-x-hidden">
         <Header title="EvoNext Premium" />
