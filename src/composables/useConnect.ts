@@ -5,18 +5,15 @@ import { useRouter } from 'vue-router'
 import { useIdentityStore } from '@/stores/identity'
 import { getIdentityManager } from '@/services/identity/discovery/IdentityManager'
 import type { DiscoveredIdentity } from '@/types/identity'
-import { invoke } from '@/utils/tauri'
 
 export function useConnect() {
     const store = useIdentityStore()
     const router = useRouter()
     const manager = getIdentityManager(store)
-
     const connectionMethod = ref<'seed' | 'privateKey'>('seed')
     const seedWordCount = ref<'12' | '24'>('12')
     const seedWords = ref<string[]>(Array(12).fill(''))
     const manualIdentityId = ref('')
-
     const seedDiscoveryResults = ref<DiscoveredIdentity[]>([])
     const selectedSeedIdentity = ref<DiscoveredIdentity | null>(null)
     const discoveredIdentity = ref<DiscoveredIdentity | null>(null)
@@ -24,10 +21,7 @@ export function useConnect() {
     const seedDiscoveryError = ref<string | null>(null)
     const discoveryDetails = ref<any>(null)
     const debugOutput = ref('')
-
-    // Restore discoveryProgress for Connect.vue template
     const discoveryProgress = computed(() => store.discoveryProgress)
-
     watch(seedWordCount, (newCount) => {
         const size = parseInt(newCount)
         const current = [...seedWords.value]
@@ -37,13 +31,11 @@ export function useConnect() {
             seedWords.value = current.slice(0, size)
         }
     })
-
     const progressPercentage = computed(() => {
         const progress = store.discoveryProgress
         if (!progress || progress.totalIdentities === 0) return 0
         return Math.round((progress.currentIdentityIndex / progress.totalIdentities) * 100)
     })
-
     const handlePaste = async (words: string[]) => {
         if (words.length === 12 || words.length === 24) {
             seedWordCount.value = words.length === 12 ? '12' : '24'
@@ -53,26 +45,28 @@ export function useConnect() {
             seedDiscoveryError.value = 'Invalid seed phrase length'
         }
     }
-
     const startSeedDiscovery = async () => {
         const mnemonic = seedWords.value.join(' ').trim()
         if (!mnemonic || mnemonic.split(' ').length < 12) {
             seedDiscoveryError.value = 'expected 12'
             return
         }
-
         isSearchingSeed.value = true
         seedDiscoveryError.value = null
         try {
-            const results = await invoke<DiscoveredIdentity[]>('discover_identities_from_seed', {
-                mnemonic,
-                network: 'testnet'
-            })
-            seedDiscoveryResults.value = results || []
-            if (results && results.length > 0) {
-                const first = results[0] as DiscoveredIdentity
-                selectedSeedIdentity.value = first
-                discoveredIdentity.value = first
+            const result = await manager.discoverFromSeed(mnemonic, { network: 'testnet' })
+            if (result.success) {
+                seedDiscoveryResults.value = result.identities || []
+                // FIXED: Explicit existence check to satisfy TypeScript once and for all
+                if (result.identities && result.identities.length > 0) {
+                    const firstMatch = result.identities[0]
+                    if (firstMatch) {
+                        selectedSeedIdentity.value = firstMatch
+                        discoveredIdentity.value = firstMatch
+                    }
+                }
+            } else {
+                seedDiscoveryError.value = result.error || 'Discovery failed'
             }
         } catch (e) {
             seedDiscoveryError.value = String(e)
@@ -80,7 +74,6 @@ export function useConnect() {
             isSearchingSeed.value = false
         }
     }
-
     const handleDiscoverIdentity = async (key: string) => {
         seedDiscoveryError.value = null
         const result = await manager.discoverFromKey(key, { network: 'testnet' })
@@ -88,12 +81,10 @@ export function useConnect() {
             seedDiscoveryError.value = result.error || 'Identity not found'
         }
     }
-
     const handleConnect = async () => {
         if (connectionMethod.value === 'privateKey' && !manualIdentityId.value) {
             throw new Error('Missing identity id')
         }
-
         let result
         if (connectionMethod.value === 'seed') {
             if (!selectedSeedIdentity.value) return
@@ -110,17 +101,14 @@ export function useConnect() {
                 'testnet'
             )
         }
-
         if (result?.success) {
             router.push('/')
         }
         return result
     }
-
     const cleanup = () => {
         manager.cancelSeedDiscovery()
     }
-
     return {
         connectionMethod,
         seedWordCount,

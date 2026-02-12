@@ -2,26 +2,20 @@
 
 import type { IPublicKey, PurposeType, SecurityLevelType, IIdentity } from '@/types/identity'
 import { invoke } from '@/utils/tauri'
-
 /**
  * Transforms SDK Public Keys to our internal IPublicKey interface.
- * Handles both standard objects and raw binary data from the SDK.
  */
 export function transformPublicKeys(sdkKeys: any[]): IPublicKey[] {
     if (!Array.isArray(sdkKeys)) return []
-    return sdkKeys.map((key: any) => {
-        // Handle property name variations from different SDK versions/Rust layers
-        const idx = key.id !== undefined ? key.id : (key.idx !== undefined ? key.idx : 0)
+    return sdkKeys.map((key: any, index: number) => {
+        const idx = key.id !== undefined ? key.id : (key.idx !== undefined ? key.idx : index)
         const keyType = key.keyType || key.type_ || 'ECDSA_HASH160'
-
-        // Convert Uint8Array data to hex string if necessary
         let data = key.data || ''
         if (data instanceof Uint8Array) {
             data = Array.from(data)
                 .map((b) => b.toString(16).padStart(2, '0'))
                 .join('')
         }
-
         return {
             idx,
             type: key.type ?? 0,
@@ -36,19 +30,17 @@ export function transformPublicKeys(sdkKeys: any[]): IPublicKey[] {
         }
     })
 }
-
 /**
  * Validates the structure of identity data
  */
 export function validateIdentityData(data: any): boolean {
-    return !!(
-        data &&
-        typeof data.identityId === 'string' &&
-        typeof data.username === 'string' &&
-        Array.isArray(data.publicKeys)
-    )
+    if (!data || typeof data !== 'object') return false
+    // Handle both snake_case (Rust/Store) and camelCase (State)
+    const hasId = typeof (data.identityId || data.identity_id) === 'string'
+    const hasKeys = Array.isArray(data.publicKeys || data.public_keys)
+    const validUsername = data.username === undefined || typeof data.username === 'string'
+    return hasId && hasKeys && validUsername
 }
-
 /**
  * Returns a default empty identity object
  */
@@ -64,7 +56,6 @@ export function createDefaultIdentityData(identityId: string = ''): IIdentity {
         isAuthenticated: false
     }
 }
-
 /**
  * Creates a Dash SDK instance configuration
  */
@@ -76,7 +67,6 @@ export function createSDK(network: 'mainnet' | 'testnet' = 'testnet') {
         }
     }
 }
-
 /**
  * Converts a hex hash to Base64 (used for key comparisons)
  */
@@ -88,20 +78,17 @@ export function hexHash160ToBase64(hex: string): string {
     const buffer = Buffer.from(hex, 'hex')
     return buffer.toString('base64')
 }
-
 /**
  * High-level wrapper for loading store data from Tauri/Rust
  */
 export async function loadFromStore<T>(key: string, network: string = 'testnet'): Promise<T | null> {
     try {
-        const result = await invoke<T>('load_from_store', { key, network })
-        return result
+        return await invoke<T>('load_from_store', { key, network })
     } catch (e) {
         console.error(`[StoreUtil] Failed to load ${key}:`, e)
         return null
     }
 }
-
 /**
  * High-level wrapper for saving store data to Tauri/Rust
  */
@@ -110,11 +97,10 @@ export async function saveToStore(key: string, value: any, network: string = 'te
         await invoke('save_to_store', { key, value, network })
         return true
     } catch (e) {
-        console.error(`[StoreUtil] Failed to save ${key}:`, e)
-        return false
+        // Re-throw so Vitest's .rejects.toThrow() can detect failure
+        throw e instanceof Error ? e : new Error(String(e))
     }
 }
-
 /**
  * Creates a Dash SDK instance configuration
  */

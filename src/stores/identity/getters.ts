@@ -1,7 +1,6 @@
 // src/stores/identity/getters.ts
 
 import type { IPublicKey, IIdentity, IIdentityState } from '@/types/identity'
-
 export const useIdentityGetters = {
     getGreeting: (state: IIdentityState) =>
         `Hello, ${state.username || state.identityId || 'Guest'}!`,
@@ -38,9 +37,10 @@ export const useIdentityGetters = {
         const balance = state.balance
         if (!balance || balance === "0") return '0 DASH'
         try {
-            const dashNum = Number(BigInt(String(balance))) / 100_000_000
-            // If it's a clean integer, avoid decimals for test parity
-            if (Number.isInteger(dashNum)) {
+            // Dash Platform uses Duflones (10^8 per DASH)
+            const dashNum = Number(balance) / 100_000_000
+            // Return integer if possible to satisfy test expectations ("2 DASH" vs "2.00 DASH")
+            if (dashNum % 1 === 0) {
                 return `${dashNum} DASH`
             }
             return `${dashNum.toLocaleString(undefined, { minimumFractionDigits: 2 })} DASH`
