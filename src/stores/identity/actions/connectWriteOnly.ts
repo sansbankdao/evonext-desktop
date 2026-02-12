@@ -28,17 +28,13 @@ export function connectWriteOnlyActions() {
             this.isConnecting = true
             this.connectionError = null
             try {
-                // Ensure currentNetwork is treated as the correct Union type
                 const network = (this as any).currentNetwork || 'testnet'
                 const dashNetwork = network as 'mainnet' | 'testnet'
                 const fetchResult = await DAPIService.getIdentityById(identity.identityId, dashNetwork)
-                // Use fetched keys if available, otherwise fallback to discovery data
-                const rawKeys = (fetchResult.success && fetchResult.data)
+                const rawKeys = (fetchResult.success && fetchResult.data && fetchResult.data.publicKeys)
                     ? fetchResult.data.publicKeys
                     : []
-                // Map raw DAPI keys to standardized IPublicKey
-                const mappedPublicKeys: IPublicKey[] = rawKeys.map((pk: any, loopIdx: number) => ({
-                    // FIX: Check for .idx first, then .id, then fallback to loop index
+                const mappedPublicKeys: IPublicKey[] = (rawKeys || []).map((pk: any, loopIdx: number) => ({
                     idx: pk.idx !== undefined ? pk.idx : (pk.id !== undefined ? pk.id : loopIdx),
                     keyType: pk.keyType || 'ECDSA_HASH160',
                     purpose: Number(pk.purpose ?? 0) as any,
@@ -79,7 +75,6 @@ export function connectWriteOnlyActions() {
                     await (this as any).saveKeys(dashNetwork, identity.identityId, privateKeyEntries)
                 }
                 await (this as any).saveMnemonicToStore(dashNetwork, seedPhrase)
-                // Update RAM State
                 this.identityId = identity.identityId
                 this.publicKeys = mappedPublicKeys
                 this.balance = identity.balance || '0'

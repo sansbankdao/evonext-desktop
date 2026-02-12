@@ -50,24 +50,29 @@ export class KeyDiscovery extends BaseDiscovery {
             }
             // 2. Query DAPI
             const result = await DAPIService.queryIdentityByHash(publicKeyHash, network, true)
-            if (result.success && result.data) {
-                const data = result.data
-                const identityId = data.identityId
+            /**
+             * FIXED: Extraction to a local variable ensures TypeScript correctly
+             * narrows 'identityId' from (string | undefined) to string.
+             */
+            const data = result.data
+            const id = data?.identityId
+            if (result.success && data && typeof id === 'string') {
+                const identityId: string = id
                 // 3. Map DAPI keys to frontend IPublicKey interface using idx
-                const mappedKeys: IPublicKey[] = data.publicKeys.map((pk, index) => ({
-                    idx: index, // Refactored from id
-                    keyType: pk.keyType,
-                    purpose: pk.purpose as any,
-                    securityLevel: pk.securityLevel as any,
-                    data: pk.data,
-                    readOnly: pk.readOnly,
-                    disabledAt: pk.disabledAt
+                const mappedKeys: IPublicKey[] = (data.publicKeys || []).map((pk, index) => ({
+                    idx: index,
+                    keyType: pk.keyType || 'ECDSA_HASH160',
+                    purpose: (pk.purpose ?? 0) as any,
+                    securityLevel: (pk.securityLevel ?? 0) as any,
+                    data: pk.data || '',
+                    readOnly: !!pk.readOnly,
+                    disabledAt: pk.disabledAt || null
                 }))
                 const discovered: DiscoveredIdentity = {
                     identityId: identityId,
                     identityIdx: 0,
-                    balance: String(data.balance),
-                    revision: Number(data.revision),
+                    balance: String(data.balance || '0'),
+                    revision: Number(data.revision || 0),
                     publicKeys: mappedKeys,
                     dpnsUsername: await DAPIService.getDPNSUsername(identityId, network)
                 }

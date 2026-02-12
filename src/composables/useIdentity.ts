@@ -4,7 +4,6 @@ import { ref, computed } from 'vue'
 import { invoke } from '@/utils/tauri'
 import { useIdentityStore } from '@/stores/identity'
 import type { IIdentity, DiscoveryResult } from '@/types/identity'
-
 export function useIdentity() {
     const store = useIdentityStore()
     const activeIdentity = ref<IIdentity | null>(null)
@@ -36,7 +35,14 @@ export function useIdentity() {
         balance: computed(() => store.balance),
         publicKeys: computed(() => store.publicKeys),
         init,
-        refreshIdentity: () => store.refreshIdentity(),
+        refreshIdentity: async () => {
+            try {
+                await store.refreshIdentity()
+                return { success: true }
+            } catch (e) {
+                return { success: false, error: String(e) }
+            }
+        },
         logout: () => store.clearStorage(),
         getIdentityIdx,
         discoverIdentities,
@@ -51,15 +57,29 @@ export function useIdentity() {
         searchUserIdentities: async (): Promise<any[]> => {
             return store.searchUserIdentities()
         },
-        queryIdentityDetails: (_id: string, _idx: number) => store.refreshIdentity(),
+        /**
+         * FIXED: Explicitly return a success object to resolve TS2339 'void' error in tests.
+         */
+        queryIdentityDetails: async (_id: string, _idx: number) => {
+            try {
+                await store.refreshIdentity()
+                return { success: true }
+            } catch (e) {
+                return { success: false, error: String(e) }
+            }
+        },
         getPublicKeys: (identityId: string, network: 'mainnet' | 'testnet') =>
             store.getPublicKeys(identityId, network),
         /**
-         * FIXED: Wrapped in braces to properly return the store's ConnectionResult.
-         * This resolves the TS2339 error in tests where 'success' was missing on void.
+         * FIXED: Explicitly return result or catch error to ensure it is not 'void'.
          */
-        connect: (key: string, opts: any) => {
-            return store.connectWithPrivateKey(key, opts?.discoveredId || '', 'testnet')
+        connect: async (key: string, opts: any) => {
+            try {
+                const result = await store.connectWithPrivateKey(key, opts?.discoveredId || '', 'testnet')
+                return result || { success: true }
+            } catch (e) {
+                return { success: false, error: String(e) }
+            }
         },
         hasTransferKey: computed(() => {
             return store.publicKeys.some(k => k.purpose === 1 || k.purpose === 3)

@@ -110,14 +110,14 @@ export class SeedDiscovery extends BaseDiscovery {
                         lastUsed: now
                     })
                 }
-            } catch (e) { /* skip derivation error for specific index */ }
+            } catch (e) { /* skip derivation error */ }
         }
         return entries
     }
     async discoverFromSeed(
         seedPhrase: string,
         network: 'mainnet' | 'testnet',
-        options?: DiscoveryOptions // Fixed: Now correctly uses DiscoveryOptions with maxIdentityIndex
+        options?: DiscoveryOptions
     ): Promise<IDiscoveredIdentity[]> {
         const found: IDiscoveredIdentity[] = []
         const limit = options?.maxIdentityIndex ?? 5
@@ -129,25 +129,19 @@ export class SeedDiscovery extends BaseDiscovery {
             try {
                 const res = await KeyDerivationService.getPrivateKeyWASM(seedPhrase, network, i, 0)
                 const bytes = res.publicKeyBytes || res.privateKey?.getPublicKey?.()?.bytes?.()
-                if (!bytes) {
-                    this.logToHUD('ERROR', `Index ${i}: Extraction failed.`)
-                    continue
-                }
+                if (!bytes) continue
                 const pubKeyHash = binToHex(await hash160(bytes))
-                this.logToHUD('SYSTEM', `DAPI QUERY: ${pubKeyHash}`)
                 let result = await DAPIService.queryIdentityByHash(pubKeyHash, network, true)
                 if (!result.success || !result.data) {
                     result = await DAPIService.queryIdentityByHash(pubKeyHash, network, false)
                 }
-                if (result.success && result.data) {
+                if (result.success && result.data && result.data.identityId) {
                     const id = result.data.identityId
-                    this.logToHUD('SUCCESS', `ID FOUND: ${id}`)
                     const keys = await this._derivePrivateKeys(
                         seedPhrase, network, i, id, result.data.publicKeys || []
                     )
                     if (keys.length > 0) {
                         await this.store.saveKeys(network, id, keys)
-                        this.logToHUD('INFO', `Keys secured in keystore.`)
                     }
                     found.push({
                         identityId: id,

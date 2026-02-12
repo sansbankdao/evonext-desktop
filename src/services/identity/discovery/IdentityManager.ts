@@ -17,10 +17,6 @@ export class IdentityManager {
         this.keyDiscovery = new KeyDiscovery(this.store)
         this.seedDiscovery = new SeedDiscovery(this.store)
     }
-    /**
-     * Generic discovery method that detects input type.
-     * Required by IdentityManager.test.ts
-     */
     async discover(input: string, options: DiscoveryOptions = { network: 'testnet' }): Promise<DiscoveryResult> {
         const isSeed = input.trim().split(/\s+/).length >= 12
         if (isSeed) {
@@ -52,8 +48,8 @@ export class IdentityManager {
     ): Promise<DiscoveryResult> {
         try {
             const result = await DAPIService.getIdentityById(identityId.trim(), network)
-            if (result.success && result.data) {
-                const id = result.data.identityId
+            if (result.success && result.data && result.data.identityId) {
+                const id: string = result.data.identityId
                 const dpnsUsername = await DAPIService.getDPNSUsername(id, network)
                 const identity: DiscoveredIdentity = {
                     identityId: id,
