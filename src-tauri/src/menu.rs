@@ -1,7 +1,7 @@
 // src-tauri/src/menu.rs
 
 use tauri::{
-    menu::{MenuBuilder, SubmenuBuilder, MenuId, MenuItemBuilder},
+    menu::{MenuBuilder, SubmenuBuilder, MenuId},
     AppHandle, Emitter, Runtime,
 };
 
@@ -23,31 +23,33 @@ pub fn setup_menus<R: Runtime>(app_handle: &AppHandle<R>) -> tauri::Result<()> {
         .text("exit", "Exit")
         .build()?;
 
-    // 2. NEW: Top-level Bootstrap Item
-    let bootstrap_item = MenuItemBuilder::new("Bootstrap")
-        .id("bootstrap")
-        .build(app_handle)?;
-
-    // 3. Studio Menu
+    // 2. Studio Menu
     let studio_menu = SubmenuBuilder::new(app_handle, "Studio")
         .text("studio", "Creator Studio")
         .text("launcher", "Token Launcher")
         .build()?;
 
-    // 4. Identity Menu
+    // 3. Identity Menu
     let identities_menu = SubmenuBuilder::new(app_handle, "Identity")
         .text("identity_home", "My Identity")
         .text("connect", "Connect an Identity...")
         .text("register", "Register a New Identity...")
         .build()?;
 
-    // 5. Wallet / Assets Menu
+    // 4. Wallet / Assets Menu
     let wallet_menu = SubmenuBuilder::new(app_handle, "Wallet")
         .text("wallet", "Overview")
         .text("portfolio", "Portfolio")
         .text("asset", "Asset Explorer")
         .separator()
         .text("settings", "Settings")
+        .build()?;
+
+    // 5. Help Menu
+    let help_menu = SubmenuBuilder::new(app_handle, "Help")
+        .text("about", "About")
+        .separator()
+        .text("bootstrap", "Bootstrap")
         .build()?;
 
     // Build the main menu bar
@@ -58,7 +60,7 @@ pub fn setup_menus<R: Runtime>(app_handle: &AppHandle<R>) -> tauri::Result<()> {
             &studio_menu,
             &identities_menu,
             &wallet_menu,
-            &bootstrap_item,
+            &help_menu,
         ])
         .build()?;
 
