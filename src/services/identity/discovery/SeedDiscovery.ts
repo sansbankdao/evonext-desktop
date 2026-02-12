@@ -48,8 +48,52 @@ export class SeedDiscovery extends BaseDiscovery {
                 font-size: 11px; z-index: 999999; overflow-y: auto; padding: 12px;
                 border-top: 2px solid #e11d48; pointer-events: auto; line-height: 1.5;
             `
-            // document.body.appendChild(hud)
-            // this.logToHUD('SYSTEM', '=== IDENTITY DISCOVERY ENGINE ONLINE ===')
+
+            // Add copy button
+            const copyBtn = document.createElement('button')
+            copyBtn.textContent = '📋 Copy Logs'
+            copyBtn.style.cssText = `
+                position: absolute; top: 8px; right: 8px;
+                background: rgba(255,255,255,0.1); color: #00ff00;
+                border: 1px solid #00ff00; border-radius: 4px;
+                padding: 4px 8px; font-family: monospace; font-size: 10px;
+                cursor: pointer; z-index: 1000000;
+            `
+            copyBtn.onclick = () => {
+                const logs = Array.from(hud!.children)
+                    .map(el => el.textContent)
+                    .filter(Boolean)
+                    .join('\n')
+                navigator.clipboard.writeText(logs)
+                    .then(() => {
+                        const originalText = copyBtn.textContent
+                        copyBtn.textContent = '✓ Copied!'
+                        setTimeout(() => copyBtn.textContent = originalText, 2000)
+                    })
+                    .catch(err => console.error('Failed to copy logs:', err))
+            }
+
+            // Add clear button
+            const clearBtn = document.createElement('button')
+            clearBtn.textContent = '🗑️ Clear'
+            clearBtn.style.cssText = `
+                position: absolute; top: 8px; right: 80px;
+                background: rgba(255,255,255,0.1); color: #00ff00;
+                border: 1px solid #00ff00; border-radius: 4px;
+                padding: 4px 8px; font-family: monospace; font-size: 10px;
+                cursor: pointer; z-index: 1000000;
+            `
+            clearBtn.onclick = () => {
+                while (hud!.firstChild) {
+                    hud!.removeChild(hud!.firstChild)
+                }
+                this.logToHUD('SYSTEM', '=== LOGS CLEARED ===')
+            }
+
+            hud.appendChild(copyBtn)
+            hud.appendChild(clearBtn)
+            document.body.appendChild(hud)
+            this.logToHUD('SYSTEM', '=== IDENTITY DISCOVERY ENGINE ONLINE ===')
         }
     }
     private logToHUD(level: string, message: any) {
@@ -149,40 +193,86 @@ export class SeedDiscovery extends BaseDiscovery {
         const found: IDiscoveredIdentity[] = []
         const limit = options?.maxIdentityIndex ?? 5
         const signal = this.controller.signal
+
+        // DEBUG: Log seed phrase info
+        this.logToHUD('DEBUG', `Seed phrase: ${seedPhrase.split(' ').length} words`)
+        this.logToHUD('DEBUG', `Network: ${network}, Max identities to check: ${limit}`)
+
         for (let i = 0; i < limit; i++) {
             if (signal.aborted) break
             this.updateProgress({ currentIdentityIndex: i, totalIdentities: limit })
             this.logToHUD('INFO', `Checking Index ${i}...`)
             try {
+                // DEBUG: Log derivation attempt
+                this.logToHUD('DEBUG', `Deriving key for identity index ${i}, key index 0...`)
+
                 const res = await KeyDerivationService.getPrivateKeyWASM(seedPhrase, network, i, 0)
                 const bytes = res.publicKeyBytes || res.privateKey?.getPublicKey?.()?.bytes?.()
-                if (!bytes) continue
+                if (!bytes) {
+                    this.logToHUD('WARN', `No public key bytes for identity ${i}`)
+                    continue
+                }
+
                 const pubKeyHash = binToHex(await hash160(bytes))
+                this.logToHUD('DEBUG', `Identity ${i} public key hash: ${pubKeyHash}`)
+
+                // Try to find identity by hash
                 let result = await DAPIService.queryIdentityByHash(pubKeyHash, network, true)
                 if (!result.success || !result.data) {
+                    this.logToHUD('DEBUG', `Primary query failed for identity ${i}, trying fallback...`)
                     result = await DAPIService.queryIdentityByHash(pubKeyHash, network, false)
                 }
-                if (result.success && result.data && result.data.identityId) {
-                    const id = result.data.identityId
-                    const keys = await this._derivePrivateKeys(
-                        seedPhrase, network, i, id, result.data.publicKeys || []
-                    )
-                    if (keys.length > 0) {
-                        await this.store.saveKeys(network, id, keys)
+
+                // DEBUG: Log the full result
+                this.logToHUD('DEBUG', `Query result for ${pubKeyHash.substring(0, 16)}...: success=${result.success}, hasData=${!!result.data}, searchType=${result.searchType}`)
+
+                // Extract identity ID from result.data - handle different possible field names
+                let identityId: string | undefined = undefined
+                if (result.data) {
+                    // Try common field names for identity ID
+                    identityId = result.data.identityId || result.data.id || result.data.identityID || result.data.IdentityId
+                    if (identityId) {
+                        this.logToHUD('DEBUG', `Found identityId: ${identityId}`)
+                    } else {
+                        this.logToHUD('DEBUG', `No identityId found in data. Available keys: ${Object.keys(result.data).join(', ')}`)
+                        // Log the actual data structure for debugging
+                        this.logToHUD('DEBUG', `Data structure: ${JSON.stringify(result.data).substring(0, 200)}...`)
                     }
+                }
+
+                if (result.success && result.data && identityId) {
+                    this.logToHUD('SUCCESS', `FOUND Identity ${i}: ${identityId}`)
+
+                    const keys = await this._derivePrivateKeys(
+                        seedPhrase, network, i, identityId, result.data.publicKeys || []
+                    )
+
+                    if (keys.length > 0) {
+                        this.logToHUD('DEBUG', `Saving ${keys.length} keys for identity ${i}`)
+                        await this.store.saveKeys(network, identityId, keys)
+                    }
+
                     found.push({
-                        identityId: id,
-                        balance: result.data.balance || '0',
+                        identityId: identityId,
+                        balance: result.data.balance || result.data.Balance || '0',
                         identityIdx: i,
-                        dpnsUsername: await DAPIService.getDPNSUsername(id, network),
+                        dpnsUsername: await DAPIService.getDPNSUsername(identityId, network),
                         keyType: 'seed',
                         discoveredAt: new Date().toISOString()
                     })
+                } else {
+                    this.logToHUD('DEBUG', `No identity found for hash: ${pubKeyHash}`)
+                    if (result.error) {
+                        this.logToHUD('DEBUG', `Error: ${result.error}`)
+                    }
                 }
             } catch (e: any) {
                 this.logToHUD('ERROR', `Index ${i} error: ${e.message || e}`)
+                this.logToHUD('DEBUG', `Stack: ${e.stack || 'No stack trace'}`)
             }
         }
+
+        this.logToHUD('INFO', `Discovery complete. Found ${found.length} identities.`)
         return found
     }
 }

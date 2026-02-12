@@ -46,6 +46,10 @@ impl MethodParamInfo {
                 required_params: vec!["publicKeyHash"],
                 param_types: HashMap::from([("publicKeyHash", "string")]),
             },
+            "get_identity_by_non_unique_public_key_hash" | "getIdentityByNonUniquePublicKeyHash" => MethodParamInfo {
+                required_params: vec!["publicKeyHash"],
+                param_types: HashMap::from([("publicKeyHash", "string")]),
+            },
             "get_identity_token_balances" | "getIdentityTokenBalances" => MethodParamInfo {
                 required_params: vec!["identityId", "tokenIds"],
                 param_types: HashMap::from([("identityId", "string"), ("tokenIds", "array")]),

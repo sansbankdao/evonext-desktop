@@ -35,7 +35,7 @@ const _parseNonCodeSections = (_src: string) => {
     const renderer: Partial<RendererObject> = {
         code({ text, lang }: Tokens.Code) {
             const escaped = marked.parseInline(text) as string
-            return `<pre class="code-block"><code class="language-${lang}">${escaped}</code></pre>`
+            return `<pre class="code-block block my-2 py-3 px-2 bg-slate-800 border border-sky-600 rounded-lg overflow-x-auto text-slate-100 font-mono text-xs"><code class="language-${lang} text">${escaped}</code></pre>`
         },
 
         heading({ text, depth }: Tokens.Heading) {

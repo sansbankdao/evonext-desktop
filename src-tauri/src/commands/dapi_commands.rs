@@ -104,6 +104,7 @@ pub async fn get_identity_by_public_key_hash(
     public_key_hash: String,
     network: Option<String>
 ) -> ICommandResult<DapiIdentityResponse> {
+    println!("[RUST DEBUG] get_identity_by_public_key_hash called: hash={}, network={:?}", public_key_hash, network);
     let client = get_dapi_client();
     let n = network.and_then(|val| Network::from_str(&val)).unwrap_or(Network::Testnet);
 
@@ -113,6 +114,7 @@ pub async fn get_identity_by_public_key_hash(
             vec![json!(public_key_hash)],
             n
         ).await.map_err(|e| e.to_string())?;
+        println!("[RUST DEBUG] get_identity_by_public_key_hash raw response: {:?}", res);
         extract_first_as_response(res)
     }.await)
 }
@@ -124,17 +126,34 @@ pub async fn get_identity_by_non_unique_public_key_hash(
     public_key_hash: String,
     network: Option<String>
 ) -> ICommandResult<DapiIdentityResponse> {
+    println!("[RUST DEBUG] get_identity_by_non_unique_public_key_hash START: hash={}, network={:?}", public_key_hash, network);
+
     let client = get_dapi_client();
     let n = network.and_then(|val| Network::from_str(&val)).unwrap_or(Network::Testnet);
+    println!("[RUST DEBUG] Using network: {:?}", n);
 
-    cmd_res!(async {
+    let result = async {
+        println!("[RUST DEBUG] Calling DAPI with method: get_identity_by_non_unique_public_key_hash");
         let res = client.request::<Value>(
             "get_identity_by_non_unique_public_key_hash".to_string(),
             vec![json!(public_key_hash)],
             n
-        ).await.map_err(|e| e.to_string())?;
-        extract_first_as_response(res)
-    }.await)
+        ).await.map_err(|e| {
+            println!("[RUST DEBUG] DAPI request error: {}", e);
+            e.to_string()
+        })?;
+
+        println!("[RUST DEBUG] DAPI raw response: {:?}", res);
+
+        let extracted = extract_first_as_response(res);
+        println!("[RUST DEBUG] Extracted response: {:?}", extracted);
+
+        extracted
+    }.await;
+
+    println!("[RUST DEBUG] get_identity_by_non_unique_public_key_hash END: result={:?}", result);
+
+    cmd_res!(result)
 }
 
 #[tauri::command]
