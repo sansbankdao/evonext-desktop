@@ -9,20 +9,29 @@ const abbreviateId = (id: string) => {
 
 export function getUserInfo(
     ownerId: string,
-    dpnsName?: string | null,
-    displayName?: string | null,
-    avatarUrl?: string | null
+    dpnsProfile?: any,
+    yapprProfile?: any,
+    dpnsName?: string | null
 ): IUser {
     const fallbackAvatar = `https://api.dicebear.com/7.x/identicon/svg?seed=${ownerId}`
-    // Hardened logic to ensure string type for TS2322
-    const nameStr: string = (displayName || (dpnsName ? dpnsName.split('.')[0] : abbreviateId(ownerId))) ?? 'Unnamed User';
+
+    // Priority: DPNS -> YAPPR -> Abbreviated
+    let displayName = abbreviateId(ownerId)
+    if (dpnsProfile && typeof dpnsProfile === 'object') {
+        displayName = dpnsProfile.displayName || displayName
+    } else if (typeof dpnsProfile === 'string') {
+        displayName = dpnsProfile
+    } else if (yapprProfile?.displayName) {
+        displayName = yapprProfile.displayName
+    }
+
     return {
         identityId: ownerId,
         username: dpnsName ? `@${dpnsName}` : `@${abbreviateId(ownerId)}`,
-        displayName: nameStr,
-        avatarUrl: avatarUrl || fallbackAvatar,
+        displayName,
+        avatarUrl: yapprProfile?.avatarUrl || fallbackAvatar,
         verified: !!dpnsName,
-        bio: ''
+        bio: yapprProfile?.publicMessage || ''
     }
 }
 
@@ -32,7 +41,6 @@ export function transformPostDocument(
     authorProfile?: any,
     stats?: any
 ): IPost {
-    // RESOLVED: Correctly extract id from document fallbacks
     const id = doc.id || doc.$id || ''
     const ownerId = doc.ownerId || doc.$ownerId || ''
     const createdAt = parseInt(String(doc.createdAt || doc.$createdAt || Date.now()))
@@ -43,12 +51,12 @@ export function transformPostDocument(
     const author = getUserInfo(
         ownerId,
         dpnsName,
-        authorProfile?.displayName,
-        authorProfile?.avatarUrl
+        authorProfile,
+        dpnsName
     )
 
     return {
-        id, // Correctly mapped to IPost.id
+        id,
         contractId: doc.dataContractId || 'TBD',
         ownerId,
         author,
@@ -88,6 +96,7 @@ export function transformPostDocuments(
 
         if (post.replyToPostId && parentPosts.has(post.replyToPostId)) {
             post.replyTo = parentPosts.get(post.replyToPostId)
+            post.quotedPost = parentPosts.get(post.replyToPostId)
         }
         return post
     })

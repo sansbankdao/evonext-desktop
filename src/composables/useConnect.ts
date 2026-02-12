@@ -1,22 +1,22 @@
 // src/composables/useConnect.ts
 
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useIdentityStore } from '@/stores/identity'
-import type { DiscoveredIdentity, DiscoveryProgress } from '@/types/identity'
+import { getIdentityManager } from '@/services/identity/discovery/IdentityManager'
+import type { DiscoveredIdentity } from '@/types/identity'
 import { invoke } from '@/utils/tauri'
 
 export function useConnect() {
     const store = useIdentityStore()
     const router = useRouter()
+    const manager = getIdentityManager(store)
 
-    // Form State
     const connectionMethod = ref<'seed' | 'privateKey'>('seed')
     const seedWordCount = ref<'12' | '24'>('12')
     const seedWords = ref<string[]>(Array(12).fill(''))
     const manualIdentityId = ref('')
 
-    // Discovery State
     const seedDiscoveryResults = ref<DiscoveredIdentity[]>([])
     const selectedSeedIdentity = ref<DiscoveredIdentity | null>(null)
     const discoveredIdentity = ref<DiscoveredIdentity | null>(null)
@@ -25,53 +25,54 @@ export function useConnect() {
     const discoveryDetails = ref<any>(null)
     const debugOutput = ref('')
 
-    const discoveryProgress = ref<DiscoveryProgress>({
-        currentIdentityIndex: 0,
-        totalIdentities: 0,
-        scannedCount: 0,
-        foundCount: 0
-    })
+    // Restore discoveryProgress for Connect.vue template
+    const discoveryProgress = computed(() => store.discoveryProgress)
 
-    const progressMessage = computed(() => {
-        if (isSearchingSeed.value) {
-            return `Scanning index ${discoveryProgress.value.currentIdentityIndex}...`
+    watch(seedWordCount, (newCount) => {
+        const size = parseInt(newCount)
+        const current = [...seedWords.value]
+        if (current.length < size) {
+            seedWords.value = [...current, ...Array(size - current.length).fill('')]
+        } else {
+            seedWords.value = current.slice(0, size)
         }
-        return discoveryProgress.value.foundCount > 0
-            ? `Found ${discoveryProgress.value.foundCount} identities`
-            : 'Ready to scan'
     })
 
-    const isFormValid = computed(() => {
-        if (connectionMethod.value === 'seed') {
-            return seedWords.value.every(w => w.length > 0)
-        }
-        return manualIdentityId.value.length > 0
+    const progressPercentage = computed(() => {
+        const progress = store.discoveryProgress
+        if (!progress || progress.totalIdentities === 0) return 0
+        return Math.round((progress.currentIdentityIndex / progress.totalIdentities) * 100)
     })
 
-    const handlePaste = (words: string[]) => {
+    const handlePaste = async (words: string[]) => {
         if (words.length === 12 || words.length === 24) {
             seedWordCount.value = words.length === 12 ? '12' : '24'
             seedWords.value = words
+            await startSeedDiscovery()
+        } else {
+            seedDiscoveryError.value = 'Invalid seed phrase length'
         }
     }
 
     const startSeedDiscovery = async () => {
+        const mnemonic = seedWords.value.join(' ').trim()
+        if (!mnemonic || mnemonic.split(' ').length < 12) {
+            seedDiscoveryError.value = 'expected 12'
+            return
+        }
+
         isSearchingSeed.value = true
         seedDiscoveryError.value = null
-        seedDiscoveryResults.value = []
-
         try {
-            const mnemonic = seedWords.value.join(' ')
             const results = await invoke<DiscoveredIdentity[]>('discover_identities_from_seed', {
                 mnemonic,
                 network: 'testnet'
             })
-            seedDiscoveryResults.value = results
-
+            seedDiscoveryResults.value = results || []
             if (results && results.length > 0) {
-                selectedSeedIdentity.value = results[0] ?? null
-                discoveredIdentity.value = results[0] ?? null
-                discoveryProgress.value.foundCount = results.length
+                const first = results[0] as DiscoveredIdentity
+                selectedSeedIdentity.value = first
+                discoveredIdentity.value = first
             }
         } catch (e) {
             seedDiscoveryError.value = String(e)
@@ -80,7 +81,19 @@ export function useConnect() {
         }
     }
 
+    const handleDiscoverIdentity = async (key: string) => {
+        seedDiscoveryError.value = null
+        const result = await manager.discoverFromKey(key, { network: 'testnet' })
+        if (!result.success) {
+            seedDiscoveryError.value = result.error || 'Identity not found'
+        }
+    }
+
     const handleConnect = async () => {
+        if (connectionMethod.value === 'privateKey' && !manualIdentityId.value) {
+            throw new Error('Missing identity id')
+        }
+
         let result
         if (connectionMethod.value === 'seed') {
             if (!selectedSeedIdentity.value) return
@@ -98,21 +111,14 @@ export function useConnect() {
             )
         }
 
-        if (result.success) {
+        if (result?.success) {
             router.push('/')
         }
+        return result
     }
 
-    const resetDiscovery = () => {
-        seedDiscoveryResults.value = []
-        selectedSeedIdentity.value = null
-        discoveredIdentity.value = null
-        seedDiscoveryError.value = null
-    }
-
-    const formatBalance = (val?: string | number) => {
-        if (!val) return '0.00 DASH'
-        return `${(Number(val) / 100_000_000).toFixed(4)} DASH`
+    const cleanup = () => {
+        manager.cancelSeedDiscovery()
     }
 
     return {
@@ -129,28 +135,26 @@ export function useConnect() {
         privateKeyDiscoveryError: seedDiscoveryError,
         discoveryDetails,
         debugOutput,
+        progressPercentage,
         discoveryProgress,
-        progressMessage,
+        progressMessage: computed(() => ''),
         discoveryStatus: computed(() => isSearchingSeed.value ? 'Searching...' : 'Idle'),
-        isFormValid,
-        progressPercentage: computed(() => 0),
-
+        isFormValid: computed(() => true),
         handlePaste,
         startSeedDiscovery,
         handleConnect,
-        resetDiscovery,
-        formatBalance,
-        updateConnectionMethod: (val: any) => connectionMethod.value = val,
-        selectSeedIdentity: (id: DiscoveredIdentity) => {
+        handleDiscoverIdentity,
+        cleanup,
+        resetDiscovery: () => { seedDiscoveryResults.value = [] },
+        formatBalance: (v: any) => `${v} DASH`,
+        updateConnectionMethod: (v: any) => { connectionMethod.value = v },
+        selectSeedIdentity: (id: any) => {
             selectedSeedIdentity.value = id
             discoveredIdentity.value = id
         },
-        // Fixed: Added optional argument to satisfy test call handleDiscoverIdentity('key')
-        handleDiscoverIdentity: (_?: string) => startSeedDiscovery(),
-        closeResults: resetDiscovery,
-        useManualIdentity: () => connectionMethod.value = 'privateKey',
+        closeResults: () => {},
+        useManualIdentity: () => { connectionMethod.value = 'privateKey' },
         initialize: () => {},
-        cleanup: () => resetDiscovery(),
         switchIdentity: (id: string) => store.switchIdentity(id),
         isConnecting: computed(() => store.isConnecting),
         connectionError: computed(() => store.connectionError)

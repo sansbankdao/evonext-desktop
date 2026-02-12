@@ -1,111 +1,77 @@
 // src/services/identity/discovery/DAPIService.ts
 
-import { commands } from '@/bindings'
 import type { DapiIdentityResponse } from '@/bindings'
-/**
- * Result of a DAPI search.
- * Using Partial for data to accommodate varying levels of detail in discovery
- * and satisfy test mocks that only provide partial identity objects.
- */
+import { invoke } from '@/utils/tauri'
+
 export interface DAPIHashSearchResult {
     success: boolean
     data?: Partial<DapiIdentityResponse>
     error?: string
     searchType: 'unique' | 'non-unique' | 'none'
 }
+
 export class DAPIService {
-    /**
-     * Queries for an identity using a Public Key Hash (Hex).
-     */
+    private static async unwrapResult(res: any): Promise<any> {
+        if (!res) return null
+        const data = res.result !== undefined ? res.result : res
+        return Array.isArray(data) ? data[0] : data
+    }
+
     static async queryIdentityByHash(
         publicKeyHash: string,
         network: 'mainnet' | 'testnet',
         unique: boolean
     ): Promise<DAPIHashSearchResult> {
         const searchType = unique ? 'unique' : 'non-unique'
+        const cmd = unique ? 'get_identity_by_public_key_hash' : 'get_identity_by_non_unique_public_key_hash'
+
         try {
-            const result = unique
-                ? await commands.getIdentityByPublicKeyHash(publicKeyHash, network)
-                : await commands.getIdentityByNonUniquePublicKeyHash(publicKeyHash, network)
-            if (result.status === 'ok') {
-                return {
-                    success: true,
-                    data: result.data,
-                    searchType
-                }
-            }
-            return {
-                success: false,
-                error: result.error,
-                searchType
-            }
+            const raw = await invoke<any>(cmd, { publicKeyHash, network })
+            const data = await this.unwrapResult(raw)
+            if (!data) return { success: false, error: 'No identity found', searchType }
+
+            return { success: true, data, searchType }
         } catch (e: any) {
-            return {
-                success: false,
-                error: e.message || String(e),
-                searchType
-            }
+            return { success: false, error: e.message || String(e), searchType }
         }
     }
-    /**
-     * Retrieves full identity information by Identity ID.
-     */
+
     static async getIdentityById(
         identityId: string,
         network: 'mainnet' | 'testnet'
     ): Promise<DAPIHashSearchResult> {
         try {
-            const result = await commands.getIdentityInfo(identityId, network)
-            if (result.status === 'ok') {
-                return {
-                    success: true,
-                    data: result.data,
-                    searchType: 'none'
-                }
-            }
-            return { success: false, error: result.error, searchType: 'none' }
+            const raw = await invoke<any>('get_identity_info', { identityId, network })
+            const data = await this.unwrapResult(raw)
+            return { success: true, data, searchType: 'none' }
         } catch (e: any) {
-            return { success: false, error: String(e), searchType: 'none' }
+            return { success: false, error: e.message || String(e), searchType: 'none' }
         }
     }
-    /**
-     * Resolves the primary DPNS username for an identity.
-     */
+
     static async getDPNSUsername(
         identityId: string,
         network: 'mainnet' | 'testnet'
     ): Promise<string | null> {
         try {
-            const res = await commands.getDpnsUsername(identityId, network)
-            return res.status === 'ok' ? res.data : null
-        } catch (e) {
+            const raw = await invoke<any>('get_dpns_username', { identityId, network })
+            const data = await this.unwrapResult(raw)
+            return typeof data === 'string' ? data : (data?.username || null)
+        } catch {
             return null
         }
     }
-    /**
-     * Resolves all DPNS usernames associated with an identity.
-     */
+
     static async getDPNSUsernames(
         identityId: string,
         network: 'mainnet' | 'testnet'
     ): Promise<string[] | null> {
         try {
-            const res = await commands.getDpnsUsernames(identityId, network)
-            if (res.status === 'ok') {
-                const list = res.data
-                if (!Array.isArray(list)) return null
-                return list.map(item => {
-                    if (!item) return ''
-                    if (typeof item === 'string') return item
-                    if (typeof item === 'object' && !Array.isArray(item)) {
-                        const obj = item as Record<string, any>
-                        return String(obj['username'] || '')
-                    }
-                    return ''
-                }).filter(name => name !== '')
-            }
-            return null
-        } catch (e) {
+            const raw = await invoke<any>('get_dpns_usernames', { identityId, network })
+            const list = raw?.result !== undefined ? raw.result : raw
+            if (!Array.isArray(list)) return null
+            return list.map(item => typeof item === 'string' ? item : item?.username).filter(Boolean)
+        } catch {
             return null
         }
     }
