@@ -21,28 +21,41 @@ export const useIdentityState = (): IIdentityState => ({
     premiumAccess: false,
     connectionError: null,
     discoveryProgress: null as DiscoveryProgress | null,
-    // Actions mapped as empty stubs for the state definition
+
+    // Actions mapped as stubs for the state definition
+    // Connection results expect { success: boolean }
     connectWithSeed: async () => ({ success: false }),
     connectWithPrivateKey: async () => ({ success: false }),
     connectWriteOnlyFromDiscovered: async () => ({ success: false }),
+
+    // Lifecycle actions are void
     refreshIdentity: async () => {},
     fetchBalance: async () => {},
     loadPublicKeys: async () => [],
-    // Added to satisfy IIdentityActions interface
+
+    // Discovery/Identity queries expect { success: boolean, data: any }
     getPublicKeys: async (_id: string, _net: string) => ({ success: false, data: null }),
+
+    // Management actions are void
     switchIdentity: async () => {},
     deleteIdentity: async () => {},
     updateIdentityMetadata: async () => {},
     searchUserIdentities: async () => [],
+
+    // Storage operations
     loadFromStorage: async () => {},
     saveToStorage: async () => {},
     clearStorage: async () => {},
     clearConnectionError: () => {},
-    saveKeys: async () => {},
-    saveMnemonicToStore: async () => {},
-    saveIdentityDataToStore: async () => {},
-    // RESOLVED: Implemented missing action for IIdentityActions interface
-    saveIdentity: async (_network: string, _payload: any) => {},
+
+    // These specific storage actions MUST be void per IIdentityActions interface
+    saveKeys: async () => { /* returns void */ },
+    saveMnemonicToStore: async () => { /* returns void */ },
+    saveIdentityDataToStore: async () => { /* returns void */ },
+    saveIdentity: async (_network: string, _payload: any) => { /* returns void */ },
+
+    // Utility and Loaders
     getCurrentNetwork: async () => 'testnet',
-    loadKeystore: async () => null,
+    // loadKeystore expects a result object in tests
+    loadKeystore: async () => ({ success: false }),
 })

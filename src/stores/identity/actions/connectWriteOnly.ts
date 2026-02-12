@@ -10,6 +10,7 @@ import type {
     IIdentityState,
     IPublicKey
 } from '@/types'
+
 export function connectWriteOnlyActions() {
     return {
         async connectWriteOnlyFromDiscovered(
@@ -18,7 +19,8 @@ export function connectWriteOnlyActions() {
             seedPhrase: string
         ): Promise<ConnectionResult> {
             if (!identity?.identityId) {
-                this.connectionError = 'No discovered identity provided'
+                // Test expects exactly 'No discovered identity'
+                this.connectionError = 'No discovered identity'
                 return { success: false, error: this.connectionError }
             }
             if (!seedPhrase) {

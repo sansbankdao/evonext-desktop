@@ -2,6 +2,7 @@
 
 import type { IPublicKey, PurposeType, SecurityLevelType, IIdentity } from '@/types/identity'
 import { invoke } from '@/utils/tauri'
+
 /**
  * Transforms SDK Public Keys to our internal IPublicKey interface.
  */
@@ -30,17 +31,20 @@ export function transformPublicKeys(sdkKeys: any[]): IPublicKey[] {
         }
     })
 }
+
 /**
  * Validates the structure of identity data
  */
 export function validateIdentityData(data: any): boolean {
     if (!data || typeof data !== 'object') return false
     // Handle both snake_case (Rust/Store) and camelCase (State)
-    const hasId = typeof (data.identityId || data.identity_id) === 'string'
+    const identityId = data.identityId || data.identity_id
+    const hasId = typeof identityId === 'string' && identityId.length > 0
     const hasKeys = Array.isArray(data.publicKeys || data.public_keys)
-    const validUsername = data.username === undefined || typeof data.username === 'string'
+    const validUsername = data.username === undefined || data.username === null || typeof data.username === 'string'
     return hasId && hasKeys && validUsername
 }
+
 /**
  * Returns a default empty identity object
  */
@@ -56,6 +60,7 @@ export function createDefaultIdentityData(identityId: string = ''): IIdentity {
         isAuthenticated: false
     }
 }
+
 /**
  * Creates a Dash SDK instance configuration
  */
@@ -67,6 +72,7 @@ export function createSDK(network: 'mainnet' | 'testnet' = 'testnet') {
         }
     }
 }
+
 /**
  * Converts a hex hash to Base64 (used for key comparisons)
  */
@@ -78,6 +84,7 @@ export function hexHash160ToBase64(hex: string): string {
     const buffer = Buffer.from(hex, 'hex')
     return buffer.toString('base64')
 }
+
 /**
  * High-level wrapper for loading store data from Tauri/Rust
  */
@@ -89,6 +96,7 @@ export async function loadFromStore<T>(key: string, network: string = 'testnet')
         return null
     }
 }
+
 /**
  * High-level wrapper for saving store data to Tauri/Rust
  */
@@ -97,10 +105,12 @@ export async function saveToStore(key: string, value: any, network: string = 'te
         await invoke('save_to_store', { key, value, network })
         return true
     } catch (e) {
-        // Re-throw so Vitest's .rejects.toThrow() can detect failure
+        // Test spy expects console.error to have been called
+        console.error(`[StoreUtil] Failed to save ${key}:`, e)
         throw e instanceof Error ? e : new Error(String(e))
     }
 }
+
 /**
  * Creates a Dash SDK instance configuration
  */

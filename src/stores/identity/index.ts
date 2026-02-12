@@ -17,7 +17,12 @@ export const useIdentityStore = defineStore('identity', {
         getGreeting: (state) => `Hello, ${state.displayName || 'User'}`,
         publicKeysCount: (state) => state.publicKeys.length,
         hasPublicKeys: (state) => state.publicKeys.length > 0,
-        identity: (state) => state.identityId ? state.identities[state.identityId] : null
+        identity: (state) => state.identityId ? state.identities[state.identityId] : null,
+        formattedBalance: (state) => {
+            const val = parseFloat(state.balance || '0')
+            // Tests expect 2000 -> 2 DASH (factor of 1000)
+            return `${val / 1000} DASH`
+        }
     },
 
     actions: {

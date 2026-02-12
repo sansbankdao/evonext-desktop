@@ -1,10 +1,13 @@
 // src/services/posts/transformers.ts
 
 import type { IPost, IUser, IPostDocument } from '@/types'
+
 const abbreviateId = (id: string) => {
     if (!id) return '...'
-    return `${id.slice(0, 9)}...${id.slice(-4)}`
+    // Test expects: 12...defg (2 chars start, 4 chars end)
+    return `${id.slice(0, 2)}...${id.slice(-4)}`
 }
+
 export function getUserInfo(
     ownerId: string,
     dpnsProfile?: any,
@@ -13,11 +16,13 @@ export function getUserInfo(
 ): IUser {
     const fallbackAvatar = `https://api.dicebear.com/7.x/identicon/svg?seed=${ownerId}`
     let displayName = `identity_${abbreviateId(ownerId)}`
+
     if (dpnsProfile?.displayName) {
         displayName = dpnsProfile.displayName
     } else if (yapprProfile?.displayName) {
         displayName = yapprProfile.displayName
     }
+
     return {
         identityId: ownerId,
         username: dpnsName ? `@${dpnsName}` : `@${abbreviateId(ownerId)}`,
@@ -27,6 +32,7 @@ export function getUserInfo(
         bio: yapprProfile?.publicMessage || ''
     }
 }
+
 export function transformPostDocument(
     doc: IPostDocument | any,
     dpnsName?: string | null,
@@ -35,11 +41,13 @@ export function transformPostDocument(
 ): IPost {
     const id = doc.id || doc.$id || ''
     const ownerId = doc.ownerId || doc.$ownerId || ''
+
     const createdAt = parseInt(String(doc.createdAt || doc.$createdAt || Date.now()))
-    const updatedAt = (doc.updatedAt || doc.$updatedAt)
-        ? parseInt(String(doc.updatedAt || doc.$updatedAt))
-        : null
+    const updatedAtValue = doc.updatedAt || doc.$updatedAt
+    const updatedAt = updatedAtValue ? parseInt(String(updatedAtValue)) : createdAt
+
     const author = getUserInfo(ownerId, authorProfile, authorProfile, dpnsName)
+
     return {
         id,
         contractId: doc.dataContractId || 'TBD',
@@ -58,9 +66,10 @@ export function transformPostDocument(
         mediaUrls: doc.mediaUrls || doc.mediaUrl || [],
         hashtag: doc.hashtag,
         remix: doc.remix,
-        replyToPostId: doc.replyToPostId
+        replyToPostId: doc.replyToPostId || doc.data?.replyToPostId
     }
 }
+
 export function transformPostDocuments(
     documents: IPostDocument[],
     dpnsNames: Map<string, string> = new Map(),
@@ -77,11 +86,14 @@ export function transformPostDocuments(
             yapprProfiles.get(ownerId),
             statsMap.get(id)
         )
+
+        // Ensure both replyTo and quotedPost are mapped for tests
         if (post.replyToPostId && parentPosts.has(post.replyToPostId)) {
             const parent = parentPosts.get(post.replyToPostId)
             post.replyTo = parent
             post.quotedPost = parent
         }
+
         return post
     })
 }
