@@ -12,7 +12,6 @@ export function getUserInfo(
     dpnsName?: string | null
 ): IUser {
     const fallbackAvatar = `https://api.dicebear.com/7.x/identicon/svg?seed=${ownerId}`
-    // Priority Fallback Logic to match test expectations
     let displayName = `identity_${abbreviateId(ownerId)}`
     if (dpnsProfile?.displayName) {
         displayName = dpnsProfile.displayName
@@ -37,7 +36,7 @@ export function transformPostDocument(
     const id = doc.id || doc.$id || ''
     const ownerId = doc.ownerId || doc.$ownerId || ''
     const createdAt = parseInt(String(doc.createdAt || doc.$createdAt || Date.now()))
-    const updatedAt = doc.updatedAt || doc.$updatedAt
+    const updatedAt = (doc.updatedAt || doc.$updatedAt)
         ? parseInt(String(doc.updatedAt || doc.$updatedAt))
         : null
     const author = getUserInfo(ownerId, authorProfile, authorProfile, dpnsName)

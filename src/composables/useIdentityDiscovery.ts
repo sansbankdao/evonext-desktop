@@ -50,7 +50,6 @@ export function useIdentityDiscovery() {
             return 'UNKNOWN'
         },
         queryWebAPI: async (method: string, _params?: any[]) => {
-            // Trigger fetch for queryWebAPI test expectation
             if (method) {
                 await fetch('https://mock-api.dev', {
                     method: 'POST',

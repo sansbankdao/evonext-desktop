@@ -28,7 +28,7 @@ export abstract class BaseDiscovery {
     protected isPublicKey(input: string): boolean {
         return typeof input === 'string' && (input.length === 66 || input.length === 130)
     }
-    protected testExtractKeys(keys: any[]): any[] {
+    protected extractAssociatedKeys(keys: any[]): any[] {
         const purposeMap: Record<number, string> = {
             0: 'Authentication', 1: 'Encryption', 2: 'Decryption', 3: 'Transfer'
         }
@@ -41,10 +41,14 @@ export abstract class BaseDiscovery {
             securityLevel: levelMap[k.securityLevel] || k.securityLevel
         }))
     }
-    protected testHandleError(err: any, context: string): any {
+    protected handleError(error: any, context: string): DiscoveryResult {
+        const message = error instanceof Error ? error.message : String(error)
+        console.error(`[Discovery][${context}]`, message)
         return {
             success: false,
-            error: `${context}: ${err.message || err}`
+            error: `${context}: ${message}`,
+            debug: this.createDebugInfo(context, { error: message }),
+            identities: []
         }
     }
     protected parseIdentityData(identityData: any): DiscoveredIdentity {

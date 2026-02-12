@@ -57,7 +57,6 @@ export function useConnect() {
             const result = await manager.discoverFromSeed(mnemonic, { network: 'testnet' })
             if (result.success) {
                 seedDiscoveryResults.value = result.identities || []
-                // FIXED: Explicit existence check to satisfy TypeScript once and for all
                 if (result.identities && result.identities.length > 0) {
                     const firstMatch = result.identities[0]
                     if (firstMatch) {
