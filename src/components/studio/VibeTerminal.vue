@@ -77,7 +77,7 @@ onUnmounted(() => {
 })
 
 // --- Markdown Parsing ---
-const _parseNonCodeSections = (_src: string) => {
+const _parseAllSections = (_src: string) => {
     const placeholders: any = []
     _src = _src.replace(/<code>[\s\S]*?<\/code>/g, (match) => {
         placeholders.push(match)
@@ -87,19 +87,74 @@ const _parseNonCodeSections = (_src: string) => {
     const renderer: Partial<RendererObject> = {
         code({ text, lang }: Tokens.Code) {
             const escaped = marked.parseInline(text) as string
-            return `<pre class="code-block block my-2 py-3 px-2 bg-slate-800 border border-sky-600 rounded-lg overflow-x-auto text-slate-100 font-mono text-xs"><code class="language-${lang} text">${escaped}</code></pre>`
+            return `<pre class="code-block block my-3 p-4 bg-slate-900 border-l-4 border-amber-500 rounded-r-md shadow-lg overflow-x-auto font-mono text-sm leading-relaxed"><code class="language-${lang} text-amber-50">${escaped}</code></pre>`
         },
         heading({ text, depth }: Tokens.Heading) {
             const parsedText = marked.parseInline(text) as string
-            return `<h${depth} class="heading depth-${depth}">${parsedText}</h${depth}>`
+            const sizes = {
+                1: 'text-3xl font-bold mb-4 pb-2 border-b border-slate-200',
+                2: 'text-2xl font-semibold mb-3 mt-6 text-slate-800',
+                3: 'text-xl font-medium mb-2 mt-5 text-slate-700',
+                4: 'text-lg font-medium mb-2 mt-4 text-slate-600'
+            }
+            const sizeClass = sizes[depth as keyof typeof sizes] || 'text-base font-medium'
+            return `<h${depth} class="${sizeClass}">${parsedText}</h${depth}>`
         },
         list({ ordered, items }: Tokens.List) {
             const tag = ordered ? 'ol' : 'ul'
+            const listClasses = ordered
+                ? 'list-decimal pl-6 my-3 space-y-2'
+                : 'list-disc pl-5 my-3 space-y-2'
+
             const listItems = items.map(item => {
                 const content = marked.parseInline(item.text) as string
-                return `<li>${content}</li>`
+                return `<li class="text-slate-700">${content}</li>`
             }).join('')
-            return `<${tag} class="list">${listItems}</${tag}>`
+            return `<${tag} class="${listClasses}">${listItems}</${tag}>`
+        },
+        paragraph({ text }: Tokens.Paragraph) {
+            const parsedText = marked.parseInline(text) as string
+            return `<p class="mb-4 text-slate-600 leading-relaxed">${parsedText}</p>`
+        },
+        blockquote({ text }: Tokens.Blockquote) {
+            const parsedText = marked.parseInline(text) as string
+            return `<blockquote class="border-l-4 border-amber-400 bg-amber-50 pl-4 py-2 my-3 italic text-slate-700">${parsedText}</blockquote>`
+        },
+        table({ header, rows }: Tokens.Table) {
+            // Extract text from table cell objects
+            const headerCells = header.map(cell =>
+                `<th class="px-4 py-3 bg-slate-100 border border-slate-300 font-semibold text-slate-800 text-left">${marked.parseInline(cell.text)}</th>`
+            ).join('')
+
+            const bodyRows = rows.map(row => {
+                const cells = row.map(cell =>
+                    `<td class="px-4 py-2 border border-slate-300 text-slate-700">${marked.parseInline(cell.text)}</td>`
+                ).join('')
+                return `<tr class="hover:bg-slate-50 transition-colors duration-150">${cells}</tr>`
+            }).join('')
+
+            return `<div class="overflow-x-auto my-4 rounded-lg border border-slate-200 shadow-sm">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead><tr>${headerCells}</tr></thead>
+                    <tbody class="divide-y divide-slate-200">${bodyRows}</tbody>
+                </table>
+            </div>`
+        },
+        // Additional renderers for better coverage
+        codespan({ text }: Tokens.Codespan) {
+            return `<code class="bg-slate-800 text-amber-200 px-1 py-0.5 rounded font-mono text-sm">${text}</code>`
+        },
+        link({ href, text }: Tokens.Link) {
+            const parsedText = marked.parseInline(text) as string
+            return `<a href="${href}" class="text-amber-600 hover:text-amber-800 underline hover:underline-offset-2 transition-colors">${parsedText}</a>`
+        },
+        strong({ text }: Tokens.Strong) {
+            const parsedText = marked.parseInline(text) as string
+            return `<strong class="font-bold text-slate-900">${parsedText}</strong>`
+        },
+        em({ text }: Tokens.Em) {
+            const parsedText = marked.parseInline(text) as string
+            return `<em class="italic text-slate-800">${parsedText}</em>`
         }
     }
     marked.use({ renderer })
@@ -110,8 +165,8 @@ const _parseNonCodeSections = (_src: string) => {
 
 const displayContent = ((_source: any) => {
     if (!_source) return 'please wait...'
-    htmlDisplay.value = _parseNonCodeSections(_source)
-    return _parseNonCodeSections(_source)
+    htmlDisplay.value = _parseAllSections(_source)
+    return _parseAllSections(_source)
 })
 
 async function askVibe() {
