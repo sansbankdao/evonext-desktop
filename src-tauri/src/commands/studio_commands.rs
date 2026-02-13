@@ -3,6 +3,9 @@
 use serde::{Deserialize, Serialize};
 use reqwest::Client;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Serialize)]
 struct VibeRequest {
     convoid: String,
@@ -24,23 +27,23 @@ struct VibeResponse {
     result: Vibe,
 }
 
-// Core logic extracted for testing
-pub async fn ask_vibe_terminal_inner(
-    client: &Client,
-    auth_token: &str,
-    base_url: &str,
+#[tauri::command]
+pub async fn ask_vibe_terminal(
     convoid: String,
     context: String,
     prompt: String,
 ) -> Result<String, String> {
+    let client = Client::new();
+    let auth_token = "5d719800-2ac3-4f73-a47a-21cd8304640e";
+
     println!("[DEBUG DOMINO REQUEST]: Convo ID {}", convoid);
     println!("[DEBUG DOMINO REQUEST]: Context Window {}", context);
 
     let res = client
-        .post(format!("{}/v1/studio/domino", base_url))
+        .post("https://evonext.app/v1/studio/domino")
         .bearer_auth(auth_token)
         .json(&VibeRequest {
-            convoid: convoid.clone(),
+            convoid,
             context,
             prompt,
         })
@@ -56,19 +59,3 @@ pub async fn ask_vibe_terminal_inner(
 
     Ok(data.result.response)
 }
-
-#[tauri::command]
-pub async fn ask_vibe_terminal(
-    convoid: String,
-    context: String,
-    prompt: String,
-) -> Result<String, String> {
-    let client = Client::new();
-    let auth_token = "5d719800-2ac3-4f73-a47a-21cd8304640e";
-    let base_url = "https://evonext.app";
-
-    ask_vibe_terminal_inner(&client, auth_token, base_url, convoid, context, prompt).await
-}
-
-#[cfg(test)]
-mod tests;
