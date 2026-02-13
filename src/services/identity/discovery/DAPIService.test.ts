@@ -86,8 +86,10 @@ describe('DAPIService - Response Handling', () => {
         it('should handle raw string responses from Rust', async () => {
             vi.mocked(invoke).mockResolvedValue('shomari.dash')
 
-            const name = await DAPIService.getDPNSUsername('id_1', 'testnet')
-            expect(name).toBe('shomari.dash')
+            const result = await DAPIService.getDPNSUsername('id_1', 'testnet')
+            expect(result.success).toBe(true)
+            expect(result.data).toBe('shomari.dash')
+            expect(result.error).toBeNull()
         })
 
         it('should handle complex object responses with result key', async () => {
@@ -95,8 +97,10 @@ describe('DAPIService - Response Handling', () => {
                 result: { username: 'shomari.dash' }
             })
 
-            const name = await DAPIService.getDPNSUsername('id_1', 'testnet')
-            expect(name).toBe('shomari.dash')
+            const result = await DAPIService.getDPNSUsername('id_1', 'testnet')
+            expect(result.success).toBe(true)
+            expect(result.data).toBe('shomari.dash')
+            expect(result.error).toBeNull()
         })
 
         it('should handle array results inside result object', async () => {
@@ -104,14 +108,18 @@ describe('DAPIService - Response Handling', () => {
                 result: [{ username: 'shomari.dash' }]
             })
 
-            const name = await DAPIService.getDPNSUsername('id_1', 'testnet')
-            expect(name).toBe('shomari.dash')
+            const result = await DAPIService.getDPNSUsername('id_1', 'testnet')
+            expect(result.success).toBe(true)
+            expect(result.data).toBe('shomari.dash')
+            expect(result.error).toBeNull()
         })
 
-        it('should return null on exception', async () => {
+        it('should return error result on exception', async () => {
             vi.mocked(invoke).mockRejectedValue(new Error('Network Fail'))
-            const name = await DAPIService.getDPNSUsername('id_1', 'testnet')
-            expect(name).toBeNull()
+            const result = await DAPIService.getDPNSUsername('id_1', 'testnet')
+            expect(result.success).toBe(false)
+            expect(result.data).toBeNull()
+            expect(result.error).toBe('Network Fail')
         })
     })
 

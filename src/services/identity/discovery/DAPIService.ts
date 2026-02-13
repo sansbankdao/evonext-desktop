@@ -10,6 +10,12 @@ export interface DAPIHashSearchResult {
     searchType: 'unique' | 'non-unique' | 'none'
 }
 
+export interface ICommandResult<T> {
+    success: boolean
+    data: T | null
+    error: string | null
+}
+
 export class DAPIService {
     private static logToHUD(level: string, message: any) {
         if (typeof document === 'undefined') return
@@ -125,28 +131,32 @@ export class DAPIService {
     static async getDPNSUsername(
         identityId: string,
         network: 'mainnet' | 'testnet'
-    ): Promise<string | null> {
+    ): Promise<ICommandResult<string | null>> {
         this.logToHUD('DEBUG', `Calling get_dpns_username for ID: ${identityId.substring(0, 16)}..., network: ${network}`)
 
         try {
             const raw = await invoke<any>('get_dpns_username', { identityId, network })
+
             // Check if the response indicates an error
             if (raw && raw.success === false) {
-                this.logToHUD('DEBUG', `get_dpns_username returned error: ${raw.error || 'Unknown error'}`)
-                return null
+                const errorMsg = raw.error || 'Unknown error'
+                this.logToHUD('DEBUG', `get_dpns_username returned error: ${errorMsg}`)
+                return { success: false, data: null, error: errorMsg }
             }
 
             const data = await this.unwrapResult(raw)
             if (!data) {
                 this.logToHUD('DEBUG', 'get_dpns_username returned no data')
-                return null
+                return { success: true, data: null, error: null }
             }
+
             const username = typeof data === 'string' ? data : (data.username || null)
             this.logToHUD('DEBUG', `get_dpns_username result: ${username || 'null'}`)
-            return username
+            return { success: true, data: username, error: null }
         } catch (e: any) {
-            this.logToHUD('ERROR', `get_dpns_username failed: ${e.message || e}`)
-            return null
+            const errorMsg = e.message || String(e)
+            this.logToHUD('ERROR', `get_dpns_username failed: ${errorMsg}`)
+            return { success: false, data: null, error: errorMsg }
         }
     }
 

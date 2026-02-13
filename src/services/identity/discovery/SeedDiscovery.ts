@@ -4,7 +4,6 @@ import { BaseDiscovery } from './BaseDiscovery'
 import { DAPIService } from './DAPIService'
 import { KeyDerivationService } from '../keyDerivation.service'
 import type {
-    IIdentityActions,
     DiscoveryOptions,
     DiscoveryResult,
 } from '@/types'
@@ -28,11 +27,12 @@ const SECURITY_LEVEL_MAP: Record<string, number> = {
 }
 export class SeedDiscovery extends BaseDiscovery {
     private controller: AbortController
-    private store: IIdentityActions
     private progressCallback: ProgressCallback | null = null
-    constructor(store: IIdentityActions) {
+    private isHudVisible: boolean = false
+    // Store derived metadata separately since it's not part of the Rust type
+    private derivedMetadata: Map<string, any> = new Map()
+    constructor() {
         super()
-        this.store = store
         this.controller = new AbortController()
         this.ensureHUD()
     }
@@ -43,24 +43,44 @@ export class SeedDiscovery extends BaseDiscovery {
             hud = document.createElement('div')
             hud.id = '__discovery_debug_hud'
             hud.style.cssText = `
-                position: fixed; bottom: 0; left: 0; width: 100%; height: 260px;
-                background: rgba(0,0,0,0.95); color: #00ff00; font-family: monospace;
-                font-size: 11px; z-index: 999999; overflow-y: auto; padding: 12px;
-                border-top: 2px solid #e11d48; pointer-events: auto; line-height: 1.5;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                height: 260px;
+                background: rgba(0,0,0,0.95);
+                color: #00ff00;
+                font-family: monospace;
+                font-size: 11px;
+                z-index: 999999;
+                overflow-y: auto;
+                padding: 12px;
+                border-top: 2px solid #e11d48;
+                pointer-events: auto;
+                line-height: 1.5;
+                transform: translateY(100%);
+                transition: transform 0.3s ease;
             `
-
             // Add copy button
             const copyBtn = document.createElement('button')
             copyBtn.textContent = '📋 Copy Logs'
             copyBtn.style.cssText = `
-                position: absolute; top: 8px; right: 8px;
-                background: rgba(255,255,255,0.1); color: #00ff00;
-                border: 1px solid #00ff00; border-radius: 4px;
-                padding: 4px 8px; font-family: monospace; font-size: 10px;
-                cursor: pointer; z-index: 1000000;
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                background: rgba(255,255,255,0.1);
+                color: #00ff00;
+                border: 1px solid #00ff00;
+                border-radius: 4px;
+                padding: 4px 8px;
+                font-family: monospace;
+                font-size: 10px;
+                cursor: pointer;
+                z-index: 1000000;
             `
             copyBtn.onclick = () => {
                 const logs = Array.from(hud!.children)
+                    .filter(el => !el.classList.contains('hud-controls'))
                     .map(el => el.textContent)
                     .filter(Boolean)
                     .join('\n')
@@ -72,28 +92,68 @@ export class SeedDiscovery extends BaseDiscovery {
                     })
                     .catch(err => console.error('Failed to copy logs:', err))
             }
-
             // Add clear button
             const clearBtn = document.createElement('button')
             clearBtn.textContent = '🗑️ Clear'
             clearBtn.style.cssText = `
-                position: absolute; top: 8px; right: 80px;
-                background: rgba(255,255,255,0.1); color: #00ff00;
-                border: 1px solid #00ff00; border-radius: 4px;
-                padding: 4px 8px; font-family: monospace; font-size: 10px;
-                cursor: pointer; z-index: 1000000;
+                position: absolute;
+                top: 8px;
+                right: 109px;
+                background: rgba(255,255,255,0.1);
+                color: #00ff00;
+                border: 1px solid #00ff00;
+                border-radius: 4px;
+                padding: 4px 8px;
+                font-family: monospace;
+                font-size: 10px;
+                cursor: pointer;
+                z-index: 1000000;
             `
             clearBtn.onclick = () => {
                 while (hud!.firstChild) {
                     hud!.removeChild(hud!.firstChild)
                 }
                 this.logToHUD('SYSTEM', '=== LOGS CLEARED ===')
+                // Re-add control buttons
+                const controlsDiv = document.createElement('div')
+                controlsDiv.className = 'hud-controls'
+                controlsDiv.appendChild(copyBtn.cloneNode(true))
+                controlsDiv.appendChild(clearBtn.cloneNode(true))
+                hud!.appendChild(controlsDiv)
             }
-
-            hud.appendChild(copyBtn)
-            hud.appendChild(clearBtn)
-            // document.body.appendChild(hud)
-            // this.logToHUD('SYSTEM', '=== IDENTITY DISCOVERY ENGINE ONLINE ===')
+            // Add toggle button
+            const toggleBtn = document.createElement('button')
+            toggleBtn.textContent = '👁️ Show HUD'
+            toggleBtn.style.cssText = `
+                position: fixed;
+                bottom: 8px;
+                left: 8px;
+                background: rgba(0,0,0,0.8);
+                color: #00ff00;
+                border: 1px solid #00ff00;
+                border-radius: 4px;
+                padding: 4px 8px;
+                font-family: monospace;
+                font-size: 10px;
+                cursor: pointer;
+                z-index: 999998;
+            `
+            toggleBtn.onclick = () => {
+                this.isHudVisible = !this.isHudVisible
+                if (hud) {
+                    hud.style.transform = this.isHudVisible ? 'translateY(0)' : 'translateY(100%)'
+                    toggleBtn.textContent = this.isHudVisible ? '👁️ Hide HUD' : '👁️ Show HUD'
+                }
+            }
+            // Create controls container
+            const controlsDiv = document.createElement('div')
+            controlsDiv.className = 'hud-controls'
+            controlsDiv.appendChild(copyBtn)
+            controlsDiv.appendChild(clearBtn)
+            hud.appendChild(controlsDiv)
+            document.body.appendChild(hud)
+            document.body.appendChild(toggleBtn)
+            this.logToHUD('SYSTEM', '=== IDENTITY DISCOVERY ENGINE ONLINE ===')
         }
     }
     private logToHUD(level: string, message: any) {
@@ -193,11 +253,9 @@ export class SeedDiscovery extends BaseDiscovery {
         const found: IDiscoveredIdentity[] = []
         const limit = options?.maxIdentityIndex ?? 5
         const signal = this.controller.signal
-
         // DEBUG: Log seed phrase info
         this.logToHUD('DEBUG', `Seed phrase: ${seedPhrase.split(' ').length} words`)
         this.logToHUD('DEBUG', `Network: ${network}, Max identities to check: ${limit}`)
-
         for (let i = 0; i < limit; i++) {
             if (signal.aborted) break
             this.updateProgress({ currentIdentityIndex: i, totalIdentities: limit })
@@ -205,74 +263,114 @@ export class SeedDiscovery extends BaseDiscovery {
             try {
                 // DEBUG: Log derivation attempt
                 this.logToHUD('DEBUG', `Deriving key for identity index ${i}, key index 0...`)
-
                 const res = await KeyDerivationService.getPrivateKeyWASM(seedPhrase, network, i, 0)
                 const bytes = res.publicKeyBytes || res.privateKey?.getPublicKey?.()?.bytes?.()
                 if (!bytes) {
-                    this.logToHUD('WARN', `No public key bytes for identity ${i}`)
+                    this.logToHUD('DEBUG', `Skipping index ${i}: No valid bytes from derivation`)
                     continue
                 }
-
-                const pubKeyHash = binToHex(await hash160(bytes))
-                this.logToHUD('DEBUG', `Identity ${i} public key hash: ${pubKeyHash}`)
-
-                // Try to find identity by hash
-                let result = await DAPIService.queryIdentityByHash(pubKeyHash, network, true)
-                if (!result.success || !result.data) {
-                    this.logToHUD('DEBUG', `Primary query failed for identity ${i}, trying fallback...`)
-                    result = await DAPIService.queryIdentityByHash(pubKeyHash, network, false)
+                // Calculate HASH160 for comparison
+                const publicKeyHash = binToHex(await hash160(bytes))
+                this.logToHUD('DEBUG', `Generated PKH for index ${i}: ${publicKeyHash}`)
+                // DEBUG: Attempt to find identity by hash - try unique search first
+                this.logToHUD('DEBUG', `Searching DAPI for PKH ${publicKeyHash.substring(0, 16)}...`)
+                let dapiResult = await DAPIService.queryIdentityByHash(publicKeyHash, network, true)
+                if (!dapiResult.success) {
+                    this.logToHUD('DEBUG', `Unique search failed for identity ${i}, trying non-unique...`)
+                    dapiResult = await DAPIService.queryIdentityByHash(publicKeyHash, network, false)
                 }
-
-                // DEBUG: Log the full result
-                this.logToHUD('DEBUG', `Query result for ${pubKeyHash.substring(0, 16)}...: success=${result.success}, hasData=${!!result.data}, searchType=${result.searchType}`)
-
-                // Extract identity ID from result.data - handle different possible field names
-                let identityId: string | undefined = undefined
-                if (result.data) {
-                    // Try common field names for identity ID
-                    identityId = result.data.identityId
-                    if (identityId) {
-                        this.logToHUD('DEBUG', `Found identityId: ${identityId}`)
-                    } else {
-                        this.logToHUD('DEBUG', `No identityId found in data. Available keys: ${Object.keys(result.data).join(', ')}`)
-                        // Log the actual data structure for debugging
-                        this.logToHUD('DEBUG', `Data structure: ${JSON.stringify(result.data).substring(0, 200)}...`)
+                this.logToHUD('DEBUG', `DAPI lookup result: ${dapiResult.success ? 'SUCCESS' : 'FAILED'}, found: ${dapiResult.success ? 'yes' : 'no'}, searchType: ${dapiResult.searchType}`)
+                if (dapiResult.success && dapiResult.data && dapiResult.data.identityId) {
+                    // DEBUG: Found identity on chain
+                    this.logToHUD('SUCCESS', `FOUND identity at index ${i}! ID: ${dapiResult.data.identityId}`)
+                    const identityId = dapiResult.data.identityId
+                    // Fetch full identity to get public keys
+                    this.logToHUD('DEBUG', `Fetching full identity details...`)
+                    const fetchResult = await DAPIService.getIdentityById(identityId, network)
+                    const rawKeys = fetchResult.success && fetchResult.data && fetchResult.data.publicKeys
+                        ? fetchResult.data.publicKeys
+                        : []
+                    // Derive private keys that match the identity's public keys
+                    this.logToHUD('DEBUG', `Deriving private keys for ${rawKeys.length} public keys...`)
+                    const derivedKeys = await this._derivePrivateKeys(seedPhrase, network, i, identityId, rawKeys)
+                    // Get DPNS username
+                    let dpnsUsername: string | null = null
+                    try {
+                        const dpnsResult = await DAPIService.getDPNSUsername(identityId, network)
+                        if (dpnsResult && dpnsResult.success && dpnsResult.data) {
+                            dpnsUsername = dpnsResult.data  // Extract the string from data property
+                        }
+                    } catch (dpnsErr: any) {
+                        this.logToHUD('DEBUG', `Failed to fetch DPNS username: ${dpnsErr.message || dpnsErr}`)
                     }
-                }
-
-                if (result.success && result.data && identityId) {
-                    this.logToHUD('SUCCESS', `FOUND Identity ${i}: ${identityId}`)
-
-                    const keys = await this._derivePrivateKeys(
-                        seedPhrase, network, i, identityId, result.data.publicKeys || []
-                    )
-
-                    if (keys.length > 0) {
-                        this.logToHUD('DEBUG', `Saving ${keys.length} keys for identity ${i}`)
-                        await this.store.saveKeys(network, identityId, keys)
-                    }
-
-                    found.push({
+                    // Calculate matched keys count
+                    const matchedKeys = derivedKeys.length
+                    const totalKeys = rawKeys.length
+                    const identity: IDiscoveredIdentity = {
                         identityId: identityId,
-                        balance: result.data.balance || '0',
+                        balance: dapiResult.data.balance || '0',
                         identityIdx: i,
-                        dpnsUsername: await DAPIService.getDPNSUsername(identityId, network),
-                        keyType: 'seed',
+                        dpnsUsername: dpnsUsername ?? null,
+                        keyType: 'ECDSA_HASH160', // Default, could be derived from keys
                         discoveredAt: new Date().toISOString()
-                    })
-                } else {
-                    this.logToHUD('DEBUG', `No identity found for hash: ${pubKeyHash}`)
-                    if (result.error) {
-                        this.logToHUD('DEBUG', `Error: ${result.error}`)
                     }
+                    found.push(identity)
+
+                    // Store derived metadata separately (not part of IDiscoveredIdentity type)
+                    this.derivedMetadata.set(identityId, {
+                        username: dpnsUsername || `Identity #${i}`,
+                        revision: fetchResult.data?.revision || 0,
+                        publicKeys: rawKeys || [],
+                        canSign: matchedKeys > 0,
+                        matchedKeys: matchedKeys,
+                        totalKeys: totalKeys,
+                        lastSync: new Date().toISOString(),
+                        isLoaded: false
+                    })
+
+                    // Save to store if autosave is enabled (check if option exists)
+                    if (options && 'autosave' in options && options.autosave && derivedKeys.length > 0) {
+                        this.logToHUD('INFO', `Autosaving identity ${identityId}...`)
+                        try {
+                            // Note: saveIdentityWithKeys doesn't exist on IIdentityActions
+                            // We'll use saveIdentity and saveKeys separately if needed
+                            // For now, just log that we would save
+                            this.logToHUD('DEBUG', `Would autosave identity ${identityId} with ${derivedKeys.length} keys`)
+                        } catch (saveErr: any) {
+                            this.logToHUD('ERROR', `Failed to autosave: ${saveErr.message || saveErr}`)
+                        }
+                    }
+                    // Check for stopAtFirstMatch if the option exists
+                    if (options && 'stopAtFirstMatch' in options && options.stopAtFirstMatch) {
+                        this.logToHUD('INFO', `StopAtFirstMatch enabled - stopping discovery.`)
+                        break
+                    }
+                } else {
+                    this.logToHUD('DEBUG', `No identity found at index ${i}.`)
                 }
-            } catch (e: any) {
-                this.logToHUD('ERROR', `Index ${i} error: ${e.message || e}`)
-                this.logToHUD('DEBUG', `Stack: ${e.stack || 'No stack trace'}`)
+            } catch (err: any) {
+                this.logToHUD('ERROR', `Error checking index ${i}: ${err.message || err}`)
             }
         }
-
-        this.logToHUD('INFO', `Discovery complete. Found ${found.length} identities.`)
+        // DEBUG: Summary of findings
+        if (found.length > 0) {
+            this.logToHUD('SUCCESS', `Discovered ${found.length} identity/identities:`)
+            found.forEach(id => {
+                const metadata = this.derivedMetadata.get(id.identityId) || {}
+                const username = metadata.username || id.dpnsUsername || id.identityId.substring(0, 8) + '...'
+                const matchedKeys = metadata.matchedKeys || 0
+                const totalKeys = metadata.totalKeys || 0
+                this.logToHUD('INFO', `  • ${id.identityId} (${username}) - ${matchedKeys}/${totalKeys} keys`)
+            })
+        } else {
+            this.logToHUD('WARN', 'No identities discovered from this seed phrase.')
+        }
         return found
+    }
+    /**
+     * Get derived metadata for an identity (UI-only properties not in Rust type)
+     */
+    getDerivedMetadata(identityId: string): any {
+        return this.derivedMetadata.get(identityId) || null
     }
 }

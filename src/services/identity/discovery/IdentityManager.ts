@@ -15,7 +15,7 @@ export class IdentityManager {
     private seedDiscovery: SeedDiscovery
     constructor(private store: IIdentityActions) {
         this.keyDiscovery = new KeyDiscovery(this.store)
-        this.seedDiscovery = new SeedDiscovery(this.store)
+        this.seedDiscovery = new SeedDiscovery()
     }
     async discover(input: string, options: DiscoveryOptions = { network: 'testnet' }): Promise<DiscoveryResult> {
         const isSeed = input.trim().split(/\s+/).length >= 12

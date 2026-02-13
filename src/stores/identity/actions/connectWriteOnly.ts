@@ -1,3 +1,5 @@
+// src/stores/identity/action/connectWriteOnly.ts
+
 import { DAPIService } from '@/services/identity/discovery/DAPIService'
 import { KeyDerivationService } from '@/services/identity/keyDerivation.service'
 // @ts-ignore
