@@ -14,7 +14,7 @@ pub struct MethodParamInfo {
 impl MethodParamInfo {
     pub fn for_method(method: &str) -> Result<Self, DAPIError> {
         let info = match method {
-            "get_documents" | "getDocuments" => MethodParamInfo {
+            "get_documents" => MethodParamInfo {
                 required_params: vec!["dataContractId", "documentType"],
                 param_types: HashMap::from([
                     ("dataContractId", "string"),
@@ -26,7 +26,7 @@ impl MethodParamInfo {
                     ("startAt", "string"),
                 ]),
             },
-            "get_document" | "getDocument" => MethodParamInfo {
+            "get_document" => MethodParamInfo {
                 required_params: vec!["dataContractId", "documentType", "documentId"],
                 param_types: HashMap::from([
                     ("dataContractId", "string"),
@@ -34,35 +34,39 @@ impl MethodParamInfo {
                     ("documentId", "string"),
                 ]),
             },
-            "getIdentity" | "identity_fetch" | "get_identity" => MethodParamInfo {
+            "get_identity" => MethodParamInfo {
                 required_params: vec!["identityId"],
                 param_types: HashMap::from([("identityId", "string")]),
             },
-            "get_identity_balance" | "getIdentityBalance" => MethodParamInfo {
+            "get_identity_balance" => MethodParamInfo {
                 required_params: vec!["identityId"],
                 param_types: HashMap::from([("identityId", "string")]),
             },
-            "get_identity_by_public_key_hash" | "getIdentityByPublicKeyHash" => MethodParamInfo {
+            "get_identity_by_public_key_hash" => MethodParamInfo {
                 required_params: vec!["publicKeyHash"],
                 param_types: HashMap::from([("publicKeyHash", "string")]),
             },
-            "get_identity_by_non_unique_public_key_hash" | "getIdentityByNonUniquePublicKeyHash" => MethodParamInfo {
+            "get_identity_by_non_unique_public_key_hash" => MethodParamInfo {
                 required_params: vec!["publicKeyHash"],
                 param_types: HashMap::from([("publicKeyHash", "string")]),
             },
-            "get_identity_token_balances" | "getIdentityTokenBalances" => MethodParamInfo {
+            "get_identity_token_balances" => MethodParamInfo {
                 required_params: vec!["identityId", "tokenIds"],
                 param_types: HashMap::from([("identityId", "string"), ("tokenIds", "array")]),
             },
-            "data_contract_fetch" | "getDataContract" => MethodParamInfo {
+            "data_contract_fetch" => MethodParamInfo {
                 required_params: vec!["contractId"],
                 param_types: HashMap::from([("contractId", "string")]),
             },
-            "dpns_resolve_name" | "resolve_dpns_name" | "get_dpns_username_by_name" => MethodParamInfo {
+            "resolve_dpns_name" => MethodParamInfo {
                 required_params: vec!["username"],
                 param_types: HashMap::from([("username", "string")]),
             },
-            "get_dpns_username" | "get_dpns_usernames" => MethodParamInfo {
+            "get_dpns_username" => MethodParamInfo {
+                required_params: vec!["identityId"],
+                param_types: HashMap::from([("identityId", "string")]),
+            },
+            "get_dpns_usernames" => MethodParamInfo {
                 required_params: vec!["identityId"],
                 param_types: HashMap::from([("identityId", "string")]),
             },
@@ -78,17 +82,21 @@ impl MethodParamInfo {
                 required_params: vec!["tokenId"],
                 param_types: HashMap::from([("tokenId", "string")]),
             },
-            "get_status" | "getStatus" => MethodParamInfo {
+            "get_status" => MethodParamInfo {
                 required_params: vec![],
                 param_types: HashMap::new(),
             },
-            "get_current_epoch" | "getCurrentEpoch" => MethodParamInfo {
+            "get_current_epoch" => MethodParamInfo {
                 required_params: vec![],
                 param_types: HashMap::new(),
             },
             "get_total_credits_in_platform" => MethodParamInfo {
                 required_params: vec![],
                 param_types: HashMap::new(),
+            },
+            "get_identities_balances" => MethodParamInfo {
+                required_params: vec!["identityIds"],
+                param_types: HashMap::from([("identityIds", "array")]),
             },
             _ => return Err(DAPIError::UnknownMethod(method.to_string())),
         };
