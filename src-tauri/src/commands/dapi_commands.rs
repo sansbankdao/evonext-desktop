@@ -45,6 +45,18 @@ pub struct DapiIdentityResponse {
 fn extract_first_as_response(res: Vec<Value>) -> Result<DapiIdentityResponse, String> {
     let first = res.get(0)
         .ok_or_else(|| "DAPI returned an empty result".to_string())?;
+
+    // Handle error responses (success: false)
+    if let Some(success) = first.get("success") {
+        if success == false {
+            // Extract error message if available
+            let error_msg = first.get("error")
+                .and_then(|e| e.as_str())
+                .unwrap_or("DAPI returned success=false");
+            return Err(format!("DAPI error: {}", error_msg));
+        }
+    }
+
     let mut target = if let Some(inner) = first.get("result") {
         inner.clone()
     } else {
@@ -168,7 +180,7 @@ pub async fn get_identity_info(
 
     cmd_res!(async {
         let res = client.request::<Value>(
-            "getIdentity".to_string(),
+            "get_identity".to_string(),
             vec![json!(identity_id)],
             n
         ).await.map_err(|e| e.to_string())?;
@@ -186,7 +198,7 @@ pub async fn get_identity_by_id(
     let client = get_dapi_client();
     let n = network.and_then(|val| Network::from_str(&val)).unwrap_or(Network::Testnet);
 
-    cmd_res!(client.request::<Value>("getIdentity".to_string(), vec![json!(identity_id)], n)
+    cmd_res!(client.request::<Value>("get_identity".to_string(), vec![json!(identity_id)], n)
         .await
         .map(|v| json!(v))
         .map_err(|e| e.to_string()))
