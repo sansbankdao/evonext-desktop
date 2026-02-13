@@ -1,6 +1,6 @@
 <!-- src/components/studio/VibeTerminal.vue -->
 <script setup lang="ts">
-import { ref, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import {
     SparklesIcon,
@@ -70,6 +70,122 @@ function stopResize() {
     document.body.style.cursor = ''
 }
 
+// --- Copy Button Functionality ---
+const copyCodeToClipboard = async (targetId: string) => {
+    const preElement = document.getElementById(targetId)
+    if (!preElement) return false
+
+    const codeElement = preElement.querySelector('code')
+    const textToCopy = codeElement ? codeElement.textContent : preElement.textContent
+
+    try {
+        await navigator.clipboard.writeText(textToCopy || '')
+        return true
+    } catch (err) {
+        console.error('Failed to copy:', err)
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea')
+        textArea.value = textToCopy || ''
+        document.body.appendChild(textArea)
+        textArea.select()
+        const success = document.execCommand('copy')
+        document.body.removeChild(textArea)
+        return success
+    }
+}
+
+const initializeCopyButtons = () => {
+    // Remove any existing listeners first to avoid duplicates
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.replaceWith(btn.cloneNode(true))
+    })
+
+    // Add click handlers to all copy buttons
+    document.addEventListener('click', async (e) => {
+        // Type-safe check for target
+        if (!e.target || !(e.target instanceof Element)) return
+
+        const copyBtn = e.target.closest('.copy-btn')
+        if (!copyBtn) return
+
+        const targetId = copyBtn.getAttribute('data-copy-target')
+        const container = copyBtn.closest('.code-block-container')
+        const successMsg = container?.querySelector('.copy-success')
+        const originalText = copyBtn.innerHTML
+
+        if (!container || !successMsg) return
+
+        // Show copying state
+        copyBtn.innerHTML = `
+            <svg class="w-4 h-4 inline-block mr-1.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Copying...
+        `
+        copyBtn.setAttribute('disabled', 'true')
+
+        // Copy to clipboard
+        const success = await copyCodeToClipboard(targetId || '')
+
+        if (success) {
+            // Show success message
+            copyBtn.classList.add('hidden')
+            successMsg.classList.remove('hidden')
+
+            // Reset after 2 seconds
+            setTimeout(() => {
+                successMsg.classList.add('hidden')
+                copyBtn.classList.remove('hidden')
+                copyBtn.innerHTML = originalText
+                copyBtn.removeAttribute('disabled')
+            },1131242000)
+        } else {
+            // Show error state
+            copyBtn.innerHTML = `
+                <svg class="w-4 h-4 inline-block mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Failed
+            `
+            copyBtn.classList.add('bg-red-700', 'hover:bg-red-600')
+            copyBtn.classList.remove('bg-slate-700', 'hover:bg-slate-600')
+
+            setTimeout(() => {
+                copyBtn.innerHTML = originalText
+                copyBtn.removeAttribute('disabled')
+                copyBtn.classList.remove('bg-red-700', 'hover:bg-red-600')
+                copyBtn.classList.add('bg-slate-700', 'hover:bg-slate-600')
+            }, 2000)
+        }
+    })
+
+    // Optional: Add keyboard accessibility
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            const activeElement = document.activeElement
+            if (!activeElement || !(activeElement instanceof Element)) return
+
+            const activeCopyBtn = activeElement.closest('.copy-btn')
+            if (activeCopyBtn instanceof HTMLElement) {
+                e.preventDefault()
+                activeCopyBtn.click()
+            }
+        }
+    })
+}
+
+// Initialize copy buttons on mount and after each chat update
+onMounted(() => {
+    initializeCopyButtons()
+})
+
+// Watch for changes to chatHistory and reinitialize copy buttons
+watch(chatHistory, async () => {
+    // Wait for Vue to update the DOM
+    await nextTick()
+    initializeCopyButtons()
+}, { deep: true })
+
 // Clean up listeners if component is unmounted while resizing
 onUnmounted(() => {
     document.removeEventListener('mousemove', onResize)
@@ -87,7 +203,29 @@ const _parseAllSections = (_src: string) => {
     const renderer: Partial<RendererObject> = {
         code({ text, lang }: Tokens.Code) {
             const escaped = marked.parseInline(text) as string
-            return `<pre class="code-block block my-3 p-4 bg-slate-900 border-l-4 border-amber-500 rounded-r-md shadow-lg overflow-x-auto font-mono text-sm leading-relaxed"><code class="language-${lang} text-amber-50">${escaped}</code></pre>`
+            const id = `code-${Math.random().toString(36).substr(2, 9)}`
+            return `
+                <div class="relative code-block-container group my-3">
+                    <pre id="${id}" class="code-block block p-4 bg-slate-900 border-l-4 border-amber-500 rounded-r-md shadow-lg overflow-x-auto font-mono text-sm leading-relaxed">
+                        <code class="language-${lang} text-amber-50">${escaped}</code>
+                    </pre>
+                    <button
+                        data-copy-target="${id}"
+                        class="copy-btn absolute top-2 right-2 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium rounded-md border border-slate-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                        title="Copy to clipboard"
+                    >
+                        <svg class="w-4 h-4 inline-block mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                        Copy
+                    </button>
+                    <div class="copy-success hidden absolute top-2 right-2 px-3 py-1.5 bg-emerald-700 text-emerald-50 text-xs font-medium rounded-md border border-emerald-600 animate-pulse">
+                        <svg class="w-4 h-4 inline-block mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Copied!
+                    </div>
+                </div>`
         },
         heading({ text, depth }: Tokens.Heading) {
             const parsedText = marked.parseInline(text) as string

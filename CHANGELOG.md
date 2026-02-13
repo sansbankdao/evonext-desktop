@@ -1,8 +1,8 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Introducing the 5th Release Candidate (Domino)
+### Introducing the 6th Release Candidate (Domino Agency)
 
-This latest version of EvoNext introduces Domino, as our resident MiniApp software engineer assistant.
+This latest version of EvoNext introduces Domino Agency, as our resident MiniApp software engineer assistants.
 
 # Changelog
 
