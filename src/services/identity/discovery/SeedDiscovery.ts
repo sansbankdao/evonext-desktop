@@ -92,8 +92,8 @@ export class SeedDiscovery extends BaseDiscovery {
 
             hud.appendChild(copyBtn)
             hud.appendChild(clearBtn)
-            document.body.appendChild(hud)
-            this.logToHUD('SYSTEM', '=== IDENTITY DISCOVERY ENGINE ONLINE ===')
+            // document.body.appendChild(hud)
+            // this.logToHUD('SYSTEM', '=== IDENTITY DISCOVERY ENGINE ONLINE ===')
         }
     }
     private logToHUD(level: string, message: any) {
@@ -230,7 +230,7 @@ export class SeedDiscovery extends BaseDiscovery {
                 let identityId: string | undefined = undefined
                 if (result.data) {
                     // Try common field names for identity ID
-                    identityId = result.data.identityId || result.data.id || result.data.identityID || result.data.IdentityId
+                    identityId = result.data.identityId
                     if (identityId) {
                         this.logToHUD('DEBUG', `Found identityId: ${identityId}`)
                     } else {
@@ -254,7 +254,7 @@ export class SeedDiscovery extends BaseDiscovery {
 
                     found.push({
                         identityId: identityId,
-                        balance: result.data.balance || result.data.Balance || '0',
+                        balance: result.data.balance || '0',
                         identityIdx: i,
                         dpnsUsername: await DAPIService.getDPNSUsername(identityId, network),
                         keyType: 'seed',

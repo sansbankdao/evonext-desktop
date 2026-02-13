@@ -24,23 +24,23 @@ struct VibeResponse {
     result: Vibe,
 }
 
-#[tauri::command]
-pub async fn ask_vibe_terminal(
+// Core logic extracted for testing
+pub async fn ask_vibe_terminal_inner(
+    client: &Client,
+    auth_token: &str,
+    base_url: &str,
     convoid: String,
     context: String,
     prompt: String,
 ) -> Result<String, String> {
-    let client = Client::new();
-    let auth_token = "5d719800-2ac3-4f73-a47a-21cd8304640e";
-
     println!("[DEBUG DOMINO REQUEST]: Convo ID {}", convoid);
     println!("[DEBUG DOMINO REQUEST]: Context Window {}", context);
 
     let res = client
-        .post("https://evonext.app/v1/studio/domino")
+        .post(format!("{}/v1/studio/domino", base_url))
         .bearer_auth(auth_token)
         .json(&VibeRequest {
-            convoid,
+            convoid: convoid.clone(),
             context,
             prompt,
         })
@@ -56,3 +56,19 @@ pub async fn ask_vibe_terminal(
 
     Ok(data.result.response)
 }
+
+#[tauri::command]
+pub async fn ask_vibe_terminal(
+    convoid: String,
+    context: String,
+    prompt: String,
+) -> Result<String, String> {
+    let client = Client::new();
+    let auth_token = "5d719800-2ac3-4f73-a47a-21cd8304640e";
+    let base_url = "https://evonext.app";
+
+    ask_vibe_terminal_inner(&client, auth_token, base_url, convoid, context, prompt).await
+}
+
+#[cfg(test)]
+mod tests;
