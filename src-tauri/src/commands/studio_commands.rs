@@ -33,6 +33,20 @@ pub async fn ask_vibe_terminal(
     context: String,
     prompt: String,
 ) -> Result<String, String> {
+    ask_vibe_terminal_inner(
+        "https://evonext.app/v1/studio/domino".to_string(),
+        convoid,
+        context,
+        prompt,
+    ).await
+}
+
+pub(crate) async fn ask_vibe_terminal_inner(
+    url: String,
+    convoid: String,
+    context: String,
+    prompt: String,
+) -> Result<String, String> {
     let client = Client::new();
     let auth_token = "5d719800-2ac3-4f73-a47a-21cd8304640e";
 
@@ -40,7 +54,7 @@ pub async fn ask_vibe_terminal(
     println!("[DEBUG DOMINO REQUEST]: Context Window {}", context);
 
     let res = client
-        .post("https://evonext.app/v1/studio/domino")
+        .post(url)
         .bearer_auth(auth_token)
         .json(&VibeRequest {
             convoid,
