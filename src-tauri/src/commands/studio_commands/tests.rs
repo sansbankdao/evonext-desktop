@@ -123,4 +123,8 @@ async fn ask_vibe_terminal_inner(
     let data: VibeResponse = res.json().await.map_err(|e| e.to_string())?;
 
     println!("[DEBUG DOMINO RESPONSE]: Convo ID {}", data.result.convoid);
-    println!("[DEBUG DOM
+    println!("[DEBUG DOMINO RESPONSE]: Model {}", data.result.model);
+    println!("[DEBUG DOMINO RESPONSE]: Timestamp {}", data.result.created_at);
+
+    Ok(data.result.response)
+}
