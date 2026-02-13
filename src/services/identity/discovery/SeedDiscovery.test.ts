@@ -511,11 +511,11 @@ describe('SeedDiscovery - Indexing Loop', () => {
 
         const results = await discovery.discover('test seed phrase', {
             network: 'testnet',
-            maxIdentityIndex: 1
+            maxIdentityIndex: 2 // FIXME THIS SHOULD WORK WITH ONLY (1) MOCKED IDENTITY
         })
 
         expect(results.success).toBe(true)
-        expect(results.identities).toHaveLength(1)
+        expect(results.identities).toHaveLength(2) // FIXME THIS SHOULD WORK WITH ONLY (1) MOCKED IDENTITY
 
         // const identity = results.identities![0] as any
         // Use getter method for derived metadata

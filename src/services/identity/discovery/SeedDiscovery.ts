@@ -319,7 +319,9 @@ export class SeedDiscovery extends BaseDiscovery {
                     // Store derived metadata separately (not part of IDiscoveredIdentity type)
                     this.derivedMetadata.set(identityId, {
                         username: dpnsUsername || `Identity #${i}`,
-                        revision: fetchResult.data?.revision || 0,
+                        revision: typeof fetchResult.data?.revision === 'number' // FIXME THIS IS AN UGLY HACK!!
+                            ? fetchResult.data.revision
+                            : parseInt(String(fetchResult.data?.revision || '0'), 10) || 0,
                         publicKeys: rawKeys || [],
                         canSign: matchedKeys > 0,
                         matchedKeys: matchedKeys,
