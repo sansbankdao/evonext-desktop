@@ -4,6 +4,11 @@ import { defineStore } from 'pinia'
 import { useIdentityState } from './state'
 import { identityActions } from './actions/identity'
 import { connectionActions } from './actions/connection'
+import { connectWriteOnlyActions } from './actions/connectWriteOnly'
+import { discoveredIdentitiesActions } from './actions/discovered'
+import { keyActions } from './actions/keys'
+import { unifiedActions } from './actions/unified'
+import { mnemonicActions } from './actions/mnemonic'
 
 /**
  * Identity Store
@@ -27,6 +32,11 @@ export const useIdentityStore = defineStore('identity', {
 
     actions: {
         ...identityActions,
-        ...connectionActions
+        ...connectionActions,
+        ...connectWriteOnlyActions(),
+        ...discoveredIdentitiesActions(),
+        ...keyActions,
+        ...unifiedActions(),
+        ...mnemonicActions()
     }
 })

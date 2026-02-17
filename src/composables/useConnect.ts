@@ -18,9 +18,11 @@ export function useConnect() {
     const selectedSeedIdentity = ref<DiscoveredIdentity | null>(null)
     const discoveredIdentity = ref<DiscoveredIdentity | null>(null)
     const isSearchingSeed = ref(false)
+    const isDiscoveringKey = ref(false)
     const seedDiscoveryError = ref<string | null>(null)
     const discoveryDetails = ref<any>(null)
-    const debugOutput = ref('')
+    const debugOutput = ref<any>(null)
+    const privateKeyInput = ref<string>('')
     const discoveryProgress = computed(() => store.discoveryProgress)
     watch(seedWordCount, (newCount) => {
         const size = parseInt(newCount)
@@ -75,35 +77,104 @@ export function useConnect() {
     }
     const handleDiscoverIdentity = async (key: string) => {
         seedDiscoveryError.value = null
-        const result = await manager.discoverFromKey(key, { network: 'testnet' })
-        if (!result.success) {
-            seedDiscoveryError.value = result.error || 'Identity not found'
+        debugOutput.value = null
+        discoveryDetails.value = null
+        discoveredIdentity.value = null
+        privateKeyInput.value = key
+        isDiscoveringKey.value = true
+        try {
+            const result = await manager.discoverFromKey(key, { network: 'testnet' })
+            if (result.success && result.identities && result.identities.length > 0) {
+                const found = result.identities[0]!
+                discoveredIdentity.value = found
+                manualIdentityId.value = found.identityId
+                discoveryDetails.value = {
+                    associatedKeys: (found.publicKeys || []).map((pk: any) => ({
+                        purpose: pk.purpose || 'AUTHENTICATION',
+                        securityLevel: pk.securityLevel || 'HIGH',
+                        keyType: pk.keyType || 'ECDSA_HASH160'
+                    }))
+                }
+                debugOutput.value = {
+                    step: 'discovery-complete',
+                    identityId: found.identityId,
+                    keyCount: (found.publicKeys || []).length
+                }
+            } else if (result.success && result.identity) {
+                // Single identity result format
+                discoveredIdentity.value = result.identity
+                manualIdentityId.value = result.identity.identityId
+                discoveryDetails.value = {
+                    associatedKeys: (result.identity.publicKeys || []).map((pk: any) => ({
+                        purpose: pk.purpose || 'AUTHENTICATION',
+                        securityLevel: pk.securityLevel || 'HIGH',
+                        keyType: pk.keyType || 'ECDSA_HASH160'
+                    }))
+                }
+                debugOutput.value = {
+                    step: 'discovery-complete',
+                    identityId: result.identity.identityId,
+                    keyCount: (result.identity.publicKeys || []).length
+                }
+            } else {
+                seedDiscoveryError.value = result.error || 'Identity not found'
+                debugOutput.value = {
+                    step: 'discovery-failed',
+                    error: result.error || 'Identity not found',
+                    debug: result.debug || null
+                }
+            }
+        } catch (e: any) {
+            seedDiscoveryError.value = String(e)
+            debugOutput.value = {
+                step: 'discovery-failed',
+                error: String(e)
+            }
+        } finally {
+            isDiscoveringKey.value = false
         }
     }
     const handleConnect = async () => {
-        if (connectionMethod.value === 'privateKey' && !manualIdentityId.value) {
-            throw new Error('Missing identity id')
-        }
-        let result
         if (connectionMethod.value === 'seed') {
             if (!selectedSeedIdentity.value) return
-            result = await store.connectWithSeed(
-                seedWords.value.join(' '),
-                'testnet',
-                selectedSeedIdentity.value.identityId,
-                selectedSeedIdentity.value.identityIdx
+            const result = await store.connectWriteOnlyFromDiscovered(
+                selectedSeedIdentity.value,
+                seedWords.value.join(' ')
             )
+            if (result?.success) {
+                router.push('/')
+            }
+            return result
         } else {
-            result = await store.connectWithPrivateKey(
-                manualIdentityId.value,
-                '',
+            // Private key path
+            const identityId = manualIdentityId.value || discoveredIdentity.value?.identityId
+            const key = privateKeyInput.value
+
+            if (!identityId) {
+                throw new Error('Missing identity id')
+            }
+            if (!key) {
+                throw new Error('Missing private key')
+            }
+
+            const result = await store.connectWithPrivateKey(
+                key,
+                identityId,
                 'testnet'
             )
+            if (result?.success) {
+                router.push('/')
+            }
+            return result
         }
-        if (result?.success) {
-            router.push('/')
-        }
-        return result
+    }
+    const resetDiscovery = () => {
+        seedDiscoveryResults.value = []
+        discoveredIdentity.value = null
+        discoveryDetails.value = null
+        debugOutput.value = null
+        privateKeyInput.value = ''
+        seedDiscoveryError.value = null
     }
     const cleanup = () => {
         manager.cancelSeedDiscovery()
@@ -117,7 +188,7 @@ export function useConnect() {
         selectedSeedIdentity,
         discoveredIdentity,
         isSearchingSeed,
-        isDiscovering: isSearchingSeed,
+        isDiscovering: isDiscoveringKey,
         seedDiscoveryError,
         privateKeyDiscoveryError: seedDiscoveryError,
         discoveryDetails,
@@ -125,16 +196,38 @@ export function useConnect() {
         progressPercentage,
         discoveryProgress,
         progressMessage: computed(() => ''),
-        discoveryStatus: computed(() => isSearchingSeed.value ? 'Searching...' : 'Idle'),
-        isFormValid: computed(() => true),
+        discoveryStatus: computed(() => {
+            if (isSearchingSeed.value) return 'Searching seed identities...'
+            if (isDiscoveringKey.value) return 'Searching for identity by key...'
+            return 'Idle'
+        }),
+        isFormValid: computed(() => {
+            if (connectionMethod.value === 'seed') {
+                return !!selectedSeedIdentity.value
+            } else {
+                // Private key path: need both a discovered/manual identity and a key
+                const hasIdentity = !!(manualIdentityId.value || discoveredIdentity.value?.identityId)
+                const hasKey = !!privateKeyInput.value
+                return hasIdentity && hasKey
+            }
+        }),
         handlePaste,
         startSeedDiscovery,
         handleConnect,
         handleDiscoverIdentity,
         cleanup,
-        resetDiscovery: () => { seedDiscoveryResults.value = [] },
+        resetDiscovery,
         formatBalance: (v: any) => `${v} DASH`,
-        updateConnectionMethod: (v: any) => { connectionMethod.value = v },
+        updateConnectionMethod: (v: any) => {
+            connectionMethod.value = v
+            // Reset key-specific state when switching methods
+            if (v === 'seed') {
+                discoveredIdentity.value = null
+                discoveryDetails.value = null
+                debugOutput.value = null
+                privateKeyInput.value = ''
+            }
+        },
         selectSeedIdentity: (id: any) => {
             selectedSeedIdentity.value = id
             discoveredIdentity.value = id
