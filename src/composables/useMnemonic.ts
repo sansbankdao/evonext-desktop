@@ -93,14 +93,23 @@ export function useMnemonicValidator() {
 
     const validatePhrase = (words: string[], expectedLength: number) => {
         // Basic length check
-        const cleanWords = words.map(w => w.trim()).filter(w => w.length > 0)
+        const cleanWords = words.map(w => w.trim().toLowerCase()).filter(w => w.length > 0)
         if (cleanWords.length !== expectedLength) {
             return { isValid: false, error: 'Incorrect number of words' }
         }
 
-        // Full checksum check
+        // Check each word is in the wordlist first
+        if (wordlist.value.length > 0) {
+            const invalidWord = cleanWords.find(w => !wordlist.value.includes(w))
+            if (invalidWord) {
+                return { isValid: false, error: `Invalid word: "${invalidWord}"` }
+            }
+        }
+
+        // Full checksum check — bip39 v3.x requires wordlist parameter
         const phrase = cleanWords.join(' ')
-        if (!bip39.validateMnemonic(phrase)) {
+        const isValid = bip39.validateMnemonic(phrase, bip39.wordlists.english)
+        if (!isValid) {
             return { isValid: false, error: 'Invalid checksum' }
         }
 

@@ -24,6 +24,17 @@ export function useConnect() {
     const debugOutput = ref<any>(null)
     const privateKeyInput = ref<string>('')
     const discoveryProgress = computed(() => store.discoveryProgress)
+
+    // Wire up the progress callback from SeedDiscovery to the store's discoveryProgress
+    manager.setProgressCallback((details: any) => {
+        store.discoveryProgress = {
+            currentIdentityIndex: details.currentIdentityIndex ?? 0,
+            totalIdentities: details.totalIdentities ?? 5,
+            scannedCount: (details.currentIdentityIndex ?? 0) + 1,
+            foundCount: seedDiscoveryResults.value.length
+        }
+    })
+
     watch(seedWordCount, (newCount) => {
         const size = parseInt(newCount)
         const current = [...seedWords.value]
@@ -55,6 +66,16 @@ export function useConnect() {
         }
         isSearchingSeed.value = true
         seedDiscoveryError.value = null
+        seedDiscoveryResults.value = []
+
+        // Reset progress at start
+        store.discoveryProgress = {
+            currentIdentityIndex: 0,
+            totalIdentities: 5,
+            scannedCount: 0,
+            foundCount: 0
+        }
+
         try {
             const result = await manager.discoverFromSeed(mnemonic, { network: 'testnet' })
             if (result.success) {
@@ -73,6 +94,8 @@ export function useConnect() {
             seedDiscoveryError.value = String(e)
         } finally {
             isSearchingSeed.value = false
+            // Clear progress when done
+            store.discoveryProgress = null
         }
     }
     const handleDiscoverIdentity = async (key: string) => {
@@ -175,9 +198,11 @@ export function useConnect() {
         debugOutput.value = null
         privateKeyInput.value = ''
         seedDiscoveryError.value = null
+        store.discoveryProgress = null
     }
     const cleanup = () => {
         manager.cancelSeedDiscovery()
+        store.discoveryProgress = null
     }
     return {
         connectionMethod,
@@ -195,7 +220,11 @@ export function useConnect() {
         debugOutput,
         progressPercentage,
         discoveryProgress,
-        progressMessage: computed(() => ''),
+        progressMessage: computed(() => {
+            const progress = store.discoveryProgress
+            if (!progress) return ''
+            return `Checking identity ${progress.currentIdentityIndex + 1} of ${progress.totalIdentities}...`
+        }),
         discoveryStatus: computed(() => {
             if (isSearchingSeed.value) return 'Searching seed identities...'
             if (isDiscoveringKey.value) return 'Searching for identity by key...'
