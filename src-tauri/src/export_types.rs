@@ -11,6 +11,9 @@ use evonext::commands::{
     identity_details_commands, dapi_commands,
 };
 
+// Import new response types for Specta registration
+use evonext::commands::identity_commands::IActiveIdentityResponse;
+
 fn main() {
     let commands = collect_commands![
         asset_commands::discover_assets,
@@ -21,11 +24,13 @@ fn main() {
         crypto_commands::hash160,
         crypto_commands::random_bytes,
         identity_commands::save_identity,
-        identity_commands::save_identity_with_keys, // Added
-        identity_commands::discover_and_save_identity, // Added
+        identity_commands::save_identity_with_keys,
+        identity_commands::discover_and_save_identity,
         identity_commands::delete_identity,
         identity_commands::save_keys,
         identity_commands::load_keystore,
+        identity_commands::load_active_identity,
+        identity_commands::load_identities_map,
         license_commands::load_license,
         license_commands::save_license,
         license_commands::delete_license,
@@ -67,7 +72,8 @@ fn main() {
         .typ::<IIdentityData>()
         .typ::<IAppSettings>()
         .typ::<ILicense>()
-        .typ::<IDiscoveredIdentity>();
+        .typ::<IDiscoveredIdentity>()
+        .typ::<IActiveIdentityResponse>();
 
     builder
         .export(Typescript::default(), "../src/bindings.ts")

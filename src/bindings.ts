@@ -45,6 +45,21 @@ async saveKeys(network: string, identityId: string, keys: IPrivateKeyEntry[]) : 
 async loadKeystore(network: string) : Promise<ICommandResult<any>> {
     return await TAURI_INVOKE("load_keystore", { network });
 },
+/**
+ * Load the active identity for a given network.
+ * Returns the active identity ID, the identity data (if found), and total count.
+ * This is the primary command used by the frontend to restore session on app reload.
+ */
+async loadActiveIdentity(network: string) : Promise<ICommandResult<IActiveIdentityResponse>> {
+    return await TAURI_INVOKE("load_active_identity", { network });
+},
+/**
+ * Load all identities for a given network.
+ * Returns the raw identity map as a JSON value for the Identity Manager screen.
+ */
+async loadIdentitiesMap(network: string) : Promise<ICommandResult<any>> {
+    return await TAURI_INVOKE("load_identities_map", { network });
+},
 async loadLicense(identityId: string) : Promise<ICommandResult<ILicense | null>> {
     return await TAURI_INVOKE("load_license", { identityId });
 },
@@ -172,6 +187,10 @@ publicKeyHash?: string | null; balance: string; revision: string; publicKeys?: D
  * not numeric codes, as per the Web API response format.
  */
 export type DapiPublicKey = { purpose: string; securityLevel: string; keyType: string; data: string; dataB64: string; readOnly: boolean; disabledAt: string | null }
+/**
+ * Response for load_active_identity: returns identity data plus the active marker
+ */
+export type IActiveIdentityResponse = { activeIdentityId: string | null; identity: IIdentityData | null; identityCount: number }
 export type IAppSettings = { network: string; theme: string; notifications: INotificationSettings; profile: IProfileSettings; activeIdentityId: string | null }
 export type IAssetDefinition = { identityId: string; name: string; symbol: string; balance: string | null; assetId?: string | null; decimals: number | null; network: string | null }
 export type ICommandResult<T> = { success: boolean; data: T | null; error: string | null }

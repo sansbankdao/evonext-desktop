@@ -33,6 +33,14 @@ pub fn process_raw_identity_map(val: Value) -> IdentityMap {
     identity_map
 }
 
+/// Extracts the __active_identity_id marker from a raw JSON value, if present.
+pub fn extract_active_marker(val: &Value) -> Option<String> {
+    val.as_object()
+        .and_then(|obj| obj.get("__active_identity_id"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+}
+
 /// Load the main Identity map (.identity-{network}.json)
 pub fn load_identity_map_internal(
     store: &impl PersistentStore,
@@ -42,6 +50,19 @@ pub fn load_identity_map_internal(
     match store.load_value(&filename, "identities") {
         Ok(Some(val)) => Ok(process_raw_identity_map(val)),
         Ok(None) => Ok(HashMap::new()),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// Load the raw __active_identity_id marker from disk without parsing identities.
+pub fn load_active_marker_internal(
+    store: &impl PersistentStore,
+    network: &str,
+) -> Result<Option<String>, String> {
+    let filename = get_network_file(network, "identity")?;
+    match store.load_value(&filename, "identities") {
+        Ok(Some(val)) => Ok(extract_active_marker(&val)),
+        Ok(None) => Ok(None),
         Err(e) => Err(e.to_string()),
     }
 }
@@ -56,7 +77,11 @@ pub fn load_identity_map<R: Runtime>(
 
 /// Save the main Identity map (.identity-{network}.json)
 /// Supports an optional active_marker to indicate which identity is currently focused.
-/// Implements atomic write strategy via temporary file (cross-platform compatible).
+///
+/// IMPORTANT: When active_marker is None, the existing __active_identity_id is PRESERVED.
+/// To explicitly CLEAR the active marker, use clear_active_marker_internal().
+/// This prevents other save operations (key updates, SDK data sync) from accidentally
+/// erasing the active identity flag.
 pub fn save_identity_map_internal(
     store: &impl PersistentStore,
     network: &str,
@@ -64,9 +89,24 @@ pub fn save_identity_map_internal(
     active_marker: Option<String>,
 ) -> Result<(), String> {
     let filename = get_network_file(network, "identity")?;
+
+    // When no active_marker is provided, preserve the existing one from disk.
+    // This is critical: other operations (enrich_key_entries, update_identity_with_sdk_data)
+    // call save_identity_map_internal with None, and must NOT erase the active marker.
+    let effective_marker = match active_marker {
+        Some(marker) => Some(marker),
+        None => {
+            // Read existing marker from disk before overwriting
+            match store.load_value(&filename, "identities") {
+                Ok(Some(val)) => extract_active_marker(&val),
+                _ => None,
+            }
+        }
+    };
+
     let mut output_value = serde_json::to_value(map).map_err(|e| e.to_string())?;
     if let Value::Object(ref mut map_obj) = output_value {
-        if let Some(marker) = active_marker {
+        if let Some(marker) = effective_marker {
             map_obj.insert("__active_identity_id".to_string(), Value::String(marker));
         }
     }
@@ -87,6 +127,21 @@ pub fn save_identity_map<R: Runtime>(
 ) -> Result<(), String> {
     let manager = StoreManager::new(app);
     save_identity_map_internal(&manager, network, map, active_marker)
+}
+
+/// Explicitly clear the active identity marker for a network.
+/// Use this only when intentionally disconnecting/removing the active identity.
+pub fn clear_active_marker_internal(
+    store: &impl PersistentStore,
+    network: &str,
+) -> Result<(), String> {
+    let filename = get_network_file(network, "identity")?;
+    let map = load_identity_map_internal(store, network)?;
+    let output_value = serde_json::to_value(&map).map_err(|e| e.to_string())?;
+    // Save WITHOUT inserting __active_identity_id — intentionally clearing it
+    store
+        .save_value(&filename, "identities", output_value)
+        .map_err(|e| e.to_string())
 }
 
 /// Load the Keystore/SAFU file (.safu-{network}.json)
