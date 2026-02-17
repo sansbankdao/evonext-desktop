@@ -118,6 +118,8 @@ export function connectWriteOnlyActions() {
                 logToHUD('DEBUG', `Derived ${privateKeyEntries.length} private keys`)
 
                 // ── Persist identity details to Rust backend (.identity-{network}.json) ──
+                // The Rust save_identity_logic ALWAYS marks the saved identity as active,
+                // writing __active_identity_id into the network-specific identity file.
                 logToHUD('DEBUG', 'Saving identity details to Rust backend...')
                 const identityPayload = {
                     identityId: identity.identityId,
@@ -154,14 +156,13 @@ export function connectWriteOnlyActions() {
                 await (this as any).saveMnemonicToStore(dashNetwork, seedPhrase)
                 logToHUD('DEBUG', 'Updating store state...')
                 this.identityId = identity.identityId
+                this.identityIdx = identity.identityIdx || 0
+                this.username = identity.dpnsUsername || identity.username || null
+                this.displayName = identity.dpnsUsername || identity.username || ''
                 this.publicKeys = mappedPublicKeys
                 this.balance = identity.balance || '0'
                 this.isAuthenticated = true
                 this.isConnected = true
-
-                // Persist connection state to storage
-                logToHUD('DEBUG', 'Persisting connection state to storage...')
-                await (this as any).saveToStorage()
 
                 logToHUD('SUCCESS', `Successfully connected as ${identity.identityId}`)
                 return { success: true, identityId: identity.identityId }

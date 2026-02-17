@@ -92,24 +92,47 @@ const identities = ref<DiscoveredIdentity[]>([])
 const init = async () => {
     loading.value = true
     try {
-        const settings = await invoke<any>('load_settings').catch(() => null)
-        const network = settings?.network || 'mainnet'
+        // Determine network from settings
+        let network = 'testnet'
+        try {
+            const settings = await invoke<any>('load_settings')
+            if (settings?.network) {
+                network = settings.network
+            }
+        } catch {
+            // Use default network
+        }
+
+        // Load all identities from the network-specific identity file
         const rawData = await invoke<any>('load_identities_map', { network })
         console.log("[Source of Truth] Data from Rust:", rawData)
+
         if (rawData && typeof rawData === 'object') {
             const list: DiscoveredIdentity[] = []
             Object.entries(rawData).forEach(([key, value]: [string, any]) => {
                 if (key.startsWith('__')) return
                 list.push({
                     identityId: value.identityId || value.identity_id || key,
-                    identityIdx: value.identityIdx ?? 0,
-                    dpnsUsername: value.dpnsUsername ?? null,
+                    identityIdx: value.identityIdx ?? value.identity_idx ?? 0,
+                    dpnsUsername: value.dpnsUsername ?? value.dpns_username ?? null,
                     balance: value.balance ? String(value.balance) : '0',
                     revision: value.revision ?? null,
-                    publicKeys: value.publicKeys ?? []
+                    publicKeys: value.publicKeys ?? value.public_keys ?? []
                 })
             })
             identities.value = list
+        }
+
+        // Fallback: if no identities from file but store has active identity
+        if (identities.value.length === 0 && store.identityId) {
+            identities.value = [{
+                identityId: store.identityId,
+                identityIdx: store.identityIdx || 0,
+                dpnsUsername: store.username || null,
+                balance: store.balance || '0',
+                revision: store.revision ?? 0,
+                publicKeys: store.publicKeys || []
+            }]
         }
     } catch (e) {
         console.error("Failed to load:", e)

@@ -61,6 +61,16 @@ pub struct ISaveIdentityPayload {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub active_identity_id: Option<String>,
 }
+
+/// Response for load_active_identity: returns identity data plus the active marker
+#[derive(Serialize, Deserialize, Clone, Debug, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct IActiveIdentityResponse {
+    pub active_identity_id: Option<String>,
+    pub identity: Option<IIdentityData>,
+    pub identity_count: u32,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct IUnifiedCommandResult {
@@ -155,10 +165,20 @@ pub async fn save_identity_logic<S: PersistentStore>(
     payload: ISaveIdentityPayload,
 ) -> Result<IUnifiedCommandResult, String> {
     let identity_id = payload.identity_id.clone();
+
     let mut map = storage::load_identity_map_internal(store, &network)?;
-    let active_id = payload.active_identity_id.clone().or_else(|| {
-        if map.is_empty() { Some(identity_id.clone()) } else { None }
-    });
+
+    // Determine the active identity ID:
+    // 1. Explicit override from payload takes priority
+    // 2. Otherwise, the identity being saved becomes active (default behavior)
+    // This ensures that connecting to an identity ALWAYS marks it as active,
+    // regardless of whether the map was previously empty or populated.
+    let active_id = Some(
+        payload.active_identity_id
+            .clone()
+            .unwrap_or_else(|| identity_id.clone())
+    );
+
     let identity = IdentityMapper::map_to_identity(payload);
     map.insert(identity_id.clone(), identity);
     storage::save_identity_map_internal(store, &network, &map, active_id)?;
@@ -176,6 +196,78 @@ pub async fn save_identity_inner<R: Runtime>(
     let manager = StoreManager::new(&app);
     save_identity_logic(&manager, network, payload).await
 }
+
+/// Load the active identity for a given network.
+/// Returns the active identity ID, the identity data (if found), and total count.
+/// This is the primary command used by the frontend to restore session on app reload.
+#[tauri::command]
+#[specta::specta]
+pub async fn load_active_identity(
+    app: tauri::AppHandle,
+    network: String,
+) -> ICommandResult<IActiveIdentityResponse> {
+    let manager = StoreManager::new(&app);
+    cmd_res!(load_active_identity_logic(&manager, network))
+}
+
+pub fn load_active_identity_logic<S: PersistentStore>(
+    store: &S,
+    network: String,
+) -> Result<IActiveIdentityResponse, String> {
+    let filename = crate::utils::network_file::get_network_file(&network, "identity")?;
+
+    // Load the raw JSON value to extract __active_identity_id marker
+    let raw_value = store.load_value(&filename, "identities")
+        .map_err(|e| e.to_string())?;
+
+    let active_identity_id = raw_value.as_ref()
+        .and_then(|v| v.as_object())
+        .and_then(|obj| obj.get("__active_identity_id"))
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+
+    // Parse the full identity map (skips __ prefixed keys)
+    let map = match raw_value {
+        Some(val) => storage::process_raw_identity_map(val),
+        None => std::collections::HashMap::new(),
+    };
+
+    let identity_count = map.len() as u32;
+
+    // Look up the active identity data
+    let identity = active_identity_id.as_ref()
+        .and_then(|id| map.get(id))
+        .cloned();
+
+    Ok(IActiveIdentityResponse {
+        active_identity_id,
+        identity,
+        identity_count,
+    })
+}
+
+/// Load all identities for a given network.
+/// Returns the raw identity map as a JSON value for the Identity Manager screen.
+#[tauri::command]
+#[specta::specta]
+pub async fn load_identities_map(
+    app: tauri::AppHandle,
+    network: String,
+) -> ICommandResult<IAnyValue> {
+    let manager = StoreManager::new(&app);
+    cmd_res!(load_identities_map_logic(&manager, network))
+}
+
+pub fn load_identities_map_logic<S: PersistentStore>(
+    store: &S,
+    network: String,
+) -> Result<IAnyValue, String> {
+    let map = storage::load_identity_map_internal(store, &network)?;
+    serde_json::to_value(map)
+        .map(IAnyValue)
+        .map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn delete_identity(
