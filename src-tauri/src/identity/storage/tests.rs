@@ -140,3 +140,232 @@ fn test_process_raw_identity_map_skips_internal_keys() {
     assert_eq!(map.len(), 1);
     assert!(map.contains_key("actual_id"));
 }
+
+// =====================================================
+// REGRESSION LOCK-IN: Active Identity Marker Tests
+// These tests guarantee __active_identity_id is never
+// silently dropped by save operations.
+// =====================================================
+
+#[test]
+fn test_active_marker_written_on_save() {
+    let store = MockStore::new();
+    let network = "testnet";
+    let mut map = HashMap::new();
+    let data = IIdentityData {
+        identity_id: "active_id".to_string(),
+        username: "alice".to_string(),
+        balance: "500".to_string(),
+        ..Default::default()
+    };
+    map.insert("active_id".to_string(), data);
+
+    // Save with explicit active marker
+    save_identity_map_internal(&store, network, &map, Some("active_id".to_string()))
+        .expect("Save failed");
+
+    // Read raw value from store to verify __active_identity_id is present
+    let filename = crate::utils::network_file::get_network_file(network, "identity").unwrap();
+    let raw = store.load_value(&filename, "identities").unwrap().unwrap();
+    let marker = raw.as_object().unwrap().get("__active_identity_id");
+    assert!(marker.is_some(), "__active_identity_id must be present in saved data");
+    assert_eq!(marker.unwrap().as_str().unwrap(), "active_id");
+}
+
+#[test]
+fn test_active_marker_preserved_when_none_passed() {
+    let store = MockStore::new();
+    let network = "testnet";
+
+    // First save: set the active marker
+    let mut map = HashMap::new();
+    let data = IIdentityData {
+        identity_id: "first_id".to_string(),
+        username: "alice".to_string(),
+        balance: "100".to_string(),
+        ..Default::default()
+    };
+    map.insert("first_id".to_string(), data);
+    save_identity_map_internal(&store, network, &map, Some("first_id".to_string()))
+        .expect("First save failed");
+
+    // Second save: pass None for active_marker (simulates update_identity_with_sdk_data)
+    // The existing __active_identity_id MUST be preserved
+    let mut map2 = HashMap::new();
+    let data2 = IIdentityData {
+        identity_id: "first_id".to_string(),
+        username: "alice_updated".to_string(),
+        balance: "200".to_string(),
+        ..Default::default()
+    };
+    map2.insert("first_id".to_string(), data2);
+    save_identity_map_internal(&store, network, &map2, None)
+        .expect("Second save failed");
+
+    // Verify: __active_identity_id must still be "first_id"
+    let filename = crate::utils::network_file::get_network_file(network, "identity").unwrap();
+    let raw = store.load_value(&filename, "identities").unwrap().unwrap();
+    let marker = raw.as_object().unwrap().get("__active_identity_id");
+    assert!(marker.is_some(), "__active_identity_id must be preserved on save with None");
+    assert_eq!(marker.unwrap().as_str().unwrap(), "first_id");
+
+    // Also verify the data was actually updated
+    let loaded = load_identity_map_internal(&store, network).unwrap();
+    assert_eq!(loaded.get("first_id").unwrap().username, "alice_updated");
+    assert_eq!(loaded.get("first_id").unwrap().balance, "200");
+}
+
+#[test]
+fn test_active_marker_overwritten_with_explicit_value() {
+    let store = MockStore::new();
+    let network = "testnet";
+
+    // First save: set active to "id_a"
+    let mut map = HashMap::new();
+    map.insert("id_a".to_string(), IIdentityData {
+        identity_id: "id_a".to_string(),
+        username: "alice".to_string(),
+        ..Default::default()
+    });
+    save_identity_map_internal(&store, network, &map, Some("id_a".to_string()))
+        .expect("First save failed");
+
+    // Second save: explicitly switch active to "id_b"
+    map.insert("id_b".to_string(), IIdentityData {
+        identity_id: "id_b".to_string(),
+        username: "bob".to_string(),
+        ..Default::default()
+    });
+    save_identity_map_internal(&store, network, &map, Some("id_b".to_string()))
+        .expect("Second save failed");
+
+    // Verify: __active_identity_id must now be "id_b"
+    let filename = crate::utils::network_file::get_network_file(network, "identity").unwrap();
+    let raw = store.load_value(&filename, "identities").unwrap().unwrap();
+    let marker = raw.as_object().unwrap().get("__active_identity_id");
+    assert_eq!(marker.unwrap().as_str().unwrap(), "id_b");
+}
+
+#[test]
+fn test_extract_active_marker_from_raw_value() {
+    let val = json!({
+        "__active_identity_id": "my_active_id",
+        "some_id": { "identityId": "some_id" }
+    });
+    let marker = extract_active_marker(&val);
+    assert_eq!(marker, Some("my_active_id".to_string()));
+}
+
+#[test]
+fn test_extract_active_marker_returns_none_when_missing() {
+    let val = json!({
+        "some_id": { "identityId": "some_id" }
+    });
+    let marker = extract_active_marker(&val);
+    assert_eq!(marker, None);
+}
+
+#[test]
+fn test_extract_active_marker_returns_none_for_non_object() {
+    let val = json!("just a string");
+    let marker = extract_active_marker(&val);
+    assert_eq!(marker, None);
+}
+
+#[test]
+fn test_load_active_marker_internal_reads_from_file() {
+    let store = MockStore::new();
+    let network = "testnet";
+
+    // Save with active marker
+    let mut map = HashMap::new();
+    map.insert("test_id".to_string(), IIdentityData {
+        identity_id: "test_id".to_string(),
+        username: "user".to_string(),
+        ..Default::default()
+    });
+    save_identity_map_internal(&store, network, &map, Some("test_id".to_string()))
+        .expect("Save failed");
+
+    // Load the marker back
+    let marker = load_active_marker_internal(&store, network).unwrap();
+    assert_eq!(marker, Some("test_id".to_string()));
+}
+
+#[test]
+fn test_load_active_marker_internal_returns_none_for_empty_store() {
+    let store = MockStore::new();
+    let network = "testnet";
+    let marker = load_active_marker_internal(&store, network).unwrap();
+    assert_eq!(marker, None);
+}
+
+#[test]
+fn test_clear_active_marker_internal_removes_marker() {
+    let store = MockStore::new();
+    let network = "testnet";
+
+    // Save with active marker
+    let mut map = HashMap::new();
+    map.insert("test_id".to_string(), IIdentityData {
+        identity_id: "test_id".to_string(),
+        username: "user".to_string(),
+        ..Default::default()
+    });
+    save_identity_map_internal(&store, network, &map, Some("test_id".to_string()))
+        .expect("Save failed");
+
+    // Verify marker exists
+    let marker = load_active_marker_internal(&store, network).unwrap();
+    assert_eq!(marker, Some("test_id".to_string()));
+
+    // Clear it
+    clear_active_marker_internal(&store, network).expect("Clear failed");
+
+    // Verify marker is gone
+    let marker_after = load_active_marker_internal(&store, network).unwrap();
+    assert_eq!(marker_after, None);
+
+    // Verify identity data is still intact
+    let loaded = load_identity_map_internal(&store, network).unwrap();
+    assert_eq!(loaded.len(), 1);
+    assert!(loaded.contains_key("test_id"));
+}
+
+#[test]
+fn test_multiple_saves_with_none_never_drop_marker() {
+    // This is the exact regression scenario: multiple sequential saves
+    // with None (as happens during connect flow) must never drop the marker.
+    let store = MockStore::new();
+    let network = "testnet";
+
+    let mut map = HashMap::new();
+    map.insert("persistent_id".to_string(), IIdentityData {
+        identity_id: "persistent_id".to_string(),
+        username: "user".to_string(),
+        ..Default::default()
+    });
+
+    // Save 1: set marker
+    save_identity_map_internal(&store, network, &map, Some("persistent_id".to_string()))
+        .expect("Save 1 failed");
+
+    // Save 2: None (simulates save_keys_logic reading/writing)
+    save_identity_map_internal(&store, network, &map, None)
+        .expect("Save 2 failed");
+
+    // Save 3: None again (simulates update_identity_with_sdk_data)
+    save_identity_map_internal(&store, network, &map, None)
+        .expect("Save 3 failed");
+
+    // Save 4: None yet again (simulates any other update)
+    save_identity_map_internal(&store, network, &map, None)
+        .expect("Save 4 failed");
+
+    // After 4 saves, 3 with None, the marker MUST still be present
+    let filename = crate::utils::network_file::get_network_file(network, "identity").unwrap();
+    let raw = store.load_value(&filename, "identities").unwrap().unwrap();
+    let marker = raw.as_object().unwrap().get("__active_identity_id");
+    assert!(marker.is_some(), "Active marker must survive multiple saves with None");
+    assert_eq!(marker.unwrap().as_str().unwrap(), "persistent_id");
+}

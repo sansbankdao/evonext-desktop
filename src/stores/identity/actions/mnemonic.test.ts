@@ -12,7 +12,6 @@ vi.mock('@/bindings', () => ({
     }
 }))
 
-// Mock normalizeResult since it's imported from identity.ts
 vi.mock('./identity', () => ({
     normalizeResult: vi.fn((res: any) => {
         const isSuccess = !!(res?.success === true || res?.status === 'success' || res?.status === 'ok')
