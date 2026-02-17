@@ -14,11 +14,44 @@ vi.mock('@/bindings', () => ({
 
 vi.mock('./identity', () => ({
     normalizeResult: vi.fn((res: any) => {
-        const isSuccess = !!(res?.success === true || res?.status === 'success' || res?.status === 'ok')
+        // Handle explicit success: false
+        if (res?.success === false) {
+            return {
+                success: false,
+                data: null,
+                error: { message: res?.error || 'Unknown error' }
+            }
+        }
+        // Handle explicit success: true (regardless of data)
+        if (res?.success === true) {
+            return {
+                success: true,
+                data: res?.data ?? null,
+                error: null
+            }
+        }
+        // Handle status-based success
+        if (res?.status === 'success' || res?.status === 'ok') {
+            return {
+                success: true,
+                data: res?.data ?? null,
+                error: null
+            }
+        }
+        // Handle data presence as implicit success
+        const hasData = res?.data !== null && res?.data !== undefined
+        if (hasData) {
+            return {
+                success: true,
+                data: res?.data,
+                error: null
+            }
+        }
+        // Default to failure
         return {
-            success: isSuccess,
-            data: isSuccess ? (res?.data ?? res?.payload ?? res) : null,
-            error: isSuccess ? null : { message: res?.error || 'Unknown error' }
+            success: false,
+            data: null,
+            error: { message: res?.error || 'Unknown error' }
         }
     })
 }))

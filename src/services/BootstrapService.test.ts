@@ -3,24 +3,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 
+// Mock store state - defined at module scope for access in tests
+const mockStore = {
+    identityId: null as string | null,
+    isConnected: false,
+    isAuthenticated: false,
+    identityIdx: 0,
+    username: null as string | null,
+    displayName: '',
+    balance: '0',
+    revision: 0,
+    publicKeys: [] as any[],
+    premiumAccess: false,
+    identities: {} as Record<string, any>
+}
+
 // Mock all dependencies before importing BootstrapService
 vi.mock('@/stores/identity', () => {
-    const store = {
-        identityId: null as string | null,
-        isConnected: false,
-        isAuthenticated: false,
-        identityIdx: 0,
-        username: null as string | null,
-        displayName: '',
-        balance: '0',
-        revision: 0,
-        publicKeys: [] as any[],
-        premiumAccess: false,
-        identities: {} as Record<string, any>
-    }
     return {
-        useIdentityStore: () => store,
-        __mockStore: store
+        useIdentityStore: () => mockStore
     }
 })
 
@@ -62,20 +63,18 @@ describe('BootstrapService', () => {
         setActivePinia(createPinia())
         vi.clearAllMocks()
         // Reset mock store state
-        const { __mockStore } = require('@/stores/identity')
-        __mockStore.identityId = null
-        __mockStore.isConnected = false
-        __mockStore.isAuthenticated = false
-        __mockStore.premiumAccess = false
-        __mockStore.identities = {}
+        mockStore.identityId = null
+        mockStore.isConnected = false
+        mockStore.isAuthenticated = false
+        mockStore.premiumAccess = false
+        mockStore.identities = {}
     })
 
     it('should complete bootstrap sequence without identity', async () => {
         const { BootstrapService } = await import('./BootstrapService')
         await BootstrapService.init()
         // Should not crash, premium should be disabled
-        const { __mockStore } = require('@/stores/identity')
-        expect(__mockStore.premiumAccess).toBe(false)
+        expect(mockStore.premiumAccess).toBe(false)
     })
 
     it('should restore identity from settings when store is empty', async () => {
@@ -111,9 +110,8 @@ describe('BootstrapService', () => {
         const { BootstrapService } = await import('./BootstrapService')
         await BootstrapService.init()
 
-        const { __mockStore } = require('@/stores/identity')
-        expect(__mockStore.identityId).toBe('restored_id_123')
-        expect(__mockStore.isConnected).toBe(true)
+        expect(mockStore.identityId).toBe('restored_id_123')
+        expect(mockStore.isConnected).toBe(true)
     })
 
     it('should handle settings load failure gracefully', async () => {
