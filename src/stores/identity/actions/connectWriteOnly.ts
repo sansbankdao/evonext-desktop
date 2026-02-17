@@ -1,4 +1,4 @@
-// src/stores/identity/action/connectWriteOnly.ts
+// src/stores/identity/actions/connectWriteOnly.ts
 
 import { DAPIService } from '@/services/identity/discovery/DAPIService'
 import { KeyDerivationService } from '@/services/identity/keyDerivation.service'
@@ -116,6 +116,34 @@ export function connectWriteOnlyActions() {
                     }
                 }
                 logToHUD('DEBUG', `Derived ${privateKeyEntries.length} private keys`)
+
+                // ── Persist identity details to Rust backend (.identity-{network}.json) ──
+                logToHUD('DEBUG', 'Saving identity details to Rust backend...')
+                const identityPayload = {
+                    identityId: identity.identityId,
+                    username: identity.dpnsUsername || identity.username || '',
+                    balance: identity.balance || fetchResult.data?.balance || '0',
+                    revision: Number(identity.revision || fetchResult.data?.revision || 0),
+                    publicKeys: mappedPublicKeys.map(pk => ({
+                        id: pk.idx,
+                        type: pk.keyType,
+                        purpose: pk.purpose,
+                        securityLevel: pk.securityLevel,
+                        data: pk.data || '',
+                        readOnly: pk.readOnly || false,
+                        disabledAt: pk.disabledAt || null
+                    })),
+                    identityIdx: identity.identityIdx || 0,
+                    dpnsUsername: identity.dpnsUsername || null,
+                    createdAt: new Date().toISOString()
+                }
+                const saveIdentityResult = await (this as any).saveIdentity(dashNetwork, identityPayload)
+                if (saveIdentityResult?.success) {
+                    logToHUD('DEBUG', 'Identity details saved to Rust backend successfully')
+                } else {
+                    logToHUD('WARN', `Identity save returned: ${JSON.stringify(saveIdentityResult)}`)
+                }
+
                 if (privateKeyEntries.length > 0) {
                     logToHUD('DEBUG', `Saving ${privateKeyEntries.length} keys to keystore...`)
                     await (this as any).saveKeys(dashNetwork, identity.identityId, privateKeyEntries)
@@ -130,6 +158,11 @@ export function connectWriteOnlyActions() {
                 this.balance = identity.balance || '0'
                 this.isAuthenticated = true
                 this.isConnected = true
+
+                // Persist connection state to storage
+                logToHUD('DEBUG', 'Persisting connection state to storage...')
+                await (this as any).saveToStorage()
+
                 logToHUD('SUCCESS', `Successfully connected as ${identity.identityId}`)
                 return { success: true, identityId: identity.identityId }
             } catch (err: any) {
