@@ -3,6 +3,10 @@
 import { invoke } from '@/utils/tauri'
 import { ref } from 'vue'
 import * as bip39 from 'bip39'
+// Explicitly import English wordlist to prevent tree-shaking issues
+// bip39 v3.x requires this for ESM/Vite bundler compatibility
+import { wordlists } from 'bip39'
+const englishWordlist: string[] = wordlists.english || (bip39 as any).wordlists?.english || []
 
 // --- Existing Backend/Singleton Logic ---
 class MnemonicManager {
@@ -71,10 +75,24 @@ export function useMnemonicValidator() {
     // Initialize wordlist (call this on mount)
     const initWordlist = async () => {
         if (isReady.value) return
-        const list = await bip39.wordlists.english
-        if (Array.isArray(list)) {
-            wordlist.value = list
+        // Use the pre-resolved English wordlist from module scope
+        // This avoids issues with tree-shaking and async resolution
+        if (englishWordlist.length > 0) {
+            wordlist.value = englishWordlist
             isReady.value = true
+            return
+        }
+        // Fallback: try accessing bip39.wordlists.english directly
+        try {
+            const list = bip39.wordlists?.english || (await (bip39 as any).wordlists?.english)
+            if (Array.isArray(list) && list.length > 0) {
+                wordlist.value = list
+                isReady.value = true
+            } else {
+                console.error('[MnemonicValidator] Failed to load English wordlist: empty or not an array')
+            }
+        } catch (e) {
+            console.error('[MnemonicValidator] Failed to load English wordlist:', e)
         }
     }
 
@@ -106,9 +124,12 @@ export function useMnemonicValidator() {
             }
         }
 
-        // Full checksum check — bip39 v3.x requires wordlist parameter
+        // Full checksum check — pass wordlist explicitly for bip39 v3.x compatibility
         const phrase = cleanWords.join(' ')
-        const isValid = bip39.validateMnemonic(phrase, bip39.wordlists.english)
+        const wl = wordlist.value.length > 0 ? wordlist.value : englishWordlist
+        const isValid = wl.length > 0
+            ? bip39.validateMnemonic(phrase, wl)
+            : bip39.validateMnemonic(phrase)
         if (!isValid) {
             return { isValid: false, error: 'Invalid checksum' }
         }

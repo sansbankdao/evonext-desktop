@@ -169,9 +169,11 @@ export function useConnect() {
             }
             return result
         } else {
-            // Private key path
-            const identityId = manualIdentityId.value || discoveredIdentity.value?.identityId
+            // Private key path — use discovered identity data directly
+            // instead of re-fetching from DAPI (which may use unsupported methods)
+            const identity = discoveredIdentity.value
             const key = privateKeyInput.value
+            const identityId = manualIdentityId.value || identity?.identityId
 
             if (!identityId) {
                 throw new Error('Missing identity id')
@@ -180,15 +182,86 @@ export function useConnect() {
                 throw new Error('Missing private key')
             }
 
-            const result = await store.connectWithPrivateKey(
-                key,
-                identityId,
-                'testnet'
-            )
-            if (result?.success) {
+            // Use the already-discovered identity data to save directly,
+            // bypassing the broken get_identity_info re-fetch
+            store.isConnecting = true
+            store.connectionError = null
+
+            try {
+                const network = 'testnet'
+
+                // Build public keys for Rust payload from discovered identity
+                const publicKeys = (identity?.publicKeys || []).map((pk: any) => ({
+                    id: pk.idx ?? pk.id ?? 0,
+                    type: pk.keyType || 'ECDSA_HASH160',
+                    purpose: pk.purpose ?? 0,
+                    securityLevel: pk.securityLevel ?? 0,
+                    data: pk.data || '',
+                    readOnly: pk.readOnly || false,
+                    disabledAt: pk.disabledAt || null
+                }))
+
+                // Save identity details to .identity-{network}.json
+                const saveResult = await store.saveIdentity(network, {
+                    identityId,
+                    username: identity?.dpnsUsername || identity?.username || '',
+                    balance: identity?.balance || '0',
+                    revision: Number(identity?.revision || 0),
+                    publicKeys,
+                    identityIdx: identity?.identityIdx || 0,
+                    dpnsUsername: identity?.dpnsUsername || null,
+                    createdAt: new Date().toISOString(),
+                    activeIdentityId: identityId
+                })
+
+                if (!saveResult?.success) {
+                    console.warn('[handleConnect:privateKey] Identity save warning:', saveResult)
+                }
+
+                // Save the private key to keystore (.safu-{network}.json)
+                await store.saveKeys(network, identityId, [{
+                    identityId,
+                    keyId: 0,
+                    purpose: 0,
+                    securityLevel: 0,
+                    keyType: 'ECDSA_HASH160',
+                    privateKey: key,
+                    publicKey: '',
+                    createdAt: new Date().toISOString(),
+                    lastUsed: new Date().toISOString()
+                }])
+
+                // Update in-memory store state
+                store.identityId = identityId
+                store.identityIdx = identity?.identityIdx || 0
+                store.username = identity?.dpnsUsername || identity?.username || null
+                store.displayName = identity?.dpnsUsername || identity?.username || ''
+                store.publicKeys = (identity?.publicKeys || []) as any
+                store.balance = identity?.balance || '0'
+                store.isConnected = true
+                store.isAuthenticated = true
+
+                // Also populate the identities map
+                store.identities[identityId] = {
+                    identityId,
+                    identityIdx: identity?.identityIdx || 0,
+                    username: identity?.dpnsUsername || identity?.username || '',
+                    displayName: identity?.dpnsUsername || identity?.username || '',
+                    balance: identity?.balance || '0',
+                    publicKeys: (identity?.publicKeys || []) as any,
+                    revision: Number(identity?.revision || 0),
+                    isAuthenticated: true
+                }
+
                 router.push('/')
+                return { success: true, identityId }
+            } catch (e: any) {
+                const errorMsg = e?.message || String(e)
+                store.connectionError = errorMsg
+                return { success: false, error: errorMsg }
+            } finally {
+                store.isConnecting = false
             }
-            return result
         }
     }
     const resetDiscovery = () => {

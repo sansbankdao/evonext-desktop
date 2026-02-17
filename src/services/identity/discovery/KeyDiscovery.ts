@@ -63,8 +63,14 @@ export class KeyDiscovery extends BaseDiscovery {
         publicKeyHash = binToHex(hashed)
       }
 
-      // 2. Query DAPI
-      const result = await DAPIService.queryIdentityByHash(publicKeyHash, network, true)
+      // 2. Query DAPI — try unique hash search first, then fall back to non-unique
+      // This mirrors the SeedDiscovery behavior where both search types are attempted.
+      // Some Dash Platform identities are only discoverable via non-unique public key hash.
+      let result = await DAPIService.queryIdentityByHash(publicKeyHash, network, true)
+      if (!result.success) {
+        result = await DAPIService.queryIdentityByHash(publicKeyHash, network, false)
+      }
+
       const data = result.data
       const id = data?.identityId
 

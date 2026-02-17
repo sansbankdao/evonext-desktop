@@ -9,7 +9,7 @@ export const connectionActions = {
         this.isConnecting = true
         this.connectionError = null
         try {
-            const raw = await invoke<any>('get_identity_details', { identityId, idx: identityIndex, network })
+            const raw = await invoke<any>('get_identity_info', { identityId, network })
             const resDetails = normalizeResult<any>(raw)
             if (!resDetails.success || !resDetails.data) {
                 throw new Error(resDetails.error?.message || 'Identity details not found')
@@ -48,28 +48,66 @@ export const connectionActions = {
     },
     async connectWithPrivateKey(this: any, privateKey: string, identityId: string, network: string): Promise<ConnectionResult> {
         this.isConnecting = true
+        this.connectionError = null
         try {
-            const raw = await invoke<any>('get_identity_details', { identityId, network })
+            const raw = await invoke<any>('get_identity_info', { identityId, network })
             const resDetails = normalizeResult<any>(raw)
             if (!resDetails.success || !resDetails.data) {
                 throw new Error(resDetails.error?.message || 'Identity details not found')
             }
             const identityData = resDetails.data
-            const resSave = await this.saveIdentityWithKeys(network, {
+            const mappedPublicKeys = transformPublicKeys(identityData.publicKeys || [])
+
+            // Save identity details to .identity-{network}.json
+            const resSave = await this.saveIdentity(network, {
                 identityId,
-                publicKeys: [{ id: 0, privateKey, purpose: 3, securityLevel: 0 }],
+                publicKeys: mappedPublicKeys.map((pk: any) => ({
+                    id: pk.idx,
+                    type: pk.keyType,
+                    purpose: pk.purpose,
+                    securityLevel: pk.securityLevel,
+                    data: pk.data || '',
+                    readOnly: pk.readOnly || false,
+                    disabledAt: pk.disabledAt || null
+                })),
                 balance: identityData.balance || '0',
-                username: identityData.username || ''
+                username: identityData.dpnsUsername || identityData.username || '',
+                revision: Number(identityData.revision || 0),
+                dpnsUsername: identityData.dpnsUsername || null,
+                activeIdentityId: identityId
             })
-            if (resSave.success) {
-                this.identityId = identityId
-                this.isConnected = true
-                await this.refreshIdentity()
-                return { success: true, identityId }
+
+            if (!resSave?.success) {
+                console.warn('[connectWithPrivateKey] Identity save failed:', resSave)
             }
-            return { success: false, error: resSave.error?.message || 'Connection failed' }
+
+            // Save the private key to keystore (.safu-{network}.json)
+            await this.saveKeys(network, identityId, [{
+                identityId,
+                keyId: 0,
+                purpose: 0,
+                securityLevel: 0,
+                keyType: 'ECDSA_HASH160',
+                privateKey,
+                publicKey: '',
+                createdAt: new Date().toISOString(),
+                lastUsed: new Date().toISOString()
+            }])
+
+            // Update in-memory store state
+            this.identityId = identityId
+            this.publicKeys = mappedPublicKeys
+            this.balance = identityData.balance || '0'
+            this.username = identityData.dpnsUsername || identityData.username || null
+            this.displayName = identityData.dpnsUsername || identityData.username || ''
+            this.isConnected = true
+            this.isAuthenticated = true
+
+            return { success: true, identityId }
         } catch (e: any) {
-            return { success: false, error: e?.message || String(e) }
+            const errorMsg = e?.message || String(e)
+            this.connectionError = errorMsg
+            return { success: false, error: errorMsg }
         } finally {
             this.isConnecting = false
         }
