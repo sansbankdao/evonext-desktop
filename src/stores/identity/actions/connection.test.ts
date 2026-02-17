@@ -30,12 +30,14 @@ describe('Identity Store - Connection Actions', () => {
         setActivePinia(createPinia())
         store = useIdentityStore()
         vi.clearAllMocks()
-        // Alignment: Correct invoke mock syntax and return success shape
+        // Alignment: Mock both get_identity_info (current) and get_identity_details (legacy)
+        // to ensure tests work regardless of which command is used
         vi.mocked(invoke).mockImplementation(async (cmd: any) => {
-            if (cmd === 'get_identity_details') {
+            if (cmd === 'get_identity_info' || cmd === 'get_identity_details') {
                 return {
                     success: true,
                     data: {
+                        identityId: mockIdentityId,
                         balance: '1000',
                         revision: 1,
                         publicKeys: [{
@@ -93,7 +95,7 @@ describe('Identity Store - Connection Actions', () => {
         */
         it('should return error if DAPI fetch throws an exception', async () => {
             vi.mocked(invoke).mockImplementation(async (cmd: any) => {
-                if (cmd === 'get_identity_details') {
+                if (cmd === 'get_identity_info' || cmd === 'get_identity_details') {
                     throw new Error('NETWORK_CRASH')
                 }
                 return { success: true }

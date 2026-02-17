@@ -36,17 +36,30 @@ describe('KeyDiscovery - Single Key Logic', () => {
             WIF: () => 'mock_wif'
         }
         vi.mocked(PrivateKeyWASM.fromWIF).mockReturnValue(mockPkInstance as any)
+        // Default: getDPNSUsername returns no username
+        vi.mocked(DAPIService.getDPNSUsername).mockResolvedValue({
+            success: true,
+            data: null,
+            error: null
+        })
     })
     it('should discover identity from a WIF and save the private key', async () => {
         const mockWif = 'c' + 'A'.repeat(50)
-        vi.mocked(DAPIService.queryIdentityByHash).mockResolvedValue({
-            success: true,
-            searchType: 'unique',
-            data: {
-                identityId: 'id_wif',
-                publicKeys: [{ id: 0, data: 'mock_hex_hash' }] as any[]
-            }
-        })
+        // First call (unique) fails, second call (non-unique) succeeds
+        vi.mocked(DAPIService.queryIdentityByHash)
+            .mockResolvedValueOnce({
+                success: false,
+                error: 'Not found',
+                searchType: 'unique'
+            })
+            .mockResolvedValueOnce({
+                success: true,
+                searchType: 'non-unique',
+                data: {
+                    identityId: 'id_wif',
+                    publicKeys: [{ id: 0, data: 'mock_hex_hash' }] as any[]
+                }
+            })
         const result = await discovery.discover(mockWif, { network: 'testnet' })
         expect(result.success).toBe(true)
         expect(result.identity?.identityId).toBe('id_wif')
@@ -54,7 +67,8 @@ describe('KeyDiscovery - Single Key Logic', () => {
     })
     it('should discover identity from a Public Key but NOT save a private key', async () => {
         const mockPubKey = '02' + 'f'.repeat(64)
-        vi.mocked(DAPIService.queryIdentityByHash).mockResolvedValue({
+        // First call (unique) succeeds directly for public key lookup
+        vi.mocked(DAPIService.queryIdentityByHash).mockResolvedValueOnce({
             success: true,
             searchType: 'unique',
             data: { identityId: 'id_pub', publicKeys: [] as any[] }

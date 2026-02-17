@@ -17,11 +17,18 @@ describe('connectWriteOnlyActions', () => {
             isConnecting: false,
             connectionError: null,
             isAuthenticated: false,
-            identityId: null,
             isConnected: false,
+            identityId: null,
+            identityIdx: 0,
+            username: null,
+            displayName: '',
+            publicKeys: [],
+            balance: '0',
             getCurrentNetwork: vi.fn().mockResolvedValue('testnet'),
+            saveIdentity: vi.fn().mockResolvedValue({ success: true }),
             saveKeys: vi.fn().mockResolvedValue(true),
-            saveMnemonicToStore: vi.fn().mockResolvedValue(true)
+            saveMnemonicToStore: vi.fn().mockResolvedValue(true),
+            saveToStorage: vi.fn().mockResolvedValue(undefined)
         }
     })
     it('should fail if no identity or seed is provided', async () => {
@@ -37,11 +44,13 @@ describe('connectWriteOnlyActions', () => {
         }
         vi.mocked(DAPIService.getIdentityById).mockResolvedValue({
             success: true,
-            data: mockIdentity as any
+            data: mockIdentity as any,
+            searchType: 'none'
         } as any)
         vi.mocked(KeyDerivationService.getPrivateKeyWASM).mockResolvedValue({
             privateKey: { WIF: () => 'mock-wif' },
-            publicKeyBytes: new Uint8Array([1, 2, 3]) // Crucial for loop success
+            publicKeyBytes: new Uint8Array([1, 2, 3]),
+            sourceType: 'MNEMONIC'
         } as any)
         const result = await actions.connectWriteOnlyFromDiscovered.call(
             store,
@@ -50,6 +59,8 @@ describe('connectWriteOnlyActions', () => {
         )
         expect(result.success).toBe(true)
         expect(store.isAuthenticated).toBe(true)
+        expect(store.saveIdentity).toHaveBeenCalled()
         expect(store.saveKeys).toHaveBeenCalled()
+        expect(store.saveMnemonicToStore).toHaveBeenCalled()
     })
 })
