@@ -6,6 +6,9 @@ use std::path::PathBuf;
 use tauri::{AppHandle, Runtime, path::BaseDirectory, Manager};
 use tauri_plugin_store::StoreBuilder;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug)]
 pub enum StoreError {
     Io(std::io::Error),

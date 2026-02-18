@@ -4,6 +4,9 @@ use crate::dapi::types::{DAPIError, Network};
 use crate::dapi::DAPIClient;
 use serde_json::Value;
 
+#[cfg(test)]
+mod tests;
+
 impl DAPIClient {
     /// Fetch identity information (untyped)
     pub async fn get_identity(
