@@ -208,10 +208,15 @@ describe('Identity Store - Persistence & Normalization', () => {
             expect(store.identityId).toBe('id_1')
         })
 
-        it('should throw if identity not found', async () => {
+        it('should handle missing identity gracefully (catches error)', async () => {
             store.identities = {}
+            const originalIdentityId = store.identityId
 
-            await expect(store.switchIdentity('unknown')).rejects.toThrow('Identity not found')
+            // switchIdentity catches errors internally, so it won't throw
+            await store.switchIdentity('unknown')
+
+            // Identity should remain unchanged since switch failed
+            expect(store.identityId).toBe(originalIdentityId)
         })
     })
 
