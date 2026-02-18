@@ -47,3 +47,442 @@ fn test_ianyvalue_any_type() {
     let val = IAnyValue(json!({"foo": "bar"}));
     assert_eq!(val.0["foo"], "bar");
 }
+
+// ==================== ICommandResult Tests ====================
+
+#[test]
+fn test_icommand_result_ok() {
+    let result: ICommandResult<String> = ICommandResult::ok("test_data".to_string());
+    assert!(result.success);
+    assert_eq!(result.data, Some("test_data".to_string()));
+    assert!(result.error.is_none());
+}
+
+#[test]
+fn test_icommand_result_err() {
+    let result: ICommandResult<String> = ICommandResult::err("Something went wrong");
+    assert!(!result.success);
+    assert!(result.data.is_none());
+    assert_eq!(result.error, Some("Something went wrong".to_string()));
+}
+
+#[test]
+fn test_icommand_result_serialization() {
+    let result: ICommandResult<i32> = ICommandResult::ok(42);
+    let json = serde_json::to_string(&result).unwrap();
+    assert!(json.contains("\"success\":true"));
+    assert!(json.contains("\"data\":42"));
+}
+
+#[test]
+fn test_icommand_result_deserialization() {
+    let json = r#"{"success":false,"data":null,"error":"Failed"}"#;
+    let result: ICommandResult<String> = serde_json::from_str(json).unwrap();
+    assert!(!result.success);
+    assert_eq!(result.error, Some("Failed".to_string()));
+}
+
+#[test]
+fn test_icommand_result_with_complex_data() {
+    #[derive(Serialize, Deserialize, Type, PartialEq)]
+    struct TestData {
+        name: String,
+        value: u32,
+    }
+
+    let data = TestData { name: "test".to_string(), value: 100 };
+    let result = ICommandResult::ok(data.clone());
+    assert_eq!(result.data, Some(data));
+}
+
+#[test]
+fn test_icommand_result_clone() {
+    let result: ICommandResult<String> = ICommandResult::ok("test".to_string());
+    let cloned = result.clone();
+    assert_eq!(result.success, cloned.success);
+    assert_eq!(result.data, cloned.data);
+}
+
+#[test]
+fn test_icommand_result_debug() {
+    let result: ICommandResult<String> = ICommandResult::ok("test".to_string());
+    let debug_str = format!("{:?}", result);
+    assert!(debug_str.contains("ICommandResult"));
+    assert!(debug_str.contains("success: true"));
+}
+
+// ==================== de_u32_from_str_or_num Extended Tests ====================
+
+#[derive(serde::Deserialize)]
+struct TestU32 {
+    #[serde(deserialize_with = "de_u32_from_str_or_num")]
+    value: u32,
+}
+
+#[test]
+fn test_de_u32_from_number() {
+    let json = json!({ "value": 42 });
+    let result: TestU32 = serde_json::from_value(json).unwrap();
+    assert_eq!(result.value, 42);
+}
+
+#[test]
+fn test_de_u32_from_string() {
+    let json = json!({ "value": "123" });
+    let result: TestU32 = serde_json::from_value(json).unwrap();
+    assert_eq!(result.value, 123);
+}
+
+#[test]
+fn test_de_u32_from_empty_string() {
+    let json = json!({ "value": "" });
+    let result: TestU32 = serde_json::from_value(json).unwrap();
+    assert_eq!(result.value, 0);
+}
+
+#[test]
+fn test_de_u32_from_null() {
+    let json = json!({ "value": null });
+    let result: TestU32 = serde_json::from_value(json).unwrap();
+    assert_eq!(result.value, 0);
+}
+
+#[test]
+fn test_de_u32_from_zero() {
+    let json = json!({ "value": 0 });
+    let result: TestU32 = serde_json::from_value(json).unwrap();
+    assert_eq!(result.value, 0);
+}
+
+#[test]
+fn test_de_u32_from_max() {
+    let json = json!({ "value": u32::MAX });
+    let result: TestU32 = serde_json::from_value(json).unwrap();
+    assert_eq!(result.value, u32::MAX);
+}
+
+#[test]
+fn test_de_u32_from_string_max() {
+    let json = json!({ "value": "4294967295" });
+    let result: TestU32 = serde_json::from_value(json).unwrap();
+    assert_eq!(result.value, u32::MAX);
+}
+
+#[test]
+fn test_de_u32_invalid_string() {
+    let json = json!({ "value": "not_a_number" });
+    let result: Result<TestU32, _> = serde_json::from_value(json);
+    assert!(result.is_err());
+}
+
+// ==================== INotificationSettings Tests ====================
+
+#[test]
+fn test_inotification_settings_default() {
+    let settings = INotificationSettings::default();
+    assert!(!settings.messages);
+    assert!(!settings.mentions);
+    assert!(!settings.contact_requests);
+}
+
+#[test]
+fn test_inotification_settings_serialization() {
+    let settings = INotificationSettings {
+        messages: true,
+        mentions: false,
+        contact_requests: true,
+    };
+    let json = serde_json::to_string(&settings).unwrap();
+    assert!(json.contains("\"messages\":true"));
+    assert!(json.contains("\"mentions\":false"));
+    assert!(json.contains("\"contactRequests\":true"));
+}
+
+#[test]
+fn test_inotification_settings_deserialization() {
+    let json = json!({
+        "messages": true,
+        "mentions": true,
+        "contactRequests": false
+    });
+    let settings: INotificationSettings = serde_json::from_value(json).unwrap();
+    assert!(settings.messages);
+    assert!(settings.mentions);
+    assert!(!settings.contact_requests);
+}
+
+// ==================== IProfileSettings Tests ====================
+
+#[test]
+fn test_iprofile_settings_default() {
+    let settings = IProfileSettings::default();
+    assert!(settings.display_name.is_empty());
+    assert!(settings.username.is_empty());
+    assert!(settings.bio.is_empty());
+}
+
+#[test]
+fn test_iprofile_settings_serialization() {
+    let settings = IProfileSettings {
+        display_name: "Test User".to_string(),
+        username: "testuser".to_string(),
+        bio: "Hello world".to_string(),
+    };
+    let json = serde_json::to_string(&settings).unwrap();
+    assert!(json.contains("\"displayName\":\"Test User\""));
+    assert!(json.contains("\"username\":\"testuser\""));
+    assert!(json.contains("\"bio\":\"Hello world\""));
+}
+
+// ==================== IAppSettings Tests ====================
+
+#[test]
+fn test_iapp_settings_serialization() {
+    let settings = IAppSettings {
+        network: "testnet".to_string(),
+        theme: "dark".to_string(),
+        notifications: INotificationSettings::default(),
+        profile: IProfileSettings::default(),
+        active_identity_id: Some("id_123".to_string()),
+    };
+    let json = serde_json::to_string(&settings).unwrap();
+    assert!(json.contains("\"network\":\"testnet\""));
+    assert!(json.contains("\"activeIdentityId\":\"id_123\""));
+}
+
+#[test]
+fn test_iapp_settings_deserialization() {
+    let json = json!({
+        "network": "mainnet",
+        "theme": "light",
+        "notifications": { "messages": true, "mentions": false, "contactRequests": true },
+        "profile": { "displayName": "", "username": "", "bio": "" },
+        "activeIdentityId": null
+    });
+    let settings: IAppSettings = serde_json::from_value(json).unwrap();
+    assert_eq!(settings.network, "mainnet");
+    assert_eq!(settings.theme, "light");
+    assert!(settings.active_identity_id.is_none());
+}
+
+// ==================== IAssetDefinition Tests ====================
+
+#[test]
+fn test_iasset_definition_serialization() {
+    let asset = IAssetDefinition {
+        identity_id: "id123".to_string(),
+        name: "Test Asset".to_string(),
+        symbol: "TEST".to_string(),
+        balance: Some("1000".to_string()),
+        asset_id: Some("asset_123".to_string()),
+        decimals: Some(8),
+        network: Some("testnet".to_string()),
+    };
+    let json = serde_json::to_string(&asset).unwrap();
+    assert!(json.contains("\"identityId\":\"id123\""));
+    assert!(json.contains("\"assetId\":\"asset_123\""));
+}
+
+#[test]
+fn test_iasset_definition_deserialization() {
+    let json = json!({
+        "identityId": "id456",
+        "name": "Another Asset",
+        "symbol": "ANOTHER",
+        "balance": null,
+        "assetId": null,
+        "decimals": null,
+        "network": null
+    });
+    let asset: IAssetDefinition = serde_json::from_value(json).unwrap();
+    assert_eq!(asset.identity_id, "id456");
+    assert!(asset.balance.is_none());
+    assert!(asset.asset_id.is_none());
+}
+
+// ==================== IMnemonic Tests ====================
+
+#[test]
+fn test_imnemonic_serialization() {
+    let mnemonic = IMnemonic {
+        seed_phrase: "word1 word2 word3".to_string(),
+    };
+    let json = serde_json::to_string(&mnemonic).unwrap();
+    assert!(json.contains("\"seedPhrase\":\"word1 word2 word3\""));
+}
+
+#[test]
+fn test_imnemonic_deserialization() {
+    let json = json!({ "seedPhrase": "test words here" });
+    let mnemonic: IMnemonic = serde_json::from_value(json).unwrap();
+    assert_eq!(mnemonic.seed_phrase, "test words here");
+}
+
+// ==================== IPrivateKeyEntry Tests ====================
+
+#[test]
+fn test_iprivate_key_entry_serialization() {
+    let entry = IPrivateKeyEntry {
+        identity_id: "id_123".to_string(),
+        key_id: 0,
+        purpose: 0,
+        security_level: 0,
+        key_type: "ECDSA_SECP256K1".to_string(),
+        private_key: "private".to_string(),
+        public_key: "public".to_string(),
+        created_at: "2024-01-01".to_string(),
+        last_used: "2024-06-01".to_string(),
+    };
+    let json = serde_json::to_string(&entry).unwrap();
+    assert!(json.contains("\"identityId\":\"id_123\""));
+    assert!(json.contains("\"keyId\":0"));
+}
+
+// ==================== IPrivateKeyStore Tests ====================
+
+#[test]
+fn test_iprivate_key_store_default() {
+    let store = IPrivateKeyStore::default();
+    assert!(store.identities.is_empty());
+    assert!(store.mnemonic.is_none());
+}
+
+// ==================== IIdentityPublicKey Tests ====================
+
+#[test]
+fn test_iidentity_public_key_serialization() {
+    let key = IIdentityPublicKey {
+        id: 0,
+        type_: "ECDSA_SECP256K1".to_string(),
+        purpose: 0,
+        security_level: 0,
+        data: "0xabc".to_string(),
+        read_only: false,
+        disabled_at: Some("2024-01-01".to_string()),
+    };
+    let json = serde_json::to_string(&key).unwrap();
+    assert!(json.contains("\"type\":\"ECDSA_SECP256K1\""));
+    assert!(json.contains("\"disabledAt\":\"2024-01-01\""));
+}
+
+// ==================== IIdentityData Tests ====================
+
+#[test]
+fn test_iidentity_data_default() {
+    let identity = IIdentityData::default();
+    assert!(identity.identity_id.is_empty());
+    assert!(identity.public_keys.is_empty());
+    assert!(!identity.is_authenticated);
+}
+
+#[test]
+fn test_iidentity_data_serialization() {
+    let identity = IIdentityData {
+        identity_id: "test_id".to_string(),
+        username: "testuser".to_string(),
+        balance: "1000".to_string(),
+        revision: 5,
+        public_keys: vec![],
+        identity_idx: Some(0),
+        dpns_username: Some("testuser".to_string()),
+        is_authenticated: true,
+        created_at: Some("2024-01-01".to_string()),
+        public_key_ids: Some(vec![0, 1]),
+    };
+    let json = serde_json::to_string(&identity).unwrap();
+    assert!(json.contains("\"identityId\":\"test_id\""));
+    assert!(json.contains("\"isAuthenticated\":true"));
+}
+
+// ==================== ILicense Tests ====================
+
+#[test]
+fn test_ilicense_serialization() {
+    let license = ILicense {
+        success: true,
+        identity_id: "identity_123".to_string(),
+        txid: "tx_456".to_string(),
+        is_premium: true,
+        created_at: "2024-01-01".to_string(),
+        expires_at: "2025-01-01".to_string(),
+        updated_at: Some("2024-06-01".to_string()),
+    };
+    let json = serde_json::to_string(&license).unwrap();
+    assert!(json.contains("\"isPremium\":true"));
+    assert!(json.contains("\"updatedAt\":\"2024-06-01\""));
+}
+
+#[test]
+fn test_ilicense_default() {
+    let license = ILicense::default();
+    assert!(!license.success);
+    assert!(!license.is_premium);
+}
+
+// ==================== IDiscoveredIdentity Tests ====================
+
+#[test]
+fn test_idiscovered_identity_serialization() {
+    let discovered = IDiscoveredIdentity {
+        identity_id: "disc_123".to_string(),
+        balance: "5000".to_string(),
+        identity_idx: Some(0),
+        dpns_username: Some("testuser".to_string()),
+        key_type: "ECDSA".to_string(),
+        discovered_at: "2024-01-01T00:00:00Z".to_string(),
+    };
+    let json = serde_json::to_string(&discovered).unwrap();
+    assert!(json.contains("\"identityId\":\"disc_123\""));
+    assert!(json.contains("\"dpnsUsername\":\"testuser\""));
+}
+
+#[test]
+fn test_idiscovered_identity_default() {
+    let discovered = IDiscoveredIdentity::default();
+    assert!(discovered.identity_id.is_empty());
+    assert!(discovered.balance.is_empty());
+}
+
+// ==================== Type Aliases Tests ====================
+
+#[test]
+fn test_iassets_type() {
+    let assets: IAssets = vec![
+        IAssetDefinition::default(),
+    ];
+    assert_eq!(assets.len(), 1);
+}
+
+#[test]
+fn test_iasset_store_map_type() {
+    let mut map: IAssetStoreMap = HashMap::new();
+    map.insert("identity_1".to_string(), vec![]);
+    assert!(map.contains_key("identity_1"));
+}
+
+#[test]
+fn test_ilicense_store_map_type() {
+    let mut map: ILicenseStoreMap = HashMap::new();
+    map.insert("identity_1".to_string(), ILicense::default());
+    assert!(map.contains_key("identity_1"));
+}
+
+// ==================== Clone & Debug Trait Tests ====================
+
+#[test]
+fn test_clone_traits() {
+    let notification = INotificationSettings {
+        messages: true,
+        mentions: false,
+        contact_requests: true,
+    };
+    let cloned = notification.clone();
+    assert_eq!(notification, cloned);
+}
+
+#[test]
+fn test_debug_traits() {
+    let settings = INotificationSettings::default();
+    let debug_str = format!("{:?}", settings);
+    assert!(debug_str.contains("INotificationSettings"));
+}
