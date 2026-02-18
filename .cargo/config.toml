@@ -1,5 +1,8 @@
-# src-tauri/.cargo/config.toml
+# .cargo/config.toml
 
 [env]
 WEBKIT_DISABLE_DMABUF_RENDERER = "1"
 WEBKIT_DISABLE_COMPOSITING_MODE = "1"
+
+[alias]
+test-cov = "llvm-cov --html"
