@@ -84,7 +84,7 @@ fn test_icommand_result_deserialization() {
 
 #[test]
 fn test_icommand_result_with_complex_data() {
-    #[derive(Serialize, Deserialize, Type, PartialEq)]
+    #[derive(Serialize, Deserialize, Type, PartialEq, Clone, Debug)]
     struct TestData {
         name: String,
         value: u32,
@@ -300,6 +300,23 @@ fn test_iasset_definition_deserialization() {
     assert!(asset.asset_id.is_none());
 }
 
+#[test]
+fn test_iasset_definition_with_all_fields() {
+    let json = json!({
+        "identityId": "id789",
+        "name": "Full Asset",
+        "symbol": "FULL",
+        "balance": "5000",
+        "assetId": "asset_789",
+        "decimals": 18,
+        "network": "mainnet"
+    });
+    let asset: IAssetDefinition = serde_json::from_value(json).unwrap();
+    assert_eq!(asset.identity_id, "id789");
+    assert_eq!(asset.balance, Some("5000".to_string()));
+    assert_eq!(asset.decimals, Some(18));
+}
+
 // ==================== IMnemonic Tests ====================
 
 #[test]
@@ -316,6 +333,12 @@ fn test_imnemonic_deserialization() {
     let json = json!({ "seedPhrase": "test words here" });
     let mnemonic: IMnemonic = serde_json::from_value(json).unwrap();
     assert_eq!(mnemonic.seed_phrase, "test words here");
+}
+
+#[test]
+fn test_imnemonic_default() {
+    let mnemonic = IMnemonic::default();
+    assert!(mnemonic.seed_phrase.is_empty());
 }
 
 // ==================== IPrivateKeyEntry Tests ====================
@@ -336,6 +359,13 @@ fn test_iprivate_key_entry_serialization() {
     let json = serde_json::to_string(&entry).unwrap();
     assert!(json.contains("\"identityId\":\"id_123\""));
     assert!(json.contains("\"keyId\":0"));
+}
+
+#[test]
+fn test_iprivate_key_entry_default() {
+    let entry = IPrivateKeyEntry::default();
+    assert!(entry.identity_id.is_empty());
+    assert_eq!(entry.key_id, 0);
 }
 
 // ==================== IPrivateKeyStore Tests ====================
@@ -363,6 +393,14 @@ fn test_iidentity_public_key_serialization() {
     let json = serde_json::to_string(&key).unwrap();
     assert!(json.contains("\"type\":\"ECDSA_SECP256K1\""));
     assert!(json.contains("\"disabledAt\":\"2024-01-01\""));
+}
+
+#[test]
+fn test_iidentity_public_key_default() {
+    let key = IIdentityPublicKey::default();
+    assert_eq!(key.id, 0);
+    assert!(!key.read_only);
+    assert!(key.disabled_at.is_none());
 }
 
 // ==================== IIdentityData Tests ====================
@@ -394,6 +432,21 @@ fn test_iidentity_data_serialization() {
     assert!(json.contains("\"isAuthenticated\":true"));
 }
 
+#[test]
+fn test_iidentity_data_deserialization() {
+    let json = json!({
+        "identityId": "test_id_2",
+        "username": "user2",
+        "balance": "2000",
+        "revision": "10",
+        "publicKeys": [],
+        "isAuthenticated": false
+    });
+    let identity: IIdentityData = serde_json::from_value(json).unwrap();
+    assert_eq!(identity.identity_id, "test_id_2");
+    assert_eq!(identity.revision, 10);
+}
+
 // ==================== ILicense Tests ====================
 
 #[test]
@@ -417,6 +470,23 @@ fn test_ilicense_default() {
     let license = ILicense::default();
     assert!(!license.success);
     assert!(!license.is_premium);
+}
+
+#[test]
+fn test_ilicense_deserialization() {
+    let json = json!({
+        "success": true,
+        "identityId": "id_abc",
+        "txid": "tx_xyz",
+        "isPremium": false,
+        "createdAt": "2024-01-01",
+        "expiresAt": "2025-01-01",
+        "updatedAt": null
+    });
+    let license: ILicense = serde_json::from_value(json).unwrap();
+    assert!(license.success);
+    assert!(!license.is_premium);
+    assert!(license.updated_at.is_none());
 }
 
 // ==================== IDiscoveredIdentity Tests ====================
@@ -443,12 +513,35 @@ fn test_idiscovered_identity_default() {
     assert!(discovered.balance.is_empty());
 }
 
+#[test]
+fn test_idiscovered_identity_deserialization() {
+    let json = json!({
+        "identityId": "disc_456",
+        "balance": "3000",
+        "identityIdx": 1,
+        "dpnsUsername": null,
+        "keyType": "BLS12_381",
+        "discoveredAt": "2024-06-01T00:00:00Z"
+    });
+    let discovered: IDiscoveredIdentity = serde_json::from_value(json).unwrap();
+    assert_eq!(discovered.identity_id, "disc_456");
+    assert_eq!(discovered.identity_idx, Some(1));
+}
+
 // ==================== Type Aliases Tests ====================
 
 #[test]
 fn test_iassets_type() {
     let assets: IAssets = vec![
-        IAssetDefinition::default(),
+        IAssetDefinition {
+            identity_id: "id1".to_string(),
+            name: "Asset1".to_string(),
+            symbol: "A1".to_string(),
+            balance: None,
+            asset_id: None,
+            decimals: None,
+            network: None,
+        },
     ];
     assert_eq!(assets.len(), 1);
 }
@@ -485,4 +578,19 @@ fn test_debug_traits() {
     let settings = INotificationSettings::default();
     let debug_str = format!("{:?}", settings);
     assert!(debug_str.contains("INotificationSettings"));
+}
+
+#[test]
+fn test_partial_eq_traits() {
+    let settings1 = INotificationSettings {
+        messages: true,
+        mentions: false,
+        contact_requests: true,
+    };
+    let settings2 = INotificationSettings {
+        messages: true,
+        mentions: false,
+        contact_requests: true,
+    };
+    assert_eq!(settings1, settings2);
 }
