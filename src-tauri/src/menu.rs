@@ -8,7 +8,7 @@ use tauri::{
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum MenuAction {
     Navigate(String),
     Exit,

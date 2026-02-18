@@ -14,7 +14,7 @@ mod tests;
 /// Represents a public key as returned by the DAPI Web API endpoint.
 /// Note: Purpose and SecurityLevel are strings ("AUTHENTICATION", "MASTER", etc.)
 /// not numeric codes, as per the Web API response format.
-#[derive(Debug, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct DapiPublicKey {
     pub purpose: String,
@@ -28,7 +28,7 @@ pub struct DapiPublicKey {
 
 /// Represents an Identity as returned by the DAPI Web API endpoint.
 /// The Web API wrapper transforms raw responses into this camelCase format.
-#[derive(Debug, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct DapiIdentityResponse {
     pub identity_id: String,

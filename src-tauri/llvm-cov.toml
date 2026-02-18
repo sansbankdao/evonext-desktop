@@ -1,0 +1,6 @@
+# src-tauri/llvm-cov.toml
+
+exclude_from_report = [
+    "src/export_types.rs",
+    "src/main.rs",
+]

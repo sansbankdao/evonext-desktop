@@ -90,6 +90,23 @@ fn test_dapi_public_key_serialization() {
     assert!(json.contains("\"readOnly\":false"));
 }
 
+#[test]
+fn test_dapi_public_key_with_disabled_at() {
+    let key = DapiPublicKey {
+        purpose: "AUTHENTICATION".to_string(),
+        security_level: "MASTER".to_string(),
+        key_type: "ECDSA_SECP256K1".to_string(),
+        data: "0xabc".to_string(),
+        data_b64: "abc".to_string(),
+        read_only: true,
+        disabled_at: Some("2024-12-31T23:59:59Z".to_string()),
+    };
+
+    let serialized = serde_json::to_string(&key).unwrap();
+    let deserialized: DapiPublicKey = serde_json::from_str(&serialized).unwrap();
+    assert_eq!(deserialized.disabled_at, Some("2024-12-31T23:59:59Z".to_string()));
+}
+
 // ==================== DapiIdentityResponse Tests ====================
 
 #[test]
@@ -150,6 +167,38 @@ fn test_dapi_identity_response_serialization() {
     assert!(json.contains("\"publicKeyHash\":\"hash123\""));
     assert!(json.contains("\"balance\":\"5000\""));
     assert!(json.contains("\"revision\":\"2\""));
+}
+
+#[test]
+fn test_dapi_identity_response_with_multiple_keys() {
+    let json_str = r#"{
+        "identityId": "multi_key_id",
+        "balance": "1000",
+        "revision": "3",
+        "publicKeys": [
+            {
+                "purpose": "AUTHENTICATION",
+                "securityLevel": "MASTER",
+                "keyType": "ECDSA_SECP256K1",
+                "data": "0x111",
+                "dataB64": "111",
+                "readOnly": false
+            },
+            {
+                "purpose": "TRANSFER",
+                "securityLevel": "HIGH",
+                "keyType": "BLS12_381",
+                "data": "0x222",
+                "dataB64": "222",
+                "readOnly": false
+            }
+        ]
+    }"#;
+
+    let identity: DapiIdentityResponse = serde_json::from_str(json_str).unwrap();
+    assert_eq!(identity.public_keys.len(), 2);
+    assert_eq!(identity.public_keys[0].purpose, "AUTHENTICATION");
+    assert_eq!(identity.public_keys[1].purpose, "TRANSFER");
 }
 
 // ==================== extract_first_as_response Tests ====================
@@ -289,6 +338,19 @@ fn test_extract_first_as_response_missing_optional_fields() {
     assert!(result.public_keys.is_empty());
 }
 
+#[test]
+fn test_extract_first_as_response_serialization_error() {
+    let input = vec![json!({
+        "identityId": 12345, // Invalid: should be string
+        "balance": "100",
+        "revision": "1"
+    })];
+
+    let result = extract_first_as_response(input);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Serialization error"));
+}
+
 // ==================== purpose_code_to_string Tests ====================
 
 #[test]
@@ -317,9 +379,8 @@ fn test_purpose_code_to_string_unknown() {
 }
 
 #[test]
-fn test_purpose_code_to_string_unknown_zero() {
-    // This tests edge case for code 0 which is valid
-    assert_eq!(purpose_code_to_string(0), "AUTHENTICATION");
+fn test_purpose_code_to_string_unknown_high() {
+    assert_eq!(purpose_code_to_string(255), "UNKNOWN_255");
 }
 
 // ==================== dapi_request_inner Tests ====================
@@ -332,7 +393,15 @@ async fn test_dapi_request_inner_missing_param() {
     assert!(res.is_err());
 }
 
-// ==================== Serialization/Deserialization Edge Cases ====================
+#[tokio::test]
+async fn test_dapi_request_inner_invalid_method() {
+    let params = HashMap::new();
+
+    let res = dapi_request_inner("invalid_method".to_string(), params, None).await;
+    assert!(res.is_err());
+}
+
+// ==================== Additional Edge Case Tests ====================
 
 #[test]
 fn test_dapi_identity_response_large_balance() {
@@ -349,7 +418,6 @@ fn test_dapi_identity_response_large_balance() {
 
 #[test]
 fn test_extract_first_as_response_with_nested_result() {
-    // Test deeply nested result structure
     let input = vec![json!({
         "result": {
             "identityId": "nested_id",
@@ -406,7 +474,6 @@ fn test_extract_first_as_response_multiple_public_keys() {
 
 #[test]
 fn test_dapi_identity_response_with_missing_public_keys_field() {
-    // Test that missing publicKeys field defaults to empty vec via #[serde(default)]
     let json_str = r#"{
         "identityId": "test_id",
         "balance": "100",
@@ -428,4 +495,69 @@ fn test_dapi_identity_response_with_empty_public_keys_array() {
 
     let identity: DapiIdentityResponse = serde_json::from_str(json_str).unwrap();
     assert!(identity.public_keys.is_empty());
+}
+
+#[test]
+fn test_dapi_public_key_all_purpose_types() {
+    for (code, expected) in &[
+        (0u8, "AUTHENTICATION"),
+        (1u8, "ENCRYPTION"),
+        (2u8, "DECRYPTION"),
+        (3u8, "TRANSFER"),
+    ] {
+        let json_str = format!(r#"{{
+            "purpose": {},
+            "securityLevel": "MASTER",
+            "keyType": "ECDSA_SECP256K1",
+            "data": "0xabc",
+            "dataB64": "abc",
+            "readOnly": false
+        }}"#, code);
+
+        let input = vec![json!({
+            "identityId": "test_id",
+            "balance": "100",
+            "revision": "1",
+            "publicKeys": [serde_json::from_str::<Value>(&json_str).unwrap()]
+        })];
+
+        let result = extract_first_as_response(input).unwrap();
+        assert_eq!(result.public_keys[0].purpose, *expected);
+    }
+}
+
+#[test]
+fn test_dapi_public_key_clone_and_debug() {
+    let key = DapiPublicKey {
+        purpose: "AUTHENTICATION".to_string(),
+        security_level: "MASTER".to_string(),
+        key_type: "ECDSA_SECP256K1".to_string(),
+        data: "0xabc".to_string(),
+        data_b64: "abc".to_string(),
+        read_only: false,
+        disabled_at: None,
+    };
+
+    let cloned = key.clone();
+    assert_eq!(key.purpose, cloned.purpose);
+
+    let debug_str = format!("{:?}", key);
+    assert!(debug_str.contains("DapiPublicKey"));
+}
+
+#[test]
+fn test_dapi_identity_response_clone_and_debug() {
+    let identity = DapiIdentityResponse {
+        identity_id: "test_id".to_string(),
+        public_key_hash: None,
+        balance: "100".to_string(),
+        revision: "1".to_string(),
+        public_keys: vec![],
+    };
+
+    let cloned = identity.clone();
+    assert_eq!(identity.identity_id, cloned.identity_id);
+
+    let debug_str = format!("{:?}", identity);
+    assert!(debug_str.contains("DapiIdentityResponse"));
 }
