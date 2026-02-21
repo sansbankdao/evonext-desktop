@@ -34,7 +34,8 @@ export const connectionActions = {
                 await this.saveToStorage()
                 return { success: true, identityId }
             }
-            return { success: false, error: resSave.error?.message || 'Connection failed' }
+            const errorMsg = typeof resSave.error === 'string' ? resSave.error : resSave.error?.message
+            return { success: false, error: errorMsg || 'Connection failed' }
         } catch (e: any) {
             const errorMsg = e?.message || String(e)
             this.connectionError = errorMsg

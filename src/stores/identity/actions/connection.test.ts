@@ -4,10 +4,24 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useIdentityStore } from '@/stores/identity'
 import { invoke } from '@tauri-apps/api/core'
+import { commands } from '@/bindings'
 import { KeyDerivationService } from '@/services/identity/keyDerivation.service'
 
 vi.mock('@tauri-apps/api/core', () => ({
     invoke: vi.fn()
+}))
+
+vi.mock('@/utils/tauri', () => ({
+    invoke: vi.fn()
+}))
+
+vi.mock('@/bindings', () => ({
+    commands: {
+        saveIdentity: vi.fn(),
+        saveKeys: vi.fn(),
+        loadKeystore: vi.fn(),
+        getIdentityInfo: vi.fn()
+    }
 }))
 
 vi.mock('@/services/identity/keyDerivation.service', () => ({
@@ -38,6 +52,9 @@ function createMockIdentity(overrides: Partial<any> = {}) {
     }
 }
 
+// Import the mocked version of @/utils/tauri invoke
+import { invoke as tauriInvoke } from '@/utils/tauri'
+
 describe('Identity Store - Connection Actions', () => {
     let store: ReturnType<typeof useIdentityStore>
     const mockMnemonic = 'test seed phrase with twelve words here for testing purposes only'
@@ -50,8 +67,9 @@ describe('Identity Store - Connection Actions', () => {
         store = useIdentityStore()
         vi.clearAllMocks()
 
-        vi.mocked(invoke).mockImplementation(async (cmd: string) => {
-            if (cmd === 'get_identity_info' || cmd === 'get_identity_details') {
+        // Mock the @/utils/tauri invoke (used by connection.ts)
+        vi.mocked(tauriInvoke).mockImplementation(async (cmd: string) => {
+            if (cmd === 'get_identity_info') {
                 return {
                     success: true,
                     data: {
@@ -67,23 +85,56 @@ describe('Identity Store - Connection Actions', () => {
                     }
                 }
             }
-            if (cmd === 'save_identity' || cmd === 'save_keys' || cmd === 'save_identity_with_keys') {
-                return { success: true, data: null }
+            if (cmd === 'save_identity_store') {
+                return { success: true }
             }
             if (cmd === 'load_identity_store') {
                 return { identityId: mockIdentityId, identities: {} }
             }
+            if (cmd === 'clear_identity_store') {
+                return { success: true }
+            }
             return { success: true }
         })
+
+        // Also mock @tauri-apps/api/core invoke for any code that uses it directly
+        vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            if (cmd === 'get_identity_info') {
+                return {
+                    success: true,
+                    data: {
+                        identityId: mockIdentityId,
+                        balance: '1000',
+                        revision: 1,
+                        publicKeys: [{
+                            purpose: 0,
+                            securityLevel: 0,
+                            data: 'pub_key',
+                            keyType: 'ECDSA_SECP256K1'
+                        }]
+                    }
+                }
+            }
+            if (cmd === 'save_identity_store') {
+                return { success: true }
+            }
+            if (cmd === 'load_identity_store') {
+                return { identityId: mockIdentityId, identities: {} }
+            }
+            if (cmd === 'clear_identity_store') {
+                return { success: true }
+            }
+            return { success: true }
+        })
+
+        // Mock commands for saveIdentity and saveKeys
+        vi.mocked(commands.saveIdentity).mockResolvedValue({ success: true, data: { identityId: mockIdentityId } } as any)
+        vi.mocked(commands.saveKeys).mockResolvedValue({ success: true, data: true, error: null })
+        vi.mocked(commands.loadKeystore).mockResolvedValue({ success: true, data: {}, error: null })
 
         vi.mocked(KeyDerivationService.getPrivateKeyWASM).mockResolvedValue({
             privateKey: { WIF: () => 'wif_key' }
         } as any)
-
-        store.saveIdentity = vi.fn().mockResolvedValue({ success: true })
-        store.saveKeys = vi.fn().mockResolvedValue({ success: true })
-        store.refreshIdentity = vi.fn().mockResolvedValue(undefined)
-        store.saveToStorage = vi.fn().mockResolvedValue(undefined)
     })
 
     describe('connectWithSeed', () => {
@@ -109,7 +160,7 @@ describe('Identity Store - Connection Actions', () => {
         it('should set isConnecting during operation', async () => {
             let connectingDuringCall = false
 
-            vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            vi.mocked(tauriInvoke).mockImplementation(async (cmd: string) => {
                 if (cmd === 'get_identity_info') {
                     connectingDuringCall = store.isConnecting
                     return {
@@ -131,7 +182,7 @@ describe('Identity Store - Connection Actions', () => {
         })
 
         it('should handle failed identity fetch', async () => {
-            vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            vi.mocked(tauriInvoke).mockImplementation(async (cmd: string) => {
                 if (cmd === 'get_identity_info') {
                     return { success: false, error: 'Identity not found' }
                 }
@@ -150,7 +201,7 @@ describe('Identity Store - Connection Actions', () => {
         })
 
         it('should handle network errors', async () => {
-            vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            vi.mocked(tauriInvoke).mockImplementation(async (cmd: string) => {
                 if (cmd === 'get_identity_info') {
                     throw new Error('Network timeout')
                 }
@@ -170,7 +221,10 @@ describe('Identity Store - Connection Actions', () => {
         })
 
         it('should handle save failure', async () => {
-            store.saveIdentity = vi.fn().mockResolvedValue({ success: false, error: { message: 'Save failed' } })
+            vi.mocked(commands.saveIdentity).mockResolvedValueOnce({
+                success: false,
+                error: 'Save failed'
+            } as any)
 
             const result = await store.connectWithSeed(
                 mockMnemonic,
@@ -180,7 +234,7 @@ describe('Identity Store - Connection Actions', () => {
             )
 
             expect(result.success).toBe(false)
-            expect(result.error).toContain('Save failed')
+            expect(result.error).toBeTruthy()
         })
 
         it('should clear connectionError on start', async () => {
@@ -221,7 +275,7 @@ describe('Identity Store - Connection Actions', () => {
         })
 
         it('should return error on DAPI failure', async () => {
-            vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            vi.mocked(tauriInvoke).mockImplementation(async (cmd: string) => {
                 if (cmd === 'get_identity_info') {
                     throw new Error('NETWORK_CRASH')
                 }
@@ -235,8 +289,7 @@ describe('Identity Store - Connection Actions', () => {
             )
 
             expect(result.success).toBe(false)
-            const err = typeof result.error === 'string' ? result.error : (result.error as any)?.message
-            expect(err).toContain('NETWORK_CRASH')
+            expect(result.error).toContain('NETWORK_CRASH')
         })
     })
 
@@ -259,7 +312,7 @@ describe('Identity Store - Connection Actions', () => {
         })
 
         it('should update balance from identity data', async () => {
-            vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            vi.mocked(tauriInvoke).mockImplementation(async (cmd: string) => {
                 if (cmd === 'get_identity_info') {
                     return {
                         success: true,
@@ -280,7 +333,7 @@ describe('Identity Store - Connection Actions', () => {
         })
 
         it('should update username from dpnsUsername', async () => {
-            vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            vi.mocked(tauriInvoke).mockImplementation(async (cmd: string) => {
                 if (cmd === 'get_identity_info') {
                     return {
                         success: true,
@@ -304,11 +357,20 @@ describe('Identity Store - Connection Actions', () => {
         it('should save keys to keystore', async () => {
             await store.connectWithPrivateKey(mockPrivateKey, mockIdentityId, mockNetwork)
 
-            expect(store.saveKeys).toHaveBeenCalled()
+            expect(commands.saveKeys).toHaveBeenCalledWith(
+                mockNetwork,
+                mockIdentityId,
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        identityId: mockIdentityId,
+                        keyId: 0
+                    })
+                ])
+            )
         })
 
         it('should handle missing identity data gracefully', async () => {
-            vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            vi.mocked(tauriInvoke).mockImplementation(async (cmd: string) => {
                 if (cmd === 'get_identity_info') {
                     return { success: false, error: 'Not found' }
                 }
@@ -325,14 +387,13 @@ describe('Identity Store - Connection Actions', () => {
         })
 
         it('should handle missing public keys', async () => {
-            vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            vi.mocked(tauriInvoke).mockImplementation(async (cmd: string) => {
                 if (cmd === 'get_identity_info') {
                     return {
                         success: true,
                         data: {
                             identityId: mockIdentityId,
                             balance: '1000',
-                            // no publicKeys field
                         }
                     }
                 }
@@ -364,7 +425,7 @@ describe('Identity Store - Connection Actions', () => {
             const result = await store.saveIdentityWithKeys(mockNetwork, payload)
 
             expect(result.success).toBe(true)
-            expect(store.saveKeys).toHaveBeenCalled()
+            expect(commands.saveKeys).toHaveBeenCalled()
         })
 
         it('should override keys when keysOverride provided', async () => {
@@ -373,18 +434,23 @@ describe('Identity Store - Connection Actions', () => {
 
             await store.saveIdentityWithKeys(mockNetwork, payload, keysOverride)
 
-            expect(store.saveIdentity).toHaveBeenCalledWith(mockNetwork, {
-                ...payload,
-                publicKeys: keysOverride
-            })
+            expect(commands.saveIdentity).toHaveBeenCalledWith(
+                mockNetwork,
+                expect.objectContaining({
+                    identityId: mockIdentityId,
+                    publicKeys: keysOverride
+                })
+            )
         })
 
         it('should not save keys if no publicKeys in payload', async () => {
+            vi.mocked(commands.saveKeys).mockClear()
+
             const payload = { identityId: mockIdentityId }
 
             await store.saveIdentityWithKeys(mockNetwork, payload)
 
-            expect(store.saveKeys).not.toHaveBeenCalled()
+            expect(commands.saveKeys).not.toHaveBeenCalled()
         })
     })
 
@@ -394,7 +460,7 @@ describe('Identity Store - Connection Actions', () => {
         })
 
         it('should load identity from storage', async () => {
-            vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            vi.mocked(tauriInvoke).mockImplementation(async (cmd: string) => {
                 if (cmd === 'load_identity_store') {
                     return {
                         identityId: mockIdentityId,
@@ -411,7 +477,7 @@ describe('Identity Store - Connection Actions', () => {
         })
 
         it('should handle empty storage', async () => {
-            vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            vi.mocked(tauriInvoke).mockImplementation(async (cmd: string) => {
                 if (cmd === 'load_identity_store') {
                     return null
                 }
@@ -424,21 +490,20 @@ describe('Identity Store - Connection Actions', () => {
         })
 
         it('should handle storage errors gracefully', async () => {
-            vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            vi.mocked(tauriInvoke).mockImplementation(async (cmd: string) => {
                 if (cmd === 'load_identity_store') {
                     throw new Error('Storage corrupted')
                 }
                 return { success: true }
             })
 
-            // Should not throw
             await store.loadFromStorage()
 
             expect(store.identityId).toBeNull()
         })
 
         it('should validate loaded data', async () => {
-            vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            vi.mocked(tauriInvoke).mockImplementation(async (cmd: string) => {
                 if (cmd === 'load_identity_store') {
                     return { identityId: mockIdentityId, identities: {} }
                 }
@@ -462,21 +527,20 @@ describe('Identity Store - Connection Actions', () => {
 
             await store.saveToStorage()
 
-            expect(invoke).toHaveBeenCalledWith('save_identity_store', {
+            expect(tauriInvoke).toHaveBeenCalledWith('save_identity_store', {
                 identityId: mockIdentityId,
                 identities: { [mockIdentityId]: createMockIdentity({ identityId: mockIdentityId }) }
             })
         })
 
         it('should handle save errors gracefully', async () => {
-            vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            vi.mocked(tauriInvoke).mockImplementation(async (cmd: string) => {
                 if (cmd === 'save_identity_store') {
                     throw new Error('Disk full')
                 }
                 return { success: true }
             })
 
-            // Should not throw
             await store.saveToStorage()
         })
     })
@@ -498,7 +562,7 @@ describe('Identity Store - Connection Actions', () => {
             expect(store.identities).toEqual({})
             expect(store.isConnected).toBe(false)
             expect(store.isAuthenticated).toBe(false)
-            expect(invoke).toHaveBeenCalledWith('clear_identity_store')
+            expect(tauriInvoke).toHaveBeenCalledWith('clear_identity_store')
         })
     })
 

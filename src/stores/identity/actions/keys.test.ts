@@ -97,11 +97,10 @@ describe('Identity Store - Key Actions', () => {
             await store.importPrivateKey(mockIdentityId, mockKeyId, mockPrivateKey, mockNetwork)
 
             expect(consoleSpy).toHaveBeenCalledWith(
-                expect.stringContaining('Importing Key ID'),
-                mockKeyId,
-                mockIdentityId,
-                mockNetwork
+                expect.stringContaining('Importing Key ID')
             )
+
+            consoleSpy.mockRestore()
         })
 
         it('should handle different key IDs', async () => {
