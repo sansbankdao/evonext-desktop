@@ -98,4 +98,64 @@ describe('Identity Store Actions', () => {
         expect(identityInStore.balance).toBe('500')
         expect(identityInStore.revision).toBe(5)
     })
+
+    it('should expose inline getters correctly', () => {
+        const store = useIdentityStore()
+
+        // isConnectedComputed
+        store.identityId = null
+        expect(store.isConnectedComputed).toBe(false)
+        store.identityId = 'id_abc'
+        expect(store.isConnectedComputed).toBe(true)
+
+        // getGreeting
+        store.displayName = 'Bob'
+        expect(store.getGreeting).toBe('Hello, Bob')
+        store.displayName = ''
+        expect(store.getGreeting).toBe('Hello, User')
+
+        // publicKeysCount
+        store.publicKeys = []
+        expect(store.publicKeysCount).toBe(0)
+        store.publicKeys = [{ purpose: 0 } as any, { purpose: 1 } as any]
+        expect(store.publicKeysCount).toBe(2)
+
+        // hasPublicKeys
+        expect(store.hasPublicKeys).toBe(true)
+        store.publicKeys = []
+        expect(store.hasPublicKeys).toBe(false)
+    })
+
+    it('should compute identity getter correctly', () => {
+        const store = useIdentityStore()
+        // null when no identityId
+        store.identityId = null
+        expect(store.identity).toBeNull()
+
+        // returns identity from map when set
+        store.identityId = 'id_x'
+        store.identities = {
+            'id_x': {
+                identityId: 'id_x',
+                balance: '999',
+                username: 'test'
+            } as any
+        }
+        expect(store.identity).toBeDefined()
+        expect((store.identity as any).balance).toBe('999')
+    })
+
+    it('should compute formattedBalance from inline getter', () => {
+        const store = useIdentityStore()
+        store.balance = '200000000000'
+        // 200000000000 / 100000000000 = 2
+        expect(store.formattedBalance).toBe('2 DASH')
+
+        store.balance = '0'
+        expect(store.formattedBalance).toBe('0 DASH')
+
+        store.balance = '50000000000'
+        // 50000000000 / 100000000000 = 0.5
+        expect(store.formattedBalance).toBe('0.5 DASH')
+    })
 })

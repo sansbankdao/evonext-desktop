@@ -43,4 +43,29 @@ describe('Posts State', () => {
     it('should handle undefined values for pagination', () => {
         expect(postsState.nextPage).toBeUndefined()
     })
+
+    it('should initialize error as null', () => {
+        expect(postsState.error).toBeNull()
+    })
+
+    it('should initialize lastFetched as null', () => {
+        expect(postsState.lastFetched).toBeNull()
+    })
+
+    it('should initialize debug object with correct structure', () => {
+        const debug = (postsState as any).debug
+        expect(debug).toBeDefined()
+        expect(debug.activeContracts).toEqual([])
+        expect(debug.fetchCounts).toEqual({})
+        expect(debug.mergeCount).toBe(0)
+        expect(debug.duplicateCount).toBe(0)
+        expect(debug.lastFetchTime).toBeNull()
+    })
+
+    it('should initialize all arrays as empty', () => {
+        expect(postsState.posts).toHaveLength(0)
+        expect(postsState.userPosts).toHaveLength(0)
+        expect(postsState.likedPosts).toHaveLength(0)
+        expect(postsState.bookmarkedPosts).toHaveLength(0)
+    })
 })
