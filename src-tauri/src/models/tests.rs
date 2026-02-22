@@ -90,7 +90,10 @@ fn test_icommand_result_with_complex_data() {
         value: u32,
     }
 
-    let data = TestData { name: "test".to_string(), value: 100 };
+    let data = TestData {
+        name: "test".to_string(),
+        value: 100,
+    };
     let result = ICommandResult::ok(data.clone());
     assert_eq!(result.data, Some(data));
 }
@@ -532,17 +535,15 @@ fn test_idiscovered_identity_deserialization() {
 
 #[test]
 fn test_iassets_type() {
-    let assets: IAssets = vec![
-        IAssetDefinition {
-            identity_id: "id1".to_string(),
-            name: "Asset1".to_string(),
-            symbol: "A1".to_string(),
-            balance: None,
-            asset_id: None,
-            decimals: None,
-            network: None,
-        },
-    ];
+    let assets: IAssets = vec![IAssetDefinition {
+        identity_id: "id1".to_string(),
+        name: "Asset1".to_string(),
+        symbol: "A1".to_string(),
+        balance: None,
+        asset_id: None,
+        decimals: None,
+        network: None,
+    }];
     assert_eq!(assets.len(), 1);
 }
 

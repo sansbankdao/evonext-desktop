@@ -34,7 +34,7 @@ fn test_dapi_response_conversion() {
         Ok(result) => {
             assert_eq!(result.len(), 1);
             assert_eq!(result[0].contract_id, "123");
-        },
+        }
         Err(e) => {
             panic!("Deserialization failed: {:?}", e);
         }

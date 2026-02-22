@@ -1,10 +1,10 @@
 // src-tauri/src/commands/mnemonic_commands/tests.rs
 
 use super::*;
-use serde_json::Value;
-use std::sync::Mutex;
-use std::collections::HashMap;
 use crate::utils::{PersistentStore, StoreError};
+use serde_json::Value;
+use std::collections::HashMap;
+use std::sync::Mutex;
 
 struct MockStore {
     storage: Mutex<HashMap<String, Value>>,
@@ -28,11 +28,13 @@ impl PersistentStore for MockStore {
 }
 #[test]
 fn test_mnemonic_storage_lifecycle_pure() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
     let network = "testnet".to_string();
     let phrase = "test mnemonic phrase".to_string();
     let mnemonic_payload = IMnemonic {
-        seed_phrase: phrase.clone()
+        seed_phrase: phrase.clone(),
     };
     // Use _logic version to stay independent of AppHandle
     let _ = save_mnemonic_logic(&store, network.clone(), mnemonic_payload.clone());

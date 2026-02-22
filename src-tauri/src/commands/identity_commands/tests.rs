@@ -1,10 +1,10 @@
 // src-tauri/src/commands/identity_commands/tests.rs
 
 use super::*;
-use serde_json::{json, Value};
-use std::sync::Mutex;
-use std::collections::HashMap;
 use crate::utils::{PersistentStore, StoreError};
+use serde_json::{json, Value};
+use std::collections::HashMap;
+use std::sync::Mutex;
 
 struct MockStore {
     storage: Mutex<HashMap<String, Value>>,
@@ -29,7 +29,9 @@ impl PersistentStore for MockStore {
 
 #[tokio::test]
 async fn test_save_identity_with_keys_atomic_pure() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
     let network = "testnet".to_string();
     let identity_id = "atomic_id".to_string();
 
@@ -49,12 +51,9 @@ async fn test_save_identity_with_keys_atomic_pure() {
     }];
 
     // Test saving
-    let res = save_identity_with_keys_logic(
-        &store,
-        network.clone(),
-        payload,
-        keys
-    ).await.unwrap();
+    let res = save_identity_with_keys_logic(&store, network.clone(), payload, keys)
+        .await
+        .unwrap();
 
     assert!(res.success);
 
@@ -73,7 +72,9 @@ fn test_identity_mapper_discovery_regression_pure() {
         identity_id: "test_id".into(),
         username: "user".into(),
         balance: "100".into(),
-        public_keys: vec![IAnyValue(json!({ "id": 0, "data": "A1B2", "type": "ECDSA_SECP256K1" }))],
+        public_keys: vec![IAnyValue(
+            json!({ "id": 0, "data": "A1B2", "type": "ECDSA_SECP256K1" }),
+        )],
         ..Default::default()
     };
     let result = IdentityMapper::map_to_identity(payload);
@@ -87,7 +88,9 @@ fn test_identity_mapper_discovery_regression_pure() {
 
 #[tokio::test]
 async fn test_save_identity_always_sets_active_marker() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
     let network = "testnet".to_string();
 
     let payload = ISaveIdentityPayload {
@@ -100,20 +103,30 @@ async fn test_save_identity_always_sets_active_marker() {
         ..Default::default()
     };
 
-    let result = save_identity_logic(&store, network.clone(), payload).await.unwrap();
+    let result = save_identity_logic(&store, network.clone(), payload)
+        .await
+        .unwrap();
     assert!(result.success);
 
     // Verify __active_identity_id was written
     let raw = store.storage.lock().unwrap();
     let identities_val = raw.get("identities").unwrap();
-    let marker = identities_val.as_object().unwrap().get("__active_identity_id");
-    assert!(marker.is_some(), "save_identity_logic must always set __active_identity_id");
+    let marker = identities_val
+        .as_object()
+        .unwrap()
+        .get("__active_identity_id");
+    assert!(
+        marker.is_some(),
+        "save_identity_logic must always set __active_identity_id"
+    );
     assert_eq!(marker.unwrap().as_str().unwrap(), "new_identity");
 }
 
 #[tokio::test]
 async fn test_save_identity_respects_explicit_active_id() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
     let network = "testnet".to_string();
 
     // Save first identity
@@ -123,7 +136,9 @@ async fn test_save_identity_respects_explicit_active_id() {
         balance: "100".into(),
         ..Default::default()
     };
-    save_identity_logic(&store, network.clone(), payload1).await.unwrap();
+    save_identity_logic(&store, network.clone(), payload1)
+        .await
+        .unwrap();
 
     // Save second identity with explicit active override pointing to id_a
     let payload2 = ISaveIdentityPayload {
@@ -133,18 +148,25 @@ async fn test_save_identity_respects_explicit_active_id() {
         active_identity_id: Some("id_a".to_string()),
         ..Default::default()
     };
-    save_identity_logic(&store, network.clone(), payload2).await.unwrap();
+    save_identity_logic(&store, network.clone(), payload2)
+        .await
+        .unwrap();
 
     // Active should be id_a (the explicit override), not id_b
     let raw = store.storage.lock().unwrap();
     let identities_val = raw.get("identities").unwrap();
-    let marker = identities_val.as_object().unwrap().get("__active_identity_id");
+    let marker = identities_val
+        .as_object()
+        .unwrap()
+        .get("__active_identity_id");
     assert_eq!(marker.unwrap().as_str().unwrap(), "id_a");
 }
 
 #[tokio::test]
 async fn test_save_identity_preserves_marker_across_updates() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
     let network = "testnet".to_string();
 
     // Save identity — sets active marker
@@ -154,7 +176,9 @@ async fn test_save_identity_preserves_marker_across_updates() {
         balance: "100".into(),
         ..Default::default()
     };
-    save_identity_logic(&store, network.clone(), payload1).await.unwrap();
+    save_identity_logic(&store, network.clone(), payload1)
+        .await
+        .unwrap();
 
     // Simulate update_identity_with_sdk_data calling save_identity_map_internal with None
     // by loading the map, modifying, and saving without active marker
@@ -181,7 +205,9 @@ async fn test_save_identity_preserves_marker_across_updates() {
 
 #[test]
 fn test_load_active_identity_logic_returns_identity_data() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
     let network = "testnet".to_string();
 
     // Manually seed the store with identity data + marker
@@ -210,7 +236,9 @@ fn test_load_active_identity_logic_returns_identity_data() {
 
 #[test]
 fn test_load_active_identity_logic_returns_none_for_empty_store() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
     let network = "testnet".to_string();
 
     let result = load_active_identity_logic(&store, network).unwrap();
@@ -221,7 +249,9 @@ fn test_load_active_identity_logic_returns_none_for_empty_store() {
 
 #[test]
 fn test_load_active_identity_logic_marker_without_matching_identity() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
     let network = "testnet".to_string();
 
     // Marker points to non-existent identity
@@ -252,7 +282,9 @@ fn test_load_active_identity_logic_marker_without_matching_identity() {
 
 #[test]
 fn test_load_identities_map_logic_returns_all_identities() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
     let network = "testnet".to_string();
 
     let raw_data = json!({
@@ -287,7 +319,9 @@ fn test_load_identities_map_logic_returns_all_identities() {
 
 #[test]
 fn test_load_identities_map_logic_empty_store() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
     let network = "testnet".to_string();
 
     let result = load_identities_map_logic(&store, network).unwrap();

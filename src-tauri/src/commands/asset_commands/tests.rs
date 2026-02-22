@@ -2,10 +2,10 @@
 
 use super::*;
 use crate::models::IAssetDefinition;
-use serde_json::{json, Value};
-use std::sync::Mutex;
-use std::collections::HashMap;
 use crate::utils::{PersistentStore, StoreError};
+use serde_json::{json, Value};
+use std::collections::HashMap;
+use std::sync::Mutex;
 
 struct MockStore {
     storage: Mutex<HashMap<String, Value>>,
@@ -30,14 +30,12 @@ impl PersistentStore for MockStore {
 
 #[test]
 fn test_parse_assets_snapshot_regression() {
-    let mock_api_items = vec![
-        json!({
-            "identifier": "DUSD_ID",
-            "decimals": 6,
-            "balance": "1500000",
-            "localizations": { "en": { "singularForm": "Dashpool USD" } }
-        })
-    ];
+    let mock_api_items = vec![json!({
+        "identifier": "DUSD_ID",
+        "decimals": 6,
+        "balance": "1500000",
+        "localizations": { "en": { "singularForm": "Dashpool USD" } }
+    })];
     let assets = parse_assets_from_json(&mock_api_items, "identity_123", "testnet");
     assert_eq!(assets.len(), 1);
     assert_eq!(assets[0].symbol, "Dashpool USD");
@@ -46,7 +44,9 @@ fn test_parse_assets_snapshot_regression() {
 
 #[test]
 fn test_assets_command_storage_cycle_pure() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
     let id = "test_id".to_string();
     let net = "testnet".to_string();
 

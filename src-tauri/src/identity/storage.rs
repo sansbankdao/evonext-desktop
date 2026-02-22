@@ -2,7 +2,7 @@
 
 use crate::identity::lib::IdentityMap;
 use crate::models::{IIdentityData, IPrivateKeyStore};
-use crate::utils::{get_network_file, StoreManager, PersistentStore};
+use crate::utils::{get_network_file, PersistentStore, StoreManager};
 use serde_json::Value;
 use std::collections::HashMap;
 use tauri::{AppHandle, Runtime};
@@ -25,7 +25,10 @@ pub fn process_raw_identity_map(val: Value) -> IdentityMap {
                     identity_map.insert(key.clone(), identity_data);
                 }
                 Err(e) => {
-                    eprintln!("STORAGE REGRESSION: Identity record {} is corrupted: {}", key, e);
+                    eprintln!(
+                        "STORAGE REGRESSION: Identity record {} is corrupted: {}",
+                        key, e
+                    );
                 }
             }
         }
@@ -174,7 +177,9 @@ pub fn save_keystore_internal(
 ) -> Result<(), String> {
     let filename = get_network_file(network, "safu")?;
     let val = serde_json::to_value(keystore).map_err(|e| e.to_string())?;
-    store.save_value(&filename, "keystore", val).map_err(|e| e.to_string())
+    store
+        .save_value(&filename, "keystore", val)
+        .map_err(|e| e.to_string())
 }
 
 pub fn save_keystore<R: Runtime>(

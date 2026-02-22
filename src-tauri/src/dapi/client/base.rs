@@ -7,8 +7,8 @@ use crate::dapi::types::{DAPIError, DAPIRequest, DAPIResponse, Network};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::fmt::Debug;
+use std::sync::Arc;
 use tokio::sync::Mutex;
 
 #[cfg(test)]
@@ -60,7 +60,9 @@ impl DAPIClient {
             }
         }
 
-        let response = self.client.post(&self.endpoint)
+        let response = self
+            .client
+            .post(&self.endpoint)
             .json(&request)
             .send()
             .await
@@ -79,7 +81,11 @@ impl DAPIClient {
         Ok(result)
     }
 
-    pub(crate) fn parse_response_text<T>(&self, method: &str, text: &str) -> Result<Vec<T>, DAPIError>
+    pub(crate) fn parse_response_text<T>(
+        &self,
+        method: &str,
+        text: &str,
+    ) -> Result<Vec<T>, DAPIError>
     where
         T: for<'de> Deserialize<'de> + Debug,
     {
@@ -93,7 +99,9 @@ impl DAPIClient {
         } else if let Ok(single_item) = serde_json::from_str::<T>(text) {
             Ok(vec![single_item])
         } else {
-            Err(DAPIError::SerializationError("Unsupported response format".into()))
+            Err(DAPIError::SerializationError(
+                "Unsupported response format".into(),
+            ))
         }
     }
 }

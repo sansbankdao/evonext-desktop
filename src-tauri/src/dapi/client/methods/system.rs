@@ -18,10 +18,7 @@ impl DAPIClient {
     }
 
     /// Get current epoch info
-    pub async fn get_current_epoch(
-        &self,
-        network: Network,
-    ) -> Result<Vec<Value>, DAPIError> {
+    pub async fn get_current_epoch(&self, network: Network) -> Result<Vec<Value>, DAPIError> {
         let method = "get_current_epoch".to_string();
         let params = vec![];
         self.request(method, params, network).await
@@ -86,7 +83,8 @@ impl DAPIClient {
         &self,
         network: Network,
     ) -> Result<Vec<Value>, DAPIError> {
-        self.request("get_total_credits_in_platform".to_string(), vec![], network).await
+        self.request("get_total_credits_in_platform".to_string(), vec![], network)
+            .await
     }
 
     /// Get vote polls by end date
@@ -179,7 +177,9 @@ impl EpochInfo {
         let start = self.start_height.parse::<u128>().unwrap_or(0);
         let end = self.end_height.parse::<u128>().unwrap_or(1);
 
-        if start >= end { return 0.0; }
+        if start >= end {
+            return 0.0;
+        }
 
         let total_blocks = end - start;
         let blocks_passed = self.current_height_within_epoch(current_height_str);
@@ -195,10 +195,15 @@ impl EpochInfo {
 }
 
 fn de_str_from_num_or_str<'de, D>(deserializer: D) -> Result<String, D::Error>
-where D: serde::Deserializer<'de> {
+where
+    D: serde::Deserializer<'de>,
+{
     #[derive(Deserialize)]
     #[serde(untagged)]
-    enum StrOrNum { Str(String), Num(i64) } // i64 is safe inside logic
+    enum StrOrNum {
+        Str(String),
+        Num(i64),
+    } // i64 is safe inside logic
     match StrOrNum::deserialize(deserializer)? {
         StrOrNum::Str(s) => Ok(s),
         StrOrNum::Num(n) => Ok(n.to_string()),

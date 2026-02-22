@@ -12,9 +12,12 @@ fn test_dual_parsing_case_a_wrapped() {
         "params": [],
         "network": "testnet",
         "result": ["identity_data"]
-    }).to_string();
+    })
+    .to_string();
 
-    let res: Vec<String> = client.parse_response_text("getIdentity", &wrapped_json).unwrap();
+    let res: Vec<String> = client
+        .parse_response_text("getIdentity", &wrapped_json)
+        .unwrap();
     assert_eq!(res[0], "identity_data");
 }
 

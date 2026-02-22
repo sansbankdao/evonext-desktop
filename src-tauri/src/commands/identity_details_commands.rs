@@ -1,9 +1,9 @@
 // src-tauri/src/commands/identity_details_commands.rs
 
-use crate::models::{IIdentityPublicKey, ICommandResult};
-use crate::identity::storage;
-use crate::utils::{StoreManager, PersistentStore};
 use crate::cmd_res;
+use crate::identity::storage;
+use crate::models::{ICommandResult, IIdentityPublicKey};
+use crate::utils::{PersistentStore, StoreManager};
 
 #[cfg(test)]
 mod tests;
@@ -19,7 +19,14 @@ pub fn update_identity_with_sdk_data(
     public_key_ids: Vec<u32>,
 ) -> ICommandResult<()> {
     let manager = StoreManager::new(&app_handle);
-    cmd_res!(update_identity_with_sdk_data_logic(&manager, network, identity_id, public_keys, revision, public_key_ids))
+    cmd_res!(update_identity_with_sdk_data_logic(
+        &manager,
+        network,
+        identity_id,
+        public_keys,
+        revision,
+        public_key_ids
+    ))
 }
 
 pub fn update_identity_with_sdk_data_logic<S: PersistentStore>(
@@ -38,7 +45,10 @@ pub fn update_identity_with_sdk_data_logic<S: PersistentStore>(
         storage::save_identity_map_internal(store, &network, &identities, None)?;
         Ok(())
     } else {
-        Err(format!("Identity {} not found in local storage.", identity_id))
+        Err(format!(
+            "Identity {} not found in local storage.",
+            identity_id
+        ))
     }
 }
 
@@ -50,7 +60,11 @@ pub fn get_identity_public_keys(
     identity_id: String,
 ) -> ICommandResult<Option<Vec<IIdentityPublicKey>>> {
     let manager = StoreManager::new(&app_handle);
-    cmd_res!(get_identity_public_keys_logic(&manager, network, identity_id))
+    cmd_res!(get_identity_public_keys_logic(
+        &manager,
+        network,
+        identity_id
+    ))
 }
 
 pub fn get_identity_public_keys_logic<S: PersistentStore>(
@@ -70,7 +84,11 @@ pub fn delete_identity_public_keys(
     identity_id: String,
 ) -> ICommandResult<()> {
     let manager = StoreManager::new(&app_handle);
-    cmd_res!(delete_identity_public_keys_logic(&manager, network, identity_id))
+    cmd_res!(delete_identity_public_keys_logic(
+        &manager,
+        network,
+        identity_id
+    ))
 }
 
 pub fn delete_identity_public_keys_logic<S: PersistentStore>(
@@ -84,6 +102,9 @@ pub fn delete_identity_public_keys_logic<S: PersistentStore>(
         storage::save_identity_map_internal(store, &network, &identities, None)?;
         Ok(())
     } else {
-        Err(format!("Identity {} not found in local storage.", identity_id))
+        Err(format!(
+            "Identity {} not found in local storage.",
+            identity_id
+        ))
     }
 }

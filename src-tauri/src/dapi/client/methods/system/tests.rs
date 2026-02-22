@@ -249,8 +249,8 @@ fn test_epoch_info_deserialization_mixed() {
 fn test_epoch_info_reasonable_large_numbers() {
     let epoch = EpochInfo {
         index: "1000000".to_string(),
-        start_height: "1000000000000".to_string(),  // 1 trillion
-        end_height: "1000000001000".to_string(),    // 1 trillion + 1000
+        start_height: "1000000000000".to_string(), // 1 trillion
+        end_height: "1000000001000".to_string(),   // 1 trillion + 1000
         first_block_height: "1000000000000".to_string(),
         first_core_block_height: "999999999999".to_string(),
         start_time: "9999999999".to_string(),
@@ -293,59 +293,73 @@ async fn test_get_current_epoch_mainnet() {
 #[tokio::test]
 async fn test_get_epochs_info_no_params() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_epochs_info(None, None, None, Network::Testnet).await;
+    let res = client
+        .get_epochs_info(None, None, None, Network::Testnet)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_get_epochs_info_with_start_epoch() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_epochs_info(Some("100".to_string()), None, None, Network::Testnet).await;
+    let res = client
+        .get_epochs_info(Some("100".to_string()), None, None, Network::Testnet)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_get_epochs_info_with_count() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_epochs_info(None, Some(10), None, Network::Testnet).await;
+    let res = client
+        .get_epochs_info(None, Some(10), None, Network::Testnet)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_get_epochs_info_with_ascending() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_epochs_info(None, None, Some(true), Network::Testnet).await;
+    let res = client
+        .get_epochs_info(None, None, Some(true), Network::Testnet)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_get_epochs_info_all_params() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_epochs_info(
-        Some("50".to_string()),
-        Some(20),
-        Some(false),
-        Network::Mainnet
-    ).await;
+    let res = client
+        .get_epochs_info(
+            Some("50".to_string()),
+            Some(20),
+            Some(false),
+            Network::Mainnet,
+        )
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_get_finalized_epoch_infos_no_params() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_finalized_epoch_infos(None, None, None, Network::Testnet).await;
+    let res = client
+        .get_finalized_epoch_infos(None, None, None, Network::Testnet)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_get_finalized_epoch_infos_all_params() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_finalized_epoch_infos(
-        Some("100".to_string()),
-        Some(5),
-        Some(true),
-        Network::Mainnet
-    ).await;
+    let res = client
+        .get_finalized_epoch_infos(
+            Some("100".to_string()),
+            Some(5),
+            Some(true),
+            Network::Mainnet,
+        )
+        .await;
     assert!(res.is_err());
 }
 
@@ -366,36 +380,40 @@ async fn test_get_total_credits_in_platform_mainnet() {
 #[tokio::test]
 async fn test_get_vote_polls_by_end_date_no_params() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_vote_polls_by_end_date(None, None, Network::Testnet).await;
+    let res = client
+        .get_vote_polls_by_end_date(None, None, Network::Testnet)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_get_vote_polls_by_end_date_with_end_time() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_vote_polls_by_end_date(
-        Some("1700000000000".to_string()),
-        None,
-        Network::Testnet
-    ).await;
+    let res = client
+        .get_vote_polls_by_end_date(Some("1700000000000".to_string()), None, Network::Testnet)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_get_vote_polls_by_end_date_with_limit() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_vote_polls_by_end_date(None, Some(100), Network::Mainnet).await;
+    let res = client
+        .get_vote_polls_by_end_date(None, Some(100), Network::Mainnet)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_get_vote_polls_by_end_date_all_params() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_vote_polls_by_end_date(
-        Some("1700000000000".to_string()),
-        Some(50),
-        Network::Mainnet
-    ).await;
+    let res = client
+        .get_vote_polls_by_end_date(
+            Some("1700000000000".to_string()),
+            Some(50),
+            Network::Mainnet,
+        )
+        .await;
     assert!(res.is_err());
 }
 
@@ -431,35 +449,32 @@ async fn test_get_formatted_epoch_info_mainnet() {
 async fn test_get_epochs_info_invalid_start_epoch_string() {
     let client = DAPIClient::new("https://localhost".to_string());
     // Invalid number string - should parse to None and send Null
-    let res = client.get_epochs_info(
-        Some("not_a_number".to_string()),
-        None,
-        None,
-        Network::Testnet
-    ).await;
+    let res = client
+        .get_epochs_info(
+            Some("not_a_number".to_string()),
+            None,
+            None,
+            Network::Testnet,
+        )
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_get_finalized_epoch_infos_invalid_start_epoch() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_finalized_epoch_infos(
-        Some("invalid".to_string()),
-        None,
-        None,
-        Network::Testnet
-    ).await;
+    let res = client
+        .get_finalized_epoch_infos(Some("invalid".to_string()), None, None, Network::Testnet)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_get_vote_polls_by_end_date_invalid_end_time() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_vote_polls_by_end_date(
-        Some("invalid_time".to_string()),
-        None,
-        Network::Testnet
-    ).await;
+    let res = client
+        .get_vote_polls_by_end_date(Some("invalid_time".to_string()), None, Network::Testnet)
+        .await;
     assert!(res.is_err());
 }
 

@@ -1,10 +1,10 @@
 // src-tauri/src/commands/license_commands/tests.rs
 
 use super::*;
-use serde_json::Value;
-use std::sync::Mutex;
-use std::collections::HashMap;
 use crate::utils::{PersistentStore, StoreError};
+use serde_json::Value;
+use std::collections::HashMap;
+use std::sync::Mutex;
 
 struct MockStore {
     storage: Mutex<HashMap<String, Value>>,
@@ -29,7 +29,9 @@ impl PersistentStore for MockStore {
 
 #[test]
 fn test_license_lifecycle_pure() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
     let identity_id = "test_identity_id".to_string();
 
     let license = ILicense {
@@ -44,8 +46,7 @@ fn test_license_lifecycle_pure() {
 
     save_license_logic(&store, license.clone()).expect("Failed to save license");
 
-    let loaded = load_license_logic(&store, identity_id.clone())
-        .expect("Failed to load license");
+    let loaded = load_license_logic(&store, identity_id.clone()).expect("Failed to load license");
 
     assert!(loaded.is_some());
     assert_eq!(loaded.unwrap().identity_id, identity_id);
@@ -57,7 +58,9 @@ fn test_license_lifecycle_pure() {
 
 #[test]
 fn test_save_license_creates_map_if_missing() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let license = ILicense {
         success: true,
@@ -80,7 +83,9 @@ fn test_save_license_creates_map_if_missing() {
 
 #[test]
 fn test_load_license_empty_store() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let result = load_license_logic(&store, "any_identity".to_string()).unwrap();
     assert!(result.is_none());
@@ -88,7 +93,9 @@ fn test_load_license_empty_store() {
 
 #[test]
 fn test_load_license_non_existent_identity() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     // Save a license for one identity
     let license = ILicense {
@@ -110,7 +117,9 @@ fn test_load_license_non_existent_identity() {
 
 #[test]
 fn test_save_multiple_licenses() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let license1 = ILicense {
         success: true,
@@ -135,8 +144,12 @@ fn test_save_multiple_licenses() {
     save_license_logic(&store, license1.clone()).unwrap();
     save_license_logic(&store, license2.clone()).unwrap();
 
-    let loaded1 = load_license_logic(&store, "identity_1".to_string()).unwrap().unwrap();
-    let loaded2 = load_license_logic(&store, "identity_2".to_string()).unwrap().unwrap();
+    let loaded1 = load_license_logic(&store, "identity_1".to_string())
+        .unwrap()
+        .unwrap();
+    let loaded2 = load_license_logic(&store, "identity_2".to_string())
+        .unwrap()
+        .unwrap();
 
     assert_eq!(loaded1.identity_id, "identity_1");
     assert_eq!(loaded2.identity_id, "identity_2");
@@ -146,7 +159,9 @@ fn test_save_multiple_licenses() {
 
 #[test]
 fn test_update_existing_license() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let original = ILicense {
         success: true,
@@ -172,7 +187,9 @@ fn test_update_existing_license() {
 
     save_license_logic(&store, updated).unwrap();
 
-    let loaded = load_license_logic(&store, "update_test".to_string()).unwrap().unwrap();
+    let loaded = load_license_logic(&store, "update_test".to_string())
+        .unwrap()
+        .unwrap();
     assert_eq!(loaded.txid, "updated_tx");
     assert!(loaded.is_premium);
     assert_eq!(loaded.expires_at, "2100000000");
@@ -180,7 +197,9 @@ fn test_update_existing_license() {
 
 #[test]
 fn test_delete_license_from_multiple() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let license1 = ILicense {
         success: true,
@@ -207,13 +226,19 @@ fn test_delete_license_from_multiple() {
 
     delete_license_logic(&store, "delete_me".to_string()).unwrap();
 
-    assert!(load_license_logic(&store, "delete_me".to_string()).unwrap().is_none());
-    assert!(load_license_logic(&store, "keep_me".to_string()).unwrap().is_some());
+    assert!(load_license_logic(&store, "delete_me".to_string())
+        .unwrap()
+        .is_none());
+    assert!(load_license_logic(&store, "keep_me".to_string())
+        .unwrap()
+        .is_some());
 }
 
 #[test]
 fn test_delete_license_non_existent() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     // Deleting non-existent should not error
     let result = delete_license_logic(&store, "non_existent".to_string());
@@ -222,7 +247,9 @@ fn test_delete_license_non_existent() {
 
 #[test]
 fn test_license_premium_flag_variants() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let premium = ILicense {
         success: true,
@@ -247,8 +274,12 @@ fn test_license_premium_flag_variants() {
     save_license_logic(&store, premium).unwrap();
     save_license_logic(&store, free).unwrap();
 
-    let loaded_premium = load_license_logic(&store, "premium_user".to_string()).unwrap().unwrap();
-    let loaded_free = load_license_logic(&store, "free_user".to_string()).unwrap().unwrap();
+    let loaded_premium = load_license_logic(&store, "premium_user".to_string())
+        .unwrap()
+        .unwrap();
+    let loaded_free = load_license_logic(&store, "free_user".to_string())
+        .unwrap()
+        .unwrap();
 
     assert!(loaded_premium.is_premium);
     assert!(!loaded_free.is_premium);
@@ -256,7 +287,9 @@ fn test_license_premium_flag_variants() {
 
 #[test]
 fn test_license_success_flag_false() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let failed_license = ILicense {
         success: false,
@@ -270,14 +303,18 @@ fn test_license_success_flag_false() {
 
     save_license_logic(&store, failed_license).unwrap();
 
-    let loaded = load_license_logic(&store, "failed_check".to_string()).unwrap().unwrap();
+    let loaded = load_license_logic(&store, "failed_check".to_string())
+        .unwrap()
+        .unwrap();
     assert!(!loaded.success);
     assert!(!loaded.is_premium);
 }
 
 #[test]
 fn test_license_with_updated_at() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let license = ILicense {
         success: true,
@@ -291,13 +328,17 @@ fn test_license_with_updated_at() {
 
     save_license_logic(&store, license).unwrap();
 
-    let loaded = load_license_logic(&store, "updated_user".to_string()).unwrap().unwrap();
+    let loaded = load_license_logic(&store, "updated_user".to_string())
+        .unwrap()
+        .unwrap();
     assert_eq!(loaded.updated_at, Some("1700005000".to_string()));
 }
 
 #[test]
 fn test_license_empty_strings() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let license = ILicense {
         success: true,
@@ -311,14 +352,18 @@ fn test_license_empty_strings() {
 
     save_license_logic(&store, license).unwrap();
 
-    let loaded = load_license_logic(&store, "empty_fields".to_string()).unwrap().unwrap();
+    let loaded = load_license_logic(&store, "empty_fields".to_string())
+        .unwrap()
+        .unwrap();
     assert_eq!(loaded.txid, "");
     assert_eq!(loaded.created_at, "");
 }
 
 #[test]
 fn test_license_long_identity_id() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let long_id = "a".repeat(100);
     let license = ILicense {
@@ -339,7 +384,9 @@ fn test_license_long_identity_id() {
 
 #[test]
 fn test_license_special_chars_in_txid() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let license = ILicense {
         success: true,
@@ -353,16 +400,22 @@ fn test_license_special_chars_in_txid() {
 
     save_license_logic(&store, license).unwrap();
 
-    let loaded = load_license_logic(&store, "special_chars".to_string()).unwrap().unwrap();
+    let loaded = load_license_logic(&store, "special_chars".to_string())
+        .unwrap()
+        .unwrap();
     assert_eq!(loaded.txid, "tx-123_abc!@#$%");
 }
 
 #[test]
 fn test_load_license_malformed_json_returns_none() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     // Store malformed JSON
-    store.save_value("", "licenses", serde_json::json!("not an object")).unwrap();
+    store
+        .save_value("", "licenses", serde_json::json!("not an object"))
+        .unwrap();
 
     // Should return None instead of error due to unwrap_or(None)
     let result = load_license_logic(&store, "any_id".to_string()).unwrap();

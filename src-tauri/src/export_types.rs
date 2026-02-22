@@ -4,12 +4,11 @@ use specta_typescript::Typescript;
 use tauri_specta::{collect_commands, Builder};
 
 // Import models to register them explicitly
-use evonext::models::{IIdentityData, IAppSettings, IDiscoveredIdentity, ILicense};
 use evonext::commands::{
-    asset_commands, crypto_commands, identity_commands,
+    asset_commands, crypto_commands, dapi_commands, identity_commands, identity_details_commands,
     license_commands, mnemonic_commands, settings_commands,
-    identity_details_commands, dapi_commands,
 };
+use evonext::models::{IAppSettings, IDiscoveredIdentity, IIdentityData, ILicense};
 
 // Import new response types for Specta registration
 use evonext::commands::identity_commands::IActiveIdentityResponse;

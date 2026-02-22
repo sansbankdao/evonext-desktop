@@ -1,11 +1,13 @@
 // src-tauri/src/commands/identity_commands.rs
 
-use crate::identity::{lib as identity_logic, storage};
-use crate::models::{IIdentityData, IIdentityPublicKey, IPrivateKeyEntry, IAnyValue, ICommandResult};
-use crate::utils::{StoreManager, PersistentStore};
-use crate::dapi::client::get_dapi_client;
-use crate::dapi::types::{Network, Identity};
 use crate::cmd_res; // Import the macro from crate root
+use crate::dapi::client::get_dapi_client;
+use crate::dapi::types::{Identity, Network};
+use crate::identity::{lib as identity_logic, storage};
+use crate::models::{
+    IAnyValue, ICommandResult, IIdentityData, IIdentityPublicKey, IPrivateKeyEntry,
+};
+use crate::utils::{PersistentStore, StoreManager};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -20,7 +22,8 @@ impl IdentityMapper {
     /// Maps a frontend payload to the internal Rust IIdentityData structure.
     /// Ensures that public_key_ids are tracked consistently.
     pub fn map_to_identity(payload: ISaveIdentityPayload) -> IIdentityData {
-        let normalized_keys = payload.public_keys
+        let normalized_keys = payload
+            .public_keys
             .iter()
             .enumerate()
             .filter_map(|(i, IAnyValue(v))| {
@@ -37,7 +40,11 @@ impl IdentityMapper {
             identity_idx: payload.identity_idx,
             dpns_username: payload.dpns_username,
             is_authenticated: true,
-            created_at: Some(payload.created_at.unwrap_or_else(|| Utc::now().to_rfc3339())),
+            created_at: Some(
+                payload
+                    .created_at
+                    .unwrap_or_else(|| Utc::now().to_rfc3339()),
+            ),
             public_key_ids: payload.public_key_ids,
         }
     }
@@ -94,18 +101,23 @@ pub async fn discover_and_save_identity_inner<R: Runtime>(
 ) -> Result<IUnifiedCommandResult, String> {
     let client = get_dapi_client();
     let net = Network::from_str(&network).unwrap_or(Network::Testnet);
-    let raw_identities = client.get_identity(identity_id.clone(), net)
+    let raw_identities = client
+        .get_identity(identity_id.clone(), net)
         .await
         .map_err(|e| e.to_string())?;
     let dapi_identity: Identity = serde_json::from_value(
-        raw_identities.first()
+        raw_identities
+            .first()
             .ok_or_else(|| "Identity not found on chain".to_string())?
-            .clone()
-    ).map_err(|e| format!("Failed to parse chain identity: {}", e))?;
-    let dpns_names = client.get_dpns_usernames(identity_id.clone(), net)
+            .clone(),
+    )
+    .map_err(|e| format!("Failed to parse chain identity: {}", e))?;
+    let dpns_names = client
+        .get_dpns_usernames(identity_id.clone(), net)
         .await
         .unwrap_or_default();
-    let username = dpns_names.first()
+    let username = dpns_names
+        .first()
         .and_then(|v| v.as_str())
         .unwrap_or("Unknown")
         .to_string();
@@ -114,7 +126,9 @@ pub async fn discover_and_save_identity_inner<R: Runtime>(
         username: username.clone(),
         balance: dapi_identity.balance.clone().unwrap_or_else(|| "0".into()),
         revision: dapi_identity.revision.unwrap_or(0),
-        public_keys: dapi_identity.public_keys.iter()
+        public_keys: dapi_identity
+            .public_keys
+            .iter()
             .map(|pk| IAnyValue(serde_json::to_value(pk).unwrap()))
             .collect(),
         dpns_username: Some(username),
@@ -174,9 +188,10 @@ pub async fn save_identity_logic<S: PersistentStore>(
     // This ensures that connecting to an identity ALWAYS marks it as active,
     // regardless of whether the map was previously empty or populated.
     let active_id = Some(
-        payload.active_identity_id
+        payload
+            .active_identity_id
             .clone()
-            .unwrap_or_else(|| identity_id.clone())
+            .unwrap_or_else(|| identity_id.clone()),
     );
 
     let identity = IdentityMapper::map_to_identity(payload);
@@ -217,10 +232,12 @@ pub fn load_active_identity_logic<S: PersistentStore>(
     let filename = crate::utils::network_file::get_network_file(&network, "identity")?;
 
     // Load the raw JSON value to extract __active_identity_id marker
-    let raw_value = store.load_value(&filename, "identities")
+    let raw_value = store
+        .load_value(&filename, "identities")
         .map_err(|e| e.to_string())?;
 
-    let active_identity_id = raw_value.as_ref()
+    let active_identity_id = raw_value
+        .as_ref()
         .and_then(|v| v.as_object())
         .and_then(|obj| obj.get("__active_identity_id"))
         .and_then(|v| v.as_str())
@@ -235,7 +252,8 @@ pub fn load_active_identity_logic<S: PersistentStore>(
     let identity_count = map.len() as u32;
 
     // Look up the active identity data
-    let identity = active_identity_id.as_ref()
+    let identity = active_identity_id
+        .as_ref()
         .and_then(|id| map.get(id))
         .cloned();
 
@@ -292,7 +310,8 @@ pub async fn delete_identity_inner<R: Runtime>(
         Ok(false)
     } else {
         let filename = crate::utils::network_file::get_network_file(&network, "identity")?;
-        manager.delete_value(&filename, "identities")
+        manager
+            .delete_value(&filename, "identities")
             .map(|_| true)
             .map_err(|e| e.to_string())
     }
@@ -344,10 +363,7 @@ pub async fn save_keys_inner<R: Runtime>(
 }
 #[tauri::command]
 #[specta::specta]
-pub async fn load_keystore(
-    app: tauri::AppHandle,
-    network: String,
-) -> ICommandResult<IAnyValue> {
+pub async fn load_keystore(app: tauri::AppHandle, network: String) -> ICommandResult<IAnyValue> {
     cmd_res!(load_keystore_inner(app, network).await)
 }
 pub async fn load_keystore_inner<R: Runtime>(

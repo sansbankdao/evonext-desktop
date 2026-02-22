@@ -34,7 +34,9 @@ async fn test_resolve_dpns_name_path() {
     let client = DAPIClient::new("https://localhost".to_string());
 
     // Verify that the async path for resolution compiles and initiates a request
-    let res = client.resolve_dpns_name("tester".into(), Network::Testnet).await;
+    let res = client
+        .resolve_dpns_name("tester".into(), Network::Testnet)
+        .await;
 
     // Expected to fail in test environment without network, but verifies logic flow
     assert!(res.is_err());
@@ -175,14 +177,23 @@ fn test_normalize_dpns_username_lowercase() {
 
 #[test]
 fn test_normalize_dpns_username_preserves_hyphen() {
-    assert_eq!(DAPIClient::normalize_dpns_username("Alice-Bob"), "alice-bob");
-    assert_eq!(DAPIClient::normalize_dpns_username("USER-NAME-123"), "user-name-123");
+    assert_eq!(
+        DAPIClient::normalize_dpns_username("Alice-Bob"),
+        "alice-bob"
+    );
+    assert_eq!(
+        DAPIClient::normalize_dpns_username("USER-NAME-123"),
+        "user-name-123"
+    );
 }
 
 #[test]
 fn test_normalize_dpns_username_preserves_numbers() {
     assert_eq!(DAPIClient::normalize_dpns_username("User123"), "user123");
-    assert_eq!(DAPIClient::normalize_dpns_username("ABC123XYZ"), "abc123xyz");
+    assert_eq!(
+        DAPIClient::normalize_dpns_username("ABC123XYZ"),
+        "abc123xyz"
+    );
 }
 
 #[test]
@@ -193,7 +204,10 @@ fn test_normalize_dpns_username_empty() {
 #[test]
 fn test_normalize_dpns_username_already_lowercase() {
     assert_eq!(DAPIClient::normalize_dpns_username("already"), "already");
-    assert_eq!(DAPIClient::normalize_dpns_username("lower-case"), "lower-case");
+    assert_eq!(
+        DAPIClient::normalize_dpns_username("lower-case"),
+        "lower-case"
+    );
 }
 
 // ==================== DAPIClient Method Tests ====================
@@ -201,56 +215,72 @@ fn test_normalize_dpns_username_already_lowercase() {
 #[tokio::test]
 async fn test_resolve_dpns_name_testnet() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.resolve_dpns_name("testuser".to_string(), Network::Testnet).await;
+    let res = client
+        .resolve_dpns_name("testuser".to_string(), Network::Testnet)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_resolve_dpns_name_mainnet() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.resolve_dpns_name("testuser".to_string(), Network::Mainnet).await;
+    let res = client
+        .resolve_dpns_name("testuser".to_string(), Network::Mainnet)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_get_dpns_username_testnet() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_dpns_username("identity_123".to_string(), Network::Testnet).await;
+    let res = client
+        .get_dpns_username("identity_123".to_string(), Network::Testnet)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_get_dpns_username_mainnet() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_dpns_username("identity_456".to_string(), Network::Mainnet).await;
+    let res = client
+        .get_dpns_username("identity_456".to_string(), Network::Mainnet)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_get_dpns_usernames_single() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_dpns_usernames("identity_789".to_string(), Network::Testnet).await;
+    let res = client
+        .get_dpns_usernames("identity_789".to_string(), Network::Testnet)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_search_dpns_names_no_limit() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.search_dpns_names("alice".to_string(), Network::Testnet, None).await;
+    let res = client
+        .search_dpns_names("alice".to_string(), Network::Testnet, None)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_search_dpns_names_with_limit() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.search_dpns_names("bob".to_string(), Network::Testnet, Some(10)).await;
+    let res = client
+        .search_dpns_names("bob".to_string(), Network::Testnet, Some(10))
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_search_dpns_names_mainnet() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.search_dpns_names("user".to_string(), Network::Mainnet, Some(25)).await;
+    let res = client
+        .search_dpns_names("user".to_string(), Network::Mainnet, Some(25))
+        .await;
     assert!(res.is_err());
 }
 
@@ -260,7 +290,9 @@ async fn test_check_dpns_availability_returns_error_on_network_failure() {
     // When network fails, resolve_dpns_name returns an error
     // check_dpns_availability catches DAPIError::APIFailed and returns Ok(true)
     // but other errors (like RequestFailed) propagate as Err
-    let res = client.check_dpns_availability("some_name".to_string(), Network::Testnet).await;
+    let res = client
+        .check_dpns_availability("some_name".to_string(), Network::Testnet)
+        .await;
     // Network failure is not DAPIError::APIFailed, so it should be Err
     assert!(res.is_err());
 }
@@ -268,7 +300,9 @@ async fn test_check_dpns_availability_returns_error_on_network_failure() {
 #[tokio::test]
 async fn test_get_dpns_domain_info_testnet() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_dpns_domain_info("somedomain".to_string(), Network::Testnet).await;
+    let res = client
+        .get_dpns_domain_info("somedomain".to_string(), Network::Testnet)
+        .await;
     // Should fail due to network
     assert!(res.is_err());
 }
@@ -276,14 +310,18 @@ async fn test_get_dpns_domain_info_testnet() {
 #[tokio::test]
 async fn test_get_dpns_domain_info_mainnet() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_dpns_domain_info("anotherdomain".to_string(), Network::Mainnet).await;
+    let res = client
+        .get_dpns_domain_info("anotherdomain".to_string(), Network::Mainnet)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_batch_get_dpns_domains_empty() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.batch_get_dpns_domains(vec![], Network::Testnet).await;
+    let res = client
+        .batch_get_dpns_domains(vec![], Network::Testnet)
+        .await;
     // Should succeed with empty result since loop doesn't execute
     assert!(res.is_ok());
     assert!(res.unwrap().is_empty());
@@ -292,7 +330,9 @@ async fn test_batch_get_dpns_domains_empty() {
 #[tokio::test]
 async fn test_batch_get_dpns_domains_single() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.batch_get_dpns_domains(vec!["id_1".to_string()], Network::Testnet).await;
+    let res = client
+        .batch_get_dpns_domains(vec!["id_1".to_string()], Network::Testnet)
+        .await;
     assert!(res.is_ok());
     // Should be empty since network fails and error is swallowed
     assert!(res.unwrap().is_empty());
@@ -301,10 +341,12 @@ async fn test_batch_get_dpns_domains_single() {
 #[tokio::test]
 async fn test_batch_get_dpns_domains_multiple() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.batch_get_dpns_domains(
-        vec!["id_1".to_string(), "id_2".to_string(), "id_3".to_string()],
-        Network::Testnet
-    ).await;
+    let res = client
+        .batch_get_dpns_domains(
+            vec!["id_1".to_string(), "id_2".to_string(), "id_3".to_string()],
+            Network::Testnet,
+        )
+        .await;
     assert!(res.is_ok());
     assert!(res.unwrap().is_empty());
 }
@@ -312,21 +354,27 @@ async fn test_batch_get_dpns_domains_multiple() {
 #[tokio::test]
 async fn test_get_dpns_username_empty_string() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.get_dpns_username("".to_string(), Network::Testnet).await;
+    let res = client
+        .get_dpns_username("".to_string(), Network::Testnet)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_resolve_dpns_name_empty_string() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.resolve_dpns_name("".to_string(), Network::Testnet).await;
+    let res = client
+        .resolve_dpns_name("".to_string(), Network::Testnet)
+        .await;
     assert!(res.is_err());
 }
 
 #[tokio::test]
 async fn test_search_dpns_names_empty_prefix() {
     let client = DAPIClient::new("https://localhost".to_string());
-    let res = client.search_dpns_names("".to_string(), Network::Testnet, Some(10)).await;
+    let res = client
+        .search_dpns_names("".to_string(), Network::Testnet, Some(10))
+        .await;
     assert!(res.is_err());
 }
 
@@ -334,6 +382,8 @@ async fn test_search_dpns_names_empty_prefix() {
 async fn test_search_dpns_names_long_prefix() {
     let client = DAPIClient::new("https://localhost".to_string());
     let long_prefix = "a".repeat(100);
-    let res = client.search_dpns_names(long_prefix, Network::Testnet, Some(10)).await;
+    let res = client
+        .search_dpns_names(long_prefix, Network::Testnet, Some(10))
+        .await;
     assert!(res.is_err());
 }

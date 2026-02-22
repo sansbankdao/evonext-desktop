@@ -7,17 +7,20 @@ use serde_json::{json, Value};
 use std::cell::RefCell;
 use std::collections::HashMap;
 /// A manual mock of PersistentStore with named fields and correct trait signatures.
-struct MockStore { data: RefCell<HashMap<(String, String), Value>>,
+struct MockStore {
+    data: RefCell<HashMap<(String, String), Value>>,
     should_fail: bool,
 }
 impl MockStore {
     fn new() -> Self {
-        Self { data: RefCell::new(HashMap::new()),
+        Self {
+            data: RefCell::new(HashMap::new()),
             should_fail: false,
         }
     }
     fn with_error() -> Self {
-        Self { data: RefCell::new(HashMap::new()),
+        Self {
+            data: RefCell::new(HashMap::new()),
             should_fail: true,
         }
     }
@@ -28,7 +31,9 @@ impl PersistentStore for MockStore {
             return Err(StoreError::Store("Mock Error".to_string()));
         }
         let storage = self.data.borrow();
-        Ok(storage.get(&(file_path.to_string(), key.to_string())).cloned())
+        Ok(storage
+            .get(&(file_path.to_string(), key.to_string()))
+            .cloned())
     }
     fn save_value(&self, file_path: &str, key: &str, value: Value) -> Result<(), StoreError> {
         if self.should_fail {
@@ -92,8 +97,7 @@ fn test_identity_storage_roundtrip_logic() {
     map.insert("test_id".to_string(), data);
     save_identity_map_internal(&store, network, &map, Some("test_id".to_string()))
         .expect("Save failed");
-    let loaded_map = load_identity_map_internal(&store, network)
-        .expect("Load failed");
+    let loaded_map = load_identity_map_internal(&store, network).expect("Load failed");
     assert_eq!(loaded_map.len(), 1);
     assert!(loaded_map.contains_key("test_id"));
     assert_eq!(loaded_map.get("test_id").unwrap().username, "test_user");
@@ -168,7 +172,10 @@ fn test_active_marker_written_on_save() {
     let filename = crate::utils::network_file::get_network_file(network, "identity").unwrap();
     let raw = store.load_value(&filename, "identities").unwrap().unwrap();
     let marker = raw.as_object().unwrap().get("__active_identity_id");
-    assert!(marker.is_some(), "__active_identity_id must be present in saved data");
+    assert!(
+        marker.is_some(),
+        "__active_identity_id must be present in saved data"
+    );
     assert_eq!(marker.unwrap().as_str().unwrap(), "active_id");
 }
 
@@ -199,14 +206,16 @@ fn test_active_marker_preserved_when_none_passed() {
         ..Default::default()
     };
     map2.insert("first_id".to_string(), data2);
-    save_identity_map_internal(&store, network, &map2, None)
-        .expect("Second save failed");
+    save_identity_map_internal(&store, network, &map2, None).expect("Second save failed");
 
     // Verify: __active_identity_id must still be "first_id"
     let filename = crate::utils::network_file::get_network_file(network, "identity").unwrap();
     let raw = store.load_value(&filename, "identities").unwrap().unwrap();
     let marker = raw.as_object().unwrap().get("__active_identity_id");
-    assert!(marker.is_some(), "__active_identity_id must be preserved on save with None");
+    assert!(
+        marker.is_some(),
+        "__active_identity_id must be preserved on save with None"
+    );
     assert_eq!(marker.unwrap().as_str().unwrap(), "first_id");
 
     // Also verify the data was actually updated
@@ -222,20 +231,26 @@ fn test_active_marker_overwritten_with_explicit_value() {
 
     // First save: set active to "id_a"
     let mut map = HashMap::new();
-    map.insert("id_a".to_string(), IIdentityData {
-        identity_id: "id_a".to_string(),
-        username: "alice".to_string(),
-        ..Default::default()
-    });
+    map.insert(
+        "id_a".to_string(),
+        IIdentityData {
+            identity_id: "id_a".to_string(),
+            username: "alice".to_string(),
+            ..Default::default()
+        },
+    );
     save_identity_map_internal(&store, network, &map, Some("id_a".to_string()))
         .expect("First save failed");
 
     // Second save: explicitly switch active to "id_b"
-    map.insert("id_b".to_string(), IIdentityData {
-        identity_id: "id_b".to_string(),
-        username: "bob".to_string(),
-        ..Default::default()
-    });
+    map.insert(
+        "id_b".to_string(),
+        IIdentityData {
+            identity_id: "id_b".to_string(),
+            username: "bob".to_string(),
+            ..Default::default()
+        },
+    );
     save_identity_map_internal(&store, network, &map, Some("id_b".to_string()))
         .expect("Second save failed");
 
@@ -279,11 +294,14 @@ fn test_load_active_marker_internal_reads_from_file() {
 
     // Save with active marker
     let mut map = HashMap::new();
-    map.insert("test_id".to_string(), IIdentityData {
-        identity_id: "test_id".to_string(),
-        username: "user".to_string(),
-        ..Default::default()
-    });
+    map.insert(
+        "test_id".to_string(),
+        IIdentityData {
+            identity_id: "test_id".to_string(),
+            username: "user".to_string(),
+            ..Default::default()
+        },
+    );
     save_identity_map_internal(&store, network, &map, Some("test_id".to_string()))
         .expect("Save failed");
 
@@ -307,11 +325,14 @@ fn test_clear_active_marker_internal_removes_marker() {
 
     // Save with active marker
     let mut map = HashMap::new();
-    map.insert("test_id".to_string(), IIdentityData {
-        identity_id: "test_id".to_string(),
-        username: "user".to_string(),
-        ..Default::default()
-    });
+    map.insert(
+        "test_id".to_string(),
+        IIdentityData {
+            identity_id: "test_id".to_string(),
+            username: "user".to_string(),
+            ..Default::default()
+        },
+    );
     save_identity_map_internal(&store, network, &map, Some("test_id".to_string()))
         .expect("Save failed");
 
@@ -340,32 +361,35 @@ fn test_multiple_saves_with_none_never_drop_marker() {
     let network = "testnet";
 
     let mut map = HashMap::new();
-    map.insert("persistent_id".to_string(), IIdentityData {
-        identity_id: "persistent_id".to_string(),
-        username: "user".to_string(),
-        ..Default::default()
-    });
+    map.insert(
+        "persistent_id".to_string(),
+        IIdentityData {
+            identity_id: "persistent_id".to_string(),
+            username: "user".to_string(),
+            ..Default::default()
+        },
+    );
 
     // Save 1: set marker
     save_identity_map_internal(&store, network, &map, Some("persistent_id".to_string()))
         .expect("Save 1 failed");
 
     // Save 2: None (simulates save_keys_logic reading/writing)
-    save_identity_map_internal(&store, network, &map, None)
-        .expect("Save 2 failed");
+    save_identity_map_internal(&store, network, &map, None).expect("Save 2 failed");
 
     // Save 3: None again (simulates update_identity_with_sdk_data)
-    save_identity_map_internal(&store, network, &map, None)
-        .expect("Save 3 failed");
+    save_identity_map_internal(&store, network, &map, None).expect("Save 3 failed");
 
     // Save 4: None yet again (simulates any other update)
-    save_identity_map_internal(&store, network, &map, None)
-        .expect("Save 4 failed");
+    save_identity_map_internal(&store, network, &map, None).expect("Save 4 failed");
 
     // After 4 saves, 3 with None, the marker MUST still be present
     let filename = crate::utils::network_file::get_network_file(network, "identity").unwrap();
     let raw = store.load_value(&filename, "identities").unwrap().unwrap();
     let marker = raw.as_object().unwrap().get("__active_identity_id");
-    assert!(marker.is_some(), "Active marker must survive multiple saves with None");
+    assert!(
+        marker.is_some(),
+        "Active marker must survive multiple saves with None"
+    );
     assert_eq!(marker.unwrap().as_str().unwrap(), "persistent_id");
 }

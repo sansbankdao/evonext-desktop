@@ -11,15 +11,9 @@ fn test_handle_menu_logic_execution_pure() {
         MenuAction::Navigate("/about".into())
     );
 
-    assert_eq!(
-        determine_action(&MenuId::new("exit")),
-        MenuAction::Exit
-    );
+    assert_eq!(determine_action(&MenuId::new("exit")), MenuAction::Exit);
 
-    assert_eq!(
-        determine_action(&MenuId::new("unknown")),
-        MenuAction::None
-    );
+    assert_eq!(determine_action(&MenuId::new("unknown")), MenuAction::None);
 }
 
 // ==================== Navigation Menu Items Tests ====================
@@ -116,28 +110,19 @@ fn test_menu_plus() {
 
 #[test]
 fn test_menu_exit() {
-    assert_eq!(
-        determine_action(&MenuId::new("exit")),
-        MenuAction::Exit
-    );
+    assert_eq!(determine_action(&MenuId::new("exit")), MenuAction::Exit);
 }
 
 #[test]
 fn test_menu_quit() {
-    assert_eq!(
-        determine_action(&MenuId::new("quit")),
-        MenuAction::Exit
-    );
+    assert_eq!(determine_action(&MenuId::new("quit")), MenuAction::Exit);
 }
 
 // ==================== Unknown Menu Items Tests ====================
 
 #[test]
 fn test_menu_unknown_empty() {
-    assert_eq!(
-        determine_action(&MenuId::new("")),
-        MenuAction::None
-    );
+    assert_eq!(determine_action(&MenuId::new("")), MenuAction::None);
 }
 
 #[test]
@@ -151,14 +136,8 @@ fn test_menu_unknown_random() {
 #[test]
 fn test_menu_unknown_case_sensitive() {
     // Menu IDs are case-sensitive
-    assert_eq!(
-        determine_action(&MenuId::new("About")),
-        MenuAction::None
-    );
-    assert_eq!(
-        determine_action(&MenuId::new("EXIT")),
-        MenuAction::None
-    );
+    assert_eq!(determine_action(&MenuId::new("About")), MenuAction::None);
+    assert_eq!(determine_action(&MenuId::new("EXIT")), MenuAction::None);
 }
 
 // ==================== MenuAction Tests ====================
@@ -211,19 +190,13 @@ fn test_menu_special_characters_in_id() {
 
 #[test]
 fn test_menu_numeric_id() {
-    assert_eq!(
-        determine_action(&MenuId::new("123")),
-        MenuAction::None
-    );
+    assert_eq!(determine_action(&MenuId::new("123")), MenuAction::None);
 }
 
 #[test]
 fn test_menu_long_id() {
     let long_id = "a".repeat(100);
-    assert_eq!(
-        determine_action(&MenuId::new(&long_id)),
-        MenuAction::None
-    );
+    assert_eq!(determine_action(&MenuId::new(&long_id)), MenuAction::None);
 }
 
 #[test]

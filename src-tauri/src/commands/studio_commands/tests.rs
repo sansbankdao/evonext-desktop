@@ -57,8 +57,12 @@ async fn test_ask_vibe_terminal_inner_success() {
     let mut server = mockito::Server::new_async().await;
 
     // Create the mock using async method
-    let mock = server.mock("POST", "/v1/studio/domino")
-        .match_header("authorization", "Bearer 5d719800-2ac3-4f73-a47a-21cd8304640e")
+    let mock = server
+        .mock("POST", "/v1/studio/domino")
+        .match_header(
+            "authorization",
+            "Bearer 5d719800-2ac3-4f73-a47a-21cd8304640e",
+        )
         .match_body(mockito::Matcher::Json(json!({
             "convoid": "test-convo",
             "context": "test-context",
@@ -66,14 +70,17 @@ async fn test_ask_vibe_terminal_inner_success() {
         })))
         .with_status(200)
         .with_header("content-type", "application/json")
-        .with_body(json!({
-            "result": {
-                "convoid": "test-convo",
-                "model": "test-model",
-                "response": "test-response",
-                "createdAt": "2024-01-01T00:00:00Z"
-            }
-        }).to_string())
+        .with_body(
+            json!({
+                "result": {
+                    "convoid": "test-convo",
+                    "model": "test-model",
+                    "response": "test-response",
+                    "createdAt": "2024-01-01T00:00:00Z"
+                }
+            })
+            .to_string(),
+        )
         .create_async()
         .await;
 
@@ -85,7 +92,8 @@ async fn test_ask_vibe_terminal_inner_success() {
         "test-convo".to_string(),
         "test-context".to_string(),
         "test-prompt".to_string(),
-    ).await;
+    )
+    .await;
 
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), "test-response");
@@ -100,8 +108,12 @@ async fn test_ask_vibe_terminal_inner_error() {
     let mut server = mockito::Server::new_async().await;
 
     // Create the mock using async method - simulate server error
-    let mock = server.mock("POST", "/v1/studio/domino")
-        .match_header("authorization", "Bearer 5d719800-2ac3-4f73-a47a-21cd8304640e")
+    let mock = server
+        .mock("POST", "/v1/studio/domino")
+        .match_header(
+            "authorization",
+            "Bearer 5d719800-2ac3-4f73-a47a-21cd8304640e",
+        )
         .match_body(mockito::Matcher::Json(json!({
             "convoid": "test-convo",
             "context": "test-context",
@@ -121,7 +133,8 @@ async fn test_ask_vibe_terminal_inner_error() {
         "test-convo".to_string(),
         "test-context".to_string(),
         "test-prompt".to_string(),
-    ).await;
+    )
+    .await;
 
     assert!(result.is_err());
     // Verify the mock was called
@@ -136,7 +149,8 @@ async fn test_ask_vibe_terminal_inner_network_error() {
         "test-convo".to_string(),
         "test-context".to_string(),
         "test-prompt".to_string(),
-    ).await;
+    )
+    .await;
 
     assert!(result.is_err());
     // Should fail due to connection error

@@ -1,10 +1,10 @@
 // src-tauri/src/commands/dapi_commands.rs
 
-use crate::dapi::client::{get_dapi_client, MethodParamInfo, params_array_to_object};
-use crate::dapi::types::Network;
-use crate::models::{ICommandResult};
 use crate::cmd_res;
-use serde::{Serialize, Deserialize};
+use crate::dapi::client::{get_dapi_client, params_array_to_object, MethodParamInfo};
+use crate::dapi::types::Network;
+use crate::models::ICommandResult;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use specta::Type;
 use std::collections::HashMap;
@@ -43,14 +43,16 @@ pub struct DapiIdentityResponse {
 }
 
 fn extract_first_as_response(res: Vec<Value>) -> Result<DapiIdentityResponse, String> {
-    let first = res.get(0)
+    let first = res
+        .get(0)
         .ok_or_else(|| "DAPI returned an empty result".to_string())?;
 
     // Handle error responses (success: false)
     if let Some(success) = first.get("success") {
         if success == false {
             // Extract error message if available
-            let error_msg = first.get("error")
+            let error_msg = first
+                .get("error")
                 .and_then(|e| e.as_str())
                 .unwrap_or("DAPI returned success=false");
             return Err(format!("DAPI error: {}", error_msg));
@@ -112,7 +114,9 @@ fn purpose_code_to_string(code: u8) -> String {
 
 /// Parse network string into Network enum, defaulting to Testnet.
 fn parse_network(network: Option<String>) -> Network {
-    network.and_then(|val| Network::from_str(&val)).unwrap_or(Network::Testnet)
+    network
+        .and_then(|val| Network::from_str(&val))
+        .unwrap_or(Network::Testnet)
 }
 
 #[tauri::command]
@@ -120,10 +124,15 @@ fn parse_network(network: Option<String>) -> Network {
 pub async fn get_identity_by_public_key_hash(
     _app: tauri::AppHandle,
     public_key_hash: String,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<DapiIdentityResponse> {
-    println!("[RUST DEBUG] get_identity_by_public_key_hash called: hash={}, network={:?}", public_key_hash, network);
-    cmd_res!(get_identity_by_public_key_hash_inner(get_dapi_client(), public_key_hash, network).await)
+    println!(
+        "[RUST DEBUG] get_identity_by_public_key_hash called: hash={}, network={:?}",
+        public_key_hash, network
+    );
+    cmd_res!(
+        get_identity_by_public_key_hash_inner(get_dapi_client(), public_key_hash, network).await
+    )
 }
 
 pub(crate) async fn get_identity_by_public_key_hash_inner(
@@ -132,12 +141,18 @@ pub(crate) async fn get_identity_by_public_key_hash_inner(
     network: Option<String>,
 ) -> Result<DapiIdentityResponse, String> {
     let n = parse_network(network);
-    let res = client.request::<Value>(
-        "get_identity_by_public_key_hash".to_string(),
-        vec![json!(public_key_hash)],
-        n
-    ).await.map_err(|e| e.to_string())?;
-    println!("[RUST DEBUG] get_identity_by_public_key_hash raw response: {:?}", res);
+    let res = client
+        .request::<Value>(
+            "get_identity_by_public_key_hash".to_string(),
+            vec![json!(public_key_hash)],
+            n,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+    println!(
+        "[RUST DEBUG] get_identity_by_public_key_hash raw response: {:?}",
+        res
+    );
     extract_first_as_response(res)
 }
 
@@ -146,11 +161,22 @@ pub(crate) async fn get_identity_by_public_key_hash_inner(
 pub async fn get_identity_by_non_unique_public_key_hash(
     _app: tauri::AppHandle,
     public_key_hash: String,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<DapiIdentityResponse> {
-    println!("[RUST DEBUG] get_identity_by_non_unique_public_key_hash START: hash={}, network={:?}", public_key_hash, network);
-    let result = get_identity_by_non_unique_public_key_hash_inner(get_dapi_client(), public_key_hash, network).await;
-    println!("[RUST DEBUG] get_identity_by_non_unique_public_key_hash END: result={:?}", result);
+    println!(
+        "[RUST DEBUG] get_identity_by_non_unique_public_key_hash START: hash={}, network={:?}",
+        public_key_hash, network
+    );
+    let result = get_identity_by_non_unique_public_key_hash_inner(
+        get_dapi_client(),
+        public_key_hash,
+        network,
+    )
+    .await;
+    println!(
+        "[RUST DEBUG] get_identity_by_non_unique_public_key_hash END: result={:?}",
+        result
+    );
     cmd_res!(result)
 }
 
@@ -162,14 +188,17 @@ pub(crate) async fn get_identity_by_non_unique_public_key_hash_inner(
     let n = parse_network(network.clone());
     println!("[RUST DEBUG] Using network: {:?}", n);
     println!("[RUST DEBUG] Calling DAPI with method: get_identity_by_non_unique_public_key_hash");
-    let res = client.request::<Value>(
-        "get_identity_by_non_unique_public_key_hash".to_string(),
-        vec![json!(public_key_hash)],
-        n
-    ).await.map_err(|e| {
-        println!("[RUST DEBUG] DAPI request error: {}", e);
-        e.to_string()
-    })?;
+    let res = client
+        .request::<Value>(
+            "get_identity_by_non_unique_public_key_hash".to_string(),
+            vec![json!(public_key_hash)],
+            n,
+        )
+        .await
+        .map_err(|e| {
+            println!("[RUST DEBUG] DAPI request error: {}", e);
+            e.to_string()
+        })?;
 
     println!("[RUST DEBUG] DAPI raw response: {:?}", res);
 
@@ -184,7 +213,7 @@ pub(crate) async fn get_identity_by_non_unique_public_key_hash_inner(
 pub async fn get_identity_info(
     _app: tauri::AppHandle,
     identity_id: String,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<DapiIdentityResponse> {
     cmd_res!(get_identity_info_inner(get_dapi_client(), identity_id, network).await)
 }
@@ -195,11 +224,10 @@ pub(crate) async fn get_identity_info_inner(
     network: Option<String>,
 ) -> Result<DapiIdentityResponse, String> {
     let n = parse_network(network);
-    let res = client.request::<Value>(
-        "get_identity".to_string(),
-        vec![json!(identity_id)],
-        n
-    ).await.map_err(|e| e.to_string())?;
+    let res = client
+        .request::<Value>("get_identity".to_string(), vec![json!(identity_id)], n)
+        .await
+        .map_err(|e| e.to_string())?;
     extract_first_as_response(res)
 }
 
@@ -208,7 +236,7 @@ pub(crate) async fn get_identity_info_inner(
 pub async fn get_identity_by_id(
     _app: tauri::AppHandle,
     identity_id: String,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<Value> {
     cmd_res!(get_identity_by_id_inner(get_dapi_client(), identity_id, network).await)
 }
@@ -219,7 +247,8 @@ pub(crate) async fn get_identity_by_id_inner(
     network: Option<String>,
 ) -> Result<Value, String> {
     let n = parse_network(network);
-    client.request::<Value>("get_identity".to_string(), vec![json!(identity_id)], n)
+    client
+        .request::<Value>("get_identity".to_string(), vec![json!(identity_id)], n)
         .await
         .map(|v| json!(v))
         .map_err(|e| e.to_string())
@@ -230,7 +259,7 @@ pub(crate) async fn get_identity_by_id_inner(
 pub async fn get_dpns_username(
     _app: tauri::AppHandle,
     identity_id: String,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<Option<String>> {
     cmd_res!(get_dpns_username_inner(get_dapi_client(), identity_id, network).await)
 }
@@ -253,7 +282,7 @@ pub async fn dapi_request_array(
     _app: tauri::AppHandle,
     method: String,
     params_array: Vec<Value>,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<Vec<Value>> {
     cmd_res!(dapi_request_array_inner(get_dapi_client(), method, params_array, network).await)
 }
@@ -265,9 +294,10 @@ pub(crate) async fn dapi_request_array_inner(
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let n = parse_network(network);
-    let _validated_params = params_array_to_object(&method, params_array.clone())
-        .map_err(|e| e.to_string())?;
-    client.request::<Value>(method, params_array, n)
+    let _validated_params =
+        params_array_to_object(&method, params_array.clone()).map_err(|e| e.to_string())?;
+    client
+        .request::<Value>(method, params_array, n)
         .await
         .map_err(|e| e.to_string())
 }
@@ -278,7 +308,7 @@ pub async fn get_token_balances(
     _app: tauri::AppHandle,
     identity_id: String,
     token_ids: Vec<String>,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<Vec<Value>> {
     cmd_res!(get_token_balances_inner(get_dapi_client(), identity_id, token_ids, network).await)
 }
@@ -290,7 +320,10 @@ pub(crate) async fn get_token_balances_inner(
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let n = parse_network(network);
-    client.get_identity_token_balances(identity_id, token_ids, n).await.map_err(|e| e.to_string())
+    client
+        .get_identity_token_balances(identity_id, token_ids, n)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -298,7 +331,7 @@ pub(crate) async fn get_token_balances_inner(
 pub async fn resolve_dpns_name(
     _app: tauri::AppHandle,
     username: String,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<Vec<Value>> {
     cmd_res!(resolve_dpns_name_inner(get_dapi_client(), username, network).await)
 }
@@ -309,14 +342,17 @@ pub(crate) async fn resolve_dpns_name_inner(
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let n = parse_network(network);
-    client.resolve_dpns_name(username, n).await.map_err(|e| e.to_string())
+    client
+        .resolve_dpns_name(username, n)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn get_platform_status(
     _app: tauri::AppHandle,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<Vec<Value>> {
     cmd_res!(get_platform_status_inner(get_dapi_client(), network).await)
 }
@@ -326,7 +362,10 @@ pub(crate) async fn get_platform_status_inner(
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let n = parse_network(network);
-    client.request::<Value>("get_status".to_string(), vec![], n).await.map_err(|e| e.to_string())
+    client
+        .request::<Value>("get_status".to_string(), vec![], n)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -334,7 +373,7 @@ pub(crate) async fn get_platform_status_inner(
 pub async fn get_identities_balances(
     _app: tauri::AppHandle,
     identity_ids: Vec<String>,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<Vec<Value>> {
     cmd_res!(get_identities_balances_inner(get_dapi_client(), identity_ids, network).await)
 }
@@ -345,7 +384,14 @@ pub(crate) async fn get_identities_balances_inner(
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let n = parse_network(network);
-    client.request::<Value>("get_identities_balances".to_string(), vec![json!(identity_ids)], n).await.map_err(|e| e.to_string())
+    client
+        .request::<Value>(
+            "get_identities_balances".to_string(),
+            vec![json!(identity_ids)],
+            n,
+        )
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -353,7 +399,7 @@ pub(crate) async fn get_identities_balances_inner(
 pub async fn get_data_contract_info(
     _app: tauri::AppHandle,
     contract_id: String,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<Vec<Value>> {
     cmd_res!(get_data_contract_info_inner(get_dapi_client(), contract_id, network).await)
 }
@@ -364,7 +410,14 @@ pub(crate) async fn get_data_contract_info_inner(
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let n = parse_network(network);
-    client.request::<Value>("data_contract_fetch".to_string(), vec![json!(contract_id)], n).await.map_err(|e| e.to_string())
+    client
+        .request::<Value>(
+            "data_contract_fetch".to_string(),
+            vec![json!(contract_id)],
+            n,
+        )
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -372,7 +425,7 @@ pub(crate) async fn get_data_contract_info_inner(
 pub async fn get_token_contract_info(
     _app: tauri::AppHandle,
     contract_id: String,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<Vec<Value>> {
     cmd_res!(get_token_contract_info_inner(get_dapi_client(), contract_id, network).await)
 }
@@ -383,7 +436,14 @@ pub(crate) async fn get_token_contract_info_inner(
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let n = parse_network(network);
-    client.request::<Value>("get_token_contract_info".to_string(), vec![json!(contract_id)], n).await.map_err(|e| e.to_string())
+    client
+        .request::<Value>(
+            "get_token_contract_info".to_string(),
+            vec![json!(contract_id)],
+            n,
+        )
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -391,7 +451,7 @@ pub(crate) async fn get_token_contract_info_inner(
 pub async fn get_token_statuses(
     _app: tauri::AppHandle,
     token_ids: Vec<String>,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<Vec<Value>> {
     cmd_res!(get_token_statuses_inner(get_dapi_client(), token_ids, network).await)
 }
@@ -402,7 +462,10 @@ pub(crate) async fn get_token_statuses_inner(
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let n = parse_network(network);
-    client.request::<Value>("get_token_statuses".to_string(), vec![json!(token_ids)], n).await.map_err(|e| e.to_string())
+    client
+        .request::<Value>("get_token_statuses".to_string(), vec![json!(token_ids)], n)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -410,7 +473,7 @@ pub(crate) async fn get_token_statuses_inner(
 pub async fn get_total_supply(
     _app: tauri::AppHandle,
     token_id: String,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<Vec<Value>> {
     cmd_res!(get_total_supply_inner(get_dapi_client(), token_id, network).await)
 }
@@ -421,14 +484,21 @@ pub(crate) async fn get_total_supply_inner(
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let n = parse_network(network);
-    client.request::<Value>("get_token_total_supply".to_string(), vec![json!(token_id)], n).await.map_err(|e| e.to_string())
+    client
+        .request::<Value>(
+            "get_token_total_supply".to_string(),
+            vec![json!(token_id)],
+            n,
+        )
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn get_current_epoch(
     _app: tauri::AppHandle,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<Vec<Value>> {
     cmd_res!(get_current_epoch_inner(get_dapi_client(), network).await)
 }
@@ -438,14 +508,17 @@ pub(crate) async fn get_current_epoch_inner(
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let n = parse_network(network);
-    client.request::<Value>("get_current_epoch".to_string(), vec![], n).await.map_err(|e| e.to_string())
+    client
+        .request::<Value>("get_current_epoch".to_string(), vec![], n)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn get_total_credits_in_platform(
     _app: tauri::AppHandle,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<Vec<Value>> {
     cmd_res!(get_total_credits_in_platform_inner(get_dapi_client(), network).await)
 }
@@ -455,7 +528,10 @@ pub(crate) async fn get_total_credits_in_platform_inner(
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let n = parse_network(network);
-    client.request::<Value>("get_total_credits_in_platform".to_string(), vec![], n).await.map_err(|e| e.to_string())
+    client
+        .request::<Value>("get_total_credits_in_platform".to_string(), vec![], n)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -486,7 +562,10 @@ pub async fn dapi_request_inner(
         }
     }
     let client = get_dapi_client();
-    client.request::<Value>(method, params_array, current_network).await.map_err(|e| e.to_string())
+    client
+        .request::<Value>(method, params_array, current_network)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -500,7 +579,18 @@ pub async fn get_posts(
     limit: Option<u32>,
     network: Option<String>,
 ) -> ICommandResult<Vec<Value>> {
-    cmd_res!(get_posts_inner(get_dapi_client(), data_contract_id, document_type, where_clause, order_by, limit, network).await)
+    cmd_res!(
+        get_posts_inner(
+            get_dapi_client(),
+            data_contract_id,
+            document_type,
+            where_clause,
+            order_by,
+            limit,
+            network
+        )
+        .await
+    )
 }
 
 pub(crate) async fn get_posts_inner(
@@ -513,7 +603,19 @@ pub(crate) async fn get_posts_inner(
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let n = parse_network(network);
-    client.get_documents(data_contract_id, document_type, n, where_clause, order_by, limit, None, None).await.map_err(|e| e.to_string())
+    client
+        .get_documents(
+            data_contract_id,
+            document_type,
+            n,
+            where_clause,
+            order_by,
+            limit,
+            None,
+            None,
+        )
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -521,7 +623,7 @@ pub(crate) async fn get_posts_inner(
 pub async fn get_identity_balance(
     _app: tauri::AppHandle,
     identity_id: String,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<Vec<Value>> {
     cmd_res!(get_identity_balance_inner(get_dapi_client(), identity_id, network).await)
 }
@@ -532,7 +634,14 @@ pub(crate) async fn get_identity_balance_inner(
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let n = parse_network(network);
-    client.request::<Value>("get_identity_balance".to_string(), vec![json!(identity_id)], n).await.map_err(|e| e.to_string())
+    client
+        .request::<Value>(
+            "get_identity_balance".to_string(),
+            vec![json!(identity_id)],
+            n,
+        )
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -540,7 +649,7 @@ pub(crate) async fn get_identity_balance_inner(
 pub async fn get_dpns_usernames(
     _app: tauri::AppHandle,
     identity_id: String,
-    network: Option<String>
+    network: Option<String>,
 ) -> ICommandResult<Vec<Value>> {
     cmd_res!(get_dpns_usernames_inner(get_dapi_client(), identity_id, network).await)
 }
@@ -551,5 +660,8 @@ pub(crate) async fn get_dpns_usernames_inner(
     network: Option<String>,
 ) -> Result<Vec<Value>, String> {
     let n = parse_network(network);
-    client.get_dpns_usernames(identity_id, n).await.map_err(|e| e.to_string())
+    client
+        .get_dpns_usernames(identity_id, n)
+        .await
+        .map_err(|e| e.to_string())
 }

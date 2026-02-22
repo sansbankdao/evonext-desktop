@@ -1,9 +1,9 @@
 // src-tauri/src/models.rs
 
-use std::collections::HashMap;
-use serde::de::{Unexpected};
+use serde::de::Unexpected;
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
+use std::collections::HashMap;
 
 #[cfg(test)]
 mod tests;
@@ -48,7 +48,10 @@ macro_rules! cmd_res {
 pub struct IAnyValue(pub serde_json::Value);
 
 impl ::specta::Type for IAnyValue {
-    fn inline(_types: &mut ::specta::TypeMap, _generics: ::specta::Generics) -> ::specta::datatype::DataType {
+    fn inline(
+        _types: &mut ::specta::TypeMap,
+        _generics: ::specta::Generics,
+    ) -> ::specta::datatype::DataType {
         ::specta::datatype::DataType::Any
     }
 }
@@ -121,7 +124,9 @@ where
     match NumOrStr::deserialize(deserializer)? {
         NumOrStr::Num(n) => Ok(n),
         NumOrStr::Str(s) => {
-            if s.is_empty() { return Ok(0); }
+            if s.is_empty() {
+                return Ok(0);
+            }
             s.parse::<u32>().map(Ok).unwrap_or_else(|_| {
                 Err(serde::de::Error::invalid_value(Unexpected::Str(&s), &"u32"))
             })
@@ -136,7 +141,9 @@ where
 
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct IMnemonic { pub seed_phrase: String }
+pub struct IMnemonic {
+    pub seed_phrase: String,
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, Type, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]

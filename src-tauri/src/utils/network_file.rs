@@ -33,16 +33,46 @@ mod tests {
 
     #[test]
     fn test_get_network_file_valid() {
-        assert_eq!(get_network_file("mainnet", "assets").unwrap(), ASSETS_MAINNET_FILE);
-        assert_eq!(get_network_file("testnet", "assets").unwrap(), ASSETS_TESTNET_FILE);
-        assert_eq!(get_network_file("mainnet", "safu").unwrap(), SAFU_MAINNET_FILE);
-        assert_eq!(get_network_file("testnet", "safu").unwrap(), SAFU_TESTNET_FILE);
-        assert_eq!(get_network_file("mainnet", "identity").unwrap(), IDENTITY_MAINNET_FILE);
-        assert_eq!(get_network_file("testnet", "identity").unwrap(), IDENTITY_TESTNET_FILE);
-        assert_eq!(get_network_file("mainnet", "mnemonic").unwrap(), SAFU_MAINNET_FILE);
-        assert_eq!(get_network_file("testnet", "mnemonic").unwrap(), SAFU_TESTNET_FILE);
-        assert_eq!(get_network_file("mainnet", "discovered").unwrap(), DISCOVERED_MAINNET_FILE);
-        assert_eq!(get_network_file("testnet", "discovered").unwrap(), DISCOVERED_TESTNET_FILE);
+        assert_eq!(
+            get_network_file("mainnet", "assets").unwrap(),
+            ASSETS_MAINNET_FILE
+        );
+        assert_eq!(
+            get_network_file("testnet", "assets").unwrap(),
+            ASSETS_TESTNET_FILE
+        );
+        assert_eq!(
+            get_network_file("mainnet", "safu").unwrap(),
+            SAFU_MAINNET_FILE
+        );
+        assert_eq!(
+            get_network_file("testnet", "safu").unwrap(),
+            SAFU_TESTNET_FILE
+        );
+        assert_eq!(
+            get_network_file("mainnet", "identity").unwrap(),
+            IDENTITY_MAINNET_FILE
+        );
+        assert_eq!(
+            get_network_file("testnet", "identity").unwrap(),
+            IDENTITY_TESTNET_FILE
+        );
+        assert_eq!(
+            get_network_file("mainnet", "mnemonic").unwrap(),
+            SAFU_MAINNET_FILE
+        );
+        assert_eq!(
+            get_network_file("testnet", "mnemonic").unwrap(),
+            SAFU_TESTNET_FILE
+        );
+        assert_eq!(
+            get_network_file("mainnet", "discovered").unwrap(),
+            DISCOVERED_MAINNET_FILE
+        );
+        assert_eq!(
+            get_network_file("testnet", "discovered").unwrap(),
+            DISCOVERED_TESTNET_FILE
+        );
     }
 
     #[test]

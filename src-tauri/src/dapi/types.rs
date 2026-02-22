@@ -2,10 +2,10 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use specta::Type;
 use std::fmt::Debug;
 use std::str::FromStr;
 use thiserror::Error;
-use specta::Type;
 
 #[cfg(test)]
 mod tests;
@@ -74,7 +74,7 @@ impl DAPIResponse {
         }
 
         Err(DAPIError::DeserializationError(
-            "Could not parse result into expected type".into()
+            "Could not parse result into expected type".into(),
         ))
     }
 }

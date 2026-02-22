@@ -1,9 +1,9 @@
 // src-tauri/src/dapi/client/validation.rs
 
+use crate::dapi::types::DAPIError;
 use serde_json::Value;
 use std::collections::HashMap;
 use tracing::warn;
-use crate::dapi::types::DAPIError;
 
 #[derive(Debug, Clone)]
 pub struct MethodParamInfo {
@@ -108,7 +108,10 @@ impl MethodParamInfo {
     }
 }
 
-pub fn validate_dapi_params(method: &str, params: &HashMap<String, Value>) -> Result<(), DAPIError> {
+pub fn validate_dapi_params(
+    method: &str,
+    params: &HashMap<String, Value>,
+) -> Result<(), DAPIError> {
     let method_info = MethodParamInfo::for_method(method)?;
     for required_param in &method_info.required_params {
         if !params.contains_key(*required_param) {
@@ -118,11 +121,51 @@ pub fn validate_dapi_params(method: &str, params: &HashMap<String, Value>) -> Re
     for (param_name, param_value) in params {
         if let Some(expected_type) = method_info.param_types.get(param_name.as_str()) {
             match *expected_type {
-                "string" => if !param_value.is_string() { return Err(DAPIError::InvalidParameterType(param_name.clone(), "string".into(), format!("{:?}", param_value))); },
-                "number" => if !param_value.is_number() { return Err(DAPIError::InvalidParameterType(param_name.clone(), "number".into(), format!("{:?}", param_value))); },
-                "array" => if !param_value.is_array() { return Err(DAPIError::InvalidParameterType(param_name.clone(), "array".into(), format!("{:?}", param_value))); },
-                "object" => if !param_value.is_object() && !param_value.is_null() { return Err(DAPIError::InvalidParameterType(param_name.clone(), "object".into(), format!("{:?}", param_value))); },
-                "boolean" => if !param_value.is_boolean() { return Err(DAPIError::InvalidParameterType(param_name.clone(), "boolean".into(), format!("{:?}", param_value))); },
+                "string" => {
+                    if !param_value.is_string() {
+                        return Err(DAPIError::InvalidParameterType(
+                            param_name.clone(),
+                            "string".into(),
+                            format!("{:?}", param_value),
+                        ));
+                    }
+                }
+                "number" => {
+                    if !param_value.is_number() {
+                        return Err(DAPIError::InvalidParameterType(
+                            param_name.clone(),
+                            "number".into(),
+                            format!("{:?}", param_value),
+                        ));
+                    }
+                }
+                "array" => {
+                    if !param_value.is_array() {
+                        return Err(DAPIError::InvalidParameterType(
+                            param_name.clone(),
+                            "array".into(),
+                            format!("{:?}", param_value),
+                        ));
+                    }
+                }
+                "object" => {
+                    if !param_value.is_object() && !param_value.is_null() {
+                        return Err(DAPIError::InvalidParameterType(
+                            param_name.clone(),
+                            "object".into(),
+                            format!("{:?}", param_value),
+                        ));
+                    }
+                }
+                "boolean" => {
+                    if !param_value.is_boolean() {
+                        return Err(DAPIError::InvalidParameterType(
+                            param_name.clone(),
+                            "boolean".into(),
+                            format!("{:?}", param_value),
+                        ));
+                    }
+                }
                 _ => warn!("Unknown param type for {}: {}", param_name, expected_type),
             }
         }
@@ -130,7 +173,10 @@ pub fn validate_dapi_params(method: &str, params: &HashMap<String, Value>) -> Re
     Ok(())
 }
 
-pub fn params_array_to_object(method: &str, params_array: Vec<Value>) -> Result<HashMap<String, Value>, DAPIError> {
+pub fn params_array_to_object(
+    method: &str,
+    params_array: Vec<Value>,
+) -> Result<HashMap<String, Value>, DAPIError> {
     let method_info = MethodParamInfo::for_method(method)?;
     let mut params = HashMap::new();
     for (i, param_value) in params_array.into_iter().enumerate() {

@@ -2,10 +2,10 @@
 
 use super::*;
 use crate::models::{INotificationSettings, IProfileSettings};
-use serde_json::Value;
-use std::sync::Mutex;
-use std::collections::HashMap;
 use crate::utils::{PersistentStore, StoreError};
+use serde_json::Value;
+use std::collections::HashMap;
+use std::sync::Mutex;
 
 struct MockStore {
     storage: Mutex<HashMap<String, Value>>,
@@ -41,7 +41,9 @@ fn create_mock_settings() -> IAppSettings {
 #[test]
 fn test_settings_lifecycle_pure() {
     // No mock_builder()! This test is now CI safe.
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
     let settings = create_mock_settings();
 
     // 1. Test Save
@@ -62,7 +64,9 @@ fn test_settings_lifecycle_pure() {
 
 #[test]
 fn test_load_settings_empty_store() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let result = load_settings_logic(&store).unwrap();
     assert!(result.is_none());
@@ -70,7 +74,9 @@ fn test_load_settings_empty_store() {
 
 #[test]
 fn test_save_settings_with_all_fields() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let settings = IAppSettings {
         network: "mainnet".to_string(),
@@ -101,7 +107,9 @@ fn test_save_settings_with_all_fields() {
 
 #[test]
 fn test_save_settings_overwrites_existing() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let settings1 = IAppSettings {
         network: "testnet".to_string(),
@@ -139,7 +147,9 @@ fn test_save_settings_overwrites_existing() {
 
 #[test]
 fn test_delete_settings_returns_ok() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let result = delete_settings_logic(&store);
     assert!(result.is_ok());
@@ -147,7 +157,9 @@ fn test_delete_settings_returns_ok() {
 
 #[test]
 fn test_delete_settings_removes_data() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let settings = create_mock_settings();
     save_settings_logic(&store, settings).unwrap();
@@ -161,7 +173,9 @@ fn test_delete_settings_removes_data() {
 
 #[test]
 fn test_settings_with_no_active_identity() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let settings = IAppSettings {
         network: "testnet".to_string(),
@@ -179,7 +193,9 @@ fn test_settings_with_no_active_identity() {
 
 #[test]
 fn test_settings_network_variants() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     // Test with testnet
     let testnet_settings = IAppSettings {
@@ -190,7 +206,10 @@ fn test_settings_network_variants() {
         active_identity_id: Some("testnet-id".to_string()),
     };
     save_settings_logic(&store, testnet_settings).unwrap();
-    assert_eq!(load_settings_logic(&store).unwrap().unwrap().network, "testnet");
+    assert_eq!(
+        load_settings_logic(&store).unwrap().unwrap().network,
+        "testnet"
+    );
 
     // Test with mainnet
     let mainnet_settings = IAppSettings {
@@ -201,12 +220,17 @@ fn test_settings_network_variants() {
         active_identity_id: Some("mainnet-id".to_string()),
     };
     save_settings_logic(&store, mainnet_settings).unwrap();
-    assert_eq!(load_settings_logic(&store).unwrap().unwrap().network, "mainnet");
+    assert_eq!(
+        load_settings_logic(&store).unwrap().unwrap().network,
+        "mainnet"
+    );
 }
 
 #[test]
 fn test_settings_theme_variants() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     for theme in &["dark", "light", "system"] {
         let settings = IAppSettings {
@@ -223,7 +247,9 @@ fn test_settings_theme_variants() {
 
 #[test]
 fn test_settings_notification_flags() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let settings = IAppSettings {
         network: "testnet".to_string(),
@@ -247,7 +273,9 @@ fn test_settings_notification_flags() {
 
 #[test]
 fn test_settings_profile_data() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let settings = IAppSettings {
         network: "testnet".to_string(),
@@ -271,7 +299,9 @@ fn test_settings_profile_data() {
 
 #[test]
 fn test_settings_empty_profile() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let settings = IAppSettings {
         network: "testnet".to_string(),
@@ -295,7 +325,9 @@ fn test_settings_empty_profile() {
 
 #[test]
 fn test_settings_long_identity_id() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let long_id = "a".repeat(100);
     let settings = IAppSettings {
@@ -314,7 +346,9 @@ fn test_settings_long_identity_id() {
 
 #[test]
 fn test_settings_special_chars_in_profile() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let settings = IAppSettings {
         network: "testnet".to_string(),
@@ -337,7 +371,9 @@ fn test_settings_special_chars_in_profile() {
 
 #[test]
 fn test_settings_unicode_in_profile() {
-    let store = MockStore { storage: Mutex::new(HashMap::new()) };
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
 
     let settings = IAppSettings {
         network: "testnet".to_string(),

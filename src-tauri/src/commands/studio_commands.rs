@@ -1,7 +1,7 @@
 // src-tauri/src/commands/studio_commands.rs
 
-use serde::{Deserialize, Serialize};
 use reqwest::Client;
+use serde::{Deserialize, Serialize};
 
 #[cfg(test)]
 mod tests;
@@ -38,7 +38,8 @@ pub async fn ask_vibe_terminal(
         convoid,
         context,
         prompt,
-    ).await
+    )
+    .await
 }
 
 pub(crate) async fn ask_vibe_terminal_inner(
@@ -69,7 +70,10 @@ pub(crate) async fn ask_vibe_terminal_inner(
 
     println!("[DEBUG DOMINO RESPONSE]: Convo ID {}", data.result.convoid);
     println!("[DEBUG DOMINO RESPONSE]: Model {}", data.result.model);
-    println!("[DEBUG DOMINO RESPONSE]: Timestamp {}", data.result.created_at);
+    println!(
+        "[DEBUG DOMINO RESPONSE]: Timestamp {}",
+        data.result.created_at
+    );
 
     Ok(data.result.response)
 }

@@ -1,13 +1,13 @@
 // src-tauri/src/identity/lib.rs
 
 use crate::models::{IIdentityData, IIdentityPublicKey};
-use std::collections::HashMap;
 use base64::{engine::general_purpose, Engine};
 use bitcoin::secp256k1::Secp256k1;
 use bitcoin::PrivateKey;
 use ripemd::Ripemd160;
 use serde_json::Value as JsonValue;
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 
 pub type IdentityMap = HashMap<String, IIdentityData>;
 
@@ -56,13 +56,15 @@ pub fn normalize_public_key(default_id: u32, raw: &JsonValue) -> Option<IIdentit
         _ => 0,
     };
     // 4. Normalize ID (Strictly u32)
-    let id = obj.get("id")
+    let id = obj
+        .get("id")
         .and_then(|v| v.as_i64())
         .map(|n| n as u32)
         .unwrap_or(default_id);
     Some(IIdentityPublicKey {
         id,
-        type_: obj.get("type")
+        type_: obj
+            .get("type")
             .or(obj.get("keyType"))
             .and_then(|v| v.as_str())
             .unwrap_or("UNKNOWN")
@@ -70,10 +72,12 @@ pub fn normalize_public_key(default_id: u32, raw: &JsonValue) -> Option<IIdentit
         purpose,
         security_level,
         data,
-        read_only: obj.get("readOnly")
+        read_only: obj
+            .get("readOnly")
             .and_then(|v| v.as_bool())
             .unwrap_or(false),
-        disabled_at: obj.get("disabledAt")
+        disabled_at: obj
+            .get("disabledAt")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string()),
     })

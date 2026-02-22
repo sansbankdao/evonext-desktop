@@ -1,9 +1,9 @@
 // src-tauri/src/dapi/client/methods/documents.rs
 
-use serde_json::Value;
-use crate::dapi::client::DAPIClient;
 use crate::constants;
+use crate::dapi::client::DAPIClient;
 use crate::dapi::types::{DAPIError, Network};
+use serde_json::Value;
 
 #[cfg(test)]
 mod tests;
@@ -26,10 +26,15 @@ impl DAPIClient {
         ];
         params.push(where_clause.unwrap_or(Value::Null));
         params.push(order_by.unwrap_or(Value::Null));
-        params.push(limit.map(|l| Value::Number(l.into())).unwrap_or(Value::Null));
+        params.push(
+            limit
+                .map(|l| Value::Number(l.into()))
+                .unwrap_or(Value::Null),
+        );
         params.push(start_after.map(Value::String).unwrap_or(Value::Null));
         params.push(start_at.map(Value::String).unwrap_or(Value::Null));
-        self.request("get_documents".to_string(), params, network).await
+        self.request("get_documents".to_string(), params, network)
+            .await
     }
     pub async fn get_document(
         &self,
@@ -43,7 +48,8 @@ impl DAPIClient {
             Value::String(document_type),
             Value::String(document_id),
         ];
-        self.request("get_document".to_string(), params, network).await
+        self.request("get_document".to_string(), params, network)
+            .await
     }
     pub async fn get_posts(
         &self,
@@ -64,7 +70,8 @@ impl DAPIClient {
             limit,
             start_after,
             start_at,
-        ).await
+        )
+        .await
     }
     pub async fn get_posts_by_owner(
         &self,
@@ -75,17 +82,22 @@ impl DAPIClient {
     ) -> Result<Vec<Value>, DAPIError> {
         let where_clause = Some(serde_json::json!({ "$ownerId": owner_id }));
         let order_by = order_by.unwrap_or_else(|| serde_json::json!({ "$createdAt": "desc" }));
-        self.get_posts(network, where_clause, Some(order_by), limit, None, None).await
+        self.get_posts(network, where_clause, Some(order_by), limit, None, None)
+            .await
     }
 }
 pub mod helpers {
     use chrono::{DateTime, Utc};
     use serde_json::Value;
     pub fn get_post_content(doc: &Value) -> Option<String> {
-        doc.get("content").and_then(|v| v.as_str()).map(|s| s.to_string())
+        doc.get("content")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
     }
     pub fn get_post_owner_id(doc: &Value) -> Option<String> {
-        doc.get("ownerId").and_then(|v| v.as_str()).map(|s| s.to_string())
+        doc.get("ownerId")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string())
     }
     pub fn get_post_created_at(doc: &Value) -> Option<DateTime<Utc>> {
         doc.get("createdAt")
@@ -94,16 +106,23 @@ pub mod helpers {
             .and_then(|ts| DateTime::from_timestamp_millis(ts))
     }
     pub fn is_post_sensitive(doc: &Value) -> bool {
-        doc.get("isSensitive").and_then(|v| v.as_bool()).unwrap_or(false)
+        doc.get("isSensitive")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false)
     }
     pub fn format_post_time(doc: &Value) -> String {
         if let Some(created_at) = get_post_created_at(doc) {
             let now = Utc::now();
             let duration = now.signed_duration_since(created_at);
-            if duration.num_seconds() < 60 { "Just now".into() }
-            else if duration.num_minutes() < 60 { format!("{}m ago", duration.num_minutes()) }
-            else if duration.num_hours() < 24 { format!("{}h ago", duration.num_hours()) }
-            else { created_at.format("%b %d, %Y").to_string() }
+            if duration.num_seconds() < 60 {
+                "Just now".into()
+            } else if duration.num_minutes() < 60 {
+                format!("{}m ago", duration.num_minutes())
+            } else if duration.num_hours() < 24 {
+                format!("{}h ago", duration.num_hours())
+            } else {
+                created_at.format("%b %d, %Y").to_string()
+            }
         } else {
             "Unknown time".into()
         }

@@ -3,7 +3,7 @@
 use serde::{de::DeserializeOwned, Serialize};
 use std::fmt;
 use std::path::PathBuf;
-use tauri::{AppHandle, Runtime, path::BaseDirectory, Manager};
+use tauri::{path::BaseDirectory, AppHandle, Manager, Runtime};
 use tauri_plugin_store::StoreBuilder;
 
 #[cfg(test)]
@@ -44,16 +44,34 @@ impl From<tauri_plugin_store::Error> for StoreError {
     }
 }
 pub trait PersistentStore {
-    fn load_value(&self, file_path: &str, key: &str) -> Result<Option<serde_json::Value>, StoreError>;
-    fn save_value(&self, file_path: &str, key: &str, value: serde_json::Value) -> Result<(), StoreError>;
+    fn load_value(
+        &self,
+        file_path: &str,
+        key: &str,
+    ) -> Result<Option<serde_json::Value>, StoreError>;
+    fn save_value(
+        &self,
+        file_path: &str,
+        key: &str,
+        value: serde_json::Value,
+    ) -> Result<(), StoreError>;
     fn delete_value(&self, file_path: &str, key: &str) -> Result<(), StoreError>;
-    fn load_data<T: DeserializeOwned>(&self, file_path: &str, key: &str) -> Result<Option<T>, StoreError> {
+    fn load_data<T: DeserializeOwned>(
+        &self,
+        file_path: &str,
+        key: &str,
+    ) -> Result<Option<T>, StoreError> {
         match self.load_value(file_path, key)? {
             Some(val) => Ok(Some(serde_json::from_value(val)?)),
-            None => Ok(None)
+            None => Ok(None),
         }
     }
-    fn save_data<T: Serialize>(&self, file_path: &str, key: &str, data: &T) -> Result<(), StoreError> {
+    fn save_data<T: Serialize>(
+        &self,
+        file_path: &str,
+        key: &str,
+        data: &T,
+    ) -> Result<(), StoreError> {
         let val = serde_json::to_value(data)?;
         self.save_value(file_path, key, val)
     }
@@ -71,10 +89,19 @@ impl<'a, R: Runtime> StoreManager<'a, R> {
             .resolve(file_path, BaseDirectory::AppData)
             .map_err(|e| StoreError::InvalidPath(e.to_string()))
     }
-    pub fn load<T: DeserializeOwned>(&self, path: impl AsRef<str>, key: &str) -> Result<Option<T>, StoreError> {
+    pub fn load<T: DeserializeOwned>(
+        &self,
+        path: impl AsRef<str>,
+        key: &str,
+    ) -> Result<Option<T>, StoreError> {
         self.load_data(path.as_ref(), key)
     }
-    pub fn save<T: Serialize>(&self, path: impl AsRef<str>, key: &str, data: &T) -> Result<(), StoreError> {
+    pub fn save<T: Serialize>(
+        &self,
+        path: impl AsRef<str>,
+        key: &str,
+        data: &T,
+    ) -> Result<(), StoreError> {
         self.save_data(path.as_ref(), key, data)
     }
     pub fn delete(&self, path: impl AsRef<str>, key: &str) -> Result<(), StoreError> {
@@ -82,12 +109,21 @@ impl<'a, R: Runtime> StoreManager<'a, R> {
     }
 }
 impl<'a, R: Runtime> PersistentStore for StoreManager<'a, R> {
-    fn load_value(&self, file_path: &str, key: &str) -> Result<Option<serde_json::Value>, StoreError> {
+    fn load_value(
+        &self,
+        file_path: &str,
+        key: &str,
+    ) -> Result<Option<serde_json::Value>, StoreError> {
         let path = self.resolve_path(file_path)?;
         let store = StoreBuilder::new(self.app_handle, path).build()?;
         Ok(store.get(key).map(|v| v.clone()))
     }
-    fn save_value(&self, file_path: &str, key: &str, value: serde_json::Value) -> Result<(), StoreError> {
+    fn save_value(
+        &self,
+        file_path: &str,
+        key: &str,
+        value: serde_json::Value,
+    ) -> Result<(), StoreError> {
         let path = self.resolve_path(file_path)?;
         let store = StoreBuilder::new(self.app_handle, path).build()?;
         store.set(key.to_string(), value);

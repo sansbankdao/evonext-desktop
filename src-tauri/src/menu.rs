@@ -1,7 +1,7 @@
 // src-tauri/src/menu.rs
 
 use tauri::{
-    menu::{MenuBuilder, SubmenuBuilder, MenuId},
+    menu::{MenuBuilder, MenuId, SubmenuBuilder},
     AppHandle, Emitter, Runtime,
 };
 
