@@ -31,7 +31,6 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          # Pin to exact version to match lockfile and avoid drift
           version: 10.7.0
 
       - name: Setup Node.js
@@ -86,20 +85,15 @@ jobs:
 
       - name: Generate Types (Specta)
         shell: bash
-        run: |
-          cd src-tauri
-          cargo run --bin export_types
+        working-directory: src-tauri
+        run: cargo run --bin export_types
 
       - name: Build Frontend
         run: pnpm exec vue-tsc --noEmit && pnpm exec vite build
 
       - name: Build Tauri App
-        # Use the Tauri CLI but skip the beforeBuildCommand since
-        # we already built the frontend above
-        shell: bash
-        run: |
-          cd src-tauri
-          cargo build
+        working-directory: src-tauri
+        run: cargo build
 
       # ── Tests ───────────────────────────────────────────────
 
