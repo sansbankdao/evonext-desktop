@@ -58,6 +58,10 @@ impl MethodParamInfo {
                 required_params: vec!["contractId"],
                 param_types: HashMap::from([("contractId", "string")]),
             },
+            "dpns_resolve_name" => MethodParamInfo {
+                required_params: vec!["username"],
+                param_types: HashMap::from([("username", "string")]),
+            },
             "resolve_dpns_name" => MethodParamInfo {
                 required_params: vec!["username"],
                 param_types: HashMap::from([("username", "string")]),

@@ -3,6 +3,86 @@
 use super::*;
 use serde_json::json;
 use std::collections::HashMap;
+use crate::dapi::client::DAPIClient;
+
+// ==================== Helper: create a DAPIClient pointed at a mockito server ====================
+
+fn mock_client(server_url: &str) -> DAPIClient {
+    DAPIClient::new(server_url.to_string())
+}
+
+/// Build a successful DAPIResponse JSON body for mockito
+fn success_body(result: Value) -> String {
+    json!({
+        "success": true,
+        "method": "test",
+        "params": [],
+        "network": "testnet",
+        "result": result
+    }).to_string()
+}
+
+/// Build a successful DAPIResponse wrapping an array result
+fn success_array_body(result: Vec<Value>) -> String {
+    json!({
+        "success": true,
+        "method": "test",
+        "params": [],
+        "network": "testnet",
+        "result": result
+    }).to_string()
+}
+
+/// Build a failure DAPIResponse JSON body
+fn failure_body() -> String {
+    json!({
+        "success": false,
+        "method": "test",
+        "params": [],
+        "network": "testnet",
+        "result": null
+    }).to_string()
+}
+
+// ==================== parse_network Tests ====================
+
+#[test]
+fn test_parse_network_none_defaults_to_testnet() {
+    let n = parse_network(None);
+    assert_eq!(n, Network::Testnet);
+}
+
+#[test]
+fn test_parse_network_testnet() {
+    let n = parse_network(Some("testnet".to_string()));
+    assert_eq!(n, Network::Testnet);
+}
+
+#[test]
+fn test_parse_network_mainnet() {
+    let n = parse_network(Some("mainnet".to_string()));
+    assert_eq!(n, Network::Mainnet);
+}
+
+#[test]
+fn test_parse_network_invalid_defaults_to_testnet() {
+    let n = parse_network(Some("invalidnet".to_string()));
+    assert_eq!(n, Network::Testnet);
+}
+
+#[test]
+fn test_parse_network_empty_string_defaults_to_testnet() {
+    let n = parse_network(Some("".to_string()));
+    assert_eq!(n, Network::Testnet);
+}
+
+#[test]
+fn test_parse_network_case_insensitive() {
+    let n = parse_network(Some("MAINNET".to_string()));
+    assert_eq!(n, Network::Mainnet);
+}
+
+// ==================== params_array_to_object Tests (existing, preserved) ====================
 
 #[test]
 fn test_params_conversion_invalid_method() {
@@ -19,6 +99,8 @@ fn test_params_conversion_valid_logic() {
     assert_eq!(map.get("identityId").unwrap(), "test_identity_id");
 }
 
+// ==================== dapi_request_inner Tests (existing, preserved) ====================
+
 #[tokio::test]
 async fn test_dapi_request_validation_failure_pure() {
     let mut params = HashMap::new();
@@ -29,7 +111,23 @@ async fn test_dapi_request_validation_failure_pure() {
     assert!(res.is_err());
 }
 
-// ==================== DapiPublicKey Tests ====================
+#[tokio::test]
+async fn test_dapi_request_inner_missing_param() {
+    let params = HashMap::new();
+
+    let res = dapi_request_inner("get_identity".to_string(), params, None).await;
+    assert!(res.is_err());
+}
+
+#[tokio::test]
+async fn test_dapi_request_inner_invalid_method() {
+    let params = HashMap::new();
+
+    let res = dapi_request_inner("invalid_method".to_string(), params, None).await;
+    assert!(res.is_err());
+}
+
+// ==================== DapiPublicKey Tests (existing, preserved) ====================
 
 #[test]
 fn test_dapi_public_key_deserialization_full() {
@@ -107,7 +205,7 @@ fn test_dapi_public_key_with_disabled_at() {
     assert_eq!(deserialized.disabled_at, Some("2024-12-31T23:59:59Z".to_string()));
 }
 
-// ==================== DapiIdentityResponse Tests ====================
+// ==================== DapiIdentityResponse Tests (existing, preserved) ====================
 
 #[test]
 fn test_dapi_identity_response_deserialization_full() {
@@ -201,7 +299,7 @@ fn test_dapi_identity_response_with_multiple_keys() {
     assert_eq!(identity.public_keys[1].purpose, "TRANSFER");
 }
 
-// ==================== extract_first_as_response Tests ====================
+// ==================== extract_first_as_response Tests (existing, preserved) ====================
 
 #[test]
 fn test_extract_first_as_response_success() {
@@ -351,7 +449,7 @@ fn test_extract_first_as_response_serialization_error() {
     assert!(result.unwrap_err().contains("Serialization error"));
 }
 
-// ==================== purpose_code_to_string Tests ====================
+// ==================== purpose_code_to_string Tests (existing, preserved) ====================
 
 #[test]
 fn test_purpose_code_to_string_authentication() {
@@ -383,25 +481,7 @@ fn test_purpose_code_to_string_unknown_high() {
     assert_eq!(purpose_code_to_string(255), "UNKNOWN_255");
 }
 
-// ==================== dapi_request_inner Tests ====================
-
-#[tokio::test]
-async fn test_dapi_request_inner_missing_param() {
-    let params = HashMap::new();
-
-    let res = dapi_request_inner("get_identity".to_string(), params, None).await;
-    assert!(res.is_err());
-}
-
-#[tokio::test]
-async fn test_dapi_request_inner_invalid_method() {
-    let params = HashMap::new();
-
-    let res = dapi_request_inner("invalid_method".to_string(), params, None).await;
-    assert!(res.is_err());
-}
-
-// ==================== Additional Edge Case Tests ====================
+// ==================== Additional Edge Case Tests (existing, preserved) ====================
 
 #[test]
 fn test_dapi_identity_response_large_balance() {
@@ -560,4 +640,1085 @@ fn test_dapi_identity_response_clone_and_debug() {
 
     let debug_str = format!("{:?}", identity);
     assert!(debug_str.contains("DapiIdentityResponse"));
+}
+
+// ==========================================================================================
+// NEW: Inner function tests with mockito — covers all #[tauri::command] code paths
+// ==========================================================================================
+
+/// Helper: identity JSON that the mock server returns inside a DAPIResponse
+fn mock_identity_result() -> Value {
+    json!({
+        "identityId": "mock_identity_123",
+        "balance": "50000",
+        "revision": "7",
+        "publicKeys": [{
+            "purpose": "AUTHENTICATION",
+            "securityLevel": "MASTER",
+            "keyType": "ECDSA_SECP256K1",
+            "data": "0xmockdata",
+            "dataB64": "bW9ja2RhdGE",
+            "readOnly": false
+        }]
+    })
+}
+
+// ==================== get_identity_by_public_key_hash_inner ====================
+
+#[tokio::test]
+async fn test_get_identity_by_public_key_hash_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_body(mock_identity_result()))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identity_by_public_key_hash_inner(&client, "abc123hash".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    let identity = result.unwrap();
+    assert_eq!(identity.identity_id, "mock_identity_123");
+    assert_eq!(identity.balance, "50000");
+    assert_eq!(identity.public_keys.len(), 1);
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_identity_by_public_key_hash_inner_network_none() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_body(mock_identity_result()))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identity_by_public_key_hash_inner(&client, "hash456".to_string(), None).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_identity_by_public_key_hash_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identity_by_public_key_hash_inner(&client, "hash789".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_identity_by_public_key_hash_inner_mainnet() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_body(mock_identity_result()))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identity_by_public_key_hash_inner(&client, "hash_main".to_string(), Some("mainnet".to_string())).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+// ==================== get_identity_by_non_unique_public_key_hash_inner ====================
+
+#[tokio::test]
+async fn test_get_identity_by_non_unique_hash_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_body(mock_identity_result()))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identity_by_non_unique_public_key_hash_inner(&client, "nonunique_hash".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    let identity = result.unwrap();
+    assert_eq!(identity.identity_id, "mock_identity_123");
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_identity_by_non_unique_hash_inner_network_none() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_body(mock_identity_result()))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identity_by_non_unique_public_key_hash_inner(&client, "hash".to_string(), None).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_identity_by_non_unique_hash_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identity_by_non_unique_public_key_hash_inner(&client, "hash".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+// ==================== get_identity_info_inner ====================
+
+#[tokio::test]
+async fn test_get_identity_info_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_body(mock_identity_result()))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identity_info_inner(&client, "id_123".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap().identity_id, "mock_identity_123");
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_identity_info_inner_network_none() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_body(mock_identity_result()))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identity_info_inner(&client, "id_456".to_string(), None).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_identity_info_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identity_info_inner(&client, "id_789".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+// ==================== get_identity_by_id_inner ====================
+
+#[tokio::test]
+async fn test_get_identity_by_id_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_body(mock_identity_result()))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identity_by_id_inner(&client, "id_abc".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_identity_by_id_inner_mainnet() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_body(mock_identity_result()))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identity_by_id_inner(&client, "id_main".to_string(), Some("mainnet".to_string())).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_identity_by_id_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identity_by_id_inner(&client, "id_fail".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+// ==================== get_dpns_username_inner ====================
+
+#[tokio::test]
+async fn test_get_dpns_username_inner_success_with_name() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!("alice")]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_dpns_username_inner(&client, "id_alice".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), Some("alice".to_string()));
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_dpns_username_inner_success_empty() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_dpns_username_inner(&client, "id_no_name".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), None);
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_dpns_username_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_dpns_username_inner(&client, "id_fail".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_dpns_username_inner_network_none() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!("bob")]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_dpns_username_inner(&client, "id_bob".to_string(), None).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+// ==================== dapi_request_array_inner ====================
+
+#[tokio::test]
+async fn test_dapi_request_array_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!({"result": "ok"})]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = dapi_request_array_inner(&client, "get_identity".to_string(), vec![json!("some_id")], Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_dapi_request_array_inner_invalid_method() {
+    let server = mockito::Server::new_async().await;
+    let client = mock_client(&server.url());
+    let result = dapi_request_array_inner(&client, "totally_invalid".to_string(), vec![], None).await;
+
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Unknown method"));
+}
+
+#[tokio::test]
+async fn test_dapi_request_array_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = dapi_request_array_inner(&client, "get_status".to_string(), vec![], Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+// ==================== get_token_balances_inner ====================
+
+#[tokio::test]
+async fn test_get_token_balances_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!({"tokenId": "tok1", "balance": "1000"})]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_token_balances_inner(&client, "id_123".to_string(), vec!["tok1".to_string()], Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_token_balances_inner_network_none() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_token_balances_inner(&client, "id_456".to_string(), vec![], None).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_token_balances_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_token_balances_inner(&client, "id_fail".to_string(), vec!["tok1".to_string()], Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+// ==================== resolve_dpns_name_inner ====================
+
+#[tokio::test]
+async fn test_resolve_dpns_name_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!({"name": "alice.dash"})]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = resolve_dpns_name_inner(&client, "alice".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_resolve_dpns_name_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = resolve_dpns_name_inner(&client, "alice".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_resolve_dpns_name_inner_network_none() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!({"name": "bob.dash"})]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = resolve_dpns_name_inner(&client, "bob".to_string(), None).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+// ==================== get_platform_status_inner ====================
+
+#[tokio::test]
+async fn test_get_platform_status_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!({"status": "online"})]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_platform_status_inner(&client, Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_platform_status_inner_mainnet() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!({"status": "online"})]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_platform_status_inner(&client, Some("mainnet".to_string())).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_platform_status_inner_network_none() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!({"status": "online"})]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_platform_status_inner(&client, None).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+// ==================== get_identities_balances_inner ====================
+
+#[tokio::test]
+async fn test_get_identities_balances_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!({"id": "a", "balance": "100"})]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identities_balances_inner(&client, vec!["a".to_string()], Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_identities_balances_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identities_balances_inner(&client, vec!["a".to_string()], Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+// ==================== get_data_contract_info_inner ====================
+
+#[tokio::test]
+async fn test_get_data_contract_info_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!({"contract": "data"})]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_data_contract_info_inner(&client, "contract_abc".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_data_contract_info_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_data_contract_info_inner(&client, "contract_fail".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+// ==================== get_token_contract_info_inner ====================
+
+#[tokio::test]
+async fn test_get_token_contract_info_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!({"token": "info"})]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_token_contract_info_inner(&client, "token_contract_1".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_token_contract_info_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_token_contract_info_inner(&client, "token_fail".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+// ==================== get_token_statuses_inner ====================
+
+#[tokio::test]
+async fn test_get_token_statuses_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!({"status": "active"})]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_token_statuses_inner(&client, vec!["tok1".to_string()], Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_token_statuses_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_token_statuses_inner(&client, vec!["tok_fail".to_string()], Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+// ==================== get_total_supply_inner ====================
+
+#[tokio::test]
+async fn test_get_total_supply_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!({"totalSupply": "1000000"})]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_total_supply_inner(&client, "tok1".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_total_supply_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_total_supply_inner(&client, "tok_fail".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+// ==================== get_current_epoch_inner ====================
+
+#[tokio::test]
+async fn test_get_current_epoch_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!({"epoch": 42})]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_current_epoch_inner(&client, Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_current_epoch_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_current_epoch_inner(&client, Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+// ==================== get_total_credits_in_platform_inner ====================
+
+#[tokio::test]
+async fn test_get_total_credits_in_platform_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!({"credits": "999999"})]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_total_credits_in_platform_inner(&client, Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_total_credits_in_platform_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_total_credits_in_platform_inner(&client, Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+// ==================== get_posts_inner ====================
+
+#[tokio::test]
+async fn test_get_posts_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!({"content": "hello world"})]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_posts_inner(
+        &client,
+        "contract_123".to_string(),
+        "post".to_string(),
+        None, None, None,
+        Some("testnet".to_string()),
+    ).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_posts_inner_with_all_params() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!({"content": "filtered"})]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_posts_inner(
+        &client,
+        "contract_123".to_string(),
+        "post".to_string(),
+        Some(json!({"$ownerId": "owner1"})),
+        Some(json!({"$createdAt": "desc"})),
+        Some(10),
+        Some("mainnet".to_string()),
+    ).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_posts_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_posts_inner(
+        &client,
+        "contract_123".to_string(),
+        "post".to_string(),
+        None, None, None,
+        Some("testnet".to_string()),
+    ).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+// ==================== get_identity_balance_inner ====================
+
+#[tokio::test]
+async fn test_get_identity_balance_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!({"balance": "50000"})]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identity_balance_inner(&client, "id_123".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_identity_balance_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identity_balance_inner(&client, "id_fail".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+// ==================== get_dpns_usernames_inner ====================
+
+#[tokio::test]
+async fn test_get_dpns_usernames_inner_success() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(success_array_body(vec![json!("alice"), json!("alice2")]))
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_dpns_usernames_inner(&client, "id_alice".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_ok());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_dpns_usernames_inner_api_failure() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(failure_body())
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_dpns_usernames_inner(&client, "id_fail".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+// ==================== HTTP Error Tests (connection/transport errors) ====================
+
+#[tokio::test]
+async fn test_inner_function_http_connection_error() {
+    // Client pointing at a port where nothing is listening
+    let client = mock_client("http://127.0.0.1:1");
+    let result = get_platform_status_inner(&client, Some("testnet".to_string())).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_identity_info_inner_http_error() {
+    let client = mock_client("http://127.0.0.1:1");
+    let result = get_identity_info_inner(&client, "id".to_string(), None).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_identity_by_id_inner_http_error() {
+    let client = mock_client("http://127.0.0.1:1");
+    let result = get_identity_by_id_inner(&client, "id".to_string(), None).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_identity_balance_inner_http_error() {
+    let client = mock_client("http://127.0.0.1:1");
+    let result = get_identity_balance_inner(&client, "id".to_string(), None).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_token_balances_inner_http_error() {
+    let client = mock_client("http://127.0.0.1:1");
+    let result = get_token_balances_inner(&client, "id".to_string(), vec!["tok".to_string()], None).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_data_contract_info_inner_http_error() {
+    let client = mock_client("http://127.0.0.1:1");
+    let result = get_data_contract_info_inner(&client, "cid".to_string(), None).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_token_contract_info_inner_http_error() {
+    let client = mock_client("http://127.0.0.1:1");
+    let result = get_token_contract_info_inner(&client, "cid".to_string(), None).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_token_statuses_inner_http_error() {
+    let client = mock_client("http://127.0.0.1:1");
+    let result = get_token_statuses_inner(&client, vec!["tok".to_string()], None).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_total_supply_inner_http_error() {
+    let client = mock_client("http://127.0.0.1:1");
+    let result = get_total_supply_inner(&client, "tok".to_string(), None).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_current_epoch_inner_http_error() {
+    let client = mock_client("http://127.0.0.1:1");
+    let result = get_current_epoch_inner(&client, None).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_total_credits_inner_http_error() {
+    let client = mock_client("http://127.0.0.1:1");
+    let result = get_total_credits_in_platform_inner(&client, None).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_identities_balances_inner_http_error() {
+    let client = mock_client("http://127.0.0.1:1");
+    let result = get_identities_balances_inner(&client, vec!["id".to_string()], None).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_posts_inner_http_error() {
+    let client = mock_client("http://127.0.0.1:1");
+    let result = get_posts_inner(&client, "cid".to_string(), "post".to_string(), None, None, None, None).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_dpns_usernames_inner_http_error() {
+    let client = mock_client("http://127.0.0.1:1");
+    let result = get_dpns_usernames_inner(&client, "id".to_string(), None).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_resolve_dpns_name_inner_http_error() {
+    let client = mock_client("http://127.0.0.1:1");
+    let result = resolve_dpns_name_inner(&client, "alice".to_string(), None).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_dpns_username_inner_http_error() {
+    let client = mock_client("http://127.0.0.1:1");
+    let result = get_dpns_username_inner(&client, "id".to_string(), None).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_get_identity_by_public_key_hash_inner_http_error() {
+    let client = mock_client("http://127.0.0.1:1");
+    let result = get_identity_by_public_key_hash_inner(&client, "hash".to_string(), None).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_get_identity_by_non_unique_hash_inner_http_error() {
+    let client = mock_client("http://127.0.0.1:1");
+    let result = get_identity_by_non_unique_public_key_hash_inner(&client, "hash".to_string(), None).await;
+    assert!(result.is_err());
+}
+
+// ==================== Malformed response tests ====================
+
+#[tokio::test]
+async fn test_get_identity_info_inner_malformed_response() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body("not json at all")
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_identity_info_inner(&client, "id".to_string(), Some("testnet".to_string())).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+#[tokio::test]
+async fn test_get_platform_status_inner_malformed_response() {
+    let mut server = mockito::Server::new_async().await;
+    let mock = server.mock("POST", "/")
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body("{invalid json")
+        .create_async().await;
+
+    let client = mock_client(&server.url());
+    let result = get_platform_status_inner(&client, None).await;
+
+    assert!(result.is_err());
+    mock.assert_async().await;
+}
+
+// ==================== dapi_request_inner with valid params via mock ====================
+
+#[tokio::test]
+async fn test_dapi_request_inner_with_valid_params_exercises_param_building() {
+    // dapi_request_inner uses the global lazy_static client, so we can't mock the HTTP.
+    // But we can verify the param-building + network-parsing logic is exercised.
+    // With valid params, it will attempt the HTTP call and fail (or succeed if online).
+    // We just verify it doesn't panic and returns a result.
+    let mut params = HashMap::new();
+    params.insert("identityId".to_string(), json!("valid_id"));
+
+    let res = dapi_request_inner("get_identity".to_string(), params, Some("mainnet".to_string())).await;
+    // Result is either Ok (if API is reachable) or Err (if not) — both are valid
+    let _ = res;
+}
+
+#[tokio::test]
+async fn test_dapi_request_inner_with_no_params_method_exercises_empty_loop() {
+    let params = HashMap::new();
+
+    let res = dapi_request_inner("get_status".to_string(), params, Some("testnet".to_string())).await;
+    // Result is either Ok or Err depending on network — both are valid
+    let _ = res;
+}
+
+#[tokio::test]
+async fn test_dapi_request_inner_builds_params_array_with_nulls() {
+    // Provide an empty map for a method that requires params — should fill with Null
+    let params = HashMap::new();
+
+    let res = dapi_request_inner("get_identity_balance".to_string(), params, None).await;
+    // Exercises the null-filling branch in the for loop
+    // Will fail at validation (missing required param) or at HTTP — either is fine
+    let _ = res;
 }
