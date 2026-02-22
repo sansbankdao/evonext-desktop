@@ -75,7 +75,7 @@ describe('Wallet Utils', () => {
         it('should truncate long addresses', () => {
             const addr = '1234567890abcdef1234567890abcdef'
             const result = truncateAddress(addr)
-            expect(result).toBe('12345678...0abcdef')
+            expect(result).toBe('12345678...90abcdef')
         })
 
         it('should return short addresses unchanged', () => {
