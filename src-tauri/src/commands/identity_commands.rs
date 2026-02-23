@@ -233,7 +233,7 @@ pub fn load_active_identity_logic<S: PersistentStore>(
 
     // Load the raw JSON value to extract __active_identity_id marker
     let raw_value = store
-        .load_value(&filename, "identities")
+        .load_value(filename, "identities")
         .map_err(|e| e.to_string())?;
 
     let active_identity_id = raw_value
