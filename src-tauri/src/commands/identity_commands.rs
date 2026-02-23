@@ -100,7 +100,7 @@ pub async fn discover_and_save_identity_inner<R: Runtime>(
     network: String,
 ) -> Result<IUnifiedCommandResult, String> {
     let client = get_dapi_client();
-        let net = Network::parse(&network).unwrap_or(Network::Testnet);
+    let net = Network::parse(&network).unwrap_or(Network::Testnet);
     let raw_identities = client
         .get_identity(identity_id.clone(), net)
         .await
