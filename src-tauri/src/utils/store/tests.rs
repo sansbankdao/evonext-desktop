@@ -465,3 +465,220 @@ fn test_serialize_very_long_string() {
     let json = serde_json::json!(long_string);
     assert_eq!(json.as_str().unwrap().len(), 100000);
 }
+
+// ==================== PersistentStore Default Trait Method Tests ====================
+
+use std::collections::HashMap;
+use std::sync::Mutex;
+
+struct InMemoryStore {
+    storage: Mutex<HashMap<(String, String), serde_json::Value>>,
+}
+
+impl InMemoryStore {
+    fn new() -> Self {
+        Self {
+            storage: Mutex::new(HashMap::new()),
+        }
+    }
+}
+
+impl PersistentStore for InMemoryStore {
+    fn load_value(
+        &self,
+        file_path: &str,
+        key: &str,
+    ) -> Result<Option<serde_json::Value>, StoreError> {
+        let map = self.storage.lock().unwrap();
+        Ok(map
+            .get(&(file_path.to_string(), key.to_string()))
+            .cloned())
+    }
+    fn save_value(
+        &self,
+        file_path: &str,
+        key: &str,
+        value: serde_json::Value,
+    ) -> Result<(), StoreError> {
+        let mut map = self.storage.lock().unwrap();
+        map.insert((file_path.to_string(), key.to_string()), value);
+        Ok(())
+    }
+    fn delete_value(&self, file_path: &str, key: &str) -> Result<(), StoreError> {
+        let mut map = self.storage.lock().unwrap();
+        map.remove(&(file_path.to_string(), key.to_string()));
+        Ok(())
+    }
+}
+
+#[test]
+fn test_persistent_store_load_data_roundtrip() {
+    let store = InMemoryStore::new();
+
+    let user = TestUser {
+        name: "TraitTest".to_string(),
+        age: 42,
+        active: true,
+    };
+
+    // Use the default trait method save_data
+    store.save_data("file.json", "user_key", &user).unwrap();
+
+    // Use the default trait method load_data
+    let loaded: Option<TestUser> = store.load_data("file.json", "user_key").unwrap();
+    assert!(loaded.is_some());
+    assert_eq!(loaded.unwrap(), user);
+}
+
+#[test]
+fn test_persistent_store_load_data_returns_none_when_missing() {
+    let store = InMemoryStore::new();
+
+    let loaded: Option<TestUser> = store.load_data("file.json", "missing_key").unwrap();
+    assert!(loaded.is_none());
+}
+
+#[test]
+fn test_persistent_store_save_data_serialization() {
+    let store = InMemoryStore::new();
+
+    let settings = TestSettings {
+        theme: "dark".to_string(),
+        notifications_enabled: true,
+        volume: 0.8,
+    };
+    store
+        .save_data("settings.json", "config", &settings)
+        .unwrap();
+
+    // Verify we can load the raw value
+    let raw = store.load_value("settings.json", "config").unwrap();
+    assert!(raw.is_some());
+    let val = raw.unwrap();
+    assert_eq!(val["theme"], "dark");
+    assert_eq!(val["volume"], 0.8);
+}
+
+#[test]
+fn test_persistent_store_load_data_deserialization_error() {
+    let store = InMemoryStore::new();
+
+    // Save a string value
+    store
+        .save_value(
+            "file.json",
+            "bad_key",
+            serde_json::json!("not a user object"),
+        )
+        .unwrap();
+
+    // Try to load as a TestUser — should fail deserialization
+    let result: Result<Option<TestUser>, StoreError> = store.load_data("file.json", "bad_key");
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_persistent_store_save_data_complex_type() {
+    let store = InMemoryStore::new();
+
+    let nested = NestedData {
+        id: "complex".to_string(),
+        metadata: vec!["a".to_string(), "b".to_string()],
+        config: TestSettings {
+            theme: "light".to_string(),
+            notifications_enabled: false,
+            volume: 0.5,
+        },
+    };
+    store.save_data("nested.json", "data", &nested).unwrap();
+
+    let loaded: Option<NestedData> = store.load_data("nested.json", "data").unwrap();
+    assert!(loaded.is_some());
+    assert_eq!(loaded.unwrap(), nested);
+}
+
+#[test]
+fn test_persistent_store_delete_then_load() {
+    let store = InMemoryStore::new();
+
+    let user = TestUser {
+        name: "DeleteMe".to_string(),
+        age: 1,
+        active: false,
+    };
+    store.save_data("file.json", "del_key", &user).unwrap();
+    store.delete_value("file.json", "del_key").unwrap();
+
+    let loaded: Option<TestUser> = store.load_data("file.json", "del_key").unwrap();
+    assert!(loaded.is_none());
+}
+
+#[test]
+fn test_persistent_store_overwrite_data() {
+    let store = InMemoryStore::new();
+
+    let user1 = TestUser {
+        name: "First".to_string(),
+        age: 1,
+        active: true,
+    };
+    store.save_data("file.json", "key", &user1).unwrap();
+
+    let user2 = TestUser {
+        name: "Second".to_string(),
+        age: 2,
+        active: false,
+    };
+    store.save_data("file.json", "key", &user2).unwrap();
+
+    let loaded: Option<TestUser> = store.load_data("file.json", "key").unwrap();
+    assert_eq!(loaded.unwrap().name, "Second");
+}
+
+#[test]
+fn test_persistent_store_multiple_keys() {
+    let store = InMemoryStore::new();
+
+    let user = TestUser {
+        name: "User".to_string(),
+        age: 25,
+        active: true,
+    };
+    let settings = TestSettings {
+        theme: "dark".to_string(),
+        notifications_enabled: true,
+        volume: 1.0,
+    };
+
+    store.save_data("file.json", "user", &user).unwrap();
+    store
+        .save_data("file.json", "settings", &settings)
+        .unwrap();
+
+    let loaded_user: Option<TestUser> = store.load_data("file.json", "user").unwrap();
+    let loaded_settings: Option<TestSettings> =
+        store.load_data("file.json", "settings").unwrap();
+
+    assert_eq!(loaded_user.unwrap().name, "User");
+    assert_eq!(loaded_settings.unwrap().theme, "dark");
+}
+
+#[test]
+fn test_persistent_store_different_files() {
+    let store = InMemoryStore::new();
+
+    let user = TestUser {
+        name: "FileA".to_string(),
+        age: 1,
+        active: true,
+    };
+    store.save_data("a.json", "key", &user).unwrap();
+
+    // Different file, same key — should not find it
+    let loaded: Option<TestUser> = store.load_data("b.json", "key").unwrap();
+    assert!(loaded.is_none());
+
+    // Correct file
+    let loaded: Option<TestUser> = store.load_data("a.json", "key").unwrap();
+    assert!(loaded.is_some());
+}

@@ -10,6 +10,20 @@ struct MockStore {
     storage: Mutex<HashMap<String, Value>>,
 }
 
+struct FailingStore;
+
+impl PersistentStore for FailingStore {
+    fn load_value(&self, _path: &str, _key: &str) -> Result<Option<Value>, StoreError> {
+        Err(StoreError::Store("simulated failure".to_string()))
+    }
+    fn save_value(&self, _path: &str, _key: &str, _val: Value) -> Result<(), StoreError> {
+        Err(StoreError::Store("simulated failure".to_string()))
+    }
+    fn delete_value(&self, _path: &str, _key: &str) -> Result<(), StoreError> {
+        Err(StoreError::Store("simulated failure".to_string()))
+    }
+}
+
 impl PersistentStore for MockStore {
     fn load_value(&self, _path: &str, key: &str) -> Result<Option<Value>, StoreError> {
         let map = self.storage.lock().unwrap();
@@ -420,4 +434,33 @@ fn test_load_license_malformed_json_returns_none() {
     // Should return None instead of error due to unwrap_or(None)
     let result = load_license_logic(&store, "any_id".to_string()).unwrap();
     assert!(result.is_none());
+}
+
+// =====================================================
+// NEW TESTS: error propagation
+// =====================================================
+
+#[test]
+fn test_save_license_store_error() {
+    let store = FailingStore;
+    let license = ILicense {
+        success: true,
+        identity_id: "err_id".to_string(),
+        txid: "tx".to_string(),
+        is_premium: false,
+        created_at: "0".to_string(),
+        expires_at: "0".to_string(),
+        updated_at: None,
+    };
+    let result = save_license_logic(&store, license);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("simulated failure"));
+}
+
+#[test]
+fn test_delete_license_store_error() {
+    let store = FailingStore;
+    let result = delete_license_logic(&store, "any_id".to_string());
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("simulated failure"));
 }

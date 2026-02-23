@@ -11,6 +11,20 @@ struct MockStore {
     storage: Mutex<HashMap<String, Value>>,
 }
 
+struct FailingStore;
+
+impl PersistentStore for FailingStore {
+    fn load_value(&self, _path: &str, _key: &str) -> Result<Option<Value>, StoreError> {
+        Err(StoreError::Store("simulated failure".to_string()))
+    }
+    fn save_value(&self, _path: &str, _key: &str, _val: Value) -> Result<(), StoreError> {
+        Err(StoreError::Store("simulated failure".to_string()))
+    }
+    fn delete_value(&self, _path: &str, _key: &str) -> Result<(), StoreError> {
+        Err(StoreError::Store("simulated failure".to_string()))
+    }
+}
+
 impl PersistentStore for MockStore {
     fn load_value(&self, _path: &str, key: &str) -> Result<Option<Value>, StoreError> {
         let map = self.storage.lock().unwrap();
@@ -392,4 +406,33 @@ fn test_settings_unicode_in_profile() {
     let loaded = load_settings_logic(&store).unwrap().unwrap();
     assert_eq!(loaded.profile.display_name, "日本語ユーザー");
     assert_eq!(loaded.profile.username, "user_emoji_🚀");
+}
+
+// =====================================================
+// NEW TESTS: error propagation
+// =====================================================
+
+#[test]
+fn test_load_settings_store_error() {
+    let store = FailingStore;
+    let result = load_settings_logic(&store);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("simulated failure"));
+}
+
+#[test]
+fn test_save_settings_store_error() {
+    let store = FailingStore;
+    let settings = create_mock_settings();
+    let result = save_settings_logic(&store, settings);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("simulated failure"));
+}
+
+#[test]
+fn test_delete_settings_store_error() {
+    let store = FailingStore;
+    let result = delete_settings_logic(&store);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("simulated failure"));
 }

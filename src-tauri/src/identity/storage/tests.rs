@@ -393,3 +393,139 @@ fn test_multiple_saves_with_none_never_drop_marker() {
     );
     assert_eq!(marker.unwrap().as_str().unwrap(), "persistent_id");
 }
+
+// =====================================================
+// NEW TESTS: error propagation and edge cases
+// =====================================================
+
+#[test]
+fn test_save_identity_map_internal_error_propagation() {
+    let store = MockStore::with_error();
+    let network = "testnet";
+    let map = HashMap::new();
+    let result = save_identity_map_internal(&store, network, &map, None);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_save_keystore_internal_error_propagation() {
+    let store = MockStore::with_error();
+    let network = "testnet";
+    let keystore = IPrivateKeyStore::default();
+    let result = save_keystore_internal(&store, network, &keystore);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_load_active_marker_internal_error_propagation() {
+    let store = MockStore::with_error();
+    let result = load_active_marker_internal(&store, "testnet");
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_clear_active_marker_internal_error_on_load() {
+    let store = MockStore::with_error();
+    let result = clear_active_marker_internal(&store, "testnet");
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_process_raw_identity_map_empty_object() {
+    let input = json!({});
+    let map = process_raw_identity_map(input);
+    assert!(map.is_empty());
+}
+
+#[test]
+fn test_process_raw_identity_map_non_object_input() {
+    let input = json!([1, 2, 3]);
+    let map = process_raw_identity_map(input);
+    assert!(map.is_empty());
+}
+
+#[test]
+fn test_process_raw_identity_map_null_input() {
+    let input = json!(null);
+    let map = process_raw_identity_map(input);
+    assert!(map.is_empty());
+}
+
+#[test]
+fn test_extract_active_marker_non_string_value() {
+    let val = json!({
+        "__active_identity_id": 12345
+    });
+    let marker = extract_active_marker(&val);
+    assert_eq!(marker, None); // Not a string, so None
+}
+
+#[test]
+fn test_load_keystore_internal_malformed_data() {
+    let store = MockStore::new();
+    let network = "testnet";
+    let filename = crate::utils::network_file::get_network_file(network, "safu").unwrap();
+    // Save invalid data for keystore
+    store
+        .save_value(&filename, "keystore", json!("not a keystore"))
+        .unwrap();
+    let result = load_keystore_internal(&store, network);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_invalid_network_errors() {
+    let store = MockStore::new();
+    assert!(load_identity_map_internal(&store, "badnet").is_err());
+    assert!(load_keystore_internal(&store, "badnet").is_err());
+    assert!(load_active_marker_internal(&store, "badnet").is_err());
+    assert!(clear_active_marker_internal(&store, "badnet").is_err());
+
+    let map = HashMap::new();
+    assert!(save_identity_map_internal(&store, "badnet", &map, None).is_err());
+
+    let ks = IPrivateKeyStore::default();
+    assert!(save_keystore_internal(&store, "badnet", &ks).is_err());
+}
+
+#[test]
+fn test_save_identity_map_with_empty_map_and_marker() {
+    let store = MockStore::new();
+    let network = "testnet";
+    let map = HashMap::new();
+    // Save empty map with a marker
+    save_identity_map_internal(&store, network, &map, Some("orphan_marker".to_string()))
+        .expect("Save failed");
+
+    let marker = load_active_marker_internal(&store, network).unwrap();
+    assert_eq!(marker, Some("orphan_marker".to_string()));
+
+    let loaded = load_identity_map_internal(&store, network).unwrap();
+    assert!(loaded.is_empty());
+}
+
+#[test]
+fn test_keystore_roundtrip_with_data() {
+    let store = MockStore::new();
+    let network = "testnet";
+
+    let mut keystore = IPrivateKeyStore::default();
+    keystore.mnemonic = Some(crate::models::IMnemonic {
+        seed_phrase: "test phrase words".to_string(),
+    });
+    keystore.identities.insert(
+        "id1".to_string(),
+        vec![crate::models::IPrivateKeyEntry {
+            identity_id: "id1".to_string(),
+            key_id: 0,
+            private_key: "wif_key".to_string(),
+            ..Default::default()
+        }],
+    );
+
+    save_keystore_internal(&store, network, &keystore).unwrap();
+    let loaded = load_keystore_internal(&store, network).unwrap();
+    assert_eq!(loaded.mnemonic.unwrap().seed_phrase, "test phrase words");
+    assert!(loaded.identities.contains_key("id1"));
+    assert_eq!(loaded.identities["id1"].len(), 1);
+}
