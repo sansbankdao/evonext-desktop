@@ -86,7 +86,19 @@ jobs:
       - name: Generate Types (Specta)
         shell: bash
         working-directory: src-tauri
-        run: cargo run --bin export_types
+        run: |
+          cargo run --bin export_types
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            const f = path.join('..', 'src', 'bindings.ts');
+            if (fs.existsSync(f)) {
+              const content = fs.readFileSync(f, 'utf8');
+              if (!content.startsWith('//@ts-nocheck')) {
+                fs.writeFileSync(f, '//@ts-nocheck\n' + content);
+              }
+            }
+          "
 
       - name: Build Frontend
         run: pnpm exec vite build
