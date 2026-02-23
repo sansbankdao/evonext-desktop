@@ -9,6 +9,7 @@ use serde_json::Value;
 mod tests;
 
 impl DAPIClient {
+    #[allow(clippy::too_many_arguments)]
     pub async fn get_documents(
         &self,
         data_contract_id: String,
@@ -103,7 +104,7 @@ pub mod helpers {
         doc.get("createdAt")
             .and_then(|v| v.as_str())
             .and_then(|s| s.parse::<i64>().ok())
-            .and_then(|ts| DateTime::from_timestamp_millis(ts))
+            .and_then(DateTime::from_timestamp_millis)
     }
     pub fn is_post_sensitive(doc: &Value) -> bool {
         doc.get("isSensitive")

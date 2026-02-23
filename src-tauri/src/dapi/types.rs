@@ -93,7 +93,7 @@ impl Network {
             Network::Testnet => "testnet",
         }
     }
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "mainnet" => Some(Network::Mainnet),
             "testnet" => Some(Network::Testnet),
@@ -105,7 +105,7 @@ impl Network {
 impl FromStr for Network {
     type Err = ();
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Network::from_str(s).ok_or(())
+        Network::parse(s).ok_or(())
     }
 }
 

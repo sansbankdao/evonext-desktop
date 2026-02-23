@@ -116,7 +116,7 @@ impl<'a, R: Runtime> PersistentStore for StoreManager<'a, R> {
     ) -> Result<Option<serde_json::Value>, StoreError> {
         let path = self.resolve_path(file_path)?;
         let store = StoreBuilder::new(self.app_handle, path).build()?;
-        Ok(store.get(key).map(|v| v.clone()))
+        Ok(store.get(key))
     }
     fn save_value(
         &self,
@@ -133,7 +133,7 @@ impl<'a, R: Runtime> PersistentStore for StoreManager<'a, R> {
     fn delete_value(&self, file_path: &str, key: &str) -> Result<(), StoreError> {
         let path = self.resolve_path(file_path)?;
         let store = StoreBuilder::new(self.app_handle, path).build()?;
-        store.delete(key.to_string());
+        store.delete(key);
         store.save()?;
         Ok(())
     }

@@ -10,7 +10,7 @@ use tauri::Runtime;
 #[cfg(test)]
 mod tests;
 
-pub fn parse_assets_from_json(items: &Vec<Value>, identity_id: &str, network: &str) -> IAssets {
+pub fn parse_assets_from_json(items: &[Value], identity_id: &str, network: &str) -> IAssets {
     let mut assets = Vec::new();
     for item in items {
         let get_str = |key: &str| -> Option<String> {
@@ -100,11 +100,11 @@ pub fn discover_assets_inner<R: Runtime>(
         Vec::new()
     };
     let mut asset_map: IAssetStoreMap = manager
-        .load_data::<IAssetStoreMap>(&filename, "assets")
+        .load_data::<IAssetStoreMap>(filename, "assets")
         .unwrap_or_default()
         .unwrap_or_default();
     asset_map.insert(identity_id, new_assets.clone());
-    let _ = manager.save_data(&filename, "assets", &asset_map);
+    let _ = manager.save_data(filename, "assets", &asset_map);
     Ok(new_assets)
 }
 
@@ -145,12 +145,12 @@ pub async fn fetch_identity_tokens_inner<R: Runtime>(
     let manager = StoreManager::new(&app);
     let filename = get_network_file(&network, "assets")?;
     let mut asset_map: IAssetStoreMap = manager
-        .load_data::<IAssetStoreMap>(&filename, "assets")
+        .load_data::<IAssetStoreMap>(filename, "assets")
         .unwrap_or_default()
         .unwrap_or_default();
     asset_map.insert(identity_id.clone(), assets.clone());
     manager
-        .save_data(&filename, "assets", &asset_map)
+        .save_data(filename, "assets", &asset_map)
         .map_err(|e| e.to_string())?;
     let mut identities_map = load_identity_map_internal(&manager, &network).unwrap_or_default();
     if let Some(identity_data) = identities_map.get_mut(&identity_id) {
@@ -185,7 +185,7 @@ pub fn load_assets_logic<S: PersistentStore>(
     network: String,
 ) -> Result<IAssets, String> {
     let filename = get_network_file(&network, "assets")?;
-    match store.load_data::<IAssetStoreMap>(&filename, "assets") {
+    match store.load_data::<IAssetStoreMap>(filename, "assets") {
         Ok(Some(map)) => Ok(map.get(&identity_id).cloned().unwrap_or_default()),
         _ => Ok(Vec::new()),
     }
@@ -211,12 +211,12 @@ pub fn save_assets_logic<S: PersistentStore>(
 ) -> Result<(), String> {
     let filename = get_network_file(&network, "assets")?;
     let mut asset_map: IAssetStoreMap = store
-        .load_data::<IAssetStoreMap>(&filename, "assets")
+        .load_data::<IAssetStoreMap>(filename, "assets")
         .unwrap_or_default()
         .unwrap_or_default();
     asset_map.insert(identity_id, payload);
     store
-        .save_data(&filename, "assets", &asset_map)
+        .save_data(filename, "assets", &asset_map)
         .map(|_| ())
         .map_err(|e| e.to_string())
 }
@@ -231,7 +231,7 @@ pub fn delete_assets(app_handle: tauri::AppHandle, network: String) -> ICommandR
 pub fn delete_assets_logic<S: PersistentStore>(store: &S, network: String) -> Result<(), String> {
     let filename = get_network_file(&network, "assets")?;
     store
-        .delete_value(&filename, "assets")
+        .delete_value(filename, "assets")
         .map(|_| ())
         .map_err(|e| e.to_string())
 }

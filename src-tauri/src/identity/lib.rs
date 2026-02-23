@@ -96,7 +96,7 @@ pub fn hash160_bytes(data: &[u8]) -> String {
 }
 /// Enriches a list of key entries by matching them against identity data
 pub fn enrich_key_entries(
-    entries: &mut Vec<crate::models::IPrivateKeyEntry>,
+    entries: &mut [crate::models::IPrivateKeyEntry],
     identity: &IIdentityData,
 ) -> usize {
     let mut updated = 0;

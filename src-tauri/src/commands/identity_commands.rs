@@ -100,7 +100,7 @@ pub async fn discover_and_save_identity_inner<R: Runtime>(
     network: String,
 ) -> Result<IUnifiedCommandResult, String> {
     let client = get_dapi_client();
-    let net = Network::from_str(&network).unwrap_or(Network::Testnet);
+        let net = Network::parse(&network).unwrap_or(Network::Testnet);
     let raw_identities = client
         .get_identity(identity_id.clone(), net)
         .await
@@ -311,7 +311,7 @@ pub async fn delete_identity_inner<R: Runtime>(
     } else {
         let filename = crate::utils::network_file::get_network_file(&network, "identity")?;
         manager
-            .delete_value(&filename, "identities")
+            .delete_value(filename, "identities")
             .map(|_| true)
             .map_err(|e| e.to_string())
     }

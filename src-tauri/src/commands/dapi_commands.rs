@@ -44,7 +44,7 @@ pub struct DapiIdentityResponse {
 
 fn extract_first_as_response(res: Vec<Value>) -> Result<DapiIdentityResponse, String> {
     let first = res
-        .get(0)
+        .first()
         .ok_or_else(|| "DAPI returned an empty result".to_string())?;
 
     // Handle error responses (success: false)
@@ -115,7 +115,7 @@ fn purpose_code_to_string(code: u8) -> String {
 /// Parse network string into Network enum, defaulting to Testnet.
 fn parse_network(network: Option<String>) -> Network {
     network
-        .and_then(|val| Network::from_str(&val))
+        .and_then(|val| Network::parse(&val))
         .unwrap_or(Network::Testnet)
 }
 
@@ -271,7 +271,7 @@ pub(crate) async fn get_dpns_username_inner(
 ) -> Result<Option<String>, String> {
     let n = parse_network(network);
     match client.get_dpns_username(identity_id, n).await {
-        Ok(vec) => Ok(vec.get(0).and_then(|v| v.as_str()).map(|s| s.to_string())),
+        Ok(vec) => Ok(vec.first().and_then(|v| v.as_str()).map(|s| s.to_string())),
         Err(e) => Err(e.to_string()),
     }
 }

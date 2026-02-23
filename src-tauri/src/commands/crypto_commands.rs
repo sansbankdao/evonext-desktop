@@ -17,7 +17,7 @@ pub fn hash160_logic(input: Vec<u8>) -> Result<Vec<u8>, String> {
     use ripemd::{Digest, Ripemd160};
     use sha2::Sha256;
     let sha_hash = Sha256::digest(&input);
-    let rip_hash = Ripemd160::digest(&sha_hash);
+    let rip_hash = Ripemd160::digest(sha_hash);
     Ok(rip_hash.to_vec())
 }
 

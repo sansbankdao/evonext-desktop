@@ -44,15 +44,15 @@ impl DAPIClient {
         network: Network,
         limit: Option<u32>,
     ) -> Result<Vec<Value>, DAPIError> {
-        let where_clause = Some(serde_json::json!({
+        let where_clause = serde_json::json!({
             "normalizedParentDomainName": "dash",
             "normalizedLabel": { "$startsWith": prefix.to_lowercase() }
-        }));
+        });
 
         let params = vec![
             Value::String("dpns".to_string()),
             Value::String("domain".to_string()),
-            where_clause.unwrap_or(Value::Null),
+            where_clause,
             Value::Null,
             limit
                 .map(|l| Value::Number(l.into()))

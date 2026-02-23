@@ -50,7 +50,7 @@ pub fn load_identity_map_internal(
     network: &str,
 ) -> Result<IdentityMap, String> {
     let filename = get_network_file(network, "identity")?;
-    match store.load_value(&filename, "identities") {
+    match store.load_value(filename, "identities") {
         Ok(Some(val)) => Ok(process_raw_identity_map(val)),
         Ok(None) => Ok(HashMap::new()),
         Err(e) => Err(e.to_string()),
@@ -63,7 +63,7 @@ pub fn load_active_marker_internal(
     network: &str,
 ) -> Result<Option<String>, String> {
     let filename = get_network_file(network, "identity")?;
-    match store.load_value(&filename, "identities") {
+    match store.load_value(filename, "identities") {
         Ok(Some(val)) => Ok(extract_active_marker(&val)),
         Ok(None) => Ok(None),
         Err(e) => Err(e.to_string()),
@@ -100,7 +100,7 @@ pub fn save_identity_map_internal(
         Some(marker) => Some(marker),
         None => {
             // Read existing marker from disk before overwriting
-            match store.load_value(&filename, "identities") {
+            match store.load_value(filename, "identities") {
                 Ok(Some(val)) => extract_active_marker(&val),
                 _ => None,
             }
@@ -118,7 +118,7 @@ pub fn save_identity_map_internal(
     // For full atomicity, StoreManager should handle temp+rename internally.
     // Here we wrap save_value; if StoreManager supports atomic via flag, use it.
     store
-        .save_value(&filename, "identities", output_value)
+        .save_value(filename, "identities", output_value)
         .map_err(|e| e.to_string())
 }
 
@@ -143,7 +143,7 @@ pub fn clear_active_marker_internal(
     let output_value = serde_json::to_value(&map).map_err(|e| e.to_string())?;
     // Save WITHOUT inserting __active_identity_id — intentionally clearing it
     store
-        .save_value(&filename, "identities", output_value)
+        .save_value(filename, "identities", output_value)
         .map_err(|e| e.to_string())
 }
 
@@ -153,7 +153,7 @@ pub fn load_keystore_internal(
     network: &str,
 ) -> Result<IPrivateKeyStore, String> {
     let filename = get_network_file(network, "safu")?;
-    match store.load_value(&filename, "keystore") {
+    match store.load_value(filename, "keystore") {
         Ok(Some(val)) => serde_json::from_value(val).map_err(|e| e.to_string()),
         Ok(None) => Ok(IPrivateKeyStore::default()),
         Err(e) => Err(e.to_string()),
@@ -178,7 +178,7 @@ pub fn save_keystore_internal(
     let filename = get_network_file(network, "safu")?;
     let val = serde_json::to_value(keystore).map_err(|e| e.to_string())?;
     store
-        .save_value(&filename, "keystore", val)
+        .save_value(filename, "keystore", val)
         .map_err(|e| e.to_string())
 }
 
