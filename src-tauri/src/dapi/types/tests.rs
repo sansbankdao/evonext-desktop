@@ -5,9 +5,9 @@ use serde_json::json;
 
 #[test]
 fn test_network_parsing() {
-    assert_eq!(Network::from_str("Mainnet"), Some(Network::Mainnet));
-    assert_eq!(Network::from_str("testnet"), Some(Network::Testnet));
-    assert_eq!(Network::from_str("invalid"), None);
+    assert_eq!(Network::parse("Mainnet"), Some(Network::Mainnet));
+    assert_eq!(Network::parse("testnet"), Some(Network::Testnet));
+    assert_eq!(Network::parse("invalid"), None);
 }
 
 #[test]
