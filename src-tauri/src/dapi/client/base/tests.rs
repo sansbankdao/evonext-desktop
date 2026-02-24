@@ -59,9 +59,7 @@ fn test_dual_parsing_single_item_fallback() {
     // A raw string that isn't an array and isn't a DAPIResponse
     let single_json = json!("single_value").to_string();
 
-    let res: Vec<String> = client
-        .parse_response_text("method", &single_json)
-        .unwrap();
+    let res: Vec<String> = client.parse_response_text("method", &single_json).unwrap();
     assert_eq!(res.len(), 1);
     assert_eq!(res[0], "single_value");
 }
@@ -97,9 +95,7 @@ fn test_dual_parsing_empty_array_result() {
     })
     .to_string();
 
-    let res: Vec<String> = client
-        .parse_response_text("test", &wrapped_json)
-        .unwrap();
+    let res: Vec<String> = client.parse_response_text("test", &wrapped_json).unwrap();
     assert!(res.is_empty());
 }
 
@@ -108,8 +104,5 @@ fn test_get_dapi_client_returns_same_instance() {
     let client1 = get_dapi_client();
     let client2 = get_dapi_client();
     // Both should point to the same static instance
-    assert_eq!(
-        client1 as *const DAPIClient,
-        client2 as *const DAPIClient
-    );
+    assert_eq!(client1 as *const DAPIClient, client2 as *const DAPIClient);
 }

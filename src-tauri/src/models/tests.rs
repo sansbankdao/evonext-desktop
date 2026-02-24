@@ -1,6 +1,6 @@
 use super::*;
-use serde_json::json;
 use crate::cmd_res;
+use serde_json::json;
 
 #[test]
 fn test_de_u32_from_str_or_num() {
