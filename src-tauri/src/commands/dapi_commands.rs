@@ -126,13 +126,7 @@ pub async fn get_identity_by_public_key_hash(
     public_key_hash: String,
     network: Option<String>,
 ) -> ICommandResult<DapiIdentityResponse> {
-    println!(
-        "[RUST DEBUG] get_identity_by_public_key_hash called: hash={}, network={:?}",
-        public_key_hash, network
-    );
-    cmd_res!(
-        get_identity_by_public_key_hash_inner(get_dapi_client(), public_key_hash, network).await
-    )
+    cmd_res!(get_identity_by_public_key_hash_inner(get_dapi_client(), public_key_hash, network).await)
 }
 
 pub(crate) async fn get_identity_by_public_key_hash_inner(
@@ -140,6 +134,10 @@ pub(crate) async fn get_identity_by_public_key_hash_inner(
     public_key_hash: String,
     network: Option<String>,
 ) -> Result<DapiIdentityResponse, String> {
+    println!(
+        "[RUST DEBUG] get_identity_by_public_key_hash called: hash={}, network={:?}",
+        public_key_hash, network
+    );
     let n = parse_network(network);
     let res = client
         .request::<Value>(
@@ -163,21 +161,7 @@ pub async fn get_identity_by_non_unique_public_key_hash(
     public_key_hash: String,
     network: Option<String>,
 ) -> ICommandResult<DapiIdentityResponse> {
-    println!(
-        "[RUST DEBUG] get_identity_by_non_unique_public_key_hash START: hash={}, network={:?}",
-        public_key_hash, network
-    );
-    let result = get_identity_by_non_unique_public_key_hash_inner(
-        get_dapi_client(),
-        public_key_hash,
-        network,
-    )
-    .await;
-    println!(
-        "[RUST DEBUG] get_identity_by_non_unique_public_key_hash END: result={:?}",
-        result
-    );
-    cmd_res!(result)
+    cmd_res!(get_identity_by_non_unique_public_key_hash_inner(get_dapi_client(), public_key_hash, network).await)
 }
 
 pub(crate) async fn get_identity_by_non_unique_public_key_hash_inner(
@@ -186,6 +170,10 @@ pub(crate) async fn get_identity_by_non_unique_public_key_hash_inner(
     network: Option<String>,
 ) -> Result<DapiIdentityResponse, String> {
     let n = parse_network(network.clone());
+    println!(
+        "[RUST DEBUG] get_identity_by_non_unique_public_key_hash START: hash={}, network={:?}",
+        public_key_hash, network
+    );
     println!("[RUST DEBUG] Using network: {:?}", n);
     println!("[RUST DEBUG] Calling DAPI with method: get_identity_by_non_unique_public_key_hash");
     let res = client
@@ -204,6 +192,10 @@ pub(crate) async fn get_identity_by_non_unique_public_key_hash_inner(
 
     let extracted = extract_first_as_response(res);
     println!("[RUST DEBUG] Extracted response: {:?}", extracted);
+    println!(
+        "[RUST DEBUG] get_identity_by_non_unique_public_key_hash END: result={:?}",
+        extracted
+    );
 
     extracted
 }
@@ -579,18 +571,7 @@ pub async fn get_posts(
     limit: Option<u32>,
     network: Option<String>,
 ) -> ICommandResult<Vec<Value>> {
-    cmd_res!(
-        get_posts_inner(
-            get_dapi_client(),
-            data_contract_id,
-            document_type,
-            where_clause,
-            order_by,
-            limit,
-            network
-        )
-        .await
-    )
+    cmd_res!(get_posts_inner(get_dapi_client(), data_contract_id, document_type, where_clause, order_by, limit, network).await)
 }
 
 pub(crate) async fn get_posts_inner(
