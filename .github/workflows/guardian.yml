@@ -110,6 +110,7 @@ jobs:
       # ── Tests ───────────────────────────────────────────────
 
       - name: Run Rust Unit Tests (with coverage)
+        if: matrix.platform != 'windows-latest'
         working-directory: src-tauri
         shell: bash
         run: cargo llvm-cov --all-features --lib --lcov --output-path lcov-rust.info

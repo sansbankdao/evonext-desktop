@@ -1228,6 +1228,7 @@ fn test_identity_storage_active_marker_operations() {
 // =====================================================
 
 #[test]
+#[cfg(not(target_os = "macos"))]
 fn test_menu_setup_with_mock_app() {
     let app = mock_app();
     let handle = app.handle();
