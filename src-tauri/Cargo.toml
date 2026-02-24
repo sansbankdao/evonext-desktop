@@ -70,4 +70,4 @@ path = "src/export_types.rs"
 
 [package.metadata.cargo-llvm-cov]
 # Ignore files that don't contain testable logic
-ignore-filename-regex = "main\\.rs|export_types\\.rs"
+ignore-filename-regex = "(main|export_types)\\.rs$"
