@@ -21,6 +21,9 @@ use crate::models::*;
 use crate::utils::{PersistentStore, StoreManager};
 use tauri::test::MockRuntime;
 
+use crate::commands::crypto_commands;
+use crate::models::{ILicense, IPrivateKeyEntry};
+
 /// Build a minimal Tauri app with the store plugin for testing.
 fn mock_app() -> tauri::App<MockRuntime> {
     tauri::test::mock_builder()
@@ -1298,4 +1301,357 @@ fn test_settings_command_wrapper_generic() {
 
     let after = settings_commands::load_settings(handle.clone());
     assert!(after.data.flatten().is_none());
+}
+
+// =====================================================
+// Command wrapper tests (exercising #[tauri::command] fns
+// directly with MockRuntime now that they are generic)
+// =====================================================
+
+#[test]
+fn test_mnemonic_command_wrapper_generic() {
+    let app = mock_app();
+    let handle = app.handle();
+
+    let mnemonic = IMnemonic {
+        seed_phrase: "wrapper test seed phrase".to_string(),
+    };
+
+    let save_res = mnemonic_commands::save_mnemonic(handle.clone(), "testnet".into(), mnemonic);
+    assert!(save_res.error.is_none());
+
+    let load_res = mnemonic_commands::load_mnemonic(handle.clone(), "testnet".into());
+    assert!(load_res.error.is_none());
+    let loaded = load_res.data.flatten().unwrap();
+    assert_eq!(loaded.seed_phrase, "wrapper test seed phrase");
+
+    let del_res = mnemonic_commands::delete_mnemonic(handle.clone(), "testnet".into());
+    assert!(del_res.error.is_none());
+
+    let after = mnemonic_commands::load_mnemonic(handle.clone(), "testnet".into());
+    assert!(after.data.flatten().is_none());
+}
+
+#[test]
+fn test_mnemonic_command_wrapper_mainnet() {
+    let app = mock_app();
+    let handle = app.handle();
+
+    let mnemonic = IMnemonic {
+        seed_phrase: "mainnet wrapper phrase".to_string(),
+    };
+
+    let save_res = mnemonic_commands::save_mnemonic(handle.clone(), "mainnet".into(), mnemonic);
+    assert!(save_res.error.is_none());
+
+    let load_res = mnemonic_commands::load_mnemonic(handle.clone(), "mainnet".into());
+    assert!(load_res.error.is_none());
+
+    mnemonic_commands::delete_mnemonic(handle.clone(), "mainnet".into());
+}
+
+#[tokio::test]
+async fn test_license_command_wrapper_generic() {
+    let app = mock_app();
+    let handle = app.handle();
+
+    let license = ILicense {
+        success: true,
+        identity_id: "wrap_lic_id".to_string(),
+        txid: "tx_wrap".to_string(),
+        is_premium: true,
+        created_at: "1700000000".to_string(),
+        expires_at: "2000000000".to_string(),
+        updated_at: Some("1700000001".to_string()),
+    };
+
+    let save_res = license_commands::save_license(handle.clone(), license);
+    assert!(save_res.error.is_none());
+
+    let load_res = license_commands::load_license(handle.clone(), "wrap_lic_id".into()).await;
+    assert!(load_res.error.is_none());
+
+    let del_res = license_commands::delete_license(handle.clone(), "wrap_lic_id".into());
+    assert!(del_res.error.is_none());
+
+    let after = license_commands::load_license(handle.clone(), "wrap_lic_id".into()).await;
+    assert!(after.data.flatten().is_none());
+}
+
+#[test]
+fn test_crypto_command_wrapper_generic() {
+    let app = mock_app();
+    let handle = app.handle();
+
+    let hash_res = crypto_commands::hash160(handle.clone(), "hello".into());
+    assert!(hash_res.error.is_none());
+    assert!(!hash_res.data.unwrap().is_empty());
+
+    let hash_res2 = crypto_commands::hash160(handle.clone(), "hello".into());
+    assert_eq!(
+        hash_res2.data,
+        crypto_commands::hash160(handle.clone(), "hello".into()).data
+    );
+
+    let bytes_res = crypto_commands::random_bytes(handle.clone(), 32);
+    assert!(bytes_res.error.is_none());
+    assert_eq!(bytes_res.data.unwrap().len(), 32);
+
+    let empty_res = crypto_commands::random_bytes(handle.clone(), 0);
+    assert!(empty_res.data.unwrap().is_empty());
+}
+
+#[test]
+fn test_asset_command_wrapper_generic() {
+    let app = mock_app();
+    let handle = app.handle();
+
+    let assets = vec![
+        IAssetDefinition {
+            identity_id: "wrap_asset_id".into(),
+            name: "WrapCoin".into(),
+            symbol: "WC".into(),
+            balance: Some("5000".into()),
+            asset_id: Some("wrap_contract".into()),
+            decimals: Some(8),
+            network: Some("testnet".into()),
+        },
+        IAssetDefinition {
+            identity_id: "wrap_asset_id".into(),
+            name: "WrapToken".into(),
+            symbol: "WT".into(),
+            balance: Some("100".into()),
+            asset_id: Some("wrap_contract_2".into()),
+            decimals: Some(18),
+            network: Some("testnet".into()),
+        },
+    ];
+
+    let save_res = asset_commands::save_assets(
+        handle.clone(),
+        "wrap_asset_id".into(),
+        "testnet".into(),
+        assets,
+    );
+    assert!(save_res.error.is_none());
+
+    let load_res =
+        asset_commands::load_assets(handle.clone(), "wrap_asset_id".into(), "testnet".into());
+    assert!(load_res.error.is_none());
+    assert_eq!(load_res.data.unwrap().len(), 2);
+
+    let del_res = asset_commands::delete_assets(handle.clone(), "testnet".into());
+    assert!(del_res.error.is_none());
+
+    let after =
+        asset_commands::load_assets(handle.clone(), "wrap_asset_id".into(), "testnet".into());
+    assert!(after.data.unwrap().is_empty());
+}
+
+#[test]
+fn test_asset_command_wrapper_mainnet() {
+    let app = mock_app();
+    let handle = app.handle();
+
+    let assets = vec![IAssetDefinition {
+        identity_id: "mn_wrap_id".into(),
+        name: "MainWrap".into(),
+        symbol: "MW".into(),
+        balance: Some("9999".into()),
+        asset_id: Some("mn_contract".into()),
+        decimals: Some(8),
+        network: Some("mainnet".into()),
+    }];
+
+    asset_commands::save_assets(
+        handle.clone(),
+        "mn_wrap_id".into(),
+        "mainnet".into(),
+        assets,
+    );
+
+    let load_res =
+        asset_commands::load_assets(handle.clone(), "mn_wrap_id".into(), "mainnet".into());
+    assert_eq!(load_res.data.unwrap().len(), 1);
+
+    asset_commands::delete_assets(handle.clone(), "mainnet".into());
+}
+
+#[test]
+fn test_identity_details_command_wrapper_generic() {
+    let app = mock_app();
+    let handle = app.handle();
+
+    // Set up identity via storage first
+    let mut map = std::collections::HashMap::new();
+    map.insert(
+        "wrap_detail_id".to_string(),
+        IIdentityData {
+            identity_id: "wrap_detail_id".into(),
+            username: "wrap_detail_user".into(),
+            balance: "100".into(),
+            revision: 1,
+            ..Default::default()
+        },
+    );
+    let manager = StoreManager::new(handle);
+    storage::save_identity_map_internal(&manager, "testnet", &map, None).unwrap();
+
+    let update_res = identity_details_commands::update_identity_with_sdk_data(
+        handle.clone(),
+        "testnet".into(),
+        "wrap_detail_id".into(),
+        vec![IIdentityPublicKey {
+            id: 0,
+            type_: "ECDSA_SECP256K1".into(),
+            purpose: 0,
+            security_level: 0,
+            data: "aabb".into(),
+            read_only: false,
+            disabled_at: None,
+        }],
+        5,
+        vec![0],
+    );
+    assert!(update_res.error.is_none());
+
+    let keys_res = identity_details_commands::get_identity_public_keys(
+        handle.clone(),
+        "testnet".into(),
+        "wrap_detail_id".into(),
+    );
+    assert!(keys_res.error.is_none());
+    assert_eq!(keys_res.data.flatten().unwrap().len(), 1);
+
+    let del_res = identity_details_commands::delete_identity_public_keys(
+        handle.clone(),
+        "testnet".into(),
+        "wrap_detail_id".into(),
+    );
+    assert!(del_res.error.is_none());
+}
+
+#[tokio::test]
+async fn test_identity_command_wrapper_save_and_load() {
+    let app = mock_app();
+    let handle = app.handle();
+
+    let payload = identity_commands::ISaveIdentityPayload {
+        identity_id: "wrap_id_1".into(),
+        username: "wrap_user_1".into(),
+        balance: "500".into(),
+        revision: 1,
+        public_keys: vec![],
+        ..Default::default()
+    };
+
+    let save_res =
+        identity_commands::save_identity(handle.clone(), "testnet".into(), payload).await;
+    assert!(save_res.error.is_none());
+
+    let active_res =
+        identity_commands::load_active_identity(handle.clone(), "testnet".into()).await;
+    assert!(active_res.error.is_none());
+
+    let map_res = identity_commands::load_identities_map(handle.clone(), "testnet".into()).await;
+    assert!(map_res.error.is_none());
+}
+
+#[tokio::test]
+async fn test_identity_command_wrapper_delete() {
+    let app = mock_app();
+    let handle = app.handle();
+
+    let payload = identity_commands::ISaveIdentityPayload {
+        identity_id: "wrap_del_id".into(),
+        username: "wrap_del_user".into(),
+        balance: "0".into(),
+        revision: 1,
+        public_keys: vec![],
+        ..Default::default()
+    };
+
+    identity_commands::save_identity(handle.clone(), "testnet".into(), payload).await;
+
+    let del_res = identity_commands::delete_identity(
+        handle.clone(),
+        "testnet".into(),
+        Some("wrap_del_id".into()),
+    )
+    .await;
+    assert!(del_res.error.is_none());
+}
+
+#[tokio::test]
+async fn test_identity_command_wrapper_save_keys_and_keystore() {
+    let app = mock_app();
+    let handle = app.handle();
+
+    let payload = identity_commands::ISaveIdentityPayload {
+        identity_id: "wrap_ks_id".into(),
+        username: "wrap_ks_user".into(),
+        balance: "0".into(),
+        revision: 1,
+        public_keys: vec![],
+        ..Default::default()
+    };
+
+    identity_commands::save_identity(handle.clone(), "testnet".into(), payload).await;
+
+    let keys = vec![IPrivateKeyEntry {
+        identity_id: "wrap_ks_id".into(),
+        key_id: 0,
+        private_key: "wif_wrap".into(),
+        ..Default::default()
+    }];
+
+    let save_keys_res =
+        identity_commands::save_keys(handle.clone(), "testnet".into(), "wrap_ks_id".into(), keys)
+            .await;
+    assert!(save_keys_res.error.is_none());
+
+    let ks_res = identity_commands::load_keystore(handle.clone(), "testnet".into()).await;
+    assert!(ks_res.error.is_none());
+}
+
+#[tokio::test]
+async fn test_identity_command_wrapper_save_with_keys() {
+    let app = mock_app();
+    let handle = app.handle();
+
+    let payload = identity_commands::ISaveIdentityPayload {
+        identity_id: "wrap_wk_id".into(),
+        username: "wrap_wk_user".into(),
+        balance: "1000".into(),
+        revision: 3,
+        public_keys: vec![],
+        ..Default::default()
+    };
+
+    let private_keys = vec![IPrivateKeyEntry {
+        identity_id: "wrap_wk_id".into(),
+        key_id: 0,
+        private_key: "wif_wk_wrap".into(),
+        ..Default::default()
+    }];
+
+    let res = identity_commands::save_identity_with_keys(
+        handle.clone(),
+        "testnet".into(),
+        payload,
+        private_keys,
+    )
+    .await;
+    assert!(res.error.is_none());
+}
+
+#[tokio::test]
+async fn test_license_command_wrapper_async_load() {
+    let app = mock_app();
+    let handle = app.handle();
+
+    // load_license is async
+    let res = license_commands::load_license(handle.clone(), "nonexistent_wrap".into()).await;
+    assert!(res.error.is_none());
+    assert!(res.data.flatten().is_none());
 }
