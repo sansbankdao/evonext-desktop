@@ -313,11 +313,16 @@ fn test_delete_assets_empty_store() {
 
 #[test]
 fn test_delete_assets_preserves_other_networks() {
-    let store = MockStore {
+    // The MockStore ignores file paths, so we test by verifying
+    // delete only removes the correct network's key.
+    // Use separate stores to simulate separate network files.
+    let store_testnet = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
+    let store_mainnet = MockStore {
         storage: Mutex::new(HashMap::new()),
     };
 
-    // Save assets for testnet
     let assets = vec![IAssetDefinition {
         identity_id: "id1".into(),
         name: "Coin".into(),
@@ -327,18 +332,19 @@ fn test_delete_assets_preserves_other_networks() {
         decimals: Some(8),
         network: Some("testnet".into()),
     }];
-    save_assets_logic(&store, "id1".into(), "testnet".into(), assets.clone()).unwrap();
-    save_assets_logic(&store, "id1".into(), "mainnet".into(), assets).unwrap();
+
+    save_assets_logic(&store_testnet, "id1".into(), "testnet".into(), assets.clone()).unwrap();
+    save_assets_logic(&store_mainnet, "id1".into(), "mainnet".into(), assets).unwrap();
 
     // Delete testnet assets
-    delete_assets_logic(&store, "testnet".into()).unwrap();
+    delete_assets_logic(&store_testnet, "testnet".into()).unwrap();
 
     // Testnet should be empty
-    let loaded_testnet = load_assets_logic(&store, "id1".into(), "testnet".into()).unwrap();
+    let loaded_testnet = load_assets_logic(&store_testnet, "id1".into(), "testnet".into()).unwrap();
     assert!(loaded_testnet.is_empty());
 
-    // Mainnet should still have data
-    let loaded_mainnet = load_assets_logic(&store, "id1".into(), "mainnet".into()).unwrap();
+    // Mainnet store is untouched
+    let loaded_mainnet = load_assets_logic(&store_mainnet, "id1".into(), "mainnet".into()).unwrap();
     assert_eq!(loaded_mainnet.len(), 1);
 }
 

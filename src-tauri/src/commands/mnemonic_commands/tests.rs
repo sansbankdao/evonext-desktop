@@ -1,6 +1,7 @@
 // src-tauri/src/commands/mnemonic_commands/tests.rs
 
 use super::*;
+use crate::models::IPrivateKeyEntry;
 use crate::utils::{PersistentStore, StoreError};
 use serde_json::Value;
 use std::collections::HashMap;

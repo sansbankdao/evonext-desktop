@@ -440,8 +440,8 @@ fn test_derive_pubkey_from_empty_wif() {
 
 #[test]
 fn test_derive_pubkey_from_valid_wif() {
-    // This is a well-known testnet WIF private key
-    let wif = "cNYfRxoekiJ2JMnXiVgqzSBfpKjPaUC8CVqkMxHMiJtwjFiByMw4";
+    // Standard mainnet compressed WIF (well-known test vector)
+    let wif = "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn";
     let result = derive_compressed_pubkey_hex_from_wif(wif);
     assert!(result.is_some());
     let pubkey_hex = result.unwrap();
@@ -452,7 +452,7 @@ fn test_derive_pubkey_from_valid_wif() {
 
 #[test]
 fn test_derive_pubkey_deterministic() {
-    let wif = "cNYfRxoekiJ2JMnXiVgqzSBfpKjPaUC8CVqkMxHMiJtwjFiByMw4";
+    let wif = "KwDiBf89QgGbjEhKnhXJuH7LrciVrZi3qYjgd9M7rFU73sVHnoWn";
     let r1 = derive_compressed_pubkey_hex_from_wif(wif).unwrap();
     let r2 = derive_compressed_pubkey_hex_from_wif(wif).unwrap();
     assert_eq!(r1, r2);
