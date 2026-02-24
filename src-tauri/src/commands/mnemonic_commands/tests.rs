@@ -11,6 +11,20 @@ struct MockStore {
     storage: Mutex<HashMap<String, Value>>,
 }
 
+struct FailingStore;
+
+impl PersistentStore for FailingStore {
+    fn load_value(&self, _path: &str, _key: &str) -> Result<Option<Value>, StoreError> {
+        Err(StoreError::Store("simulated failure".to_string()))
+    }
+    fn save_value(&self, _path: &str, _key: &str, _val: Value) -> Result<(), StoreError> {
+        Err(StoreError::Store("simulated failure".to_string()))
+    }
+    fn delete_value(&self, _path: &str, _key: &str) -> Result<(), StoreError> {
+        Err(StoreError::Store("simulated failure".to_string()))
+    }
+}
+
 impl PersistentStore for MockStore {
     fn load_value(&self, _path: &str, key: &str) -> Result<Option<Value>, StoreError> {
         let map = self.storage.lock().unwrap();
@@ -210,4 +224,110 @@ fn test_load_mnemonic_mainnet() {
 
     let loaded = load_mnemonic_logic(&store, "mainnet".into()).unwrap();
     assert_eq!(loaded, Some(mnemonic));
+}
+
+// =====================================================
+// NEW TESTS: mnemonic error propagation
+// =====================================================
+
+#[test]
+fn test_load_mnemonic_store_error() {
+    let store = FailingStore;
+    let result = load_mnemonic_logic(&store, "testnet".into());
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("simulated failure"));
+}
+
+#[test]
+fn test_save_mnemonic_store_error() {
+    let store = FailingStore;
+    let mnemonic = IMnemonic {
+        seed_phrase: "phrase".into(),
+    };
+    let result = save_mnemonic_logic(&store, "testnet".into(), mnemonic);
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("simulated failure"));
+}
+
+#[test]
+fn test_delete_mnemonic_store_error() {
+    let store = FailingStore;
+    let result = delete_mnemonic_logic(&store, "testnet".into());
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("simulated failure"));
+}
+
+// =====================================================
+// NEW TESTS: mnemonic with malformed keystore data
+// =====================================================
+
+#[test]
+fn test_load_mnemonic_malformed_keystore() {
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
+
+    // Store malformed data
+    store
+        .save_value("", "keystore", serde_json::json!("not a keystore object"))
+        .unwrap();
+
+    // load_mnemonic_logic calls load_data which will fail to deserialize
+    let result = load_mnemonic_logic(&store, "testnet".into());
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_save_mnemonic_with_malformed_existing_keystore() {
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
+
+    // Store malformed data — save_mnemonic_logic should handle gracefully
+    // by falling back to default keystore
+    store
+        .save_value("", "keystore", serde_json::json!("bad data"))
+        .unwrap();
+
+    let mnemonic = IMnemonic {
+        seed_phrase: "recovery phrase".into(),
+    };
+    let result = save_mnemonic_logic(&store, "testnet".into(), mnemonic);
+    assert!(result.is_ok());
+
+    // The new mnemonic should be saved with a fresh default keystore
+    let loaded = load_mnemonic_logic(&store, "testnet".into()).unwrap();
+    assert!(loaded.is_some());
+    assert_eq!(loaded.unwrap().seed_phrase, "recovery phrase");
+}
+
+// =====================================================
+// NEW TESTS: mnemonic edge cases with seed phrase content
+// =====================================================
+
+#[test]
+fn test_save_and_load_mnemonic_empty_seed_phrase() {
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
+    let mnemonic = IMnemonic {
+        seed_phrase: "".into(),
+    };
+    save_mnemonic_logic(&store, "testnet".into(), mnemonic).unwrap();
+    let loaded = load_mnemonic_logic(&store, "testnet".into()).unwrap().unwrap();
+    assert_eq!(loaded.seed_phrase, "");
+}
+
+#[test]
+fn test_save_and_load_mnemonic_long_seed_phrase() {
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
+    let long_phrase = "word ".repeat(24);
+    let mnemonic = IMnemonic {
+        seed_phrase: long_phrase.clone(),
+    };
+    save_mnemonic_logic(&store, "testnet".into(), mnemonic).unwrap();
+    let loaded = load_mnemonic_logic(&store, "testnet".into()).unwrap().unwrap();
+    assert_eq!(loaded.seed_phrase, long_phrase);
 }

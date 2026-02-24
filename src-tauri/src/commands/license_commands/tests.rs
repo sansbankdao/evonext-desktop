@@ -464,3 +464,85 @@ fn test_delete_license_store_error() {
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("simulated failure"));
 }
+
+// =====================================================
+// NEW TESTS: load_license_logic with store error resilience
+// =====================================================
+
+#[test]
+fn test_load_license_store_error_returns_none() {
+    // FailingStore returns Err from load_value, but load_license_logic
+    // uses unwrap_or(None) so it should return Ok(None)
+    let store = FailingStore;
+    let result = load_license_logic(&store, "any_id".to_string());
+    assert!(result.is_ok());
+    assert!(result.unwrap().is_none());
+}
+
+// =====================================================
+// NEW TESTS: delete_license_logic with empty-after-delete map
+// =====================================================
+
+#[test]
+fn test_delete_license_from_empty_map() {
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
+
+    // Save then delete to create an empty map
+    let license = ILicense {
+        success: true,
+        identity_id: "only_one".to_string(),
+        txid: "tx".to_string(),
+        is_premium: false,
+        created_at: "0".to_string(),
+        expires_at: "0".to_string(),
+        updated_at: None,
+    };
+    save_license_logic(&store, license).unwrap();
+    delete_license_logic(&store, "only_one".to_string()).unwrap();
+
+    // Now try to delete again from the now-empty map
+    let result = delete_license_logic(&store, "only_one".to_string());
+    assert!(result.is_ok());
+}
+
+// =====================================================
+// NEW TESTS: ILicense serialization / traits
+// =====================================================
+
+#[test]
+fn test_license_serialization_roundtrip() {
+    let license = ILicense {
+        success: true,
+        identity_id: "roundtrip_id".to_string(),
+        txid: "rt_tx".to_string(),
+        is_premium: true,
+        created_at: "1700000000".to_string(),
+        expires_at: "2000000000".to_string(),
+        updated_at: Some("1700005000".to_string()),
+    };
+    let json_str = serde_json::to_string(&license).unwrap();
+    let parsed: ILicense = serde_json::from_str(&json_str).unwrap();
+    assert_eq!(parsed.identity_id, "roundtrip_id");
+    assert_eq!(parsed.txid, "rt_tx");
+    assert!(parsed.is_premium);
+    assert_eq!(parsed.updated_at, Some("1700005000".to_string()));
+}
+
+#[test]
+fn test_license_clone_and_debug() {
+    let license = ILicense {
+        success: true,
+        identity_id: "clone_test".to_string(),
+        txid: "tx".to_string(),
+        is_premium: false,
+        created_at: "0".to_string(),
+        expires_at: "0".to_string(),
+        updated_at: None,
+    };
+    let cloned = license.clone();
+    assert_eq!(cloned.identity_id, "clone_test");
+    let debug = format!("{:?}", license);
+    assert!(debug.contains("clone_test"));
+}

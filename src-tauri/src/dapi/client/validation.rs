@@ -5,6 +5,9 @@ use serde_json::Value;
 use std::collections::HashMap;
 use tracing::warn;
 
+#[cfg(test)]
+mod tests;
+
 #[derive(Debug, Clone)]
 pub struct MethodParamInfo {
     pub required_params: Vec<&'static str>,

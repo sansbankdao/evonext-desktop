@@ -27,6 +27,20 @@ impl PersistentStore for MockStore {
     }
 }
 
+struct FailingStore;
+
+impl PersistentStore for FailingStore {
+    fn load_value(&self, _path: &str, _key: &str) -> Result<Option<Value>, StoreError> {
+        Err(StoreError::Store("simulated failure".to_string()))
+    }
+    fn save_value(&self, _path: &str, _key: &str, _val: Value) -> Result<(), StoreError> {
+        Err(StoreError::Store("simulated failure".to_string()))
+    }
+    fn delete_value(&self, _path: &str, _key: &str) -> Result<(), StoreError> {
+        Err(StoreError::Store("simulated failure".to_string()))
+    }
+}
+
 #[tokio::test]
 async fn test_save_identity_with_keys_atomic_pure() {
     let store = MockStore {
@@ -648,4 +662,386 @@ async fn test_save_identity_with_keys_logic_multiple_keys() {
     let keystore = storage::load_keystore_internal(&store, &network).unwrap();
     let entries = keystore.identities.get(&identity_id).unwrap();
     assert_eq!(entries.len(), 2);
+}
+
+// =====================================================
+// NEW TESTS: error propagation via FailingStore
+// =====================================================
+
+#[tokio::test]
+async fn test_save_identity_logic_invalid_network() {
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
+    let payload = ISaveIdentityPayload {
+        identity_id: "id".into(),
+        username: "user".into(),
+        balance: "0".into(),
+        ..Default::default()
+    };
+    let result = save_identity_logic(&store, "invalid_net".into(), payload).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_save_identity_logic_store_error() {
+    let store = FailingStore;
+    let payload = ISaveIdentityPayload {
+        identity_id: "id".into(),
+        username: "user".into(),
+        balance: "0".into(),
+        ..Default::default()
+    };
+    let result = save_identity_logic(&store, "testnet".into(), payload).await;
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("simulated failure"));
+}
+
+#[tokio::test]
+async fn test_save_keys_logic_invalid_network() {
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
+    let result = save_keys_logic(&store, "invalid_net".into(), "id".into(), vec![]).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_save_keys_logic_store_error() {
+    let store = FailingStore;
+    let keys = vec![IPrivateKeyEntry {
+        identity_id: "id".into(),
+        key_id: 0,
+        private_key: "wif".into(),
+        ..Default::default()
+    }];
+    let result = save_keys_logic(&store, "testnet".into(), "id".into(), keys).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_save_identity_with_keys_logic_invalid_network() {
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
+    let payload = ISaveIdentityPayload {
+        identity_id: "id".into(),
+        username: "user".into(),
+        balance: "0".into(),
+        ..Default::default()
+    };
+    let result = save_identity_with_keys_logic(&store, "invalid_net".into(), payload, vec![]).await;
+    assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_save_identity_with_keys_logic_store_error() {
+    let store = FailingStore;
+    let payload = ISaveIdentityPayload {
+        identity_id: "id".into(),
+        username: "user".into(),
+        balance: "0".into(),
+        ..Default::default()
+    };
+    let result =
+        save_identity_with_keys_logic(&store, "testnet".into(), payload, vec![]).await;
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("simulated failure"));
+}
+
+#[test]
+fn test_load_active_identity_logic_store_error() {
+    let store = FailingStore;
+    let result = load_active_identity_logic(&store, "testnet".into());
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_load_identities_map_logic_store_error() {
+    let store = FailingStore;
+    let result = load_identities_map_logic(&store, "testnet".into());
+    assert!(result.is_err());
+}
+
+// =====================================================
+// NEW TESTS: load_active_identity_logic non-object raw value
+// =====================================================
+
+#[test]
+fn test_load_active_identity_logic_non_object_raw_value() {
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
+    {
+        let mut map = store.storage.lock().unwrap();
+        map.insert("identities".to_string(), json!("not an object"));
+    }
+
+    let result = load_active_identity_logic(&store, "testnet".into()).unwrap();
+    assert_eq!(result.active_identity_id, None);
+    assert!(result.identity.is_none());
+    assert_eq!(result.identity_count, 0);
+}
+
+#[test]
+fn test_load_active_identity_logic_null_raw_value() {
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
+    {
+        let mut map = store.storage.lock().unwrap();
+        map.insert("identities".to_string(), json!(null));
+    }
+
+    let result = load_active_identity_logic(&store, "testnet".into()).unwrap();
+    assert_eq!(result.active_identity_id, None);
+    assert!(result.identity.is_none());
+    assert_eq!(result.identity_count, 0);
+}
+
+// =====================================================
+// NEW TESTS: ISaveIdentityPayload serialization
+// =====================================================
+
+#[test]
+fn test_save_identity_payload_default() {
+    let payload = ISaveIdentityPayload::default();
+    assert_eq!(payload.identity_id, "");
+    assert_eq!(payload.username, "");
+    assert_eq!(payload.balance, "");
+    assert_eq!(payload.revision, 0);
+    assert!(payload.public_keys.is_empty());
+    assert!(payload.identity_idx.is_none());
+    assert!(payload.dpns_username.is_none());
+    assert!(payload.created_at.is_none());
+    assert!(payload.public_key_ids.is_none());
+    assert!(payload.active_identity_id.is_none());
+}
+
+#[test]
+fn test_save_identity_payload_serialization_roundtrip() {
+    let payload = ISaveIdentityPayload {
+        identity_id: "ser_id".into(),
+        username: "ser_user".into(),
+        balance: "42".into(),
+        revision: 3,
+        public_keys: vec![],
+        identity_idx: Some(5),
+        dpns_username: Some("ser.dash".into()),
+        created_at: Some("2024-01-01".into()),
+        public_key_ids: Some(vec![0, 1]),
+        active_identity_id: Some("other_id".into()),
+    };
+    let json_str = serde_json::to_string(&payload).unwrap();
+    let parsed: ISaveIdentityPayload = serde_json::from_str(&json_str).unwrap();
+    assert_eq!(parsed.identity_id, "ser_id");
+    assert_eq!(parsed.revision, 3);
+    assert_eq!(parsed.identity_idx, Some(5));
+    assert_eq!(parsed.active_identity_id, Some("other_id".into()));
+}
+
+// =====================================================
+// NEW TESTS: IActiveIdentityResponse / IUnifiedCommandResult
+// =====================================================
+
+#[test]
+fn test_active_identity_response_serialization() {
+    let response = IActiveIdentityResponse {
+        active_identity_id: Some("aid".into()),
+        identity: None,
+        identity_count: 3,
+    };
+    let json = serde_json::to_value(&response).unwrap();
+    assert_eq!(json["activeIdentityId"], "aid");
+    assert_eq!(json["identityCount"], 3);
+    assert!(json["identity"].is_null());
+}
+
+#[test]
+fn test_active_identity_response_clone_debug() {
+    let response = IActiveIdentityResponse {
+        active_identity_id: None,
+        identity: None,
+        identity_count: 0,
+    };
+    let cloned = response.clone();
+    assert_eq!(cloned.identity_count, 0);
+    let debug = format!("{:?}", response);
+    assert!(debug.contains("IActiveIdentityResponse"));
+}
+
+#[test]
+fn test_unified_command_result_serialization() {
+    let result = IUnifiedCommandResult {
+        success: true,
+        error: Some("some error".into()),
+        payload: Some(IAnyValue(json!({"key": "value"}))),
+    };
+    let json = serde_json::to_value(&result).unwrap();
+    assert_eq!(json["success"], true);
+    assert_eq!(json["error"], "some error");
+    assert_eq!(json["payload"]["key"], "value");
+}
+
+#[test]
+fn test_unified_command_result_clone_debug() {
+    let result = IUnifiedCommandResult {
+        success: false,
+        error: None,
+        payload: None,
+    };
+    let cloned = result.clone();
+    assert!(!cloned.success);
+    let debug = format!("{:?}", result);
+    assert!(debug.contains("IUnifiedCommandResult"));
+}
+
+// =====================================================
+// NEW TESTS: save_keys_logic with enrichment
+// =====================================================
+
+#[tokio::test]
+async fn test_save_keys_logic_enriches_from_identity_data() {
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
+    let network = "testnet".to_string();
+    let identity_id = "enrich_id".to_string();
+
+    // First save an identity with public keys
+    let payload = ISaveIdentityPayload {
+        identity_id: identity_id.clone(),
+        username: "enrichuser".into(),
+        balance: "100".into(),
+        revision: 1,
+        public_keys: vec![IAnyValue(
+            json!({ "id": 0, "data": "A1B2C3", "type": "ECDSA_SECP256K1", "purpose": 0, "securityLevel": 0 }),
+        )],
+        ..Default::default()
+    };
+    save_identity_logic(&store, network.clone(), payload)
+        .await
+        .unwrap();
+
+    // Now save keys — the enrich_key_entries call should execute
+    let keys = vec![IPrivateKeyEntry {
+        identity_id: identity_id.clone(),
+        key_id: 0,
+        private_key: "wif_enrich".into(),
+        ..Default::default()
+    }];
+    let result = save_keys_logic(&store, network.clone(), identity_id.clone(), keys)
+        .await
+        .unwrap();
+    assert!(result);
+
+    let keystore = storage::load_keystore_internal(&store, &network).unwrap();
+    let entries = keystore.identities.get(&identity_id).unwrap();
+    assert_eq!(entries.len(), 1);
+}
+
+// =====================================================
+// NEW TESTS: mainnet paths
+// =====================================================
+
+#[tokio::test]
+async fn test_save_identity_logic_mainnet() {
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
+    let payload = ISaveIdentityPayload {
+        identity_id: "mainnet_id".into(),
+        username: "mainnet_user".into(),
+        balance: "999".into(),
+        revision: 1,
+        ..Default::default()
+    };
+    let result = save_identity_logic(&store, "mainnet".into(), payload)
+        .await
+        .unwrap();
+    assert!(result.success);
+
+    let map = storage::load_identity_map_internal(&store, "mainnet").unwrap();
+    assert!(map.contains_key("mainnet_id"));
+}
+
+#[test]
+fn test_load_active_identity_logic_mainnet() {
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
+    let raw_data = json!({
+        "__active_identity_id": "mn_id",
+        "mn_id": {
+            "identityId": "mn_id",
+            "username": "mainnet_user",
+            "balance": "500",
+            "revision": 1,
+            "publicKeys": [],
+            "isAuthenticated": true
+        }
+    });
+    {
+        let mut map = store.storage.lock().unwrap();
+        map.insert("identities".to_string(), raw_data);
+    }
+    let result = load_active_identity_logic(&store, "mainnet".into()).unwrap();
+    assert_eq!(result.active_identity_id, Some("mn_id".to_string()));
+    assert!(result.identity.is_some());
+}
+
+// =====================================================
+// NEW TESTS: save_identity_logic with multiple public keys of various types
+// =====================================================
+
+#[tokio::test]
+async fn test_save_identity_with_multiple_public_key_types() {
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
+    let network = "testnet".to_string();
+
+    let payload = ISaveIdentityPayload {
+        identity_id: "multi_pk_id".into(),
+        username: "multi_pk_user".into(),
+        balance: "500".into(),
+        revision: 2,
+        public_keys: vec![
+            IAnyValue(json!({ "id": 0, "data": "AAAA", "type": "ECDSA_SECP256K1", "purpose": 0, "securityLevel": 0 })),
+            IAnyValue(json!({ "id": 1, "data": "BBBB", "type": "BLS12_381", "purpose": 3, "securityLevel": 2 })),
+            IAnyValue(json!({ "id": 2, "data": "CCCC", "type": "ECDSA_HASH160", "purpose": 1, "securityLevel": 1 })),
+        ],
+        ..Default::default()
+    };
+
+    let result = save_identity_logic(&store, network.clone(), payload)
+        .await
+        .unwrap();
+    assert!(result.success);
+
+    let map = storage::load_identity_map_internal(&store, &network).unwrap();
+    let identity = map.get("multi_pk_id").unwrap();
+    assert_eq!(identity.public_keys.len(), 3);
+}
+
+// =====================================================
+// NEW TESTS: save_keys with empty keys vec
+// =====================================================
+
+#[tokio::test]
+async fn test_save_keys_logic_empty_keys() {
+    let store = MockStore {
+        storage: Mutex::new(HashMap::new()),
+    };
+    let network = "testnet".to_string();
+    let identity_id = "empty_keys_id".to_string();
+
+    let result = save_keys_logic(&store, network.clone(), identity_id.clone(), vec![])
+        .await
+        .unwrap();
+    assert!(result);
+
+    let keystore = storage::load_keystore_internal(&store, &network).unwrap();
+    let entries = keystore.identities.get(&identity_id).unwrap();
+    assert!(entries.is_empty());
 }
