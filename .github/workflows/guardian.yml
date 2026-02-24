@@ -144,6 +144,7 @@ jobs:
         run: |
           if [ -f lcov-rust.info ]; then
             echo "✅ Coverage file found ($(wc -l < lcov-rust.info) lines)"
+            head -5 lcov-rust.info
           else
             echo "❌ Coverage file NOT found"
             ls -la
@@ -152,11 +153,10 @@ jobs:
 
       - name: Upload Rust Coverage
         if: matrix.platform == 'ubuntu-latest'
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v4
         with:
           files: src-tauri/lcov-rust.info
           flags: rust
-          fail_ci_if_error: true
+          fail_ci_if_error: false
           verbose: true
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ secrets.CODECOV_TOKEN }}

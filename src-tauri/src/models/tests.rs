@@ -1,7 +1,6 @@
-// src-tauri/src/models/tests.rs
-
 use super::*;
 use serde_json::json;
+use crate::cmd_res;
 
 #[test]
 fn test_de_u32_from_str_or_num() {
@@ -594,4 +593,98 @@ fn test_partial_eq_traits() {
         contact_requests: true,
     };
     assert_eq!(settings1, settings2);
+}
+
+// ==================== Additional Coverage Tests ====================
+
+#[test]
+fn test_iapp_settings_with_all_notification_flags_true() {
+    let settings = IAppSettings {
+        network: "testnet".to_string(),
+        theme: "dark".to_string(),
+        notifications: INotificationSettings {
+            messages: true,
+            mentions: true,
+            contact_requests: true,
+        },
+        profile: IProfileSettings {
+            display_name: "Full Name".to_string(),
+            username: "fulluser".to_string(),
+            bio: "Full bio text".to_string(),
+        },
+        active_identity_id: Some("full_id".to_string()),
+    };
+    let json = serde_json::to_value(&settings).unwrap();
+    let roundtrip: IAppSettings = serde_json::from_value(json).unwrap();
+    assert_eq!(settings, roundtrip);
+}
+
+#[test]
+fn test_iprivate_key_store_with_data() {
+    let mut store = IPrivateKeyStore::default();
+    store.mnemonic = Some(IMnemonic {
+        seed_phrase: "test phrase".into(),
+    });
+    store.identities.insert(
+        "id1".into(),
+        vec![IPrivateKeyEntry {
+            identity_id: "id1".into(),
+            key_id: 0,
+            private_key: "priv".into(),
+            ..Default::default()
+        }],
+    );
+    let json = serde_json::to_string(&store).unwrap();
+    let parsed: IPrivateKeyStore = serde_json::from_str(&json).unwrap();
+    assert_eq!(parsed.identities.len(), 1);
+    assert!(parsed.mnemonic.is_some());
+}
+
+#[test]
+fn test_iidentity_data_full_roundtrip() {
+    let identity = IIdentityData {
+        identity_id: "rt_id".into(),
+        username: "rt_user".into(),
+        balance: "12345".into(),
+        revision: 99,
+        public_keys: vec![IIdentityPublicKey {
+            id: 5,
+            type_: "BLS12_381".into(),
+            purpose: 3,
+            security_level: 2,
+            data: "deadbeef".into(),
+            read_only: true,
+            disabled_at: Some("2025-01-01".into()),
+        }],
+        identity_idx: Some(7),
+        dpns_username: Some("rt_dpns".into()),
+        is_authenticated: true,
+        created_at: Some("2025-06-01".into()),
+        public_key_ids: Some(vec![5]),
+    };
+    let json = serde_json::to_value(&identity).unwrap();
+    let parsed: IIdentityData = serde_json::from_value(json).unwrap();
+    assert_eq!(parsed, identity);
+}
+
+#[test]
+fn test_cmd_res_macro_ok() {
+    fn inner() -> Result<String, String> {
+        Ok("hello".to_string())
+    }
+    let result: ICommandResult<String> = cmd_res!(inner());
+    assert!(result.success);
+    assert_eq!(result.data, Some("hello".to_string()));
+    assert!(result.error.is_none());
+}
+
+#[test]
+fn test_cmd_res_macro_err() {
+    fn inner() -> Result<String, String> {
+        Err("boom".to_string())
+    }
+    let result: ICommandResult<String> = cmd_res!(inner());
+    assert!(!result.success);
+    assert!(result.data.is_none());
+    assert_eq!(result.error, Some("boom".to_string()));
 }
