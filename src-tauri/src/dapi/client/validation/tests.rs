@@ -132,8 +132,7 @@ fn test_for_method_get_identity_by_public_key_hash() {
 
 #[test]
 fn test_for_method_get_identity_by_non_unique_public_key_hash() {
-    let info =
-        MethodParamInfo::for_method("get_identity_by_non_unique_public_key_hash").unwrap();
+    let info = MethodParamInfo::for_method("get_identity_by_non_unique_public_key_hash").unwrap();
     assert!(info.required_params.contains(&"publicKeyHash"));
 }
 
@@ -255,8 +254,7 @@ fn test_validate_extra_unknown_param_ignored() {
 
 #[test]
 fn test_params_array_to_object_valid() {
-    let result =
-        params_array_to_object("get_identity", vec![json!("my_id")]).unwrap();
+    let result = params_array_to_object("get_identity", vec![json!("my_id")]).unwrap();
     assert_eq!(result.get("identityId").unwrap(), "my_id");
 }
 
@@ -298,11 +296,8 @@ fn test_params_array_to_object_unknown_method() {
 #[test]
 fn test_params_array_to_object_fewer_than_required() {
     // Only 1 param for a method needing 2 — should still work (partial fill)
-    let result = params_array_to_object(
-        "get_identity_token_balances",
-        vec![json!("id_only")],
-    )
-    .unwrap();
+    let result =
+        params_array_to_object("get_identity_token_balances", vec![json!("id_only")]).unwrap();
     assert_eq!(result.len(), 1);
     assert!(result.contains_key("identityId"));
     assert!(!result.contains_key("tokenIds"));
@@ -516,11 +511,9 @@ fn test_params_array_to_object_identity_token_balances() {
 
 #[test]
 fn test_params_array_to_object_no_params_method_with_extra() {
-    let result = params_array_to_object(
-        "get_current_epoch",
-        vec![json!("extra1"), json!("extra2")],
-    )
-    .unwrap();
+    let result =
+        params_array_to_object("get_current_epoch", vec![json!("extra1"), json!("extra2")])
+            .unwrap();
     assert!(result.is_empty());
 }
 
@@ -593,22 +586,15 @@ fn test_validate_array_type_with_boolean_fails() {
 
 #[test]
 fn test_params_array_to_object_data_contract_fetch() {
-    let result = params_array_to_object(
-        "data_contract_fetch",
-        vec![json!("my_contract_id")],
-    )
-    .unwrap();
+    let result =
+        params_array_to_object("data_contract_fetch", vec![json!("my_contract_id")]).unwrap();
     assert_eq!(result.len(), 1);
     assert_eq!(result.get("contractId").unwrap(), "my_contract_id");
 }
 
 #[test]
 fn test_params_array_to_object_dpns_resolve() {
-    let result = params_array_to_object(
-        "dpns_resolve_name",
-        vec![json!("username123")],
-    )
-    .unwrap();
+    let result = params_array_to_object("dpns_resolve_name", vec![json!("username123")]).unwrap();
     assert_eq!(result.len(), 1);
     assert_eq!(result.get("username").unwrap(), "username123");
 }

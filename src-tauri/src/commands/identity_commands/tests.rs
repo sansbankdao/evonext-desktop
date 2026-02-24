@@ -743,8 +743,7 @@ async fn test_save_identity_with_keys_logic_store_error() {
         balance: "0".into(),
         ..Default::default()
     };
-    let result =
-        save_identity_with_keys_logic(&store, "testnet".into(), payload, vec![]).await;
+    let result = save_identity_with_keys_logic(&store, "testnet".into(), payload, vec![]).await;
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("simulated failure"));
 }
@@ -1007,9 +1006,15 @@ async fn test_save_identity_with_multiple_public_key_types() {
         balance: "500".into(),
         revision: 2,
         public_keys: vec![
-            IAnyValue(json!({ "id": 0, "data": "AAAA", "type": "ECDSA_SECP256K1", "purpose": 0, "securityLevel": 0 })),
-            IAnyValue(json!({ "id": 1, "data": "BBBB", "type": "BLS12_381", "purpose": 3, "securityLevel": 2 })),
-            IAnyValue(json!({ "id": 2, "data": "CCCC", "type": "ECDSA_HASH160", "purpose": 1, "securityLevel": 1 })),
+            IAnyValue(
+                json!({ "id": 0, "data": "AAAA", "type": "ECDSA_SECP256K1", "purpose": 0, "securityLevel": 0 }),
+            ),
+            IAnyValue(
+                json!({ "id": 1, "data": "BBBB", "type": "BLS12_381", "purpose": 3, "securityLevel": 2 }),
+            ),
+            IAnyValue(
+                json!({ "id": 2, "data": "CCCC", "type": "ECDSA_HASH160", "purpose": 1, "securityLevel": 1 }),
+            ),
         ],
         ..Default::default()
     };

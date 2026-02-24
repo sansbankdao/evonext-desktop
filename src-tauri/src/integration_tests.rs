@@ -58,14 +58,10 @@ fn test_store_manager_delete_value() {
     let manager = StoreManager::new(handle);
 
     let val = serde_json::json!("to_delete");
-    manager
-        .save_value("test_del.json", "del_key", val)
-        .unwrap();
+    manager.save_value("test_del.json", "del_key", val).unwrap();
     manager.delete_value("test_del.json", "del_key").unwrap();
 
-    let loaded = manager
-        .load_value("test_del.json", "del_key")
-        .unwrap();
+    let loaded = manager.load_value("test_del.json", "del_key").unwrap();
     assert!(loaded.is_none());
 }
 
@@ -86,9 +82,7 @@ fn test_store_manager_load_data_typed() {
         .save_data("test_typed.json", "settings", &settings)
         .unwrap();
 
-    let loaded: Option<IAppSettings> = manager
-        .load_data("test_typed.json", "settings")
-        .unwrap();
+    let loaded: Option<IAppSettings> = manager.load_data("test_typed.json", "settings").unwrap();
     assert!(loaded.is_some());
     assert_eq!(loaded.unwrap().theme, "dark");
 }
@@ -118,14 +112,12 @@ fn test_store_manager_convenience_methods() {
     };
     manager.save("conv.json", "notif", &data).unwrap();
 
-    let loaded: Option<INotificationSettings> =
-        manager.load("conv.json", "notif").unwrap();
+    let loaded: Option<INotificationSettings> = manager.load("conv.json", "notif").unwrap();
     assert!(loaded.is_some());
     assert!(loaded.unwrap().messages);
 
     manager.delete("conv.json", "notif").unwrap();
-    let after: Option<INotificationSettings> =
-        manager.load("conv.json", "notif").unwrap();
+    let after: Option<INotificationSettings> = manager.load("conv.json", "notif").unwrap();
     assert!(after.is_none());
 }
 
@@ -275,52 +267,36 @@ fn test_mnemonic_testnet_full_lifecycle() {
     let manager = StoreManager::new(handle);
 
     // Load from empty
-    let empty =
-        mnemonic_commands::load_mnemonic_logic(&manager, "testnet".into())
-            .unwrap();
+    let empty = mnemonic_commands::load_mnemonic_logic(&manager, "testnet".into()).unwrap();
     assert!(empty.is_none());
 
     // Save
     let mnemonic = IMnemonic {
-        seed_phrase: "abandon ability able about above absent absorb abstract absurd abuse access accident".to_string(),
+        seed_phrase:
+            "abandon ability able about above absent absorb abstract absurd abuse access accident"
+                .to_string(),
     };
-    mnemonic_commands::save_mnemonic_logic(
-        &manager,
-        "testnet".into(),
-        mnemonic,
-    )
-    .unwrap();
+    mnemonic_commands::save_mnemonic_logic(&manager, "testnet".into(), mnemonic).unwrap();
 
     // Load back
-    let loaded =
-        mnemonic_commands::load_mnemonic_logic(&manager, "testnet".into())
-            .unwrap()
-            .unwrap();
+    let loaded = mnemonic_commands::load_mnemonic_logic(&manager, "testnet".into())
+        .unwrap()
+        .unwrap();
     assert!(loaded.seed_phrase.starts_with("abandon"));
 
     // Overwrite
     let mnemonic2 = IMnemonic {
-        seed_phrase: "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong"
-            .to_string(),
+        seed_phrase: "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong".to_string(),
     };
-    mnemonic_commands::save_mnemonic_logic(
-        &manager,
-        "testnet".into(),
-        mnemonic2,
-    )
-    .unwrap();
-    let loaded2 =
-        mnemonic_commands::load_mnemonic_logic(&manager, "testnet".into())
-            .unwrap()
-            .unwrap();
+    mnemonic_commands::save_mnemonic_logic(&manager, "testnet".into(), mnemonic2).unwrap();
+    let loaded2 = mnemonic_commands::load_mnemonic_logic(&manager, "testnet".into())
+        .unwrap()
+        .unwrap();
     assert!(loaded2.seed_phrase.starts_with("zoo"));
 
     // Delete
-    mnemonic_commands::delete_mnemonic_logic(&manager, "testnet".into())
-        .unwrap();
-    let after =
-        mnemonic_commands::load_mnemonic_logic(&manager, "testnet".into())
-            .unwrap();
+    mnemonic_commands::delete_mnemonic_logic(&manager, "testnet".into()).unwrap();
+    let after = mnemonic_commands::load_mnemonic_logic(&manager, "testnet".into()).unwrap();
     assert!(after.is_none());
 }
 
@@ -333,24 +309,15 @@ fn test_mnemonic_mainnet_full_lifecycle() {
     let mnemonic = IMnemonic {
         seed_phrase: "mainnet seed phrase for testing".to_string(),
     };
-    mnemonic_commands::save_mnemonic_logic(
-        &manager,
-        "mainnet".into(),
-        mnemonic,
-    )
-    .unwrap();
+    mnemonic_commands::save_mnemonic_logic(&manager, "mainnet".into(), mnemonic).unwrap();
 
-    let loaded =
-        mnemonic_commands::load_mnemonic_logic(&manager, "mainnet".into())
-            .unwrap()
-            .unwrap();
+    let loaded = mnemonic_commands::load_mnemonic_logic(&manager, "mainnet".into())
+        .unwrap()
+        .unwrap();
     assert_eq!(loaded.seed_phrase, "mainnet seed phrase for testing");
 
-    mnemonic_commands::delete_mnemonic_logic(&manager, "mainnet".into())
-        .unwrap();
-    let after =
-        mnemonic_commands::load_mnemonic_logic(&manager, "mainnet".into())
-            .unwrap();
+    mnemonic_commands::delete_mnemonic_logic(&manager, "mainnet".into()).unwrap();
+    let after = mnemonic_commands::load_mnemonic_logic(&manager, "mainnet".into()).unwrap();
     assert!(after.is_none());
 }
 
@@ -361,8 +328,7 @@ fn test_mnemonic_delete_from_empty() {
     let manager = StoreManager::new(handle);
 
     // Should not error
-    mnemonic_commands::delete_mnemonic_logic(&manager, "testnet".into())
-        .unwrap();
+    mnemonic_commands::delete_mnemonic_logic(&manager, "testnet".into()).unwrap();
 }
 
 // =====================================================
@@ -376,11 +342,7 @@ fn test_license_full_lifecycle() {
     let manager = StoreManager::new(handle);
 
     // Load from empty
-    let empty = license_commands::load_license_logic(
-        &manager,
-        "nonexistent".into(),
-    )
-    .unwrap();
+    let empty = license_commands::load_license_logic(&manager, "nonexistent".into()).unwrap();
     assert!(empty.is_none());
 
     // Save premium license
@@ -396,12 +358,9 @@ fn test_license_full_lifecycle() {
     license_commands::save_license_logic(&manager, license).unwrap();
 
     // Load and verify all fields
-    let loaded = license_commands::load_license_logic(
-        &manager,
-        "lic_full_id".into(),
-    )
-    .unwrap()
-    .unwrap();
+    let loaded = license_commands::load_license_logic(&manager, "lic_full_id".into())
+        .unwrap()
+        .unwrap();
     assert!(loaded.success);
     assert_eq!(loaded.identity_id, "lic_full_id");
     assert_eq!(loaded.txid, "tx_full");
@@ -424,19 +383,13 @@ fn test_license_full_lifecycle() {
 
     // Both exist
     assert!(
-        license_commands::load_license_logic(
-            &manager,
-            "lic_full_id".into()
-        )
-        .unwrap()
-        .is_some()
+        license_commands::load_license_logic(&manager, "lic_full_id".into())
+            .unwrap()
+            .is_some()
     );
-    let np = license_commands::load_license_logic(
-        &manager,
-        "lic_np_id".into(),
-    )
-    .unwrap()
-    .unwrap();
+    let np = license_commands::load_license_logic(&manager, "lic_np_id".into())
+        .unwrap()
+        .unwrap();
     assert!(!np.is_premium);
     assert!(!np.success);
 
@@ -451,51 +404,36 @@ fn test_license_full_lifecycle() {
         updated_at: Some("1800000000".to_string()),
     };
     license_commands::save_license_logic(&manager, updated).unwrap();
-    let reloaded = license_commands::load_license_logic(
-        &manager,
-        "lic_full_id".into(),
-    )
-    .unwrap()
-    .unwrap();
+    let reloaded = license_commands::load_license_logic(&manager, "lic_full_id".into())
+        .unwrap()
+        .unwrap();
     assert_eq!(reloaded.txid, "tx_updated");
     assert!(!reloaded.is_premium);
 
     // Delete one
-    license_commands::delete_license_logic(&manager, "lic_full_id".into())
-        .unwrap();
+    license_commands::delete_license_logic(&manager, "lic_full_id".into()).unwrap();
     assert!(
-        license_commands::load_license_logic(
-            &manager,
-            "lic_full_id".into()
-        )
-        .unwrap()
-        .is_none()
+        license_commands::load_license_logic(&manager, "lic_full_id".into())
+            .unwrap()
+            .is_none()
     );
     // Other still exists
     assert!(
-        license_commands::load_license_logic(
-            &manager,
-            "lic_np_id".into()
-        )
-        .unwrap()
-        .is_some()
+        license_commands::load_license_logic(&manager, "lic_np_id".into())
+            .unwrap()
+            .is_some()
     );
 
     // Delete the other
-    license_commands::delete_license_logic(&manager, "lic_np_id".into())
-        .unwrap();
+    license_commands::delete_license_logic(&manager, "lic_np_id".into()).unwrap();
     assert!(
-        license_commands::load_license_logic(
-            &manager,
-            "lic_np_id".into()
-        )
-        .unwrap()
-        .is_none()
+        license_commands::load_license_logic(&manager, "lic_np_id".into())
+            .unwrap()
+            .is_none()
     );
 
     // Delete nonexistent (should not error)
-    license_commands::delete_license_logic(&manager, "ghost".into())
-        .unwrap();
+    license_commands::delete_license_logic(&manager, "ghost".into()).unwrap();
 }
 
 // =====================================================
@@ -509,12 +447,8 @@ fn test_asset_full_lifecycle_testnet() {
     let manager = StoreManager::new(handle);
 
     // Load from empty
-    let empty = asset_commands::load_assets_logic(
-        &manager,
-        "empty_id".into(),
-        "testnet".into(),
-    )
-    .unwrap();
+    let empty =
+        asset_commands::load_assets_logic(&manager, "empty_id".into(), "testnet".into()).unwrap();
     assert!(empty.is_empty());
 
     // Save multiple assets for one identity
@@ -538,21 +472,12 @@ fn test_asset_full_lifecycle_testnet() {
             network: Some("testnet".into()),
         },
     ];
-    asset_commands::save_assets_logic(
-        &manager,
-        "asset_id_1".into(),
-        "testnet".into(),
-        assets,
-    )
-    .unwrap();
+    asset_commands::save_assets_logic(&manager, "asset_id_1".into(), "testnet".into(), assets)
+        .unwrap();
 
     // Load back
-    let loaded = asset_commands::load_assets_logic(
-        &manager,
-        "asset_id_1".into(),
-        "testnet".into(),
-    )
-    .unwrap();
+    let loaded =
+        asset_commands::load_assets_logic(&manager, "asset_id_1".into(), "testnet".into()).unwrap();
     assert_eq!(loaded.len(), 2);
 
     // Save for different identity
@@ -565,33 +490,20 @@ fn test_asset_full_lifecycle_testnet() {
         decimals: Some(8),
         network: Some("testnet".into()),
     }];
-    asset_commands::save_assets_logic(
-        &manager,
-        "asset_id_2".into(),
-        "testnet".into(),
-        assets2,
-    )
-    .unwrap();
+    asset_commands::save_assets_logic(&manager, "asset_id_2".into(), "testnet".into(), assets2)
+        .unwrap();
 
     // Both exist independently
     assert_eq!(
-        asset_commands::load_assets_logic(
-            &manager,
-            "asset_id_1".into(),
-            "testnet".into()
-        )
-        .unwrap()
-        .len(),
+        asset_commands::load_assets_logic(&manager, "asset_id_1".into(), "testnet".into())
+            .unwrap()
+            .len(),
         2
     );
     assert_eq!(
-        asset_commands::load_assets_logic(
-            &manager,
-            "asset_id_2".into(),
-            "testnet".into()
-        )
-        .unwrap()
-        .len(),
+        asset_commands::load_assets_logic(&manager, "asset_id_2".into(), "testnet".into())
+            .unwrap()
+            .len(),
         1
     );
 
@@ -605,59 +517,32 @@ fn test_asset_full_lifecycle_testnet() {
         decimals: Some(6),
         network: Some("testnet".into()),
     }];
-    asset_commands::save_assets_logic(
-        &manager,
-        "asset_id_1".into(),
-        "testnet".into(),
-        assets3,
-    )
-    .unwrap();
-    let reloaded = asset_commands::load_assets_logic(
-        &manager,
-        "asset_id_1".into(),
-        "testnet".into(),
-    )
-    .unwrap();
+    asset_commands::save_assets_logic(&manager, "asset_id_1".into(), "testnet".into(), assets3)
+        .unwrap();
+    let reloaded =
+        asset_commands::load_assets_logic(&manager, "asset_id_1".into(), "testnet".into()).unwrap();
     assert_eq!(reloaded.len(), 1);
     assert_eq!(reloaded[0].name, "ReplacedCoin");
 
     // Save empty list
-    asset_commands::save_assets_logic(
-        &manager,
-        "asset_id_1".into(),
-        "testnet".into(),
-        vec![],
-    )
-    .unwrap();
-    let empty_after = asset_commands::load_assets_logic(
-        &manager,
-        "asset_id_1".into(),
-        "testnet".into(),
-    )
-    .unwrap();
+    asset_commands::save_assets_logic(&manager, "asset_id_1".into(), "testnet".into(), vec![])
+        .unwrap();
+    let empty_after =
+        asset_commands::load_assets_logic(&manager, "asset_id_1".into(), "testnet".into()).unwrap();
     assert!(empty_after.is_empty());
 
     // Delete all assets for network
-    asset_commands::delete_assets_logic(&manager, "testnet".into())
-        .unwrap();
+    asset_commands::delete_assets_logic(&manager, "testnet".into()).unwrap();
 
     assert!(
-        asset_commands::load_assets_logic(
-            &manager,
-            "asset_id_1".into(),
-            "testnet".into()
-        )
-        .unwrap()
-        .is_empty()
+        asset_commands::load_assets_logic(&manager, "asset_id_1".into(), "testnet".into())
+            .unwrap()
+            .is_empty()
     );
     assert!(
-        asset_commands::load_assets_logic(
-            &manager,
-            "asset_id_2".into(),
-            "testnet".into()
-        )
-        .unwrap()
-        .is_empty()
+        asset_commands::load_assets_logic(&manager, "asset_id_2".into(), "testnet".into())
+            .unwrap()
+            .is_empty()
     );
 }
 
@@ -676,27 +561,16 @@ fn test_asset_mainnet_lifecycle() {
         decimals: Some(8),
         network: Some("mainnet".into()),
     }];
-    asset_commands::save_assets_logic(
-        &manager,
-        "mn_id".into(),
-        "mainnet".into(),
-        assets,
-    )
-    .unwrap();
+    asset_commands::save_assets_logic(&manager, "mn_id".into(), "mainnet".into(), assets).unwrap();
 
-    let loaded = asset_commands::load_assets_logic(
-        &manager,
-        "mn_id".into(),
-        "mainnet".into(),
-    )
-    .unwrap();
+    let loaded =
+        asset_commands::load_assets_logic(&manager, "mn_id".into(), "mainnet".into()).unwrap();
     assert_eq!(loaded.len(), 1);
     assert_eq!(loaded[0].symbol, "MC");
     assert_eq!(loaded[0].balance, Some("50000".into()));
     assert_eq!(loaded[0].decimals, Some(8));
 
-    asset_commands::delete_assets_logic(&manager, "mainnet".into())
-        .unwrap();
+    asset_commands::delete_assets_logic(&manager, "mainnet".into()).unwrap();
 }
 
 #[test]
@@ -705,8 +579,7 @@ fn test_asset_delete_from_empty() {
     let handle = app.handle();
     let manager = StoreManager::new(handle);
 
-    asset_commands::delete_assets_logic(&manager, "testnet".into())
-        .unwrap();
+    asset_commands::delete_assets_logic(&manager, "testnet".into()).unwrap();
 }
 
 #[test]
@@ -724,20 +597,10 @@ fn test_asset_with_optional_fields_none() {
         decimals: None,
         network: None,
     }];
-    asset_commands::save_assets_logic(
-        &manager,
-        "opt_id".into(),
-        "testnet".into(),
-        assets,
-    )
-    .unwrap();
+    asset_commands::save_assets_logic(&manager, "opt_id".into(), "testnet".into(), assets).unwrap();
 
-    let loaded = asset_commands::load_assets_logic(
-        &manager,
-        "opt_id".into(),
-        "testnet".into(),
-    )
-    .unwrap();
+    let loaded =
+        asset_commands::load_assets_logic(&manager, "opt_id".into(), "testnet".into()).unwrap();
     assert_eq!(loaded.len(), 1);
     assert!(loaded[0].balance.is_none());
     assert!(loaded[0].asset_id.is_none());
@@ -764,19 +627,11 @@ async fn test_identity_save_load_active_testnet() {
         public_keys: vec![],
         ..Default::default()
     };
-    identity_commands::save_identity_logic(
-        &manager,
-        "testnet".into(),
-        payload1,
-    )
-    .await
-    .unwrap();
+    identity_commands::save_identity_logic(&manager, "testnet".into(), payload1)
+        .await
+        .unwrap();
 
-    let active = identity_commands::load_active_identity_logic(
-        &manager,
-        "testnet".into(),
-    )
-    .unwrap();
+    let active = identity_commands::load_active_identity_logic(&manager, "testnet".into()).unwrap();
     assert_eq!(active.active_identity_id, Some("id_1".to_string()));
     assert!(active.identity.is_some());
     assert!(active.identity_count >= 1);
@@ -798,19 +653,12 @@ async fn test_identity_save_load_active_testnet() {
         public_keys: vec![IAnyValue(pk)],
         ..Default::default()
     };
-    identity_commands::save_identity_logic(
-        &manager,
-        "testnet".into(),
-        payload2,
-    )
-    .await
-    .unwrap();
+    identity_commands::save_identity_logic(&manager, "testnet".into(), payload2)
+        .await
+        .unwrap();
 
-    let active2 = identity_commands::load_active_identity_logic(
-        &manager,
-        "testnet".into(),
-    )
-    .unwrap();
+    let active2 =
+        identity_commands::load_active_identity_logic(&manager, "testnet".into()).unwrap();
     assert!(active2.identity_count >= 2);
 }
 
@@ -828,19 +676,11 @@ async fn test_identity_save_load_active_mainnet() {
         public_keys: vec![],
         ..Default::default()
     };
-    identity_commands::save_identity_logic(
-        &manager,
-        "mainnet".into(),
-        payload,
-    )
-    .await
-    .unwrap();
+    identity_commands::save_identity_logic(&manager, "mainnet".into(), payload)
+        .await
+        .unwrap();
 
-    let active = identity_commands::load_active_identity_logic(
-        &manager,
-        "mainnet".into(),
-    )
-    .unwrap();
+    let active = identity_commands::load_active_identity_logic(&manager, "mainnet".into()).unwrap();
     assert_eq!(active.active_identity_id, Some("mn_id_1".to_string()));
 }
 
@@ -851,11 +691,8 @@ fn test_identity_load_identities_map() {
     let manager = StoreManager::new(handle);
 
     // Empty map
-    let empty_map = identity_commands::load_identities_map_logic(
-        &manager,
-        "testnet".into(),
-    )
-    .unwrap();
+    let empty_map =
+        identity_commands::load_identities_map_logic(&manager, "testnet".into()).unwrap();
     assert!(empty_map.0.is_object() || empty_map.0.is_null());
 
     let rt = tokio::runtime::Runtime::new().unwrap();
@@ -868,13 +705,9 @@ fn test_identity_load_identities_map() {
             public_keys: vec![],
             ..Default::default()
         };
-        identity_commands::save_identity_logic(
-            &manager,
-            "testnet".into(),
-            p1,
-        )
-        .await
-        .unwrap();
+        identity_commands::save_identity_logic(&manager, "testnet".into(), p1)
+            .await
+            .unwrap();
 
         let p2 = identity_commands::ISaveIdentityPayload {
             identity_id: "map_b".into(),
@@ -884,20 +717,12 @@ fn test_identity_load_identities_map() {
             public_keys: vec![],
             ..Default::default()
         };
-        identity_commands::save_identity_logic(
-            &manager,
-            "testnet".into(),
-            p2,
-        )
-        .await
-        .unwrap();
+        identity_commands::save_identity_logic(&manager, "testnet".into(), p2)
+            .await
+            .unwrap();
     });
 
-    let map = identity_commands::load_identities_map_logic(
-        &manager,
-        "testnet".into(),
-    )
-    .unwrap();
+    let map = identity_commands::load_identities_map_logic(&manager, "testnet".into()).unwrap();
     let obj = map.0.as_object().unwrap();
     assert!(obj.contains_key("map_a"));
     assert!(obj.contains_key("map_b"));
@@ -926,13 +751,9 @@ async fn test_identity_save_keys_and_load_keystore() {
         public_keys: vec![IAnyValue(pk)],
         ..Default::default()
     };
-    identity_commands::save_identity_logic(
-        &manager,
-        "testnet".into(),
-        payload,
-    )
-    .await
-    .unwrap();
+    identity_commands::save_identity_logic(&manager, "testnet".into(), payload)
+        .await
+        .unwrap();
 
     // Save keys
     let keys = vec![
@@ -949,21 +770,12 @@ async fn test_identity_save_keys_and_load_keystore() {
             ..Default::default()
         },
     ];
-    identity_commands::save_keys_logic(
-        &manager,
-        "testnet".into(),
-        "ks_id".into(),
-        keys,
-    )
-    .await
-    .unwrap();
+    identity_commands::save_keys_logic(&manager, "testnet".into(), "ks_id".into(), keys)
+        .await
+        .unwrap();
 
     // Load keystore
-    let ks = identity_commands::load_keystore_logic(
-        &manager,
-        "testnet".into(),
-    )
-    .unwrap();
+    let ks = identity_commands::load_keystore_logic(&manager, "testnet".into()).unwrap();
     assert!(ks.0.is_object());
 }
 
@@ -981,22 +793,13 @@ async fn test_identity_save_keys_empty() {
         public_keys: vec![],
         ..Default::default()
     };
-    identity_commands::save_identity_logic(
-        &manager,
-        "testnet".into(),
-        payload,
-    )
-    .await
-    .unwrap();
+    identity_commands::save_identity_logic(&manager, "testnet".into(), payload)
+        .await
+        .unwrap();
 
-    identity_commands::save_keys_logic(
-        &manager,
-        "testnet".into(),
-        "ks_empty_id".into(),
-        vec![],
-    )
-    .await
-    .unwrap();
+    identity_commands::save_keys_logic(&manager, "testnet".into(), "ks_empty_id".into(), vec![])
+        .await
+        .unwrap();
 }
 
 #[tokio::test]
@@ -1037,11 +840,7 @@ async fn test_identity_save_identity_with_keys() {
     .await
     .unwrap();
 
-    let active = identity_commands::load_active_identity_logic(
-        &manager,
-        "testnet".into(),
-    )
-    .unwrap();
+    let active = identity_commands::load_active_identity_logic(&manager, "testnet".into()).unwrap();
     assert_eq!(active.active_identity_id, Some("wk_id".to_string()));
 }
 
@@ -1059,13 +858,9 @@ async fn test_identity_delete_specific() {
         public_keys: vec![],
         ..Default::default()
     };
-    identity_commands::save_identity_logic(
-        &manager,
-        "testnet".into(),
-        payload,
-    )
-    .await
-    .unwrap();
+    identity_commands::save_identity_logic(&manager, "testnet".into(), payload)
+        .await
+        .unwrap();
 
     let del = identity_commands::delete_identity_logic(
         &manager,
@@ -1098,20 +893,11 @@ async fn test_identity_delete_all_with_none() {
         public_keys: vec![],
         ..Default::default()
     };
-    identity_commands::save_identity_logic(
-        &manager,
-        "testnet".into(),
-        payload,
-    )
-    .await
-    .unwrap();
+    identity_commands::save_identity_logic(&manager, "testnet".into(), payload)
+        .await
+        .unwrap();
 
-    let del = identity_commands::delete_identity_logic(
-        &manager,
-        "testnet".into(),
-        None,
-    )
-    .unwrap();
+    let del = identity_commands::delete_identity_logic(&manager, "testnet".into(), None).unwrap();
     assert!(del);
 }
 
@@ -1145,19 +931,11 @@ async fn test_identity_with_multiple_public_keys() {
         public_keys: vec![IAnyValue(pk0), IAnyValue(pk1)],
         ..Default::default()
     };
-    identity_commands::save_identity_logic(
-        &manager,
-        "testnet".into(),
-        payload,
-    )
-    .await
-    .unwrap();
+    identity_commands::save_identity_logic(&manager, "testnet".into(), payload)
+        .await
+        .unwrap();
 
-    let active = identity_commands::load_active_identity_logic(
-        &manager,
-        "testnet".into(),
-    )
-    .unwrap();
+    let active = identity_commands::load_active_identity_logic(&manager, "testnet".into()).unwrap();
     assert!(active.identity.is_some());
 }
 
@@ -1182,13 +960,7 @@ fn test_identity_details_update_and_get_keys() {
             ..Default::default()
         },
     );
-    storage::save_identity_map_internal(
-        &manager,
-        "testnet",
-        &map,
-        None,
-    )
-    .unwrap();
+    storage::save_identity_map_internal(&manager, "testnet", &map, None).unwrap();
 
     identity_details_commands::update_identity_with_sdk_data_logic(
         &manager,
@@ -1228,13 +1000,12 @@ fn test_identity_details_update_and_get_keys() {
     assert!(keys.is_some());
     assert_eq!(keys.unwrap().len(), 2);
 
-    let none_keys =
-        identity_details_commands::get_identity_public_keys_logic(
-            &manager,
-            "testnet".into(),
-            "nonexistent_id".into(),
-        )
-        .unwrap();
+    let none_keys = identity_details_commands::get_identity_public_keys_logic(
+        &manager,
+        "testnet".into(),
+        "nonexistent_id".into(),
+    )
+    .unwrap();
     assert!(none_keys.is_none());
 
     identity_details_commands::delete_identity_public_keys_logic(
@@ -1259,15 +1030,14 @@ fn test_identity_details_update_nonexistent_identity() {
     let handle = app.handle();
     let manager = StoreManager::new(handle);
 
-    let result =
-        identity_details_commands::update_identity_with_sdk_data_logic(
-            &manager,
-            "testnet".into(),
-            "ghost_id".into(),
-            vec![],
-            1,
-            vec![],
-        );
+    let result = identity_details_commands::update_identity_with_sdk_data_logic(
+        &manager,
+        "testnet".into(),
+        "ghost_id".into(),
+        vec![],
+        1,
+        vec![],
+    );
     let _ = result;
 }
 
@@ -1288,13 +1058,7 @@ fn test_identity_details_mainnet() {
             ..Default::default()
         },
     );
-    storage::save_identity_map_internal(
-        &manager,
-        "mainnet",
-        &map,
-        None,
-    )
-    .unwrap();
+    storage::save_identity_map_internal(&manager, "mainnet", &map, None).unwrap();
 
     identity_details_commands::update_identity_with_sdk_data_logic(
         &manager,
@@ -1331,12 +1095,11 @@ fn test_identity_details_delete_nonexistent() {
     let manager = StoreManager::new(handle);
 
     // Deleting keys for a nonexistent identity returns an error
-    let result =
-        identity_details_commands::delete_identity_public_keys_logic(
-            &manager,
-            "testnet".into(),
-            "nonexistent".into(),
-        );
+    let result = identity_details_commands::delete_identity_public_keys_logic(
+        &manager,
+        "testnet".into(),
+        "nonexistent".into(),
+    );
     assert!(result.is_err());
 }
 
@@ -1357,13 +1120,7 @@ fn test_identity_details_empty_keys_update() {
             ..Default::default()
         },
     );
-    storage::save_identity_map_internal(
-        &manager,
-        "testnet",
-        &map,
-        None,
-    )
-    .unwrap();
+    storage::save_identity_map_internal(&manager, "testnet", &map, None).unwrap();
 
     identity_details_commands::update_identity_with_sdk_data_logic(
         &manager,
@@ -1396,13 +1153,7 @@ fn test_identity_storage_apphandle_wrappers() {
         },
     );
 
-    storage::save_identity_map(
-        handle,
-        "testnet",
-        &map,
-        Some("wrap_id".into()),
-    )
-    .unwrap();
+    storage::save_identity_map(handle, "testnet", &map, Some("wrap_id".into())).unwrap();
     let loaded = storage::load_identity_map(handle, "testnet").unwrap();
     assert!(loaded.contains_key("wrap_id"));
 
@@ -1427,13 +1178,7 @@ fn test_identity_storage_mainnet_wrappers() {
             ..Default::default()
         },
     );
-    storage::save_identity_map(
-        handle,
-        "mainnet",
-        &map,
-        Some("mn_wrap".into()),
-    )
-    .unwrap();
+    storage::save_identity_map(handle, "mainnet", &map, Some("mn_wrap".into())).unwrap();
     let loaded = storage::load_identity_map(handle, "mainnet").unwrap();
     assert!(loaded.contains_key("mn_wrap"));
 }
@@ -1463,41 +1208,18 @@ fn test_identity_storage_active_marker_operations() {
             ..Default::default()
         },
     );
-    storage::save_identity_map_internal(
-        &manager,
-        "testnet",
-        &map,
-        Some("marker_b".into()),
-    )
-    .unwrap();
+    storage::save_identity_map_internal(&manager, "testnet", &map, Some("marker_b".into()))
+        .unwrap();
 
-    let marker = storage::load_active_marker_internal(
-        &manager,
-        "testnet",
-    )
-    .unwrap();
+    let marker = storage::load_active_marker_internal(&manager, "testnet").unwrap();
     assert_eq!(marker, Some("marker_b".to_string()));
 
-    storage::save_identity_map_internal(
-        &manager,
-        "testnet",
-        &map,
-        None,
-    )
-    .unwrap();
-    let marker2 = storage::load_active_marker_internal(
-        &manager,
-        "testnet",
-    )
-    .unwrap();
+    storage::save_identity_map_internal(&manager, "testnet", &map, None).unwrap();
+    let marker2 = storage::load_active_marker_internal(&manager, "testnet").unwrap();
     assert_eq!(marker2, Some("marker_b".to_string()));
 
     storage::clear_active_marker_internal(&manager, "testnet").unwrap();
-    let marker3 = storage::load_active_marker_internal(
-        &manager,
-        "testnet",
-    )
-    .unwrap();
+    let marker3 = storage::load_active_marker_internal(&manager, "testnet").unwrap();
     assert!(marker3.is_none());
 }
 

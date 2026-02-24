@@ -490,9 +490,7 @@ impl PersistentStore for InMemoryStore {
         key: &str,
     ) -> Result<Option<serde_json::Value>, StoreError> {
         let map = self.storage.lock().unwrap();
-        Ok(map
-            .get(&(file_path.to_string(), key.to_string()))
-            .cloned())
+        Ok(map.get(&(file_path.to_string(), key.to_string())).cloned())
     }
     fn save_value(
         &self,
@@ -651,13 +649,10 @@ fn test_persistent_store_multiple_keys() {
     };
 
     store.save_data("file.json", "user", &user).unwrap();
-    store
-        .save_data("file.json", "settings", &settings)
-        .unwrap();
+    store.save_data("file.json", "settings", &settings).unwrap();
 
     let loaded_user: Option<TestUser> = store.load_data("file.json", "user").unwrap();
-    let loaded_settings: Option<TestSettings> =
-        store.load_data("file.json", "settings").unwrap();
+    let loaded_settings: Option<TestSettings> = store.load_data("file.json", "settings").unwrap();
 
     assert_eq!(loaded_user.unwrap().name, "User");
     assert_eq!(loaded_settings.unwrap().theme, "dark");

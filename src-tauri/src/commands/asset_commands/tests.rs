@@ -333,7 +333,13 @@ fn test_delete_assets_preserves_other_networks() {
         network: Some("testnet".into()),
     }];
 
-    save_assets_logic(&store_testnet, "id1".into(), "testnet".into(), assets.clone()).unwrap();
+    save_assets_logic(
+        &store_testnet,
+        "id1".into(),
+        "testnet".into(),
+        assets.clone(),
+    )
+    .unwrap();
     save_assets_logic(&store_mainnet, "id1".into(), "mainnet".into(), assets).unwrap();
 
     // Delete testnet assets

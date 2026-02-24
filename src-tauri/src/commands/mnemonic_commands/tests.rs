@@ -153,9 +153,7 @@ fn test_save_mnemonic_preserves_keystore_identities() {
         }],
     );
     let filename = crate::utils::network_file::get_network_file(&network, "safu").unwrap();
-    store
-        .save_data(filename, "keystore", &keystore)
-        .unwrap();
+    store.save_data(filename, "keystore", &keystore).unwrap();
 
     // Save mnemonic
     let mnemonic = IMnemonic {
@@ -164,10 +162,7 @@ fn test_save_mnemonic_preserves_keystore_identities() {
     save_mnemonic_logic(&store, network.clone(), mnemonic).unwrap();
 
     // Verify both mnemonic and identities survive
-    let loaded: IPrivateKeyStore = store
-        .load_data(filename, "keystore")
-        .unwrap()
-        .unwrap();
+    let loaded: IPrivateKeyStore = store.load_data(filename, "keystore").unwrap().unwrap();
     assert!(loaded.mnemonic.is_some());
     assert_eq!(loaded.mnemonic.unwrap().seed_phrase, "my phrase");
     assert!(loaded.identities.contains_key("some_id"));
@@ -195,18 +190,13 @@ fn test_delete_mnemonic_preserves_keystore_identities() {
         }],
     );
     let filename = crate::utils::network_file::get_network_file(&network, "safu").unwrap();
-    store
-        .save_data(filename, "keystore", &keystore)
-        .unwrap();
+    store.save_data(filename, "keystore", &keystore).unwrap();
 
     // Delete mnemonic
     delete_mnemonic_logic(&store, network.clone()).unwrap();
 
     // Verify mnemonic is gone but identities remain
-    let loaded: IPrivateKeyStore = store
-        .load_data(filename, "keystore")
-        .unwrap()
-        .unwrap();
+    let loaded: IPrivateKeyStore = store.load_data(filename, "keystore").unwrap().unwrap();
     assert!(loaded.mnemonic.is_none());
     assert!(loaded.identities.contains_key("some_id"));
 }
@@ -314,7 +304,9 @@ fn test_save_and_load_mnemonic_empty_seed_phrase() {
         seed_phrase: "".into(),
     };
     save_mnemonic_logic(&store, "testnet".into(), mnemonic).unwrap();
-    let loaded = load_mnemonic_logic(&store, "testnet".into()).unwrap().unwrap();
+    let loaded = load_mnemonic_logic(&store, "testnet".into())
+        .unwrap()
+        .unwrap();
     assert_eq!(loaded.seed_phrase, "");
 }
 
@@ -328,6 +320,8 @@ fn test_save_and_load_mnemonic_long_seed_phrase() {
         seed_phrase: long_phrase.clone(),
     };
     save_mnemonic_logic(&store, "testnet".into(), mnemonic).unwrap();
-    let loaded = load_mnemonic_logic(&store, "testnet".into()).unwrap().unwrap();
+    let loaded = load_mnemonic_logic(&store, "testnet".into())
+        .unwrap()
+        .unwrap();
     assert_eq!(loaded.seed_phrase, long_phrase);
 }

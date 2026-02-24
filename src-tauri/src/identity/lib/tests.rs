@@ -247,10 +247,7 @@ fn test_normalize_public_key_disabled_at() {
         "type": "ECDSA_SECP256K1"
     });
     let result = normalize_public_key(0, &raw).unwrap();
-    assert_eq!(
-        result.disabled_at,
-        Some("2024-01-01T00:00:00Z".to_string())
-    );
+    assert_eq!(result.disabled_at, Some("2024-01-01T00:00:00Z".to_string()));
 }
 
 #[test]
