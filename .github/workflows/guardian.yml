@@ -137,12 +137,26 @@ jobs:
 
       # ── Coverage Upload ─────────────────────────────────────
 
+      - name: Verify coverage file exists
+        if: matrix.platform == 'ubuntu-latest'
+        working-directory: src-tauri
+        shell: bash
+        run: |
+          if [ -f lcov-rust.info ]; then
+            echo "✅ Coverage file found ($(wc -l < lcov-rust.info) lines)"
+          else
+            echo "❌ Coverage file NOT found"
+            ls -la
+            exit 1
+          fi
+
       - name: Upload Rust Coverage
         if: matrix.platform == 'ubuntu-latest'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: src-tauri/lcov-rust.info
           flags: rust
-          fail_ci_if_error: false
+          fail_ci_if_error: true
+          verbose: true
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
