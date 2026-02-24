@@ -1,18 +1,18 @@
 Introducing the newest version of the EvoNext Desktop Edition
 
-### Introducing the 6th Release Candidate (Domino Agency)
+### Introducing the 7th Release Candidate (Full Coverage)
 
-This latest version of EvoNext introduces Domino Agency, as our resident MiniApp software engineer assistants.
+This latest version of EvoNext introduces a FULL Coverage testing suite.
 
 # Changelog
 
 ## Latest Features:
 
-- __Studio:__ Introduced our 1st AI assistant, Domino, to assist Creators with building mini apps.
+- __Testing:__ Both the front-end and back-end testing suite are not BOTH above 80%.
 
 ## Bugfixes:
 
-- __Types:__ Using AI to cleanse the LAST (most difficult) bugs from the codebase; `bindings.ts` now serves as the definitive guardian for the front-end.
+- __Testing:__ Added new tests and re-configured settings to support a MINIMUM of 80% testing coverage.
 
 ## Notes:
 

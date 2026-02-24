@@ -1,7 +1,7 @@
 {
   "name": "evonext-desktop",
   "description": "Free and Fearless Social — Connect with early-stage Founders and Creators — plus, the hottest collection of Mini Apps designed to streamline your workflow and simplify everyday tasks.",
-  "version": "26.2.12",
+  "version": "26.2.24",
   "license": "MIT",
   "type": "module",
   "scripts": {
