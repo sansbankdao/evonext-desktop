@@ -40,7 +40,8 @@ pub async fn refresh_license_inner<R: Runtime>(
         .as_secs();
     api_data.updated_at = Some(now.to_string());
 
-    save_license_inner(app_handle, api_data.clone())?;
+    let manager = StoreManager::new(&app_handle);
+    save_license_logic(&manager, api_data.clone())?;
     Ok(api_data)
 }
 
@@ -67,14 +68,6 @@ pub fn load_license_logic<S: PersistentStore>(
     }
 }
 
-pub async fn load_license_inner<R: Runtime>(
-    app_handle: tauri::AppHandle<R>,
-    identity_id: String,
-) -> Result<Option<ILicense>, String> {
-    let manager = StoreManager::new(&app_handle);
-    load_license_logic(&manager, identity_id)
-}
-
 #[tauri::command]
 #[specta::specta]
 pub fn save_license(app_handle: tauri::AppHandle, payload: ILicense) -> ICommandResult<()> {
@@ -97,14 +90,6 @@ pub fn save_license_logic<S: PersistentStore>(store: &S, payload: ILicense) -> R
         .map_err(|e| e.to_string())
 }
 
-pub fn save_license_inner<R: Runtime>(
-    app_handle: tauri::AppHandle<R>,
-    payload: ILicense,
-) -> Result<(), String> {
-    let manager = StoreManager::new(&app_handle);
-    save_license_logic(&manager, payload)
-}
-
 #[tauri::command]
 #[specta::specta]
 pub fn delete_license(app_handle: tauri::AppHandle, identity_id: String) -> ICommandResult<()> {
@@ -125,12 +110,4 @@ pub fn delete_license_logic<S: PersistentStore>(
         .save_data(LICENSE_FILE, "licenses", &map)
         .map(|_| ())
         .map_err(|e| e.to_string())
-}
-
-pub fn delete_license_inner<R: Runtime>(
-    app_handle: tauri::AppHandle<R>,
-    identity_id: String,
-) -> Result<(), String> {
-    let manager = StoreManager::new(&app_handle);
-    delete_license_logic(&manager, identity_id)
 }

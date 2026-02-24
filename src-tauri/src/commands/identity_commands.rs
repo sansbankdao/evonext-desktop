@@ -134,7 +134,8 @@ pub async fn discover_and_save_identity_inner<R: Runtime>(
         dpns_username: Some(username),
         ..Default::default()
     };
-    save_identity_inner(app, network, payload).await
+    let manager = StoreManager::new(&app);
+    save_identity_logic(&manager, network, payload).await
 }
 #[tauri::command]
 #[specta::specta]
@@ -202,14 +203,6 @@ pub async fn save_identity_logic<S: PersistentStore>(
         error: None,
         payload: Some(IAnyValue(serde_json::json!({ "identityId": identity_id }))),
     })
-}
-pub async fn save_identity_inner<R: Runtime>(
-    app: tauri::AppHandle<R>,
-    network: String,
-    payload: ISaveIdentityPayload,
-) -> Result<IUnifiedCommandResult, String> {
-    let manager = StoreManager::new(&app);
-    save_identity_logic(&manager, network, payload).await
 }
 
 /// Load the active identity for a given network.
@@ -293,24 +286,24 @@ pub async fn delete_identity(
     network: String,
     identity_id: Option<String>,
 ) -> ICommandResult<bool> {
-    cmd_res!(delete_identity_inner(app, network, identity_id).await)
+    let manager = StoreManager::new(&app);
+    cmd_res!(delete_identity_logic(&manager, network, identity_id))
 }
-pub async fn delete_identity_inner<R: Runtime>(
-    app: tauri::AppHandle<R>,
+pub fn delete_identity_logic<S: PersistentStore>(
+    store: &S,
     network: String,
     identity_id: Option<String>,
 ) -> Result<bool, String> {
-    let manager = StoreManager::new(&app);
     if let Some(id) = identity_id {
-        let mut map = storage::load_identity_map_internal(&manager, &network)?;
+        let mut map = storage::load_identity_map_internal(store, &network)?;
         if map.remove(&id).is_some() {
-            storage::save_identity_map_internal(&manager, &network, &map, None)?;
+            storage::save_identity_map_internal(store, &network, &map, None)?;
             return Ok(true);
         }
         Ok(false)
     } else {
         let filename = crate::utils::network_file::get_network_file(&network, "identity")?;
-        manager
+        store
             .delete_value(filename, "identities")
             .map(|_| true)
             .map_err(|e| e.to_string())
@@ -352,26 +345,17 @@ pub async fn save_keys_logic<S: PersistentStore>(
         .map(|_| true)
         .map_err(|e| e.to_string())
 }
-pub async fn save_keys_inner<R: Runtime>(
-    app: tauri::AppHandle<R>,
-    network: String,
-    identity_id: String,
-    keys: Vec<IPrivateKeyEntry>,
-) -> Result<bool, String> {
-    let manager = StoreManager::new(&app);
-    save_keys_logic(&manager, network, identity_id, keys).await
-}
 #[tauri::command]
 #[specta::specta]
 pub async fn load_keystore(app: tauri::AppHandle, network: String) -> ICommandResult<IAnyValue> {
-    cmd_res!(load_keystore_inner(app, network).await)
+    let manager = StoreManager::new(&app);
+    cmd_res!(load_keystore_logic(&manager, network))
 }
-pub async fn load_keystore_inner<R: Runtime>(
-    app: tauri::AppHandle<R>,
+pub fn load_keystore_logic<S: PersistentStore>(
+    store: &S,
     network: String,
 ) -> Result<IAnyValue, String> {
-    let manager = StoreManager::new(&app);
-    let data = storage::load_keystore_internal(&manager, &network)?;
+    let data = storage::load_keystore_internal(store, &network)?;
     serde_json::to_value(data)
         .map(IAnyValue)
         .map_err(|e| e.to_string())

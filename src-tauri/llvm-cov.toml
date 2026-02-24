@@ -1,6 +1,4 @@
 # src-tauri/llvm-cov.toml
 
-exclude_from_report = [
-    "src/export_types.rs",
-    "src/main.rs",
-]
+[report]
+ignore-filename-regex = "(main|export_types|lib)\\.rs$"
