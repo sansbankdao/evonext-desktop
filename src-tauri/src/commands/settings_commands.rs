@@ -12,7 +12,7 @@ const SETTINGS_KEY: &str = "app_settings";
 
 #[tauri::command]
 #[specta::specta]
-pub fn load_settings(app_handle: tauri::AppHandle) -> ICommandResult<Option<IAppSettings>> {
+pub fn load_settings<R: tauri::Runtime>(app_handle: tauri::AppHandle<R>) -> ICommandResult<Option<IAppSettings>> {
     let manager = StoreManager::new(&app_handle);
     cmd_res!(load_settings_logic(&manager))
 }
@@ -25,7 +25,7 @@ pub fn load_settings_logic<S: PersistentStore>(store: &S) -> Result<Option<IAppS
 
 #[tauri::command]
 #[specta::specta]
-pub fn save_settings(app_handle: tauri::AppHandle, settings: IAppSettings) -> ICommandResult<()> {
+pub fn save_settings<R: tauri::Runtime>(app_handle: tauri::AppHandle<R>, settings: IAppSettings) -> ICommandResult<()> {
     let manager = StoreManager::new(&app_handle);
     cmd_res!(save_settings_logic(&manager, settings))
 }
@@ -42,7 +42,7 @@ pub fn save_settings_logic<S: PersistentStore>(
 
 #[tauri::command]
 #[specta::specta]
-pub fn delete_settings(app_handle: tauri::AppHandle) -> ICommandResult<()> {
+pub fn delete_settings<R: tauri::Runtime>(app_handle: tauri::AppHandle<R>) -> ICommandResult<()> {
     let manager = StoreManager::new(&app_handle);
     cmd_res!(delete_settings_logic(&manager))
 }

@@ -1544,3 +1544,35 @@ fn test_constants_get_evonext_contract_id() {
     assert!(!mainnet_id.is_empty());
     assert!(!testnet_id.is_empty());
 }
+
+// Add to the end of integration_tests.rs, inside the file
+
+#[test]
+fn test_settings_command_wrapper_generic() {
+    let app = mock_app();
+    let handle = app.handle();
+
+    let settings = IAppSettings {
+        network: "mainnet".to_string(),
+        theme: "light".to_string(),
+        notifications: INotificationSettings::default(),
+        profile: IProfileSettings::default(),
+        active_identity_id: Some("wrapper_test_id".into()),
+    };
+
+    // Call the actual #[tauri::command] wrapper with MockRuntime
+    let save_res = settings_commands::save_settings(handle.clone(), settings);
+    assert!(save_res.error.is_none());
+
+    let load_res = settings_commands::load_settings(handle.clone());
+    assert!(load_res.error.is_none());
+    let loaded = load_res.data.flatten().unwrap();
+    assert_eq!(loaded.network, "mainnet");
+    assert_eq!(loaded.active_identity_id, Some("wrapper_test_id".into()));
+
+    let del_res = settings_commands::delete_settings(handle.clone());
+    assert!(del_res.error.is_none());
+
+    let after = settings_commands::load_settings(handle.clone());
+    assert!(after.data.flatten().is_none());
+}
