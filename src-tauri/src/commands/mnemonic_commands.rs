@@ -9,8 +9,8 @@ mod tests;
 
 #[tauri::command]
 #[specta::specta]
-pub fn load_mnemonic(
-    app_handle: tauri::AppHandle,
+pub fn load_mnemonic<R: tauri::Runtime>(
+    app_handle: tauri::AppHandle<R>,
     network: String,
 ) -> ICommandResult<Option<IMnemonic>> {
     let manager = StoreManager::new(&app_handle);
@@ -34,8 +34,8 @@ pub fn load_mnemonic_logic<S: PersistentStore>(
 
 #[tauri::command]
 #[specta::specta]
-pub fn save_mnemonic(
-    app_handle: tauri::AppHandle,
+pub fn save_mnemonic<R: tauri::Runtime>(
+    app_handle: tauri::AppHandle<R>,
     network: String,
     payload: IMnemonic,
 ) -> ICommandResult<()> {
@@ -61,7 +61,10 @@ pub fn save_mnemonic_logic<S: PersistentStore>(
 
 #[tauri::command]
 #[specta::specta]
-pub fn delete_mnemonic(app_handle: tauri::AppHandle, network: String) -> ICommandResult<()> {
+pub fn delete_mnemonic<R: tauri::Runtime>(
+    app_handle: tauri::AppHandle<R>,
+    network: String,
+) -> ICommandResult<()> {
     let manager = StoreManager::new(&app_handle);
     cmd_res!(delete_mnemonic_logic(&manager, network))
 }

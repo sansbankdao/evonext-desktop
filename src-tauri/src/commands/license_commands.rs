@@ -12,8 +12,8 @@ mod tests;
 
 #[tauri::command]
 #[specta::specta]
-pub async fn refresh_license(
-    app_handle: tauri::AppHandle,
+pub async fn refresh_license<R: Runtime>(
+    app_handle: tauri::AppHandle<R>,
     identity_id: String,
 ) -> ICommandResult<ILicense> {
     cmd_res!(refresh_license_inner(app_handle, identity_id).await)
@@ -47,8 +47,8 @@ pub async fn refresh_license_inner<R: Runtime>(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn load_license(
-    app_handle: tauri::AppHandle,
+pub async fn load_license<R: Runtime>(
+    app_handle: tauri::AppHandle<R>,
     identity_id: String,
 ) -> ICommandResult<Option<ILicense>> {
     let manager = StoreManager::new(&app_handle);
@@ -70,7 +70,7 @@ pub fn load_license_logic<S: PersistentStore>(
 
 #[tauri::command]
 #[specta::specta]
-pub fn save_license(app_handle: tauri::AppHandle, payload: ILicense) -> ICommandResult<()> {
+pub fn save_license<R: Runtime>(app_handle: tauri::AppHandle<R>, payload: ILicense) -> ICommandResult<()> {
     let manager = StoreManager::new(&app_handle);
     cmd_res!(save_license_logic(&manager, payload))
 }
@@ -92,7 +92,7 @@ pub fn save_license_logic<S: PersistentStore>(store: &S, payload: ILicense) -> R
 
 #[tauri::command]
 #[specta::specta]
-pub fn delete_license(app_handle: tauri::AppHandle, identity_id: String) -> ICommandResult<()> {
+pub fn delete_license<R: Runtime>(app_handle: tauri::AppHandle<R>, identity_id: String) -> ICommandResult<()> {
     let manager = StoreManager::new(&app_handle);
     cmd_res!(delete_license_logic(&manager, identity_id))
 }

@@ -87,8 +87,8 @@ pub struct IUnifiedCommandResult {
 }
 #[tauri::command]
 #[specta::specta]
-pub async fn discover_and_save_identity(
-    app: tauri::AppHandle,
+pub async fn discover_and_save_identity<R: Runtime>(
+    app: tauri::AppHandle<R>,
     identity_id: String,
     network: String,
 ) -> ICommandResult<IUnifiedCommandResult> {
@@ -139,8 +139,8 @@ pub async fn discover_and_save_identity_inner<R: Runtime>(
 }
 #[tauri::command]
 #[specta::specta]
-pub async fn save_identity_with_keys(
-    app: tauri::AppHandle,
+pub async fn save_identity_with_keys<R: Runtime>(
+    app: tauri::AppHandle<R>,
     network: String,
     identity_payload: ISaveIdentityPayload,
     keys: Vec<IPrivateKeyEntry>,
@@ -166,8 +166,8 @@ pub async fn save_identity_with_keys_logic<S: PersistentStore>(
 }
 #[tauri::command]
 #[specta::specta]
-pub async fn save_identity(
-    app: tauri::AppHandle,
+pub async fn save_identity<R: Runtime>(
+    app: tauri::AppHandle<R>,
     network: String,
     payload: ISaveIdentityPayload,
 ) -> ICommandResult<IUnifiedCommandResult> {
@@ -210,8 +210,8 @@ pub async fn save_identity_logic<S: PersistentStore>(
 /// This is the primary command used by the frontend to restore session on app reload.
 #[tauri::command]
 #[specta::specta]
-pub async fn load_active_identity(
-    app: tauri::AppHandle,
+pub async fn load_active_identity<R: Runtime>(
+    app: tauri::AppHandle<R>,
     network: String,
 ) -> ICommandResult<IActiveIdentityResponse> {
     let manager = StoreManager::new(&app);
@@ -261,8 +261,8 @@ pub fn load_active_identity_logic<S: PersistentStore>(
 /// Returns the raw identity map as a JSON value for the Identity Manager screen.
 #[tauri::command]
 #[specta::specta]
-pub async fn load_identities_map(
-    app: tauri::AppHandle,
+pub async fn load_identities_map<R: Runtime>(
+    app: tauri::AppHandle<R>,
     network: String,
 ) -> ICommandResult<IAnyValue> {
     let manager = StoreManager::new(&app);
@@ -281,8 +281,8 @@ pub fn load_identities_map_logic<S: PersistentStore>(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn delete_identity(
-    app: tauri::AppHandle,
+pub async fn delete_identity<R: Runtime>(
+    app: tauri::AppHandle<R>,
     network: String,
     identity_id: Option<String>,
 ) -> ICommandResult<bool> {
@@ -311,8 +311,8 @@ pub fn delete_identity_logic<S: PersistentStore>(
 }
 #[tauri::command]
 #[specta::specta]
-pub async fn save_keys(
-    app: tauri::AppHandle,
+pub async fn save_keys<R: Runtime>(
+    app: tauri::AppHandle<R>,
     network: String,
     identity_id: String,
     keys: Vec<IPrivateKeyEntry>,
@@ -347,7 +347,10 @@ pub async fn save_keys_logic<S: PersistentStore>(
 }
 #[tauri::command]
 #[specta::specta]
-pub async fn load_keystore(app: tauri::AppHandle, network: String) -> ICommandResult<IAnyValue> {
+pub async fn load_keystore<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    network: String,
+) -> ICommandResult<IAnyValue> {
     let manager = StoreManager::new(&app);
     cmd_res!(load_keystore_logic(&manager, network))
 }

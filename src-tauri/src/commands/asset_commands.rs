@@ -54,8 +54,8 @@ pub fn parse_assets_from_json(items: &[Value], identity_id: &str, network: &str)
 
 #[tauri::command]
 #[specta::specta]
-pub fn discover_assets(
-    app_handle: tauri::AppHandle,
+pub fn discover_assets<R: Runtime>(
+    app_handle: tauri::AppHandle<R>,
     identity_id: String,
     network: String,
 ) -> ICommandResult<IAssets> {
@@ -110,8 +110,8 @@ pub fn discover_assets_inner<R: Runtime>(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn fetch_identity_tokens(
-    app: tauri::AppHandle,
+pub async fn fetch_identity_tokens<R: Runtime>(
+    app: tauri::AppHandle<R>,
     identity_id: String,
     network: String,
 ) -> ICommandResult<IAssets> {
@@ -170,8 +170,8 @@ pub async fn fetch_identity_tokens_inner<R: Runtime>(
 
 #[tauri::command]
 #[specta::specta]
-pub fn load_assets(
-    app_handle: tauri::AppHandle,
+pub fn load_assets<R: tauri::Runtime>(
+    app_handle: tauri::AppHandle<R>,
     identity_id: String,
     network: String,
 ) -> ICommandResult<IAssets> {
@@ -193,8 +193,8 @@ pub fn load_assets_logic<S: PersistentStore>(
 
 #[tauri::command]
 #[specta::specta]
-pub fn save_assets(
-    app_handle: tauri::AppHandle,
+pub fn save_assets<R: tauri::Runtime>(
+    app_handle: tauri::AppHandle<R>,
     identity_id: String,
     network: String,
     payload: IAssets,
@@ -223,7 +223,10 @@ pub fn save_assets_logic<S: PersistentStore>(
 
 #[tauri::command]
 #[specta::specta]
-pub fn delete_assets(app_handle: tauri::AppHandle, network: String) -> ICommandResult<()> {
+pub fn delete_assets<R: tauri::Runtime>(
+    app_handle: tauri::AppHandle<R>,
+    network: String,
+) -> ICommandResult<()> {
     let manager = StoreManager::new(&app_handle);
     cmd_res!(delete_assets_logic(&manager, network))
 }

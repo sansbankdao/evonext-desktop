@@ -8,7 +8,10 @@ mod tests;
 
 #[tauri::command]
 #[specta::specta]
-pub fn hash160(_app: tauri::AppHandle, input: Vec<u8>) -> ICommandResult<Vec<u8>> {
+pub fn hash160<R: tauri::Runtime>(
+    _app: tauri::AppHandle<R>,
+    input: Vec<u8>,
+) -> ICommandResult<Vec<u8>> {
     cmd_res!(hash160_logic(input))
 }
 
@@ -23,7 +26,10 @@ pub fn hash160_logic(input: Vec<u8>) -> Result<Vec<u8>, String> {
 
 #[tauri::command]
 #[specta::specta]
-pub fn random_bytes(_app: tauri::AppHandle, len: u32) -> ICommandResult<Vec<u8>> {
+pub fn random_bytes<R: tauri::Runtime>(
+    _app: tauri::AppHandle<R>,
+    len: u32,
+) -> ICommandResult<Vec<u8>> {
     cmd_res!(random_bytes_logic(len))
 }
 

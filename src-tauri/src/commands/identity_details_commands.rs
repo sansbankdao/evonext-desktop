@@ -10,8 +10,8 @@ mod tests;
 
 #[tauri::command]
 #[specta::specta]
-pub fn update_identity_with_sdk_data(
-    app_handle: tauri::AppHandle,
+pub fn update_identity_with_sdk_data<R: tauri::Runtime>(
+    app_handle: tauri::AppHandle<R>,
     network: String,
     identity_id: String,
     public_keys: Vec<IIdentityPublicKey>,
@@ -54,8 +54,8 @@ pub fn update_identity_with_sdk_data_logic<S: PersistentStore>(
 
 #[tauri::command]
 #[specta::specta]
-pub fn get_identity_public_keys(
-    app_handle: tauri::AppHandle,
+pub fn get_identity_public_keys<R: tauri::Runtime>(
+    app_handle: tauri::AppHandle<R>,
     network: String,
     identity_id: String,
 ) -> ICommandResult<Option<Vec<IIdentityPublicKey>>> {
@@ -78,8 +78,8 @@ pub fn get_identity_public_keys_logic<S: PersistentStore>(
 
 #[tauri::command]
 #[specta::specta]
-pub fn delete_identity_public_keys(
-    app_handle: tauri::AppHandle,
+pub fn delete_identity_public_keys<R: tauri::Runtime>(
+    app_handle: tauri::AppHandle<R>,
     network: String,
     identity_id: String,
 ) -> ICommandResult<()> {
