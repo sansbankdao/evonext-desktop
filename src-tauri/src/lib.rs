@@ -12,6 +12,9 @@ pub mod utils;
 #[cfg(test)]
 mod lib_tests;
 
+#[cfg(test)]
+mod integration_tests;
+
 pub fn setup_environment() {
     #[cfg(target_os = "linux")]
     {
