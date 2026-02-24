@@ -116,7 +116,10 @@ impl<'a, R: Runtime> PersistentStore for StoreManager<'a, R> {
     ) -> Result<Option<serde_json::Value>, StoreError> {
         let path = self.resolve_path(file_path)?;
         let store = StoreBuilder::new(self.app_handle, path).build()?;
-        Ok(store.get(key))
+        match store.get(key) {
+            Some(serde_json::Value::Null) => Ok(None),
+            other => Ok(other),
+        }
     }
     fn save_value(
         &self,
