@@ -21,8 +21,7 @@ pub const DASHSWAP_ENDPOINT: &str = "https://dashswap.xyz/v1";
 pub const DAPI_WEB_API_ENDPOINT: &str = "https://dapi.sansbank.dev/v1/dapi";
 pub const PLATFORM_HTTP_API_MAINNET: &str = "https://platform-explorer.pshenmic.dev";
 pub const PLATFORM_HTTP_API_TESTNET: &str = "https://testnet.platform-explorer.pshenmic.dev";
-pub const UPDATER_ENDPOINT: &str =
-    "https://releases.evonext.app/{{target}}/{{arch}}/{{current_version}}";
+pub const UPDATER_ENDPOINT: &str = "https://manifest.evonext.app/desktop";
 
 // -----------------------------------------------------------------------------
 // NETWORK & PLATFORM CONFIG
