@@ -72,7 +72,7 @@
 
             <!-- Feed Section -->
             <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2 flex flex-col gap-6">
+                <div v-if="isSocialAvailable" class="lg:col-span-2 flex flex-col gap-6">
 
                     <!-- Post Input Card -->
                     <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -145,6 +145,8 @@
                     </div>
                 </div>
 
+                <SocialComingSoon v-else class="lg:col-span-2" />
+
                 <!-- Sidebar -->
                 <div class="flex flex-col gap-8">
                     <PendingMessages />
@@ -166,6 +168,7 @@ import { useNetwork } from '@/composables/useNetwork'
 
 import Header from '@/components/Header.vue'
 import PostItem from '@/components/posts/Item.vue'
+import SocialComingSoon from '@/components/posts/SocialComingSoon.vue'
 import TrendingTopics from '@/components/home/TrendingTopics.vue'
 import ContactRequests from '@/components/home/ContactRequests.vue'
 import PendingMessages from '@/components/home/PendingMessages.vue'
@@ -176,6 +179,9 @@ const systemStore = useSystemStore()
 const walletStore = useWalletStore()
 const { network: currentNetwork } = useNetwork()
 const posts = usePosts()
+
+// Yappr social contract is testnet-only (docs/HANDOFF-DCG-SDK-AND-SHIELDED.md §3.4)
+const isSocialAvailable = computed(() => currentNetwork.value === 'testnet')
 
 // --- State ---
 const content = ref('')
@@ -299,7 +305,7 @@ const totalBalance = computed(() => {
 // --- Lifecycle ---
 onMounted(async () => {
     addLog("Home Screen Initialized")
-    refreshFeed()
+    if (isSocialAvailable.value) refreshFeed()
     if (isAuthenticated.value) {
         if (!identityStore.balance) identityStore.fetchBalance()
         await walletStore.refreshBalances(currentNetwork.value)

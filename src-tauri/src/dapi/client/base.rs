@@ -49,7 +49,7 @@ impl DAPIClient {
 
         let request = DAPIRequest {
             method: method.clone(),
-            params: Value::Array(params),
+            params: shape_params_for_wire(&method, params),
             network: Some(network.as_str().to_string()),
         };
 
@@ -104,6 +104,41 @@ impl DAPIClient {
             ))
         }
     }
+}
+
+/// Shapes outgoing params for the wire.
+///
+/// The Sansbank DAPI proxy (dapi.sansbank.dev) rejects positional arrays for
+/// multi-argument document queries ("where clause must have exactly 3
+/// elements"), so document-family methods must be sent as a canonical object
+/// with null optional params omitted. Identity/system methods continue to use
+/// positional arrays (verified live: identity_fetch, get_identity_balance,
+/// get_status, ...).
+fn shape_params_for_wire(method: &str, params: Vec<Value>) -> Value {
+    let keys: &[&str] = match method {
+        "get_documents" => &[
+            "dataContractId",
+            "documentType",
+            "whereClause",
+            "orderBy",
+            "limit",
+            "startAfter",
+            "startAt",
+        ],
+        "get_document" => &["dataContractId", "documentType", "documentId"],
+        _ => return Value::Array(params),
+    };
+    let mut map = serde_json::Map::new();
+    for (i, value) in params.into_iter().enumerate() {
+        if i >= keys.len() {
+            break;
+        }
+        if value.is_null() {
+            continue;
+        }
+        map.insert(keys[i].to_string(), value);
+    }
+    Value::Object(map)
 }
 
 lazy_static::lazy_static! {

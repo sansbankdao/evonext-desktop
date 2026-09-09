@@ -6,7 +6,7 @@ import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
 
 // API Constants
-const DASH_QT_API = 'https://dashqt.org/v1/dapi'
+const DASH_QT_API = 'https://dapi.sansbank.dev/v1/dapi'
 const SANSBANK_API = 'https://sansbank.org/graphql'
 const DUSHDATA_CONTRACT = 'Bwr4WHCPz5rFVAD87RqTs3izo4pzwusEdKPWUT1NS1C7'
 const DUSD_CONTRACT_ID = 'DYqxCsuDgYsEAJ2ADnimkwNdL7C4xbe4No4so19X9mmd'

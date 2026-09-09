@@ -29,7 +29,7 @@ export function useKeyManagement() {
         error.value = null
         try {
             const network = await ensure()
-            const keystore: any = await invoke('load_private_keys', {
+            const keystore: any = await invoke('load_keystore', {
                 network: network.toLowerCase()
             })
             const entries = keystore?.identities?.[identityId]
