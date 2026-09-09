@@ -226,7 +226,7 @@ pub(crate) async fn get_identity_info_inner(
 ) -> Result<DapiIdentityResponse, String> {
     let n = parse_network(network);
     let res = client
-        .request::<Value>("get_identity".to_string(), vec![json!(identity_id)], n)
+        .request::<Value>("identity_fetch".to_string(), vec![json!(identity_id)], n)
         .await
         .map_err(|e| e.to_string())?;
     extract_first_as_response(res)
@@ -249,7 +249,7 @@ pub(crate) async fn get_identity_by_id_inner(
 ) -> Result<Value, String> {
     let n = parse_network(network);
     client
-        .request::<Value>("get_identity".to_string(), vec![json!(identity_id)], n)
+        .request::<Value>("identity_fetch".to_string(), vec![json!(identity_id)], n)
         .await
         .map(|v| json!(v))
         .map_err(|e| e.to_string())

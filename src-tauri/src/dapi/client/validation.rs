@@ -41,6 +41,10 @@ impl MethodParamInfo {
                 required_params: vec!["identityId"],
                 param_types: HashMap::from([("identityId", "string")]),
             },
+            "identity_fetch" => MethodParamInfo {
+                required_params: vec!["identityId"],
+                param_types: HashMap::from([("identityId", "string")]),
+            },
             "get_identity_balance" => MethodParamInfo {
                 required_params: vec!["identityId"],
                 param_types: HashMap::from([("identityId", "string")]),

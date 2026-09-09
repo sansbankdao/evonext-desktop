@@ -18,7 +18,7 @@ pub const DISCOVERED_TESTNET_FILE: &str = ".discovered-testnet.json";
 // API ENDPOINTS
 // -----------------------------------------------------------------------------
 pub const DASHSWAP_ENDPOINT: &str = "https://dashswap.xyz/v1";
-pub const DAPI_WEB_API_ENDPOINT: &str = "https://dashqt.org/v1/dapi";
+pub const DAPI_WEB_API_ENDPOINT: &str = "https://dapi.sansbank.dev/v1/dapi";
 pub const PLATFORM_HTTP_API_MAINNET: &str = "https://platform-explorer.pshenmic.dev";
 pub const PLATFORM_HTTP_API_TESTNET: &str = "https://testnet.platform-explorer.pshenmic.dev";
 pub const UPDATER_ENDPOINT: &str =

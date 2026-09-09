@@ -100,6 +100,75 @@ fn test_dual_parsing_empty_array_result() {
 }
 
 #[test]
+fn test_shape_params_get_documents_object_omits_nulls() {
+    let params = vec![
+        json!("contract_id"),
+        json!("post"),
+        Value::Null,
+        json!({ "$createdAt": "desc" }),
+        Value::Null,
+        Value::Null,
+        Value::Null,
+    ];
+    let shaped = shape_params_for_wire("get_documents", params);
+    assert_eq!(
+        shaped,
+        json!({
+            "dataContractId": "contract_id",
+            "documentType": "post",
+            "orderBy": { "$createdAt": "desc" }
+        })
+    );
+}
+
+#[test]
+fn test_shape_params_get_documents_with_where_and_limit() {
+    let params = vec![
+        json!("contract_id"),
+        json!("post"),
+        json!({ "$ownerId": "owner" }),
+        Value::Null,
+        json!(5),
+    ];
+    let shaped = shape_params_for_wire("get_documents", params);
+    assert_eq!(
+        shaped,
+        json!({
+            "dataContractId": "contract_id",
+            "documentType": "post",
+            "whereClause": { "$ownerId": "owner" },
+            "limit": 5
+        })
+    );
+}
+
+#[test]
+fn test_shape_params_get_document_object() {
+    let params = vec![json!("contract_id"), json!("post"), json!("doc_id")];
+    let shaped = shape_params_for_wire("get_document", params);
+    assert_eq!(
+        shaped,
+        json!({
+            "dataContractId": "contract_id",
+            "documentType": "post",
+            "documentId": "doc_id"
+        })
+    );
+}
+
+#[test]
+fn test_shape_params_identity_family_stays_positional() {
+    let shaped = shape_params_for_wire("identity_fetch", vec![json!("some_id")]);
+    assert_eq!(shaped, json!(["some_id"]));
+}
+
+#[test]
+fn test_shape_params_get_status_stays_empty_array() {
+    let shaped = shape_params_for_wire("get_status", vec![]);
+    assert_eq!(shaped, json!([]));
+}
+
+#[test]
 fn test_get_dapi_client_returns_same_instance() {
     let client1 = get_dapi_client();
     let client2 = get_dapi_client();

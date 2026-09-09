@@ -9,7 +9,7 @@ import type { PrivateKeyEntry } from '@/types/identity'
  *
  * Logic:
  * 1. Accepts `network` explicitly (Testnet/Mainnet).
- * 2. Reads the keystore file via Rust (`load_private_keys`).
+ * 2. Reads the keystore file via Rust (`load_keystore`).
  * 3. Finds the identity entry.
  * 4. Filters for 'purpose: 3' (TRANSFER).
  * 5. Selects the key with highest security level.
@@ -22,7 +22,7 @@ export async function getTransferKey(identityId: string, network: string): Promi
             throw new Error(`[getTransferKey] Invalid network provided: ${network}`)
         }
         // 2. Load the raw keystore JSON file using the derived network
-        const keystoreData: any = await invoke('load_private_keys', {
+        const keystoreData: any = await invoke('load_keystore', {
             network
         })
 

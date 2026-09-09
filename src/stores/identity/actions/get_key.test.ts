@@ -21,7 +21,7 @@ describe('getTransferKey logic', () => {
         }
 
         mockIPC((cmd, args: any) => {
-            if (cmd === 'load_private_keys') {
+            if (cmd === 'load_keystore') {
                 expect(args?.network).toBe('mainnet')
                 return mockKeystore
             }
@@ -34,7 +34,7 @@ describe('getTransferKey logic', () => {
 
     it('returns null if the identity is not in the keystore', async () => {
         mockIPC((cmd) => {
-            if (cmd === 'load_private_keys') {
+            if (cmd === 'load_keystore') {
                 return { identities: { "someone_else": [] } }
             }
             return null
@@ -46,7 +46,7 @@ describe('getTransferKey logic', () => {
 
     it('returns null if no Transfer keys (Purpose 3) exist for the identity', async () => {
         mockIPC((cmd) => {
-            if (cmd === 'load_private_keys') {
+            if (cmd === 'load_keystore') {
                 return {
                     identities: {
                         "user_123": [{ keyId: 0, purpose: 2, securityLevel: 1, privateKey: 'id_key' }]
@@ -67,7 +67,7 @@ describe('getTransferKey logic', () => {
 
     it('handles empty or missing keystore files gracefully', async () => {
         mockIPC((cmd) => {
-            if (cmd === 'load_private_keys') return null
+            if (cmd === 'load_keystore') return null
             return null
         })
 
@@ -77,7 +77,7 @@ describe('getTransferKey logic', () => {
 
     it('returns null if the Tauri command throws an error', async () => {
         mockIPC((cmd) => {
-            if (cmd === 'load_private_keys') {
+            if (cmd === 'load_keystore') {
                 throw new Error('IPC_FAILED')
             }
             return null

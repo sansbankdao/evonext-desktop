@@ -32,7 +32,7 @@ export const DEFAULT_IDENTITY_SEARCH_LIMIT = parseInt(
 export const DASHSWAP_ENDPOINT = import.meta.env.VITE_DASHSWAP_ENDPOINT ||
   'https://dashswap.xyz/v1'
 export const DAPI_WEB_API_ENDPOINT = import.meta.env.VITE_DAPI_WEB_API_ENDPOINT ||
-  'https://dashqt.org/v1/dapi'
+  'https://dapi.sansbank.dev/v1/dapi'
 export const PLATFORM_HTTP_API_MAINNET = import.meta.env.VITE_PLATFORM_HTTP_API_MAINNET ||
   'https://platform-explorer.pshenmic.dev'
 export const PLATFORM_HTTP_API_TESTNET = import.meta.env.VITE_PLATFORM_HTTP_API_TESTNET ||
@@ -54,7 +54,7 @@ export const BALANCE_REFRESH_INTERVAL_MS = parseInt(
 )
 
 export const getDapiEndpoint = (): string => {
-    return import.meta.env.VITE_DAPI_WEB_API_ENDPOINT || 'https://dashqt.org/v1/dapi'
+    return import.meta.env.VITE_DAPI_WEB_API_ENDPOINT || 'https://dapi.sansbank.dev/v1/dapi'
 }
 
 // Feature Flags

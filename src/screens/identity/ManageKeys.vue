@@ -245,7 +245,7 @@ const fetchData = async () => {
         network.value = activeNetwork as 'mainnet' | 'testnet'
         // 2. Load Local Keystore (safu) and map existence strictly
         console.log(`[KeyManager] Verifying local keys for ${identityId.value} in Keystore...`)
-        const keystore: any = await invoke('load_private_keys', { network: network.value })
+        const keystore: any = await invoke('load_keystore', { network: network.value })
         const identityPrivates = keystore?.identities?.[identityId.value] || []
         const map: Record<number, boolean> = {}
         identityPrivates.forEach((k: any) => {
