@@ -26,7 +26,7 @@ export const DUSD_DECIMAL_PLACES = 6
 export const SANS_DECIMAL_PLACES = 8
 
 // Other static configuration
-export const UPDATER_ENDPOINT = 'https://releases.evonext.app/{{target}}/{{arch}}/{{current_version}}'
+export const UPDATER_ENDPOINT = 'https://repo.sansbank.dev/sansbankdao/evonext-desktop-updater/raw/branch/master/latest.json'
 
 // Platform constants
 export const MIN_CREDIT_TRANSFER = BigInt(100000) // 0.000001 DASH
