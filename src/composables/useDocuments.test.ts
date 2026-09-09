@@ -3,26 +3,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GasFeesPaidByWASM } from 'pshenmic-dpp'
 import { useDocuments } from './useDocuments'
-const mockSdk = {
+const mockSdk = vi.hoisted(() => ({
     documents: {
-        create: vi.fn().mockReturnValue({}),
-        createStateTransition: vi.fn().mockReturnValue({
-            sign: vi.fn(),
-            hash: vi.fn().mockReturnValue('mock-hash')
-        })
-    },
-    identities: {
-        getIdentityByIdentifier: vi.fn().mockResolvedValue({
-            getPublicKeys: () => [null, null, null, { id: 3 }]
-        })
-    },
-    stateTransitions: {
-        broadcast: vi.fn().mockResolvedValue(true),
-        waitForStateTransitionResult: vi.fn().mockResolvedValue(true)
+        create: vi.fn().mockResolvedValue({})
     }
-}
-vi.mock('./usePlatform', () => ({
-    usePlatform: () => ({ getSDK: () => Promise.resolve(mockSdk) })
+}))
+vi.mock('@/services/platform', () => ({
+    connectEvoSdk: vi.fn().mockResolvedValue(mockSdk),
+    resolveSigningContext: vi.fn(async () => ({ identityKey: { keyId: 3 } })),
+    nextIdentityContractNonce: vi.fn().mockResolvedValue(5n),
+    batchStateTransition: vi.fn(() => ({})),
+    signBroadcastAndHash: vi.fn().mockResolvedValue('real_doc_hash'),
+    signerFromWif: vi.fn(() => ({}))
+}))
+vi.mock('./useNetwork', () => ({
+    useNetwork: () => ({ network: { value: 'testnet' } })
+}))
+vi.mock('@dashevo/evo-sdk', () => ({
+    Document: class {
+        constructor(public options: any) {}
+    },
+    DocumentCreateTransition: class {
+        constructor(public options: any) {}
+        toDocumentTransition() { return {} }
+    }
 }))
 const mockGetTransferKey = vi.fn()
 vi.mock('./useKeyManagement', () => ({
@@ -68,6 +72,7 @@ describe('useDocuments', () => {
         expect(result.success).toBe(true)
         if (result.success) {
             expect(result.data).toHaveProperty('txid')
+            expect(result.data!.txid).toBe('real_doc_hash')
         }
     })
 })
