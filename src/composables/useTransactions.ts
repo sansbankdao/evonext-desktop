@@ -1,9 +1,23 @@
 // src/composables/useTransactions.ts
 
 import { computed, ref } from 'vue'
-import { PrivateKeyWASM } from 'pshenmic-dpp'
 import { usePlatform } from './usePlatform'
-import { EvoSDK } from '@dashevo/evo-sdk'
+import {
+    IdentityCreditTransfer,
+    IdentityCreditWithdrawalTransition,
+    TokenBaseTransition,
+    TokenTransferTransition,
+    TokenTransition as EvoTokenTransition,
+} from '@dashevo/evo-sdk'
+import {
+    batchStateTransition,
+    connectEvoSdk,
+    coreScriptFromAddress,
+    nextIdentityContractNonce,
+    nextIdentityNonce,
+    resolveSigningContext,
+    signBroadcastAndHash,
+} from '@/services/platform'
 import { useKeyManagement } from './useKeyManagement'
 import { useNetwork } from './useNetwork'
 import { ErrorBoundary, type ActionResponse } from '@/utils/errors'
@@ -235,7 +249,7 @@ export function useTransactions() {
                     debugLog: logs
                 }
             }
-            const sdk = await platform.getSDK(network.value)
+            const sdk = await connectEvoSdk(network.value)
             logs.push('[Transactions] SDK Instance created')
             let signingKey: { privateKey: string, keyId: number } | undefined;
             if (params.privateKey) {
@@ -254,45 +268,27 @@ export function useTransactions() {
                 }
             }
             logs.push(`[Transactions] Fetching Identity details for ${params.identityId}...`)
-            const identity = await sdk.identities.getIdentityByIdentifier(params.identityId)
+            const { identityKey } = await resolveSigningContext(sdk, params.identityId, signingKey.keyId)
             logs.push('[Transactions] Fetching Identity Nonce...')
-            const currentNonce = await sdk.identities.getIdentityNonce(params.identityId)
-            const identityNonce = currentNonce + BigInt(1)
-            logs.push(`[Transactions] Current Nonce: ${currentNonce}. Using: ${identityNonce}`)
+            const identityNonce = await nextIdentityNonce(sdk, params.identityId)
+            logs.push(`[Transactions] Using Nonce: ${identityNonce}`)
             logs.push('[Transactions] Creating Credit Transfer ST...')
-            const payload = {
-                identityId: params.identityId,
+            // Raw transition path (v4 facades never return the transition
+            // hash — build/sign/broadcast ourselves to surface the REAL hash).
+            // NOTE: sdk.d.ts declares IdentityCreditTransferOptions twice
+            // (facade options + transition options) and TS merges them,
+            // forcing identity/signer which the transition constructor does
+            // not accept. The transition shape below is the verified one.
+            const creditTransfer = new IdentityCreditTransfer({
                 amount: params.credits,
+                senderId: params.identityId,
                 recipientId: params.receiver,
-                identityNonce: identityNonce
-            }
-            const stateTransition = sdk.identities.createStateTransition('creditTransfer', payload)
-            logs.push('[Transactions] Signing transaction...')
-            const privKey = PrivateKeyWASM.fromWIF(signingKey.privateKey)
-            const identityPublicKeys = identity.getPublicKeys()
-            let pubKey: any | undefined
-            for (const key of identityPublicKeys) {
-                const currentKeyId = (key as any).keyIdNumber ?? (key as any).keyId
-                if (currentKeyId === signingKey!.keyId) {
-                    pubKey = key
-                    break
-                }
-            }
-            if (!pubKey) {
-                logs.push(`[Transactions] Error: Public Key ID ${signingKey.keyId} not found in Identity.`)
-                return {
-                    success: false,
-                    error: { code: 500, message: `Public Key ID ${signingKey.keyId} missing` } as ITxError,
-                    debugLog: logs
-                }
-            }
-            stateTransition.signaturePublicKeyId = signingKey.keyId
-            stateTransition.sign(privKey, pubKey)
-            logs.push('[Transactions] Broadcasting...')
-            await sdk.stateTransitions.broadcast(stateTransition)
-            logs.push('[Transactions] Waiting for confirmation...')
-            await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
-            const hash = stateTransition.hash(false)
+                nonce: identityNonce,
+            } as any)
+            const stateTransition = creditTransfer.toStateTransition()
+            logs.push('[Transactions] Signing + broadcasting...')
+            const hash = await signBroadcastAndHash(sdk, stateTransition, signingKey.privateKey, identityKey)
+            logs.push(`[Transactions] Confirmed. Hash: ${hash}`)
             return {
                 success: true,
                 data: { txid: hash, message: 'Transaction successful' } as ITxSuccess,
@@ -314,7 +310,7 @@ export function useTransactions() {
         const logs: string[] = ['Starting Token Transfer...']
         loading.value = true
         try {
-            const sdk = await platform.getSDK(network.value)
+            const sdk = await connectEvoSdk(network.value)
             let signingKey: { privateKey: string, keyId: number } | undefined;
             if (params.privateKey) {
                 signingKey = { privateKey: params.privateKey, keyId: 3 };
@@ -323,35 +319,31 @@ export function useTransactions() {
                 if (keyResult) signingKey = keyResult;
             }
             if (!signingKey) throw new Error('No transfer key found')
-            const tokenBaseTransition = await sdk.tokens.createBaseTransition(params.tokenId, params.identityId)
-            const stateTransition = sdk.tokens.createStateTransition(
-                tokenBaseTransition,
-                params.identityId,
-                'transfer',
-                {
-                    identityId: params.receiver,
-                    amount: params.atomicUnits,
-                },
-            )
-            const privKey = PrivateKeyWASM.fromWIF(signingKey.privateKey)
-            const identity = await sdk.identities.getIdentityByIdentifier(params.identityId)
-            const identityPublicKeys = identity.getPublicKeys()
-            let pubKey: any | undefined
-            for (const key of identityPublicKeys) {
-                const currentKeyId = (key as any).keyIdNumber ?? (key as any).keyId
-                if (currentKeyId === signingKey!.keyId) {
-                    pubKey = key
-                    break
-                }
-            }
-            if (!pubKey) throw new Error(`Public Key ID ${signingKey!.keyId} missing`)
-            stateTransition.sign(privKey, pubKey)
-            logs.push('[Token] Broadcasting...')
-            await sdk.stateTransitions.broadcast(stateTransition)
-            const stateTransitionHash = stateTransition.hash(false)
+            // v4: tokens.transfer needs the token's contract id + position,
+            // resolved from the token id via the facade.
+            const tokenInfo = await sdk.tokens.contractInfo(params.tokenId)
+            if (!tokenInfo) throw new Error(`Token contract info not found for ${params.tokenId}`)
+            const { identityKey } = await resolveSigningContext(sdk, params.identityId, signingKey.keyId)
+            const identityContractNonce = await nextIdentityContractNonce(sdk, params.identityId, tokenInfo.contractId.toBase58())
+            // Raw transition path (v4 facades never return the transition
+            // hash — build/sign/broadcast ourselves to surface the REAL hash).
+            const base = new TokenBaseTransition({
+                dataContractId: tokenInfo.contractId,
+                identityContractNonce,
+                tokenContractPosition: tokenInfo.tokenContractPosition,
+                tokenId: params.tokenId,
+            })
+            const transferTransition = new TokenTransferTransition({
+                base,
+                recipientId: params.receiver,
+                amount: params.atomicUnits,
+            })
+            const stateTransition = batchStateTransition([new EvoTokenTransition(transferTransition)], params.identityId)
+            logs.push('[Token] Signing + broadcasting...')
+            const hash = await signBroadcastAndHash(sdk, stateTransition, signingKey.privateKey, identityKey)
             return {
                 success: true,
-                data: { txid: stateTransitionHash, message: 'Broadcast OK' } as ITxSuccess,
+                data: { txid: hash, message: 'Broadcast OK' } as ITxSuccess,
                 debugLog: logs
             }
         } catch (err: any) {
@@ -392,18 +384,22 @@ export function useTransactions() {
         try {
             const keyPair = await keys.getTransferKey(params.identityId)
             if (!keyPair?.privateKey) throw new Error('Transfer key not found.')
-            const sdk = network.value === 'mainnet' ? EvoSDK.mainnetTrusted() : EvoSDK.testnetTrusted()
-            await sdk.connect()
+            const sdk = await connectEvoSdk(network.value)
+            const { identityKey } = await resolveSigningContext(sdk, params.identityId, keyPair.keyId)
             const creditAmount = BigInt(Math.floor(params.amountDash * 100_000_000_000))
-            const result = await sdk.identities.creditWithdrawal({
+            const identityNonce = await nextIdentityNonce(sdk, params.identityId)
+            // Raw transition path (v4 facades never return the transition
+            // hash — build/sign/broadcast ourselves to surface the REAL hash).
+            const withdrawalTransition = new IdentityCreditWithdrawalTransition({
                 identityId: params.identityId,
-                toAddress: params.recipientAddress,
                 amount: creditAmount,
                 coreFeePerByte: 1.2,
-                privateKeyWif: keyPair.privateKey,
-                keyId: keyPair.keyId
+                pooling: 'never',
+                outputScript: coreScriptFromAddress(params.recipientAddress),
+                nonce: identityNonce,
             })
-            const txHash = typeof result === 'string' ? result : (result as any).hash
+            const stateTransition = withdrawalTransition.toStateTransition()
+            const txHash = await signBroadcastAndHash(sdk, stateTransition, keyPair.privateKey, identityKey)
             return {
                 success: true,
                 data: { txid: txHash || 'TRANSFERRED', message: 'Withdrawal successful' },

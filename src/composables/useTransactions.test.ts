@@ -6,36 +6,42 @@ import { MIN_CREDIT_TRANSFER } from '@/constants'
 
 // --- MOCK DEFINITIONS ---
 
-const mockSdk = {
-    identities: {
-        getIdentityByIdentifier: vi.fn().mockResolvedValue({
-            getPublicKeys: () => [{ keyIdNumber: 3 }, { keyId: 5 }]
-        }),
-        getIdentityNonce: vi.fn().mockResolvedValue(BigInt(10)),
-        createStateTransition: vi.fn().mockReturnValue({
-            sign: vi.fn(),
-            hash: () => 'mock_st_hash'
-        }),
-        creditWithdrawal: vi.fn().mockResolvedValue({ hash: 'withdrawal_hash' })
-    },
-    stateTransitions: {
-        broadcast: vi.fn().mockResolvedValue(true),
-        waitForStateTransitionResult: vi.fn().mockResolvedValue(true)
-    },
-    tokens: {
-        createBaseTransition: vi.fn().mockResolvedValue({}),
-        createStateTransition: vi.fn().mockReturnValue({
-            sign: vi.fn(),
-            hash: () => 'token_tx_hash'
-        })
-    },
-    connect: vi.fn().mockResolvedValue(true)
-}
+const { mockSdk, mockResolveSigningContext, mockSignBroadcastAndHash } = vi.hoisted(() => {
+    const mockSdk = {
+        identities: {
+            fetch: vi.fn().mockResolvedValue({
+                publicKeys: [{ keyId: 3 }],
+                getPublicKeyById: vi.fn((id: number) => (id === 3 ? { keyId: 3 } : undefined))
+            })
+        },
+        tokens: {
+            contractInfo: vi.fn().mockResolvedValue({
+                contractId: { toBase58: () => 'contract_id' },
+                tokenContractPosition: 0
+            })
+        },
+        connect: vi.fn().mockResolvedValue(true)
+    }
+    const mockResolveSigningContext = vi.fn(async (_sdk: any, _identityId: string, _keyId?: number) => ({ identity: {}, identityKey: { keyId: 3 } }))
+    const mockSignBroadcastAndHash = vi.fn(async (_sdk: any, _st: any, _wif: string, _key: any) => 'real_tx_hash')
+    return { mockSdk, mockResolveSigningContext, mockSignBroadcastAndHash }
+})
 
 vi.mock('./usePlatform', () => ({
     usePlatform: () => ({
         getSDK: vi.fn().mockResolvedValue(mockSdk)
     })
+}))
+
+vi.mock('@/services/platform', () => ({
+    connectEvoSdk: vi.fn().mockResolvedValue(mockSdk),
+    resolveSigningContext: (sdk: any, identityId: string, keyId?: number) => mockResolveSigningContext(sdk, identityId, keyId),
+    nextIdentityNonce: vi.fn().mockResolvedValue(11n),
+    nextIdentityContractNonce: vi.fn().mockResolvedValue(5n),
+    batchStateTransition: vi.fn(() => ({})),
+    signBroadcastAndHash: (sdk: any, st: any, wif: string, key: any) => mockSignBroadcastAndHash(sdk, st, wif, key),
+    coreScriptFromAddress: vi.fn(() => ({})),
+    signerFromWif: vi.fn(() => ({}))
 }))
 
 vi.mock('./useKeyManagement', () => ({
@@ -53,16 +59,23 @@ vi.mock('./useNetwork', () => ({
     })
 }))
 
-vi.mock('pshenmic-dpp', () => ({
-    PrivateKeyWASM: {
-        fromWIF: vi.fn().mockReturnValue({})
-    }
-}))
-
 vi.mock('@dashevo/evo-sdk', () => ({
-    EvoSDK: {
-        testnetTrusted: () => mockSdk,
-        mainnetTrusted: () => mockSdk
+    IdentityCreditTransfer: class {
+        constructor(public options: any) {}
+        toStateTransition() { return {} }
+    },
+    IdentityCreditWithdrawalTransition: class {
+        constructor(public options: any) {}
+        toStateTransition() { return {} }
+    },
+    TokenBaseTransition: class {
+        constructor(public options: any) {}
+    },
+    TokenTransferTransition: class {
+        constructor(public options: any) {}
+    },
+    TokenTransition: class {
+        constructor(public transition: any) {}
     }
 }))
 
@@ -169,14 +182,14 @@ describe('useTransactions Composable Full Suite', () => {
             })
 
             expect(result.success).toBe(true)
-            expect(result.data!.txid).toBe('mock_st_hash')
-            expect(mockSdk.stateTransitions.broadcast).toHaveBeenCalled()
+            expect(result.data!.txid).toBe('real_tx_hash')
+            expect(mockSignBroadcastAndHash).toHaveBeenCalled()
         })
 
         it('sendCredits should handle missing public key errors', async () => {
-            mockSdk.identities.getIdentityByIdentifier.mockResolvedValueOnce({
-                getPublicKeys: () => [{ keyIdNumber: 99 }] // Mismatched ID
-            })
+            mockResolveSigningContext.mockRejectedValueOnce(
+                new Error('No suitable identity key found for id keyId=3')
+            )
 
             const result = await sendCredits({
                 identityId: 'id',
@@ -186,7 +199,7 @@ describe('useTransactions Composable Full Suite', () => {
             })
 
             expect(result.success).toBe(false)
-            expect(result.error?.message).toContain('Public Key ID 3 missing')
+            expect(result.error?.message).toContain('No suitable identity key found')
         })
     })
 
@@ -201,12 +214,12 @@ describe('useTransactions Composable Full Suite', () => {
             })
 
             expect(result.success).toBe(true)
-            expect(result.data!.txid).toBe('token_tx_hash')
-            expect(mockSdk.tokens.createStateTransition).toHaveBeenCalled()
+            expect(result.data!.txid).toBe('real_tx_hash')
+            expect(mockSignBroadcastAndHash).toHaveBeenCalled()
         })
 
         it('sendToken should catch execution errors', async () => {
-            mockSdk.tokens.createBaseTransition.mockRejectedValueOnce(new Error('Token Contract Not Found'))
+            mockSdk.tokens.contractInfo.mockRejectedValueOnce(new Error('Token Contract Not Found'))
 
             const result = await sendToken({
                 identityId: 'id',
@@ -230,12 +243,12 @@ describe('useTransactions Composable Full Suite', () => {
             })
 
             expect(result.success).toBe(true)
-            expect(result.data!.txid).toBe('withdrawal_hash')
-            expect(mockSdk.identities.creditWithdrawal).toHaveBeenCalled()
+            expect(result.data!.txid).toBe('real_tx_hash')
+            expect(mockSignBroadcastAndHash).toHaveBeenCalled()
         })
 
         it('withdrawDash should handle EvoSDK insolvency or broadcast errors', async () => {
-            mockSdk.identities.creditWithdrawal.mockRejectedValueOnce(new Error('Insufficient Layer 1 Liquidity'))
+            mockSignBroadcastAndHash.mockRejectedValueOnce(new Error('Insufficient Layer 1 Liquidity'))
 
             const result = await withdrawDash({
                 identityId: 'id',

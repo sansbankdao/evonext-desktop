@@ -2,10 +2,13 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as mutations from './mutations'
-import * as fetching from './fetching'
 import { invoke } from '@/utils/tauri'
+const mockDocuments = {
+    create: vi.fn().mockResolvedValue({ id: 'new_post_id' }),
+    get: vi.fn(),
+    replace: vi.fn().mockResolvedValue(undefined)
+}
 vi.mock('@/utils/tauri', () => ({ invoke: vi.fn() }))
-vi.mock('./fetching', () => ({ fetchDocumentsById: vi.fn() }))
 vi.mock('@/composables/useNetwork', () => ({
     useNetwork: () => ({ network: { value: 'testnet' } })
 }))
@@ -18,41 +21,16 @@ vi.mock('@/stores/identity', () => ({
 vi.mock('@/services/crypto', () => ({
     randomBytes: vi.fn().mockResolvedValue(new Uint8Array(32))
 }))
-vi.mock('@evonext/utils', () => ({
-    binToHex: vi.fn().mockReturnValue('aa'.repeat(32))
-}))
-vi.mock('pshenmic-dpp', () => ({
-    PrivateKeyWASM: { fromWIF: vi.fn().mockReturnValue({}) }
-}))
-vi.mock('dash-platform-sdk', () => ({
-    DashPlatformSDK: class {
-        documents = {
-            create: vi.fn().mockResolvedValue({ id: 'upd', toJSON: () => ({}) }),
-            createStateTransition: vi.fn().mockResolvedValue({ sign: vi.fn() })
-        }
-        identities = {
-            getIdentityContractNonce: vi.fn().mockResolvedValue(1n),
-            getIdentityByIdentifier: vi.fn().mockResolvedValue({
-                getPublicKeys: () => [{ id: 0 }, { id: 1, securityLevel: 2, purpose: 0 }]
-            })
-        }
-        stateTransitions = { broadcast: vi.fn().mockResolvedValue(true) }
-    }
+vi.mock('@/services/platform', () => ({
+    connectEvoSdk: vi.fn(async () => ({
+        documents: mockDocuments
+    })),
+    resolveSigningContext: vi.fn(async () => ({ identity: {}, identityKey: {} })),
+    signerFromWif: vi.fn(() => ({}))
 }))
 vi.mock('@dashevo/evo-sdk', () => ({
-    EvoSDK: {
-        testnetTrusted: vi.fn().mockReturnValue({
-            connect: vi.fn().mockResolvedValue(undefined),
-            documents: {
-                create: vi.fn().mockResolvedValue({ id: 'new_post_id' })
-            }
-        }),
-        mainnetTrusted: vi.fn().mockReturnValue({
-            connect: vi.fn().mockResolvedValue(undefined),
-            documents: {
-                create: vi.fn().mockResolvedValue({ id: 'new_post_id' })
-            }
-        })
+    Document: class {
+        constructor(public options: any) { Object.assign(this, options) }
     }
 }))
 describe('Posts Mutations Service', () => {
@@ -62,18 +40,19 @@ describe('Posts Mutations Service', () => {
         vi.mocked(invoke).mockResolvedValue({
             identities: { 'mock_user': [{ id: 1, purpose: 0, securityLevel: 2, privateKey: validWif }] }
         })
-        vi.mocked(fetching.fetchDocumentsById).mockResolvedValue([{ revision: 1, ownerId: 'mock_user' } as any])
+        mockDocuments.get.mockResolvedValue({ properties: { content: 'old' }, revision: 1n })
         const success = await mutations.updatePost('post_123', {
             documentId: 'post_123',
             content: 'updated'
         })
         expect(success).toBe(true)
+        expect(mockDocuments.replace).toHaveBeenCalledOnce()
     })
     it('updatePost should throw meaningful error if post missing', async () => {
         vi.mocked(invoke).mockResolvedValue({
             identities: { 'mock_user': [{ id: 1, purpose: 0, securityLevel: 2, privateKey: validWif }] }
         })
-        vi.mocked(fetching.fetchDocumentsById).mockResolvedValue([])
+        mockDocuments.get.mockResolvedValue(undefined)
         await expect(mutations.updatePost('missing', { documentId: 'any' }))
             .rejects.toThrow('Post missing not found on chain')
     })
