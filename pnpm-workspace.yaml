@@ -1,3 +1,9 @@
+# Single-package workspace; `packages` is required for pnpm@8 compat
+# (release.yml pins pnpm@8 — without this field it errors with
+# ERR_PNPM_INVALID_WORKSPACE_CONFIGURATION).
+packages:
+  - .
+
 allowBuilds:
   appium: false
   cbor-extract: true
