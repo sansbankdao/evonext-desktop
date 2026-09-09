@@ -1,6 +1,16 @@
 // src/services/identity/registration.service.ts
 
-import { EvoSDK } from '@dashevo/evo-sdk'
+import {
+    AssetLockProof,
+    Identity,
+    IdentityPublicKeyInCreation,
+    IdentitySigner,
+    KeyType,
+    PrivateKey,
+    Purpose,
+    SecurityLevel,
+} from '@dashevo/evo-sdk'
+import { connectEvoSdk } from '@/services/platform'
 import { KeyDerivationService } from './keyDerivation.service'
 import { mnemonicManager } from '@/composables/useMnemonic'
 // @ts-ignore
@@ -8,6 +18,32 @@ import { binToHex } from '@evonext/utils'
 import { debugLogger } from '@/utils/debugLogger'
 
 const REGISTRAR_BASE = 'https://evonext.app/v1/registrar'
+
+// v4 wasm enums are numeric — map our string constants to them
+const PURPOSE_ENUM_MAP: Record<string, Purpose> = {
+    AUTHENTICATION: Purpose.AUTHENTICATION,
+    ENCRYPTION: Purpose.ENCRYPTION,
+    DECRYPTION: Purpose.DECRYPTION,
+    TRANSFER: Purpose.TRANSFER,
+}
+const SECURITY_LEVEL_ENUM_MAP: Record<string, SecurityLevel> = {
+    MASTER: SecurityLevel.MASTER,
+    CRITICAL: SecurityLevel.CRITICAL,
+    HIGH: SecurityLevel.HIGH,
+    MEDIUM: SecurityLevel.MEDIUM,
+}
+const KEY_TYPE_ENUM_MAP: Record<string, KeyType> = {
+    ECDSA_SECP256K1: KeyType.ECDSA_SECP256K1,
+    BLS12_381: KeyType.BLS12_381,
+    ECDSA_HASH160: KeyType.ECDSA_HASH160,
+}
+
+// Local hex decode helper (no shared util exists for this in the repo)
+function hexToBytes(hex: string): Uint8Array {
+    const bytes = new Uint8Array(hex.length / 2)
+    for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.substr(i * 2, 2), 16)
+    return bytes
+}
 
 // SDK Constants
 export const KeyTypeString = {
@@ -147,25 +183,54 @@ export class RegistrationService {
             }
         })
 
-        const sdk = network === 'mainnet' ? EvoSDK.mainnetTrusted() : EvoSDK.testnetTrusted()
-
-        // Connect to the network (SDK keeps connection open)
-        await sdk.connect()
+        const sdk = await connectEvoSdk(network)
         debugLogger.log('[RegService] SDK Connected. Creating Identity...', 'info')
 
         try {
-            // 1. Create Identity
-            // We must cast to 'any' here because the SDK types expect 'unknown[]'
-            // but the runtime implementation actually accepts a JSON string.
-            const identity = await sdk.identities.create({
-                assetLockProof: proof,
-                assetLockPrivateKeyWif: wif,
-                publicKeys: JSON.stringify(identityKeys) as any,
+            // 1. Build the Asset Lock Proof (v4: typed object, not a raw string).
+            // The registrar returns the proof as either JSON or hex — try JSON first.
+            let assetLockProof: AssetLockProof
+            try {
+                assetLockProof = AssetLockProof.fromJSON(JSON.parse(proof))
+            } catch {
+                assetLockProof = AssetLockProof.fromHex(proof)
+            }
+
+            // Normalize ID retrieval (v4: deterministic from the asset lock proof)
+            const identityId = assetLockProof.createIdentityId().toBase58()
+            if (!identityId) throw new Error('Identity creation failed')
+
+            // 2. Build the Identity object with all public keys.
+            // ECDSA_HASH160 keys store the 20-byte pubkey hash; ECDSA_SECP256K1
+            // keys store the compressed pubkey bytes.
+            const identity = new Identity(identityId)
+            derivedKeys.forEach((key: any, idx: number) => {
+                const def = DEFAULT_KEY_DEFINITIONS[idx]!
+                const isHash160 = def.type === KeyTypeString.ECDSA_HASH160
+                const dataHex = isHash160 ? key.publicKeyHash : key.publicKey
+                identity.addPublicKey(
+                    new IdentityPublicKeyInCreation({
+                        keyId: idx,
+                        purpose: PURPOSE_ENUM_MAP[def.purpose]!,
+                        securityLevel: SECURITY_LEVEL_ENUM_MAP[def.level]!,
+                        keyType: KEY_TYPE_ENUM_MAP[def.type]!,
+                        isReadOnly: false,
+                        data: hexToBytes(dataHex),
+                    }).toIdentityPublicKey()
+                )
             })
 
-            // Normalize ID retrieval
-            const identityId = identity.getId()
-            if (!identityId) throw new Error('Identity creation failed')
+            // 3. Create Identity.
+            // identityCreate signs each public key with its corresponding private
+            // key, so the signer must hold every derived key's WIF.
+            const createSigner = new IdentitySigner()
+            for (const key of derivedKeys) createSigner.addKeyFromWif(key.privateKey.toWIF())
+            await sdk.identities.create({
+                identity,
+                assetLockProof,
+                assetLockPrivateKey: PrivateKey.fromWIF(wif),
+                signer: createSigner,
+            })
 
             debugLogger.log(`[RegService] Identity created: ${identityId}. Registering DPNS...`, 'info')
 
@@ -189,14 +254,18 @@ export class RegistrationService {
                 throw new Error('Could not find derived private key for signing.')
             }
 
-            // 4. Register DPNS name
+            // 4. Register DPNS name (v4: { label, identity, identityKey, signer })
+            const identityKey = identity.getPublicKeyById(identityKeys.indexOf(criticalAuthKey))
+            if (!identityKey) {
+                throw new Error('Could not find CRITICAL authentication key to sign registration.')
+            }
+            const dpnsSigner = new IdentitySigner()
+            dpnsSigner.addKeyFromWif(signingKey.privateKey.toWIF())
             await sdk.dpns.registerName({
                 label: username,
-                identityId,
-                // publicKeyId: The index of the key in the identityKeys array
-                // We use the index found in our identityKeys map
-                publicKeyId: identityKeys.indexOf(criticalAuthKey),
-                privateKeyWif: signingKey.privateKey.toWIF(),
+                identity,
+                identityKey,
+                signer: dpnsSigner,
             })
 
             return identityId

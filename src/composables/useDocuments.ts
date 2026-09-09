@@ -1,9 +1,16 @@
 // src/composables/useDocuments.ts
 
 import { computed, ref } from 'vue'
-import { PrivateKeyWASM } from 'pshenmic-dpp'
-import { usePlatform } from './usePlatform'
+import { Document, DocumentCreateTransition } from '@dashevo/evo-sdk'
 import { useKeyManagement } from './useKeyManagement'
+import { useNetwork } from './useNetwork'
+import {
+    batchStateTransition,
+    connectEvoSdk,
+    nextIdentityContractNonce,
+    resolveSigningContext,
+    signBroadcastAndHash,
+} from '@/services/platform'
 import { ErrorBoundary, type ActionResponse } from '@/utils/errors'
 import { log } from '@/utils/env'
 import type {
@@ -12,7 +19,7 @@ import type {
 } from '@/types'
 
 export function useDocuments() {
-    const platform = usePlatform()
+    const { network } = useNetwork()
     const keys = useKeyManagement()
     const loading = ref(false)
     const error = ref<string | null>(null)
@@ -37,40 +44,33 @@ export function useDocuments() {
                 throw new Error('No transfer key found')
             }
 
-            const sdk = await platform.getSDK()
+            const sdk = await connectEvoSdk(network.value)
             const data = {}
-            const document = sdk.documents.create(
-                _dataContract,
-                _documentType,
-                data,
-                _identityId
-            )
+            // v4: documents.create takes { document, identityKey, signer,
+            // tokenPaymentInfo? } — nonces and broadcast are handled internally.
+            const document = new Document({
+                dataContractId: _dataContract,
+                documentTypeName: _documentType,
+                ownerId: _identityId,
+                properties: data,
+            })
 
-            const identityNonce = BigInt(1)
-            const stateTransition = sdk.documents.createStateTransition(
-                document,
-                'create',
-                {
-                    identityContractNonce: identityNonce,
-                    tokenPaymentInfo: _tokenPaymentInfo,
-                },
-            )
-
-            const privKey = PrivateKeyWASM.fromWIF(transferWif.privateKey)
-            const identity = await sdk.identities.getIdentityByIdentifier(_identityId)
-            const identityPublicKeys = identity.getPublicKeys()
-            const publicKeyId = 3
-            const pubKey = identityPublicKeys[publicKeyId]
-
-            if (!pubKey) {
-                throw new Error(`Transfer public key ${publicKeyId} not found`)
+            const { identityKey } = await resolveSigningContext(sdk, _identityId, transferWif.keyId)
+            if (!identityKey) {
+                throw new Error(`Transfer public key ${transferWif.keyId} not found`)
             }
 
-            stateTransition.sign(privKey, pubKey)
-            await sdk.stateTransitions.broadcast(stateTransition)
-            await sdk.stateTransitions.waitForStateTransitionResult(stateTransition)
+            // Raw transition path (v4 facades never return the transition
+            // hash — build/sign/broadcast ourselves to surface the REAL hash).
+            const identityContractNonce = await nextIdentityContractNonce(sdk, _identityId, _dataContract)
+            const createTransition = new DocumentCreateTransition({
+                document,
+                identityContractNonce,
+                tokenPaymentInfo: _tokenPaymentInfo as any,
+            })
+            const stateTransition = batchStateTransition([createTransition.toDocumentTransition()], _identityId)
+            const hash = await signBroadcastAndHash(sdk, stateTransition, transferWif.privateKey, identityKey)
 
-            const hash = stateTransition.hash(false)
             log('info', `Document creation successful. Hash: ${hash}`)
 
             loading.value = false
