@@ -8,7 +8,7 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
                 <div class="flex flex-col gap-8">
                     <!-- Content Area -->
-                    <div class="flex flex-col lg:flex-row gap-8">
+                    <div v-if="isSocialAvailable" class="flex flex-col lg:flex-row gap-8">
                         <!-- Left Column: Create Post & Filters -->
                         <div class="lg:w-1/3 space-y-6">
                             <!-- Create Post Card -->
@@ -282,6 +282,8 @@
                         </div>
                     </div>
 
+                    <SocialComingSoon v-else />
+
 <!-- Network Status & Debug Header -->
                     <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                         <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
@@ -440,6 +442,7 @@ import { useRouter } from 'vue-router'
 import Header from '@/components/Header.vue'
 import PostItem from '@/components/posts/Item.vue'
 import ComposePostModal from '@/components/posts/ComposeModal.vue'
+import SocialComingSoon from '@/components/posts/SocialComingSoon.vue'
 
 const router = useRouter()
 const identityStore = useIdentityStore()
@@ -480,6 +483,9 @@ const {
 const showComposeModal = ref(false)
 const showDebug = ref(false)
 const showRawData = ref(false)
+
+// Yappr social contract is testnet-only (docs/HANDOFF-DCG-SDK-AND-SHIELDED.md §3.4)
+const isSocialAvailable = computed(() => currentNetwork.value === 'testnet')
 
 const filteredPostsData = computed(() => {
     return activeTab.value === 'posts' ? posts.value : userPosts.value
@@ -531,8 +537,10 @@ const refreshWithDebug = async () => {
 }
 
 onMounted(async () => {
-    await fetchPosts()
-    startAutoRefresh()
+    if (isSocialAvailable.value) {
+        await fetchPosts()
+        startAutoRefresh()
+    }
 })
 
 onUnmounted(() => {
