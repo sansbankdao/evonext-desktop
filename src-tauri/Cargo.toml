@@ -57,6 +57,14 @@ tauri-specta = { version = "2.0.0-rc.21", features = ["typescript"] }
 [dev-dependencies]
 mockito = "1.7.2"
 
+# Shielded spike (Week 3-4): pure-Rust platform-wallet crate, pinned to
+# mobile's verified-working build (handoff §4.2). Consumed NATIVELY — no
+# FFI/JNI. Heavy dependency graph; this is spike-only until sized up.
+platform-wallet = { git = "https://github.com/dashpay/platform", rev = "37ea011c8723773c08b8a9941ceab6d743a08692", features = ["shielded"] }
+# dashcore comes from rust-dashcore (workspace-pinned rev per platform
+# workspace Cargo.toml at the same pinned commit).
+dashcore = { git = "https://github.com/dashpay/rust-dashcore", rev = "70d4bf8e36057c58e02d56769a6e9760f701dd06" }
+
 [features]
 custom-protocol = ["tauri/custom-protocol"]
 

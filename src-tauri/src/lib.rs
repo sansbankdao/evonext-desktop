@@ -7,6 +7,7 @@ pub mod dapi;
 pub mod identity;
 pub mod menu;
 pub mod models;
+pub mod shielded;
 pub mod utils;
 
 #[cfg(test)]
