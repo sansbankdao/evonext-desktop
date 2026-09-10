@@ -27,6 +27,7 @@ tauri-plugin-updater = { version = "2.4.0" }
 
 # DAPI / RPC
 lazy_static = "1.4"
+rusqlite = { version = "0.40", features = ["bundled"] }
 lru_time_cache = "0.11"
 regex = "1.10"
 reqwest = { version = "0.13.1", features = ["blocking", "json"] }

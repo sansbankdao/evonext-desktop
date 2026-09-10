@@ -4,6 +4,7 @@ use tauri::Manager;
 pub mod commands;
 pub mod constants;
 pub mod dapi;
+pub mod history;
 pub mod identity;
 pub mod menu;
 pub mod models;
@@ -85,9 +86,14 @@ pub fn create_app() -> tauri::App {
             commands::dapi_commands::get_total_credits_in_platform,
             commands::dapi_commands::get_identity_by_public_key_hash,
             commands::dapi_commands::get_identity_by_non_unique_public_key_hash,
+            commands::history_commands::history_list_transactions,
+            commands::history_commands::history_upsert_transaction,
+            commands::history_commands::history_count_transactions,
+            commands::history_commands::history_clear_network,
         ])
         .setup(|app| {
             let handle = app.handle();
+            history::init_history_state(handle);
             menu::setup_menus(handle)?;
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_menu(app.menu().unwrap());
