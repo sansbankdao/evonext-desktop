@@ -9,6 +9,8 @@ import { useNetwork } from '@/composables/useNetwork'
 import { fetchIdentityTransactions } from './api'
 import { formatDashAmount } from './utils'
 import { transformIdentityTransfer } from './transforms'
+import { transactionToRecord, recordToTransaction } from './historySync'
+import { useTransactionHistory } from '@/composables/useTransactionHistory'
 import type { IAsset } from '@/types'
 import type { IAssetMinimal } from '@/types/assets'
 import type { Network } from '@/composables/useNetwork'
@@ -195,8 +197,33 @@ export async function fetchRealTransactions(
                 transformIdentityTransfer(tx, identityId)
             )
             this.transactions = mappedTransactions
+
+            // Persist to the local history DB (durable cache). Fire-and-
+            // forget: cache writes must never block or fail the UI. The
+            // upsert path upgrades pending -> confirmed in place.
+            const history = useTransactionHistory()
+            for (const tx of mappedTransactions) {
+                history
+                    .upsertTransaction(transactionToRecord(tx))
+                    .catch((e: unknown) =>
+                        console.warn('[Wallet] history cache upsert failed:', e)
+                    )
+            }
         }
     } catch (err) {
         console.error('[Wallet] Failed to fetch real transactions:', err)
+
+        // Offline fallback: serve the durable local history so the wallet
+        // still shows its past activity when the Explorer API is down.
+        try {
+            const history = useTransactionHistory()
+            const cached = await history.listTransactions(this.network, limit, 0)
+            if (cached.length > 0) {
+                this.transactions = cached.map(recordToTransaction)
+                console.info(`[Wallet] Serving ${cached.length} transactions from local history`)
+            }
+        } catch (cacheErr) {
+            console.warn('[Wallet] Local history fallback failed:', cacheErr)
+        }
     }
 }

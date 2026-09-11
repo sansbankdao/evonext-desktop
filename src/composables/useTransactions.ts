@@ -20,6 +20,7 @@ import {
 } from '@/services/platform'
 import { useKeyManagement } from './useKeyManagement'
 import { useNetwork } from './useNetwork'
+import { useTransactionHistory } from './useTransactionHistory'
 import { ErrorBoundary, type ActionResponse } from '@/utils/errors'
 import { log } from '@/utils/env'
 import { MIN_CREDIT_TRANSFER } from '@/constants'
@@ -71,6 +72,34 @@ export function useTransactions() {
     const platform = usePlatform()
     const keys = useKeyManagement()
     const { network } = useNetwork()
+    const history = useTransactionHistory()
+
+    // Persist our OWN outgoing transfers as pending records the moment they
+    // broadcast, so they appear in history instantly; the next Explorer
+    // sync upgrades them to confirmed in place (upsert on txid+network).
+    // Fire-and-forget: cache writes must never fail a transaction result.
+    const recordOwnSend = (
+        txid: string,
+        amount: bigint,
+        counterparty: string
+    ): void => {
+        history
+            .upsertTransaction({
+                txid,
+                network: network.value,
+                direction: 'send',
+                amount: -Number(amount),
+                fee: null,
+                timestamp: Math.floor(Date.now() / 1000),
+                blockHeight: null,
+                counterparty,
+                status: 'pending',
+                rawJson: null,
+            })
+            .catch((e: unknown) =>
+                console.warn('[Transactions] history cache upsert failed:', e)
+            )
+    }
     const loading = ref(false)
     const error = ref<string | null>(null)
     const transactions = ref<ITransaction[]>([])
@@ -289,6 +318,7 @@ export function useTransactions() {
             logs.push('[Transactions] Signing + broadcasting...')
             const hash = await signBroadcastAndHash(sdk, stateTransition, signingKey.privateKey, identityKey)
             logs.push(`[Transactions] Confirmed. Hash: ${hash}`)
+            recordOwnSend(hash, params.credits, params.receiver)
             return {
                 success: true,
                 data: { txid: hash, message: 'Transaction successful' } as ITxSuccess,
@@ -341,6 +371,7 @@ export function useTransactions() {
             const stateTransition = batchStateTransition([new EvoTokenTransition(transferTransition)], params.identityId)
             logs.push('[Token] Signing + broadcasting...')
             const hash = await signBroadcastAndHash(sdk, stateTransition, signingKey.privateKey, identityKey)
+            recordOwnSend(hash, params.atomicUnits, params.receiver)
             return {
                 success: true,
                 data: { txid: hash, message: 'Broadcast OK' } as ITxSuccess,
@@ -400,6 +431,7 @@ export function useTransactions() {
             })
             const stateTransition = withdrawalTransition.toStateTransition()
             const txHash = await signBroadcastAndHash(sdk, stateTransition, keyPair.privateKey, identityKey)
+            if (txHash) recordOwnSend(txHash, creditAmount, params.recipientAddress)
             return {
                 success: true,
                 data: { txid: txHash || 'TRANSFERRED', message: 'Withdrawal successful' },
