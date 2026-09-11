@@ -1,0 +1,27 @@
+# spikes/stronghold/Cargo.toml
+#
+# SPIKE (2026-09-10): Stronghold keystore capability evaluation.
+# Standalone crate — NOT part of the app build. Answers, with executable
+# proof, the questions that gate the tauri-plugin-stronghold integration:
+#   (a) in-vault secp256k1 ECDSA signing for Dash identity keys
+#   (b) raw 32-byte prehash (sighash) signing — Dash signs DIGESTS
+#   (c) import of EXISTING keys (current plaintext .safu keystore migration)
+#   (d) snapshot persistence: encrypted at rest, reopen, keys survive
+# Findings: docs/spikes/stronghold-keystore.md
+
+[package]
+name = "stronghold-spike"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+iota_stronghold = "2.1.0"
+iota-crypto = { version = "0.23", features = ["secp256k1"] }
+zeroize = { version = "1", features = ["derive"] }
+k256 = { version = "0.13", features = ["ecdsa"] }
+sha2 = "0.10"
+rand = "0.8"
+
+[dev-dependencies]
+tempfile = "3"
