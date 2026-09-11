@@ -26,10 +26,13 @@ use crate::models::{ILicense, IPrivateKeyEntry};
 
 /// Build a minimal Tauri app with the store plugin for testing.
 fn mock_app() -> tauri::App<MockRuntime> {
-    tauri::test::mock_builder()
+    let app = tauri::test::mock_builder()
         .plugin(tauri_plugin_store::Builder::new().build())
         .build(tauri::generate_context!())
-        .expect("failed to build mock app")
+        .expect("failed to build mock app");
+    // Encrypted keystore state (safu files route through the vault).
+    crate::vault::init_vault_state(app.handle());
+    app
 }
 
 // =====================================================

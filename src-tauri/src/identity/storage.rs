@@ -164,8 +164,10 @@ pub fn load_keystore<R: Runtime>(
     app: &AppHandle<R>,
     network: &str,
 ) -> Result<IPrivateKeyStore, String> {
-    let manager = StoreManager::new(app);
-    load_keystore_internal(&manager, network)
+    // Encrypted-at-rest path: safu files route through the Stronghold vault
+    // (lazy plaintext migration + shred inside). See vault/mod.rs.
+    let store = crate::vault::VaultStore::new(app);
+    load_keystore_internal(&store, network)
 }
 
 /// Save the Keystore/SAFU file (.safu-{network}.json)
@@ -187,6 +189,7 @@ pub fn save_keystore<R: Runtime>(
     network: &str,
     store_data: &IPrivateKeyStore,
 ) -> Result<(), String> {
-    let manager = StoreManager::new(app);
-    save_keystore_internal(&manager, network, store_data)
+    // Encrypted-at-rest path: safu files route through the Stronghold vault.
+    let store = crate::vault::VaultStore::new(app);
+    save_keystore_internal(&store, network, store_data)
 }

@@ -9,6 +9,7 @@ pub mod identity;
 pub mod menu;
 pub mod models;
 pub mod utils;
+pub mod vault;
 
 #[cfg(test)]
 mod lib_tests;
@@ -94,6 +95,7 @@ pub fn create_app() -> tauri::App {
         .setup(|app| {
             let handle = app.handle();
             history::init_history_state(handle);
+            vault::init_vault_state(handle);
             menu::setup_menus(handle)?;
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_menu(app.menu().unwrap());
