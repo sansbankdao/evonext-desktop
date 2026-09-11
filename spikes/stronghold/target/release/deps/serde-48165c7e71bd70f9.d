@@ -1,0 +1,14 @@
+/Workspace/sansbank/evonext-desktop/spikes/stronghold/target/release/deps/serde-48165c7e71bd70f9.d: /home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /Workspace/sansbank/evonext-desktop/spikes/stronghold/target/release/build/serde-cab8da92f9ec4fd5/out/private.rs
+
+/Workspace/sansbank/evonext-desktop/spikes/stronghold/target/release/deps/libserde-48165c7e71bd70f9.rlib: /home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /Workspace/sansbank/evonext-desktop/spikes/stronghold/target/release/build/serde-cab8da92f9ec4fd5/out/private.rs
+
+/Workspace/sansbank/evonext-desktop/spikes/stronghold/target/release/deps/libserde-48165c7e71bd70f9.rmeta: /home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /Workspace/sansbank/evonext-desktop/spikes/stronghold/target/release/build/serde-cab8da92f9ec4fd5/out/private.rs
+
+/home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs:
+/home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs:
+/home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs:
+/home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs:
+/home/shomari/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs:
+/Workspace/sansbank/evonext-desktop/spikes/stronghold/target/release/build/serde-cab8da92f9ec4fd5/out/private.rs:
+
+# env-dep:OUT_DIR=/Workspace/sansbank/evonext-desktop/spikes/stronghold/target/release/build/serde-cab8da92f9ec4fd5/out

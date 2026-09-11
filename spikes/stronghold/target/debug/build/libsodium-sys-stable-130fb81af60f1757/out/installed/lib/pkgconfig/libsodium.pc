@@ -1,0 +1,12 @@
+prefix=/Workspace/sansbank/evonext-desktop/spikes/stronghold/target/debug/build/libsodium-sys-stable-130fb81af60f1757/out/installed
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: libsodium
+Version: 1.0.22
+Description: A modern and easy-to-use crypto library
+
+Libs: -L${libdir} -lsodium
+Libs.private: -lpthread -pthread 
+Cflags: -I${includedir}

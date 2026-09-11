@@ -367,3 +367,30 @@ dependency, call its Rust API directly, expose thin Tauri commands.
       (DAPI param contract details, posts write verification recipe)
 
 Questions -> mobile team via sansbankdao Gitea issues on evonext-mobile.
+
+---
+
+## Progress Log (desktop team, appended)
+
+### 2026-09-10 — tx-history foundation + stronghold spike
+
+- **PR #6 MERGED** (`74658da`): transaction-history store — rusqlite 0.40
+  (bundled) backend + typed commands (`history_list/upsert/count/clear`) +
+  `src/types/history.ts` + `useTransactionHistory.ts`. Decision record:
+  tauri-plugin-sql REJECTED (SQL-over-IPC violates Rust-side-logic
+  convention); sqlx REJECTED (async stack + compile-time-query ceremony
+  unjustified for local CRUD). 10 unit tests, 796 total. UI wiring is the
+  follow-up PR.
+- **Stronghold spike COMPLETE** (branch `spike/stronghold-keystore`,
+  `spikes/stronghold/`, 4/4 proofs): in-vault secp256k1 works; Dash
+  prehash sighash signing works via custom `UseSecret` procedure;
+  existing plaintext keys import; snapshots encrypted + wrong-key
+  rejected. DECISIONS LOCKED: encrypt everything (plaintext `.safu`
+  storage retires); password NEVER required; key sourcing = OS keyring
+  first, 0600-file fallback in headless setups. Engine maintenance is
+  dormant (2.0.1/2.1.0, 2024-05-13) — yellow flag, mitigations in
+  `docs/spikes/stronghold-keystore.md`. Integration PR prefers direct
+  `iota_stronghold` dep over the plugin wrapper (no IPC surface).
+- **v26.9.9 RELEASED** (linux x86_64: AppImage/deb/rpm + windows NSIS)
+  built via the permanent evorunner pipeline; updater manifest live at
+  `https://manifest.evonext.app/desktop`. macOS pending MacInCloud.
