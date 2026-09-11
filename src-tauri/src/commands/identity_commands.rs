@@ -317,8 +317,10 @@ pub async fn save_keys<R: Runtime>(
     identity_id: String,
     keys: Vec<IPrivateKeyEntry>,
 ) -> ICommandResult<bool> {
-    let manager = StoreManager::new(&app);
-    cmd_res!(save_keys_logic(&manager, network, identity_id, keys).await)
+    // VaultStore routes safu files into the encrypted keystore (vault) and
+    // everything else (e.g. identity_map enrichment reads) to StoreManager.
+    let store = crate::vault::VaultStore::new(&app);
+    cmd_res!(save_keys_logic(&store, network, identity_id, keys).await)
 }
 pub async fn save_keys_logic<S: PersistentStore>(
     store: &S,
@@ -351,8 +353,8 @@ pub async fn load_keystore<R: Runtime>(
     app: tauri::AppHandle<R>,
     network: String,
 ) -> ICommandResult<IAnyValue> {
-    let manager = StoreManager::new(&app);
-    cmd_res!(load_keystore_logic(&manager, network))
+    let store = crate::vault::VaultStore::new(&app);
+    cmd_res!(load_keystore_logic(&store, network))
 }
 pub fn load_keystore_logic<S: PersistentStore>(
     store: &S,

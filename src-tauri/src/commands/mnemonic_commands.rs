@@ -2,7 +2,8 @@
 
 use crate::cmd_res;
 use crate::models::{ICommandResult, IMnemonic, IPrivateKeyStore};
-use crate::utils::{network_file::get_network_file, PersistentStore, StoreManager};
+use crate::utils::{network_file::get_network_file, PersistentStore};
+use crate::vault::VaultStore;
 
 #[cfg(test)]
 mod tests;
@@ -13,8 +14,9 @@ pub fn load_mnemonic<R: tauri::Runtime>(
     app_handle: tauri::AppHandle<R>,
     network: String,
 ) -> ICommandResult<Option<IMnemonic>> {
-    let manager = StoreManager::new(&app_handle);
-    cmd_res!(load_mnemonic_logic(&manager, network))
+    // Encrypted-at-rest: safu (keystore+mnemonic) routes through the vault.
+    let store = VaultStore::new(&app_handle);
+    cmd_res!(load_mnemonic_logic(&store, network))
 }
 
 pub fn load_mnemonic_logic<S: PersistentStore>(
@@ -39,8 +41,8 @@ pub fn save_mnemonic<R: tauri::Runtime>(
     network: String,
     payload: IMnemonic,
 ) -> ICommandResult<()> {
-    let manager = StoreManager::new(&app_handle);
-    cmd_res!(save_mnemonic_logic(&manager, network, payload))
+    let store = VaultStore::new(&app_handle);
+    cmd_res!(save_mnemonic_logic(&store, network, payload))
 }
 
 pub fn save_mnemonic_logic<S: PersistentStore>(
@@ -65,8 +67,8 @@ pub fn delete_mnemonic<R: tauri::Runtime>(
     app_handle: tauri::AppHandle<R>,
     network: String,
 ) -> ICommandResult<()> {
-    let manager = StoreManager::new(&app_handle);
-    cmd_res!(delete_mnemonic_logic(&manager, network))
+    let store = VaultStore::new(&app_handle);
+    cmd_res!(delete_mnemonic_logic(&store, network))
 }
 
 pub fn delete_mnemonic_logic<S: PersistentStore>(store: &S, network: String) -> Result<(), String> {

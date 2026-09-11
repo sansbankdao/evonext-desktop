@@ -73,7 +73,11 @@ fn upsert_on_conflict_updates_in_place() {
     let got = store.get("testnet", "bb").expect("get").expect("present");
     assert_eq!(got.status, TxStatus::Confirmed);
     assert_eq!(got.block_height, Some(1_234_700));
-    assert_eq!(store.count("testnet").expect("count"), 1, "no duplicate row");
+    assert_eq!(
+        store.count("testnet").expect("count"),
+        1,
+        "no duplicate row"
+    );
 }
 
 #[test]

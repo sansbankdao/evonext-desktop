@@ -288,12 +288,7 @@ impl HistoryStore {
     }
 
     /// List records for a network, newest first, paginated.
-    pub fn list(
-        &self,
-        network: &str,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<TxRecord>, String> {
+    pub fn list(&self, network: &str, limit: u32, offset: u32) -> Result<Vec<TxRecord>, String> {
         let mut stmt = self
             .conn
             .prepare(
