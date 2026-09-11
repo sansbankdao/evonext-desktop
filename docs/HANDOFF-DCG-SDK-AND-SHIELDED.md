@@ -394,3 +394,26 @@ Questions -> mobile team via sansbankdao Gitea issues on evonext-mobile.
 - **v26.9.9 RELEASED** (linux x86_64: AppImage/deb/rpm + windows NSIS)
   built via the permanent evorunner pipeline; updater manifest live at
   `https://manifest.evonext.app/desktop`. macOS pending MacInCloud.
+
+---
+
+## Progress Log (2026-09-11): Tx-History Sync + Stronghold Keystore SHIPPED
+
+**PR #7 (`b0e05a2`) — Transaction History sync wiring.** `src/stores/wallet/actions/historySync.ts`
+is the single home for `ITransaction <-> TxRecord` mapping (signed amounts, direction, ms/s
+timestamp normalization, rawJson full-fidelity embedding). `fetchRealTransactions` upserts every
+Explorer-mapped tx into the SQLite cache (fire-and-forget) and **falls back to the local cache on
+Explorer failure** (offline history works). Own sends (credits/tokens/withdrawals) record a
+`pending` entry at broadcast with the REAL transition hash; the next sync upgrades in place.
+12 unit tests; wallet suite 68/68.
+
+**PR #8 (`d4b5b07`) — Stronghold encrypted keystore.** The plaintext `.safu-{network}.json`
+vulnerability (private keys AND mnemonic on disk in cleartext) is RETIRED. Stronghold encrypted
+snapshot behind the existing `PersistentStore` contract via `VaultStore` (safu files → vault,
+everything else → legacy StoreManager). Key sourcing: OS keyring (keyring-rs 4) → 0600-file
+fallback; password never required; lazy migration + shred on first access; `DashEcdsaPrehashSign`
+ported from the spike (phase-2 in-vault signing, test-covered). Commands rewired with zero
+frontend changes. Gates: 806/806 tests, fmt clean, 0 clippy issues in vault code.
+
+**Phase 2 (documented, not started):** per-key guarded vault secrets + Rust-side transition
+building so signing moves in-vault and key bytes stop transiting the JS runtime at all.
