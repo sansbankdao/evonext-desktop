@@ -72,9 +72,10 @@
             </div>
         </div>
 
-        <!-- Post Content -->
+        <!-- Post Content (Phase A rich text; Rust-parsed segments) -->
         <p class="text-slate-800 dark:text-slate-200 leading-relaxed text-[15px] whitespace-pre-wrap break-words">
-            {{ post.content }}
+            <ContentRenderer v-if="post.contentParts?.length" :parts="post.contentParts" />
+            <template v-else>{{ post.content }}</template>
         </p>
 
         <!-- Media Attachments -->
@@ -207,6 +208,7 @@
 import { computed } from 'vue'
 import type { IPost } from '@/types/posts'
 import { YAPPR_CONTRACT_ID_TESTNET } from '@/constants'
+import ContentRenderer from '@/components/posts/ContentRenderer.vue'
 
 interface Props {
     post: IPost

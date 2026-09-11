@@ -32,6 +32,7 @@ export interface IUser {
     name?: string; // Added to resolve TS2353 in utilities.test.ts
     avatar?: string;
     avatarUrl?: string;
+    avatarSvg?: string; // Locally-generated DiceBear SVG (Yappr-style avatars)
     verified?: boolean;
     bio?: string;
 }

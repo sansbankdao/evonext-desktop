@@ -8,6 +8,7 @@ pub mod history;
 pub mod identity;
 pub mod menu;
 pub mod models;
+pub mod social;
 pub mod utils;
 pub mod vault;
 
@@ -91,11 +92,13 @@ pub fn create_app() -> tauri::App {
             commands::history_commands::history_upsert_transaction,
             commands::history_commands::history_count_transactions,
             commands::history_commands::history_clear_network,
+            commands::social_commands::fetch_social_feed,
         ])
         .setup(|app| {
             let handle = app.handle();
             history::init_history_state(handle);
             vault::init_vault_state(handle);
+            commands::social_commands::init_social_state(handle);
             menu::setup_menus(handle)?;
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_menu(app.menu().unwrap());

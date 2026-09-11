@@ -93,6 +93,22 @@ describe('Posts Mutations Service', () => {
         expect(result).toBeDefined()
         expect(result!.content).toBe('Sensitive post')
     })
+    it('createPost should reject content over the 500-char contract limit', async () => {
+        vi.mocked(invoke).mockResolvedValue({
+            identities: { 'mock_user': [{ purpose: 0, securityLevel: 1, privateKey: validWif }] }
+        })
+        await expect(mutations.createPost({ content: 'x'.repeat(501) } as any))
+            .rejects.toThrow('500-character contract limit')
+        expect(mockDocuments.create).not.toHaveBeenCalled()
+    })
+    it('createPost should accept content at exactly 500 chars', async () => {
+        vi.mocked(invoke).mockResolvedValue({
+            identities: { 'mock_user': [{ purpose: 0, securityLevel: 1, privateKey: validWif }] }
+        })
+        const result = await mutations.createPost({ content: 'x'.repeat(500) } as any)
+        expect(result).toBeDefined()
+        expect(result!.content).toHaveLength(500)
+    })
     it('updatePost should throw when no WIF found', async () => {
         vi.mocked(invoke).mockResolvedValue({
             identities: { 'mock_user': [{ purpose: 1, securityLevel: 0, privateKey: null }] }

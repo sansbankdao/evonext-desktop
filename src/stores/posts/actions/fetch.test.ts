@@ -2,9 +2,9 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fetchPostsAction, fetchUserPostsAction } from './fetch'
-import * as api from '@/services/posts/fetching'
-import * as transformers from '@/services/posts/transformers'
 import { invoke } from '@/utils/tauri'
+import type { ISocialFeedPage, ISocialPost } from '@/types/social'
+
 vi.mock('@/services/posts/fetching')
 vi.mock('@/services/posts/transformers')
 vi.mock('@/utils/tauri')
@@ -12,12 +12,48 @@ vi.mock('@/stores/settings', () => ({
     useSettingsStore: () => ({ state: { network: 'testnet' } })
 }))
 vi.mock('@/constants', () => ({
-    getActivePostContracts: vi.fn(() => ['contract_1']),
+    getActivePostContracts: vi.fn(() => ['evo_test', 'yappr_test']),
     EVONEXT_CONTRACT_ID_TESTNET: 'evo_test',
-    YAPPR_CONTRACT_ID_TESTNET: 'yappr_test',
     EVONEXT_CONTRACT_ID_MAINNET: 'evo_main'
 }))
-describe('fetch.ts Store Actions - Deep Coverage', () => {
+
+function makeSocialPost(overrides: Partial<ISocialPost> = {}): ISocialPost {
+    return {
+        id: 'p1',
+        contractId: 'yappr_test',
+        source: 'yappr',
+        ownerId: 'u1',
+        author: {
+            identityId: 'u1',
+            displayName: 'Alice',
+            username: '@alice',
+            verified: true,
+            bio: 'bio',
+            avatar: { kind: 'dicebear', style: 'bottts', seed: 's' }
+        },
+        content: 'gm **Dash**',
+        contentParts: [
+            { type: 'text', value: 'gm ', children: null },
+            { type: 'bold', value: 'Dash', children: [{ type: 'text', value: 'Dash', children: null }] }
+        ],
+        createdAt: 2000,
+        updatedAt: 2000,
+        replyToPostId: null,
+        quotedPostId: null,
+        replyTo: null,
+        quotedPost: null,
+        language: 'en',
+        sensitive: false,
+        mediaUrls: [],
+        ...overrides
+    }
+}
+
+function makePage(posts: ISocialPost[], fetchedCounts: Record<string, number>, duplicateCount = 0): ISocialFeedPage {
+    return { posts, nextCursor: null, fetchedCounts, duplicateCount }
+}
+
+describe('fetch.ts Store Actions — Rust feed command', () => {
     let mockStore: any
     beforeEach(() => {
         vi.clearAllMocks()
@@ -32,43 +68,90 @@ describe('fetch.ts Store Actions - Deep Coverage', () => {
             debug: { fetchCounts: {} },
             fetchPosts: vi.fn()
         }
-        vi.mocked(transformers.transformPostDocuments).mockReturnValue([])
     })
-    describe('fetchPostsAction logic branches', () => {
-        it('should handle empty document results early', async () => {
-            vi.mocked(api.fetchPostsFromTauri).mockResolvedValue([])
-            await fetchPostsAction.call(mockStore)
-            expect(mockStore.posts).toEqual([])
-            expect(mockStore.hasNextPage).toBe(false)
-        })
-        it('should fetch parent documents when replyToPostId exists', async () => {
-            const childDoc = { id: 'c1', ownerId: 'u1', createdAt: 100, replyToPostId: 'p1' }
-            const parentDoc = { id: 'p1', ownerId: 'u2', createdAt: 50 }
-            vi.mocked(api.fetchPostsFromTauri).mockResolvedValue([childDoc] as any)
-            vi.mocked(api.fetchDocumentsById).mockResolvedValue([parentDoc] as any)
-            vi.mocked(api.fetchUserProfile).mockResolvedValue({ label: 'user' })
-            await fetchPostsAction.call(mockStore)
-            expect(api.fetchDocumentsById).toHaveBeenCalled()
-            expect(transformers.transformPostDocuments).toHaveBeenCalledTimes(2)
-        })
-        it('should process profiles and yappr profiles for owners', async () => {
-            const docs = [{ id: '1', ownerId: 'u1', createdAt: 1000 }]
-            vi.mocked(api.fetchPostsFromTauri).mockResolvedValue(docs as any)
-            vi.mocked(api.fetchUserProfile).mockResolvedValue({ label: 'DPNS' })
-            vi.mocked(invoke).mockResolvedValue([{ bio: 'Yappr Bio' }])
-            await fetchPostsAction.call(mockStore)
-            expect(api.fetchUserProfile).toHaveBeenCalledWith('u1', 'testnet')
-            expect(invoke).toHaveBeenCalledWith('get_posts', expect.objectContaining({
-                documentType: 'profile'
-            }))
-        })
-        it('should handle Base58 encoding for ownerIds in Yappr check', async () => {
-            const docs = [{ id: '1', ownerId: 'base64Id==', createdAt: 1000 }]
-            vi.mocked(api.fetchPostsFromTauri).mockResolvedValue(docs as any)
-            await fetchPostsAction.call(mockStore)
-            expect(invoke).toHaveBeenCalled()
+
+    it('invokes fetch_social_feed with network, limit and ownerId', async () => {
+        vi.mocked(invoke).mockResolvedValue(makePage([], { evo_test: 0, yappr_test: 0 }))
+        await fetchPostsAction.call(mockStore, { ownerId: 'u9' })
+        expect(invoke).toHaveBeenCalledWith('fetch_social_feed', {
+            network: 'testnet',
+            limit: 5,
+            ownerId: 'u9'
         })
     })
+
+    it('maps social posts onto the legacy IPost shape', async () => {
+        const parent = makeSocialPost({
+            id: 'parent1', ownerId: 'u2', content: 'parent', contentParts: [],
+            author: {
+                identityId: 'u2', displayName: 'Bob', username: '@bob', verified: false,
+                bio: '', avatar: { kind: 'uri', uri: 'https://x.io/p.png' }
+            }
+        })
+        const child = makeSocialPost({ replyToPostId: 'parent1', replyTo: parent })
+        vi.mocked(invoke).mockResolvedValue(
+            makePage([child], { evo_test: 3, yappr_test: 4 }, 1)
+        )
+
+        await fetchPostsAction.call(mockStore)
+
+        const post = mockStore.posts[0]
+        expect(post.id).toBe('p1')
+        expect(post.contractId).toBe('yappr_test')
+        expect(post.source).toBe('yappr')
+        expect(post.author.displayName).toBe('Alice')
+        expect(post.author.verified).toBe(true)
+        // DiceBear avatars are LOCAL data URIs (no api.dicebear.com leak)
+        expect(post.author.avatar).toMatch(/^data:image\/svg\+xml/)
+        expect(post.author.avatar).not.toContain('api.dicebear.com')
+        expect(post.author.avatarSvg).toContain('<svg')
+        // URI avatars pass straight through
+        expect(post.replyTo.author.avatar).toBe('https://x.io/p.png')
+        expect(post.replyTo.author.avatarUrl).toBe('https://x.io/p.png')
+        // Rich content segments carried through for ContentRenderer
+        expect(post.contentParts).toHaveLength(2)
+        expect(post.contentParts[1].type).toBe('bold')
+        // Parent embedded
+        expect(post.replyToPostId).toBe('parent1')
+        expect(post.replyTo.id).toBe('parent1')
+    })
+
+    it('populates the debug panel from the page metadata', async () => {
+        vi.mocked(invoke).mockResolvedValue(
+            makePage([makeSocialPost()], { evo_test: 3, yappr_test: 4 }, 2)
+        )
+        await fetchPostsAction.call(mockStore)
+        expect(mockStore.debug.activeContracts).toEqual(['evo_test', 'yappr_test'])
+        expect(mockStore.debug.fetchCounts).toEqual({ evo_test: 3, yappr_test: 4 })
+        expect(mockStore.debug.mergeCount).toBe(1)
+        expect(mockStore.debug.duplicateCount).toBe(2)
+        expect(mockStore.debug.lastFetchTime).toBeDefined()
+    })
+
+    it('handles an empty page', async () => {
+        vi.mocked(invoke).mockResolvedValue(makePage([], { evo_test: 0 }))
+        await fetchPostsAction.call(mockStore)
+        expect(mockStore.posts).toEqual([])
+        expect(mockStore.hasNextPage).toBe(false)
+        expect(mockStore.isLoading).toBe(false)
+    })
+
+    it('sets hasNextPage when more unique documents were fetched than the limit', async () => {
+        // 7 fetched − 1 duplicate = 6 unique > limit 5
+        vi.mocked(invoke).mockResolvedValue(
+            makePage([makeSocialPost()], { evo_test: 3, yappr_test: 4 }, 1)
+        )
+        await fetchPostsAction.call(mockStore)
+        expect(mockStore.hasNextPage).toBe(true)
+    })
+
+    it('surfaces command failures on the store error field', async () => {
+        vi.mocked(invoke).mockRejectedValue(new Error('dapi down'))
+        await fetchPostsAction.call(mockStore)
+        expect(mockStore.error).toBe('dapi down')
+        expect(mockStore.isLoading).toBe(false)
+    })
+
     describe('fetchUserPostsAction', () => {
         it('should filter global posts for specific user', async () => {
             mockStore.posts = [

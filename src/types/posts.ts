@@ -1,6 +1,7 @@
 // src/types/posts.ts
 
 import type { IUser } from './identity'
+import type { ISocialContentPart } from './social'
 
 /**
  * Base properties shared across documents and UI models
@@ -65,6 +66,10 @@ export interface IPost extends IPostBase {
     media?: IMedia[] | undefined;
     replyTo?: IPost | undefined;
     quotedPost?: IPost | undefined;
+    /** 'evonext' | 'yappr' — which contract the document came from. */
+    source?: string | undefined;
+    /** Phase A rich-text segments (Rust-parsed; render via ContentRenderer). */
+    contentParts?: ISocialContentPart[] | undefined;
 }
 
 export interface ICreatePostParams {

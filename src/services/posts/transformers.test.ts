@@ -13,17 +13,23 @@ vi.mock('./utils', () => ({
 describe('transformers', () => {
     const ownerId = 'identity_1234567890_abcdefg'
     describe('getUserInfo profile priority', () => {
-        it('prioritizes DPNS profile data', () => {
+        it('prioritizes YAPPR displayName (handoff §6 priority)', () => {
             const dpnsProfile = { displayName: 'DPNS Name', avatarUrl: 'dpns.png' }
             const yapprProfile = { displayName: 'YAPPR Name' }
             const result = getUserInfo(ownerId, dpnsProfile as any, yapprProfile as any, 'alice.dash')
-            expect(result.displayName).toBe('DPNS Name')
+            expect(result.displayName).toBe('YAPPR Name')
             expect(result.username).toBe('@alice.dash')
             expect(result.verified).toBe(true)
         })
-        it('falls back to YAPPR when DPNS is missing', () => {
-            const yapprProfile = { displayName: 'YAPPR Name', publicMessage: 'Hello' }
-            const result = getUserInfo(ownerId, null, yapprProfile as any, null)
+        it('uses @username when no YAPPR displayName exists', () => {
+            const dpnsProfile = { displayName: 'DPNS Name', avatarUrl: 'dpns.png' }
+            const result = getUserInfo(ownerId, dpnsProfile as any, null, 'alice.dash')
+            expect(result.displayName).toBe('@alice.dash')
+        })
+        it('bio comes from the DashPay profile (publicMessage), never YAPPR', () => {
+            const dashpayProfile = { publicMessage: 'Hello' }
+            const yapprProfile = { displayName: 'YAPPR Name', publicMessage: 'WRONG SOURCE' }
+            const result = getUserInfo(ownerId, dashpayProfile as any, yapprProfile as any, null)
             expect(result.displayName).toBe('YAPPR Name')
             expect(result.bio).toBe('Hello')
             expect(result.verified).toBe(false)
@@ -31,7 +37,30 @@ describe('transformers', () => {
         it('falls back to abbreviated ID logic when no profiles exist', () => {
             const result = getUserInfo(ownerId, null, null, null)
             expect(result.displayName).toBe('identity_12...defg')
-            expect(result.avatar).toContain(ownerId)
+            expect(result.avatar).toContain('data:image/svg+xml')
+        })
+    })
+    describe('getUserInfo avatar resolution (BUG 2/3 regression)', () => {
+        it('never leaks identity IDs to api.dicebear.com', () => {
+            const result = getUserInfo(ownerId, null, null, null)
+            expect(result.avatar).not.toContain('api.dicebear.com')
+            expect(result.avatar).toMatch(/^data:image\/svg\+xml/)
+        })
+        it('parses the YAPPR avatar DiceBear JSON field', () => {
+            const yapprProfile = { avatar: '{"style":"bottts","seed":"xyz"}' }
+            const result = getUserInfo(ownerId, null, yapprProfile as any, null)
+            expect(result.avatar).toMatch(/^data:image\/svg\+xml/)
+            expect(decodeURIComponent(result.avatar!)).toContain('<svg')
+        })
+        it('passes image URIs through and maps ipfs to the gateway', () => {
+            const yapprProfile = { avatar: 'ipfs://QmXyZ' }
+            const result = getUserInfo(ownerId, null, yapprProfile as any, null)
+            expect(result.avatar).toBe('https://ipfs.io/ipfs/QmXyZ')
+        })
+        it('falls back to the DashPay avatarUrl when YAPPR has none', () => {
+            const dpnsProfile = { avatarUrl: 'https://x.io/pic.png' }
+            const result = getUserInfo(ownerId, dpnsProfile as any, null, null)
+            expect(result.avatar).toBe('https://x.io/pic.png')
         })
     })
     describe('transformPostDocument', () => {

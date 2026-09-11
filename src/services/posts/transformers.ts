@@ -1,6 +1,7 @@
 // src/services/posts/transformers.ts
 
 import type { IPost, IUser, IPostDocument } from '@/types'
+import { generateAvatarSvg } from './avatar'
 
 const abbreviateId = (id: string) => {
     if (!id) return '...'
@@ -9,29 +10,84 @@ const abbreviateId = (id: string) => {
     return `${cleanId.slice(0, 2)}...${cleanId.slice(-4)}`
 }
 
+function svgDataUri(svg: string): string {
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`
+}
+
+/** IPFS gateway for ipfs:// avatar URIs (same default as Yappr). */
+const IPFS_GATEWAY = 'https://ipfs.io/ipfs/'
+
+function ipfsToGateway(uri: string): string {
+    if (!uri.startsWith('ipfs://')) return uri
+    const cidPath = uri.replace(/^ipfs:\/\//, '').replace(/^ipfs\//, '')
+    return `${IPFS_GATEWAY}${cidPath}`
+}
+
+/**
+ * Resolve an avatar URL/data-URI (LEGACY path — the live feed path
+ * resolves avatars Rust-side in src-tauri/src/social/avatar.rs; this
+ * mirrors it for the legacy transformer):
+ *   Yappr profile `avatar` field (DiceBear JSON | image URI) →
+ *   DashPay `avatarUrl` → deterministic LOCAL DiceBear thumbs.
+ * The old `api.dicebear.com/7.x` fallback leaked identity IDs to a third
+ * party on every render (handoff BUG 3) and the old code read
+ * `avatarUrl`/`publicMessage` off the YAPPR profile, where those fields
+ * do not exist (handoff BUG 2).
+ */
+export function resolveAvatarUrl(
+    ownerId: string,
+    dashpayProfile?: any,
+    yapprProfile?: any
+): string {
+    const field = yapprProfile?.avatar
+    if (typeof field === 'string' && field.length > 0) {
+        if (field.startsWith('http://') || field.startsWith('https://') || field.startsWith('ipfs://')) {
+            return ipfsToGateway(field)
+        }
+        try {
+            const config = JSON.parse(field)
+            if (config && typeof config.seed === 'string') {
+                const style = typeof config.style === 'string' ? config.style : 'thumbs'
+                return svgDataUri(generateAvatarSvg(style, config.seed))
+            }
+        } catch {
+            // Not JSON — fall through to deterministic fallback
+        }
+    }
+    const legacyUrl = dashpayProfile?.avatarUrl || dashpayProfile?.avatarurl
+    if (typeof legacyUrl === 'string' && legacyUrl.length > 0) {
+        return ipfsToGateway(legacyUrl)
+    }
+    return svgDataUri(generateAvatarSvg('thumbs', ownerId))
+}
+
 export function getUserInfo(
     ownerId: string,
     dpnsProfile?: any,
     yapprProfile?: any,
     dpnsName?: string | null
 ): IUser {
-    const fallbackAvatar = `https://api.dicebear.com/7.x/identicon/svg?seed=${ownerId}`
-    let displayName = `identity_${abbreviateId(ownerId)}`
+    const avatar = resolveAvatarUrl(ownerId, dpnsProfile, yapprProfile)
+    const fallbackName = `identity_${abbreviateId(ownerId)}`
 
-    if (dpnsProfile?.displayName) {
-        displayName = dpnsProfile.displayName
-    } else if (yapprProfile?.displayName) {
-        displayName = yapprProfile.displayName
-    }
+    // Display priority (Yappr's resolve-user-details, mirrored by the
+    // Rust resolver): Yappr displayName → @username → DashPay displayName
+    // → abbreviated identity fallback.
+    const displayName =
+        yapprProfile?.displayName ||
+        (dpnsName ? `@${dpnsName}` : undefined) ||
+        dpnsProfile?.displayName ||
+        dpnsProfile?.displayname ||
+        fallbackName
 
     return {
         identityId: ownerId,
         username: dpnsName ? `@${dpnsName}` : `@${abbreviateId(ownerId)}`,
         displayName,
-        avatar: yapprProfile?.avatarUrl || fallbackAvatar, // FIXED: Changed avatarUrl to avatar to match IUser and Test
-        avatarUrl: yapprProfile?.avatarUrl || fallbackAvatar, // Maintain parity for older code
+        avatar,
+        avatarUrl: avatar, // Maintain parity for older code
         verified: !!dpnsName,
-        bio: yapprProfile?.publicMessage || ''
+        bio: dpnsProfile?.publicMessage || dpnsProfile?.publicmessage || ''
     }
 }
 

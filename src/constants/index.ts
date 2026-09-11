@@ -18,8 +18,18 @@ export const SANS_CONTRACT_ID_MAINNET = 'AxAYWyXV6mrm8Sq7vc7wEM18wtL8a8rgj64SM3S
 export const SANS_CONTRACT_ID_TESTNET = 'A36eJF2kyYXwxCtJGsgbR3CTAscUFaNxZN19UqUfM1kw'
 export const WALLET_UTILS_CONTRACT_ID_MAINNET = '7CSFGeF4WNzgDmx94zwvHkYaG3Dx4XEe5LFsFgJswLbm'
 export const WALLET_UTILS_CONTRACT_ID_TESTNET = '7CSFGeF4WNzgDmx94zwvHkYaG3Dx4XEe5LFsFgJswLbm'
-export const YAPPR_CONTRACT_ID_MAINNET = 'TBD'
+// Yappr contract registry — AUTHORITATIVE IDs live in
+// src-tauri/src/social/mod.rs (feed orchestration is Rust-side). These
+// constants remain for legacy TS call sites only.
+// WARNING: do NOT copy contract IDs from the upstream yap.pr repo — its
+// default EWR695… posts contract is live but STALE and cannot serve
+// timeline queries. The ecosystem standard is AyWK6nD… (Sansbank fork
+// deployment). No Yappr contract is deployed on mainnet; empty string
+// means "tier absent" (was 'TBD', which broke query builders downstream).
+export const YAPPR_CONTRACT_ID_MAINNET = ''
 export const YAPPR_CONTRACT_ID_TESTNET = 'AyWK6nDVfb8d1ZmkM5MmZZrThbUyWyso1aMeGuuVSfxf'
+export const YAPPR_PROFILE_CONTRACT_ID_MAINNET = ''
+export const YAPPR_PROFILE_CONTRACT_ID_TESTNET = 'FZSnZdKsLAuWxE7iZJq12eEz6xfGTgKPxK7uZJapTQxe'
 
 // Token Decimals (static token properties)
 export const DUSD_DECIMAL_PLACES = 6

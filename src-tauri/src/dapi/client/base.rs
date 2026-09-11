@@ -38,6 +38,34 @@ impl DAPIClient {
     where
         T: for<'de> Deserialize<'de> + Serialize + Clone + Send + Sync + Debug,
     {
+        self.request_inner(method, params, network, true).await
+    }
+
+    /// Same as `request` but bypasses the response cache entirely — for
+    /// time-sensitive queries (e.g. social timelines) where a cached page
+    /// would replay stale results on refresh (handoff §11).
+    pub async fn request_fresh<T>(
+        &self,
+        method: String,
+        params: Vec<Value>,
+        network: Network,
+    ) -> Result<Vec<T>, DAPIError>
+    where
+        T: for<'de> Deserialize<'de> + Serialize + Clone + Send + Sync + Debug,
+    {
+        self.request_inner(method, params, network, false).await
+    }
+
+    async fn request_inner<T>(
+        &self,
+        method: String,
+        params: Vec<Value>,
+        network: Network,
+        use_cache: bool,
+    ) -> Result<Vec<T>, DAPIError>
+    where
+        T: for<'de> Deserialize<'de> + Serialize + Clone + Send + Sync + Debug,
+    {
         let method_info = MethodParamInfo::for_method(&method)?;
         let mut params_map = HashMap::new();
         for (i, value) in params.iter().enumerate() {
@@ -54,15 +82,23 @@ impl DAPIClient {
         };
 
         let cache_key = format!("{}-{}-{}", method, request.params, network.as_str());
-        if let Some(cached) = self.cache.lock().await.get(&cache_key) {
-            if let Ok(result) = serde_json::from_value::<Vec<T>>(cached) {
-                return Ok(result);
+        if use_cache {
+            if let Some(cached) = self.cache.lock().await.get(&cache_key) {
+                if let Ok(result) = serde_json::from_value::<Vec<T>>(cached) {
+                    return Ok(result);
+                }
             }
         }
 
         let response = self
             .client
             .post(&self.endpoint)
+            // Explicit non-bot UA: Cloudflare in front of the proxy bans
+            // bot-signature clients (403 error 1010 — handoff §11).
+            .header(
+                reqwest::header::USER_AGENT,
+                concat!("EvoNextDesktop/", env!("CARGO_PKG_VERSION")),
+            )
             .json(&request)
             .send()
             .await
@@ -74,8 +110,10 @@ impl DAPIClient {
 
         let result = self.parse_response_text::<T>(&method, &response_text)?;
 
-        if let Ok(cache_value) = serde_json::to_value(&result) {
-            self.cache.lock().await.set(cache_key, cache_value);
+        if use_cache {
+            if let Ok(cache_value) = serde_json::to_value(&result) {
+                self.cache.lock().await.set(cache_key, cache_value);
+            }
         }
 
         Ok(result)
