@@ -8,6 +8,10 @@ import { useNetwork } from '@/composables/useNetwork'
 import { useIdentityStore } from '@/stores/identity'
 import { YAPPR_CONTRACT_ID_TESTNET } from '@/constants'
 import type { ICreatePostParams, IUpdatePostParams, IPost } from '@/types/posts'
+
+/** Yappr post contract `content` field limit (§8 conformance). */
+export const MAX_POST_CONTENT_LENGTH = 500
+
 export async function createPost(params: ICreatePostParams): Promise<IPost | null> {
     const { network } = useNetwork()
     const identityStore = useIdentityStore()
@@ -18,8 +22,12 @@ export async function createPost(params: ICreatePostParams): Promise<IPost | nul
         const keyData = await invoke<any>('load_keystore', { network: network.value })
         const authKey = keyData?.identities?.[identityId]?.find((k: any) => k.purpose === 0 && k.securityLevel <= 2)
         if (!authKey?.privateKey) throw new Error('Auth Key not found.')
+        const trimmed = params.content.trim()
+        if (trimmed.length > MAX_POST_CONTENT_LENGTH) {
+            throw new Error(`Post content exceeds the ${MAX_POST_CONTENT_LENGTH}-character contract limit.`)
+        }
         const postData = {
-            content: params.content.trim(),
+            content: trimmed,
             language: (params.language || 'en').substring(0, 2),
             ...(params.isSensitive && { sensitive: true }),
             ...(params.mediaUrl?.[0] && { mediaUrl: params.mediaUrl[0] }),

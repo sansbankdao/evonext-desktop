@@ -21,20 +21,43 @@ impl DAPIClient {
         start_after: Option<String>,
         start_at: Option<String>,
     ) -> Result<Vec<Value>, DAPIError> {
-        let mut params = vec![
-            Value::String(data_contract_id),
-            Value::String(document_type),
-        ];
-        params.push(where_clause.unwrap_or(Value::Null));
-        params.push(order_by.unwrap_or(Value::Null));
-        params.push(
-            limit
-                .map(|l| Value::Number(l.into()))
-                .unwrap_or(Value::Null),
+        let params = build_get_documents_params(
+            data_contract_id,
+            document_type,
+            where_clause,
+            order_by,
+            limit,
+            start_after,
+            start_at,
         );
-        params.push(start_after.map(Value::String).unwrap_or(Value::Null));
-        params.push(start_at.map(Value::String).unwrap_or(Value::Null));
         self.request("get_documents".to_string(), params, network)
+            .await
+    }
+
+    /// Cache-bypassing variant — social timelines must not replay stale
+    /// pages on refresh (see `DAPIClient::request_fresh`).
+    #[allow(clippy::too_many_arguments)]
+    pub async fn get_documents_fresh(
+        &self,
+        data_contract_id: String,
+        document_type: String,
+        network: Network,
+        where_clause: Option<Value>,
+        order_by: Option<Value>,
+        limit: Option<u32>,
+        start_after: Option<String>,
+        start_at: Option<String>,
+    ) -> Result<Vec<Value>, DAPIError> {
+        let params = build_get_documents_params(
+            data_contract_id,
+            document_type,
+            where_clause,
+            order_by,
+            limit,
+            start_after,
+            start_at,
+        );
+        self.request_fresh("get_documents".to_string(), params, network)
             .await
     }
     pub async fn get_document(
@@ -128,4 +151,30 @@ pub mod helpers {
             "Unknown time".into()
         }
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn build_get_documents_params(
+    data_contract_id: String,
+    document_type: String,
+    where_clause: Option<Value>,
+    order_by: Option<Value>,
+    limit: Option<u32>,
+    start_after: Option<String>,
+    start_at: Option<String>,
+) -> Vec<Value> {
+    let mut params = vec![
+        Value::String(data_contract_id),
+        Value::String(document_type),
+    ];
+    params.push(where_clause.unwrap_or(Value::Null));
+    params.push(order_by.unwrap_or(Value::Null));
+    params.push(
+        limit
+            .map(|l| Value::Number(l.into()))
+            .unwrap_or(Value::Null),
+    );
+    params.push(start_after.map(Value::String).unwrap_or(Value::Null));
+    params.push(start_at.map(Value::String).unwrap_or(Value::Null));
+    params
 }

@@ -113,7 +113,7 @@ fn purpose_code_to_string(code: u8) -> String {
 }
 
 /// Parse network string into Network enum, defaulting to Testnet.
-fn parse_network(network: Option<String>) -> Network {
+pub(crate) fn parse_network(network: Option<String>) -> Network {
     network
         .and_then(|val| Network::parse(&val))
         .unwrap_or(Network::Testnet)

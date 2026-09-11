@@ -23,6 +23,8 @@
   },
   "dependencies": {
     "@dashevo/evo-sdk": "4.2.0-dev.8",
+    "@dicebear/collection": "9.4.2",
+    "@dicebear/core": "9.4.3",
     "@evonext/platform": "25.11.23",
     "@evonext/utils": "25.11.25",
     "@heroicons/vue": "2.2.0",
