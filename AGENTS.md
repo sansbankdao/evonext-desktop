@@ -225,6 +225,7 @@ src-tauri/
 - **Async:** Use async/await consistently. Tauri commands are async.
 - **Tauri Commands:** Defined in src-tauri/src/commands/ and must be registered in lib.rs/main.rs.
 - **Security:** Always validate inputs on both sides. Never log sensitive data (mnemonics, seeds).
+- **Release Titles:** GitHub release titles MUST be the bare tag only (e.g. `v26.9.11`). Never prefix with the product name (`EvoNext Desktop v26.9.11` is WRONG).
 
 ## Testing
 
