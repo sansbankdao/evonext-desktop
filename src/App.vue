@@ -10,8 +10,8 @@ import { onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
-import { check } from '@tauri-apps/plugin-updater'
-import { relaunch } from '@tauri-apps/plugin-process'
+import { useUpdater } from '@/composables/useUpdater'
+import { useNotification } from '@/composables/useNotification'
 
 import { useStorageStore } from '@/stores/storage'
 import { useSystemStore } from '@/stores/system'
@@ -26,6 +26,8 @@ const Storage = useStorageStore()
 const Identity = useIdentityStore()
 const Wallet = useWalletStore()
 const Settings = useSettingsStore()
+const updater = useUpdater()
+const notifier = useNotification()
 
 const rootClass = computed(() => {
     if (Settings.state.theme === 'light') {
@@ -37,42 +39,42 @@ const rootClass = computed(() => {
     return ''
 })
 
+/*
+ * Check the manifest endpoint for a newer release on startup.
+ *
+ * If an update is available, surface an in-app toast (NOT a silent
+ * download+relaunch) with an "Update now" action so the user stays in
+ * control of when the app restarts. The Tauri updater plugin already
+ * verifies the release signature against the pinned minisign pubkey
+ * before returning an Update object, so a tampered manifest can never
+ * reach this point — we only need to handle the user-visible UX.
+ */
 const manageUpdater = async () => {
-    /* Request check. */
-    const update = await check()
-    console.log('AUTO UPDATER', update)
+    const available = await updater.checkForUpdate()
 
-    /* Handle update. */
-    if (update) {
-        console.log(
-            `Found update ${update.version} from ${update.date} with notes ${update.body}.`
-        )
+    if (!available) return
 
-        let downloaded = 0
-        let contentLength = 0
-
-        // alternatively we could also call update.download() and update.install() separately
-        await update.downloadAndInstall((event) => {
-            switch (event.event) {
-            case 'Started':
-                contentLength = Number(event.data.contentLength)
-                console.log(`started downloading ${event.data.contentLength} bytes`)
-                break
-            case 'Progress':
-                downloaded += event.data.chunkLength
-                console.log(`downloaded ${downloaded} from ${contentLength}`)
-                break
-            case 'Finished':
-                console.log('download finished')
-                break
-            }
-        })
-
-        console.log('Update installed successfully!')
-        await relaunch()
-    } else {
-        console.log('NO updates found.')
-    }
+    notifier.show(
+        `A new version (${updater.state.latestVersion}) is available.`,
+        'info',
+        0, // persistent until dismissed
+        {
+            isDismissible: true,
+            action: {
+                label: 'Update now',
+                callback: async () => {
+                    try {
+                        await updater.downloadAndInstallUpdate()
+                        // downloadAndInstallUpdate() relaunches on success.
+                    } catch (err) {
+                        notifier.showError(
+                            `Update failed: ${err instanceof Error ? err.message : String(err)}`,
+                        )
+                    }
+                },
+            },
+        },
+    )
 }
 
 /* Initialize (navigation) router. */

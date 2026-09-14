@@ -187,6 +187,115 @@
                                     </p>
                                 </div>
                             </div>
+                            <!-- Software Update Section -->
+                            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-xl">
+                                <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">
+                                    Software Update
+                                </h2>
+
+                                <p class="mt-1 text-slate-600 dark:text-slate-400">
+                                    Check for and install the latest EvoNext Desktop release.
+                                </p>
+
+                                <div class="mt-6 grid grid-cols-1 gap-y-4">
+                                    <!-- Version rows -->
+                                    <div class="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-4">
+                                        <div>
+                                            <span class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                                Installed version
+                                            </span>
+                                            <span class="text-lg font-bold text-slate-900 dark:text-slate-100">
+                                                {{ updater.state.currentVersion ?? 'unknown' }}
+                                            </span>
+                                        </div>
+
+                                        <div>
+                                            <span class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                                Latest available
+                                            </span>
+                                            <span class="text-lg font-bold" :class="updater.state.isUpdateAvailable ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-900 dark:text-slate-100'">
+                                                {{ updater.state.latestVersion ?? '—' }}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Status / error banner -->
+                                    <p v-if="updater.state.lastError" class="text-sm text-red-600 dark:text-red-400 bg-red-500/10 dark:bg-red-500/20 px-4 py-2 rounded-lg border border-red-400 dark:border-red-500">
+                                        {{ updater.state.lastError }}
+                                    </p>
+
+                                    <!-- Update available banner (with notes) -->
+                                    <div v-if="updater.state.isUpdateAvailable && updater.state.updateBody" class="text-sm text-cyan-700 dark:text-cyan-300 bg-cyan-500/10 dark:bg-cyan-500/20 px-4 py-3 rounded-lg border border-cyan-400 dark:border-cyan-500">
+                                        <p class="font-semibold mb-1">
+                                            Release notes (v{{ updater.state.latestVersion }}):
+                                        </p>
+                                        <p class="whitespace-pre-line">
+                                            {{ updater.state.updateBody }}
+                                        </p>
+                                    </div>
+
+                                    <!-- Download progress -->
+                                    <div v-if="updater.state.status === 'downloading' || updater.state.status === 'installing'" class="space-y-2">
+                                        <div class="flex justify-between text-sm text-slate-600 dark:text-slate-400">
+                                            <span>{{ updater.state.status === 'installing' ? 'Installing…' : 'Downloading…' }}</span>
+                                            <span v-if="updater.state.contentLength > 0">
+                                                {{ formatBytes(updater.state.downloadedBytes) }} / {{ formatBytes(updater.state.contentLength) }}
+                                            </span>
+                                        </div>
+                                        <div class="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                                            <div
+                                                class="h-full bg-gradient-to-r from-cyan-500 to-cyan-600 transition-all duration-200"
+                                                :style="{ width: progressPercent + '%' }"
+                                            ></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Action buttons -->
+                                    <div class="flex flex-wrap gap-3">
+                                        <button
+                                            type="button"
+                                            @click="handleCheckForUpdate"
+                                            :disabled="updater.state.status === 'checking' || updater.state.status === 'downloading' || updater.state.status === 'installing'"
+                                            class="inline-flex justify-center items-center gap-2 rounded-xl border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 py-2 px-5 text-sm font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <span v-if="updater.state.status === 'checking'">
+                                                Checking…
+                                            </span>
+                                            <span v-else>
+                                                Check for updates
+                                            </span>
+                                        </button>
+
+                                        <button
+                                            v-if="updater.state.isUpdateAvailable"
+                                            type="button"
+                                            @click="handleInstallUpdate"
+                                            :disabled="updater.state.status === 'downloading' || updater.state.status === 'installing' || updater.state.status === 'installed'"
+                                            class="group inline-flex justify-center items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white py-2 px-6 text-sm font-bold shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-lg"
+                                        >
+                                            <span v-if="updater.state.status === 'downloading' || updater.state.status === 'installing'">
+                                                {{ updater.state.status === 'installing' ? 'Installing…' : 'Downloading…' }}
+                                            </span>
+                                            <span v-else-if="updater.state.status === 'installed'">
+                                                Installed — restarting…
+                                            </span>
+                                            <span v-else>
+                                                Update now (v{{ updater.state.latestVersion }})
+                                            </span>
+                                        </button>
+
+                                        <p v-if="updater.state.status === 'installed'" class="text-sm text-green-600 dark:text-green-400 self-center">
+                                            Update installed. Restarting…
+                                        </p>
+                                    </div>
+
+                                    <!-- Last checked timestamp -->
+                                    <p v-if="updater.state.lastCheckedAt" class="text-xs text-slate-500 dark:text-slate-500">
+                                        Last checked: {{ new Date(updater.state.lastCheckedAt).toLocaleString() }}
+                                    </p>
+                                </div>
+                            </div>
+
                         </div>
 
                         <!-- Action Bar -->
@@ -227,11 +336,13 @@
 import { ref, watch, onMounted, computed } from 'vue'
 import { useNetwork } from '@/composables/useNetwork'
 import { useSettingsStore } from '@/stores/settings'
+import { useUpdater } from '@/composables/useUpdater'
 import type { IProfileSettings, INotificationSettings } from '@/types'
 import Header from '@/components/Header.vue'
 
 const Settings = useSettingsStore()
 const { ensure } = useNetwork()
+const updater = useUpdater()
 
 // Destructure store state for clean template usage
 const theme = computed(() => Settings.state.theme)
@@ -274,6 +385,33 @@ const handleSaveChanges = async () => {
         console.error('Failed to save settings:', error)
     }
 }
+
+// --- Software Update ---
+const handleCheckForUpdate = async () => {
+    await updater.checkForUpdate()
+}
+
+const handleInstallUpdate = async () => {
+    try {
+        await updater.downloadAndInstallUpdate()
+    } catch (error) {
+        console.error('Failed to install update:', error)
+    }
+}
+
+const formatBytes = (bytes: number): string => {
+    if (!bytes || bytes <= 0) return '0 B'
+    const units = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(1024))
+    const value = bytes / Math.pow(1024, i)
+    return `${value.toFixed(value >= 100 || i === 0 ? 0 : 1)} ${units[i]}`
+}
+
+const progressPercent = computed(() => {
+    const total = updater.state.contentLength
+    if (!total || total <= 0) return 0
+    return Math.min(100, Math.round((updater.state.downloadedBytes / total) * 100))
+})
 
 watch(lastSaved, () => {
     if (lastSaved.value) {
