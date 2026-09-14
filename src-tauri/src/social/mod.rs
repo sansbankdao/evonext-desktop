@@ -15,6 +15,7 @@ pub mod avatar;
 pub mod backend;
 pub mod content;
 pub mod feed;
+pub mod prefetch;
 pub mod profile;
 
 #[cfg(test)]
@@ -24,13 +25,16 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 // -----------------------------------------------------------------------------
-// CONTRACT REGISTRY (authoritative — do NOT copy IDs from the upstream yap.pr
-// repo; its default EWR695… contract is live but stale and cannot serve
-// timeline queries. The ecosystem standard is AyWK6nD…).
+// CONTRACT REGISTRY (probe-verified 2026-09-11 against dapi.sansbank.dev:
+// EWR695… is yappr's live v10 posts contract — latest en post 2026-09-08 —
+// and serves the languageTimeline index; the older AyWK6nD… generation
+// (handoff §4) rejects language queries and went stale. Next migration
+// candidate on yappr's feat/medium-auth-keys branch: 9oDC6xdg… (protocol-v12
+// "v2"; not yet production — newest post 2026-08-26).
 // -----------------------------------------------------------------------------
 
 pub const YAPPR_POSTS_CONTRACT_MAINNET: &str = ""; // never deployed
-pub const YAPPR_POSTS_CONTRACT_TESTNET: &str = "AyWK6nDVfb8d1ZmkM5MmZZrThbUyWyso1aMeGuuVSfxf";
+pub const YAPPR_POSTS_CONTRACT_TESTNET: &str = "EWR695MsqPUuW8EnTbYzD4KybNQD5n7CUDWydJYNg63F";
 pub const YAPPR_PROFILE_CONTRACT_MAINNET: &str = ""; // never deployed
 pub const YAPPR_PROFILE_CONTRACT_TESTNET: &str = "FZSnZdKsLAuWxE7iZJq12eEz6xfGTgKPxK7uZJapTQxe";
 pub const DPNS_CONTRACT_ID: &str = "GWRSAVFMjXx8HpQFaNJMqBV7MBgMK4br5UESsB4S31Ec"; // both networks

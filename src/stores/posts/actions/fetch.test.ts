@@ -8,6 +8,10 @@ import type { ISocialFeedPage, ISocialPost } from '@/types/social'
 vi.mock('@/services/posts/fetching')
 vi.mock('@/services/posts/transformers')
 vi.mock('@/utils/tauri')
+// fetch.ts pulls in the fallback service, which imports the evo-sdk
+// transport — mock it so the primary-path tests never load the WASM.
+vi.mock('@/services/platform', () => ({ connectEvoSdk: vi.fn() }))
+vi.mock('@dashevo/evo-sdk', () => ({}))
 vi.mock('@/stores/settings', () => ({
     useSettingsStore: () => ({ state: { network: 'testnet' } })
 }))

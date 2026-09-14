@@ -2,10 +2,11 @@
 
 //! Social-feed orchestration (replaces the TS-side merge in
 //! `stores/posts/actions/fetch.ts`):
-//!   1. fetch `post` documents from every active contract (§5.1 timeline
-//!      query: orderBy $createdAt desc, NO whereClause — the proxy injects
-//!      $createdAt > 0 server-side; a `language` filter would fail because
-//!      `language` is not indexed);
+//!   1. fetch `post` documents from every active contract (timeline =
+//!      yappr `getTimeline` parity: languageTimeline index, `language ==
+//!      'en' AND $createdAt > 0`, orderBy language asc + $createdAt desc —
+//!      probe-verified 2026-09-11; a bare $createdAt orderBy matches NO
+//!      index on the v10 contract and is rejected by DAPI);
 //!   2. merge, dedupe by $id (NOT ownerId+createdAt — same-ms posts by one
 //!      author must survive), sort newest-first, truncate to limit;
 //!   3. resolve every author via the cached three-tier chain;
@@ -25,6 +26,10 @@ use std::collections::{HashMap, HashSet};
 
 /// Per-contract fetch size (merged feed is truncated client-side).
 const FETCH_MULTIPLIER: u32 = 2;
+
+/// Timeline language filter — yappr `getTimeline` default parity
+/// (`lib/services/post-service.ts` on upstream master).
+const TIMELINE_LANGUAGE: &str = "en";
 
 fn doc_str<'a>(doc: &'a Value, name: &str) -> Option<&'a str> {
     doc.get(name).and_then(|v| v.as_str())
@@ -134,19 +139,34 @@ pub async fn fetch_feed<B: DocumentBackend + Sync>(
     }
     let limit = limit.max(1);
 
-    // 1) Fetch every contract. Timeline query per handoff §5.1 — no
-    //    whereClause unless scoping to one author (ownerAndTime index §5.2).
+    // 1) Fetch every contract. Timeline uses the languageTimeline index
+    //    (yappr getTimeline parity, probe-verified 2026-09-11); owner scope
+    //    uses ownerAndTime. A bare $createdAt orderBy matches NO index on
+    //    the current contracts and is rejected by DAPI (handoff §5.1 was
+    //    written against the stale AyWK6nD… generation — do not restore it).
     let mut fetched_counts = HashMap::new();
     let mut raw: Vec<(Value, &str)> = Vec::new();
     for contract in &contracts {
-        let where_clause = owner_id.map(|id| json!([["$ownerId", "==", id]]));
+        let (where_clause, order_by) = match owner_id {
+            Some(id) => (
+                json!([["$ownerId", "==", id], ["$createdAt", ">", 0]]),
+                json!([["$ownerId", "asc"], ["$createdAt", "desc"]]),
+            ),
+            None => (
+                json!([
+                    ["language", "==", TIMELINE_LANGUAGE],
+                    ["$createdAt", ">", 0]
+                ]),
+                json!([["language", "asc"], ["$createdAt", "desc"]]),
+            ),
+        };
         match backend
             .get_documents(
                 contract,
                 "post",
                 network,
-                where_clause,
-                Some(json!([["$createdAt", "desc"]])),
+                Some(where_clause),
+                Some(order_by),
                 Some(limit * FETCH_MULTIPLIER),
                 None,
             )

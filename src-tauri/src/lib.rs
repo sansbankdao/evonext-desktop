@@ -18,6 +18,26 @@ mod lib_tests;
 #[cfg(test)]
 mod integration_tests;
 
+// ---------------------------------------------------------------------
+// TEST ISOLATION (process-wide, runs before any test)
+// Tests drive the real storage layer through tauri::test::mock_app,
+// whose path resolver points at the REAL app data dir
+// (~/.local/share/app.evonext). Without this redirect, `cargo test`
+// OVERWRITES the user's live identity/settings/vault files with test
+// fixtures (observed 2026-09-11: ".identity-testnet.json" replaced by
+// the "wrap_id" fixture from integration_tests.rs). Redirect
+// XDG_DATA_HOME for the whole test process BEFORE any test resolves a
+// path. The TempDir is leaked on purpose: it must outlive every test
+// thread. Linux-only path semantics; tests run on Linux hosts.
+// ---------------------------------------------------------------------
+#[cfg(test)]
+#[ctor::ctor]
+fn __isolate_test_data_dir() {
+    let dir = tempfile::tempdir().expect("create isolated test data dir");
+    std::env::set_var("XDG_DATA_HOME", dir.path());
+    std::mem::forget(dir);
+}
+
 pub fn setup_environment() {
     #[cfg(target_os = "linux")]
     {
@@ -93,6 +113,7 @@ pub fn create_app() -> tauri::App {
             commands::history_commands::history_count_transactions,
             commands::history_commands::history_clear_network,
             commands::social_commands::fetch_social_feed,
+            commands::social_commands::fetch_social_feed_prefetched,
         ])
         .setup(|app| {
             let handle = app.handle();

@@ -1745,11 +1745,12 @@ dependencies = [
 
 [[package]]
 name = "evonext"
-version = "26.9.9"
+version = "26.9.13"
 dependencies = [
  "base64 0.22.1",
  "bitcoin",
  "chrono",
+ "ctor",
  "futures",
  "hex",
  "iota-crypto",

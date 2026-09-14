@@ -105,7 +105,7 @@ async fn dedupes_by_id_but_keeps_same_ms_distinct_posts() {
 }
 
 #[tokio::test]
-async fn timeline_query_has_no_where_clause_owner_scope_does() {
+async fn timeline_query_uses_language_timeline_index_owner_scope_owner_and_time() {
     let backend = MockBackend::new();
     backend.ok(EVONEXT_CONTRACT_ID_TESTNET, "post", vec![]);
     backend.ok(YAPPR_POSTS_CONTRACT_TESTNET, "post", vec![]);
@@ -121,13 +121,26 @@ async fn timeline_query_has_no_where_clause_owner_scope_does() {
         .unwrap();
 
     let calls = backend.calls.lock().unwrap();
-    // Timeline calls: where MUST be None (handoff §5.1).
-    assert!(calls[0].2.is_none());
-    assert!(calls[1].2.is_none());
-    // Owner-scoped calls: [["$ownerId","==",owner]].
-    let expected = serde_json::json!([["$ownerId", "==", OWNER_A]]);
-    assert_eq!(calls[2].2, Some(expected.clone()));
-    assert_eq!(calls[3].2, Some(expected));
+    // Timeline calls: languageTimeline index — where
+    // [["language","==","en"],["$createdAt",">",0]], orderBy
+    // [["language","asc"],["$createdAt","desc"]] (yappr getTimeline
+    // parity; probe-verified 2026-09-11 — bare $createdAt orderBy is
+    // rejected by DAPI on the current contracts).
+    let tl_where = serde_json::json!([["language", "==", "en"], ["$createdAt", ">", 0]]);
+    let tl_order = serde_json::json!([["language", "asc"], ["$createdAt", "desc"]]);
+    assert_eq!(calls[0].2, Some(tl_where.clone()));
+    assert_eq!(calls[0].3, Some(tl_order.clone()));
+    assert_eq!(calls[1].2, Some(tl_where));
+    assert_eq!(calls[1].3, Some(tl_order));
+    // Owner-scoped calls: ownerAndTime index —
+    // where [["$ownerId","==",owner],["$createdAt",">",0]], orderBy
+    // [["$ownerId","asc"],["$createdAt","desc"]].
+    let ow_where = serde_json::json!([["$ownerId", "==", OWNER_A], ["$createdAt", ">", 0]]);
+    let ow_order = serde_json::json!([["$ownerId", "asc"], ["$createdAt", "desc"]]);
+    assert_eq!(calls[2].2, Some(ow_where.clone()));
+    assert_eq!(calls[2].3, Some(ow_order.clone()));
+    assert_eq!(calls[3].2, Some(ow_where));
+    assert_eq!(calls[3].3, Some(ow_order));
 }
 
 // ---------------------------------------------------------------------------

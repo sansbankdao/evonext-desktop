@@ -8,6 +8,7 @@
 use crate::commands::dapi_commands::parse_network;
 use crate::dapi::client::{get_dapi_client, DAPIClient};
 use crate::social::feed::fetch_feed;
+use crate::social::prefetch::{PrefetchedBackend, SocialFetchBundle};
 use crate::social::profile::ProfileCache;
 use crate::social::SocialFeedPage;
 use tauri::State;
@@ -70,4 +71,30 @@ pub(crate) async fn fetch_social_feed_inner(
     let n = parse_network(network);
     let limit = limit.unwrap_or(20).clamp(1, 100);
     fetch_feed(client, cache, n, limit, owner_id.as_deref()).await
+}
+
+/// Fallback feed path for when the primary DAPI HTTP proxy is
+/// unreachable: the frontend prefetches raw documents through the
+/// bundled DCG JS SDK (direct masternode transport) and hands them over
+/// as a bundle; the SAME Rust pipeline (dedupe/resolve/parse) renders
+/// the page. Profile-cache behaviour is identical to the primary path
+/// (failures are never cached), so a proxy outage cannot poison the
+/// warm cache once the proxy recovers.
+///
+/// * `bundle`   - `{ documents: { "<contractId>:<docType>": [docs…] } }`
+/// * `network`  - "testnet" | "mainnet" (defaults to testnet)
+/// * `limit`    - max posts to return after merge/dedupe (default 20)
+/// * `owner_id` - optional author filter (ownerAndTime parity)
+#[tauri::command]
+pub async fn fetch_social_feed_prefetched(
+    state: State<'_, SocialService>,
+    bundle: SocialFetchBundle,
+    network: String,
+    limit: Option<u32>,
+    owner_id: Option<String>,
+) -> Result<SocialFeedPage, String> {
+    let n = parse_network(Some(network));
+    let limit = limit.unwrap_or(20).clamp(1, 100);
+    let backend = PrefetchedBackend::new(bundle);
+    fetch_feed(&backend, &state.cache, n, limit, owner_id.as_deref()).await
 }

@@ -2,17 +2,17 @@
 
 import type { PostsFetchOptions, IPost } from '@/types/posts'
 import type { IUser } from '@/types/identity'
-import type { ISocialAuthorProfile, ISocialFeedPage, ISocialPost } from '@/types/social'
+import type { ISocialAuthorProfile, ISocialPost } from '@/types/social'
 import * as api from '@/services/posts/fetching'
 import * as transformers from '@/services/posts/transformers'
 import { avatarSrc, generateAvatarSvg } from '@/services/posts/avatar'
+import { fetchSocialFeedWithFallback } from '@/services/posts/fallbackFeed'
 import { getActivePostContracts } from '@/constants'
 import {
     EVONEXT_CONTRACT_ID_MAINNET,
     EVONEXT_CONTRACT_ID_TESTNET
 } from '@/constants'
 import { useSettingsStore } from '@/stores/settings'
-import { invoke } from '@/utils/tauri'
 
 function getCurrentNetwork() {
     const settings = useSettingsStore()
@@ -89,11 +89,12 @@ export async function fetchPostsAction(this: any, options?: PostsFetchOptions): 
         // profile lookups hit the Yappr PROFILE contract (not the posts
         // contract), dedupe is by $id (not ownerId+createdAt), and
         // avatars no longer leak identity IDs to api.dicebear.com.
-        const page = await invoke<ISocialFeedPage>('fetch_social_feed', {
-            network,
-            limit,
-            ownerId: options?.ownerId || null
-        })
+        // Primary transport is the Rust DAPI HTTP proxy; on failure the
+        // feed is prefetched via the bundled DCG JS SDK (direct
+        // masternode transport) and rendered by the SAME Rust pipeline
+        // (fetch_social_feed_prefetched). The original error is rethrown
+        // if the fallback also fails.
+        const page = await fetchSocialFeedWithFallback(network, limit, options?.ownerId || null)
 
         this.debug.fetchCounts = page.fetchedCounts
         this.debug.mergeCount = page.posts.length

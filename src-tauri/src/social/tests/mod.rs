@@ -17,8 +17,8 @@ use std::sync::Mutex;
 pub struct MockBackend {
     /// (contract, doc_type) → queued results (FIFO).
     pub responses: Mutex<HashMap<(String, String), VecDeque<Result<Vec<Value>, String>>>>,
-    /// (contract, doc_type, where_clause) — every call, in order.
-    pub calls: Mutex<Vec<(String, String, Option<Value>)>>,
+    /// (contract, doc_type, where_clause, order_by) — every call, in order.
+    pub calls: Mutex<Vec<(String, String, Option<Value>, Option<Value>)>>,
 }
 
 impl MockBackend {
@@ -48,7 +48,7 @@ impl MockBackend {
             .lock()
             .unwrap()
             .iter()
-            .filter(|(c, t, _)| c == contract && t == doc_type)
+            .filter(|(c, t, _, _)| c == contract && t == doc_type)
             .count()
     }
 }
@@ -60,7 +60,7 @@ impl DocumentBackend for MockBackend {
         document_type: &str,
         _network: Network,
         where_clause: Option<Value>,
-        _order_by: Option<Value>,
+        order_by: Option<Value>,
         _limit: Option<u32>,
         _start_after: Option<String>,
     ) -> Result<Vec<Value>, String> {
@@ -68,6 +68,7 @@ impl DocumentBackend for MockBackend {
             contract_id.to_string(),
             document_type.to_string(),
             where_clause,
+            order_by,
         ));
         self.responses
             .lock()
@@ -136,3 +137,4 @@ pub fn prime_empty_profile(backend: &MockBackend, network: Network) {
     backend.ok(DPNS_CONTRACT_ID, "domain", Vec::new());
     backend.ok(DASHPAY_CONTRACT_ID, "profile", Vec::new());
 }
+mod prefetch;

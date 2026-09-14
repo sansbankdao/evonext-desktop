@@ -1,7 +1,7 @@
 <!-- src/screens/Posts.vue -->
 <template>
     <main>
-        <Header title="Posts | Remixes" />
+        <Header title="Posts & Remixes" />
 
         <!-- Main Container -->
         <section class="bg-gray-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen">

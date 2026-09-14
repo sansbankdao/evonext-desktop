@@ -2,7 +2,7 @@
 
 [package]
 name = "evonext"
-version = "26.9.11"
+version = "26.9.13"
 description = "Free and Fearless Social — Connect with early-stage Founders and Creators — plus, the hottest collection of Mini Apps designed to streamline your workflow and simplify everyday tasks."
 authors = ["Sansbank DAO developers"]
 edition = "2021"
@@ -66,6 +66,7 @@ keyring = "4.2"
 zeroize = "1"
 
 [dev-dependencies]
+ctor = "0.2"
 mockito = "1.7.2"
 tempfile = "3"
 k256 = { version = "0.13", features = ["ecdsa"] }

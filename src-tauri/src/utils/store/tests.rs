@@ -270,9 +270,10 @@ fn test_serialize_negative_number() {
 
 #[test]
 fn test_serialize_float() {
-    let val = serde_json::json!(3.14159);
+    let pi = std::f64::consts::PI;
+    let val = serde_json::json!(pi);
     assert!(val.is_number());
-    assert!((val.as_f64().unwrap() - 3.14159).abs() < 0.0001);
+    assert!((val.as_f64().unwrap() - pi).abs() < 0.0001);
 }
 
 #[test]
