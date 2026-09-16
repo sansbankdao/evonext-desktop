@@ -1658,3 +1658,125 @@ async fn test_license_command_wrapper_async_load() {
     assert!(res.error.is_none());
     assert!(res.data.flatten().is_none());
 }
+
+// ---------------------------------------------------------------------------
+// LIVE NETWORK integration tests — fetch_social_feed against the real DAPI
+// proxy (dapi.sansbank.dev). These reproduce the EXACT path the running
+// app takes on startup (Posts.vue onMounted → usePosts.fetchPosts →
+// stores/posts/actions/fetch → fetchSocialFeedWithFallback → invoke
+// 'fetch_social_feed' → fetch_social_feed_inner → fetch_feed against the
+// DAPIClient singleton). A failure here is a production feed bug, not a
+// unit-test fixture.
+//
+// Gated behind IGNORE_LIVE_DAPI so local/CI runs without network access
+// still pass. Run on evorunner with:
+//   cargo test --lib -- --ignored live_feed
+// ---------------------------------------------------------------------------
+mod live_feed {
+    use crate::commands::social_commands::fetch_social_feed_inner;
+    use crate::dapi::client::get_dapi_client;
+    use crate::social::profile::ProfileCache;
+
+    /// The live EWR695 testnet posts contract must serve at least one
+    /// `language == "en"` post on a timeline fetch (probe-verified
+    /// 2026-09-11/13/14). A zero-count result here means EITHER the proxy
+    /// is down OR the where/orderBy shape silently matches no index —
+    /// both are production feed bugs.
+    #[tokio::test]
+    #[ignore]
+    async fn live_fetch_social_feed_testnet_returns_posts() {
+        let client = get_dapi_client();
+        let cache = ProfileCache::new();
+        let page = fetch_social_feed_inner(
+            client,
+            &cache,
+            Some("testnet".to_string()),
+            Some(5),
+            None,
+        )
+        .await
+        .expect("live fetch_social_feed(testnet, limit=5) must succeed");
+
+        assert!(
+            !page.posts.is_empty(),
+            "live feed returned ZERO posts — expected ≥1 from EWR695 testnet. \
+             fetched_counts = {:?}",
+            page.fetched_counts
+        );
+    }
+
+    /// The `fetched_counts` map must record every active contract
+    /// (EvoNext 465jd… + Yappr EWR695… on testnet). A missing contract
+    /// key means `active_post_contracts` is mis-wired or a per-contract
+    /// fetch panicked before recording its count.
+    #[tokio::test]
+    #[ignore]
+    async fn live_fetch_social_feed_records_both_active_contracts() {
+        let client = get_dapi_client();
+        let cache = ProfileCache::new();
+        let page = fetch_social_feed_inner(
+            client,
+            &cache,
+            Some("testnet".to_string()),
+            Some(5),
+            None,
+        )
+        .await
+        .expect("live fetch must succeed");
+
+        let evonext = "465jdPpFCZefhb4g2k2FpCcrKpPYhJJskDqbGFsKu6wb";
+        let yappr = "EWR695MsqPUuW8EnTbYzD4KybNQD5n7CUDWydJYNg63F";
+        assert!(
+            page.fetched_counts.contains_key(evonext),
+            "EvoNext contract missing from fetched_counts: {:?}",
+            page.fetched_counts
+        );
+        assert!(
+            page.fetched_counts.contains_key(yappr),
+            "Yappr EWR695 contract missing from fetched_counts: {:?}",
+            page.fetched_counts
+        );
+    }
+
+    /// Owner-scoped feed for a known live author must return that author's
+    /// posts only (ownerAndTime index). Uses the owner of the first post
+    /// from the timeline fetch so the test stays self-synchronizing.
+    #[tokio::test]
+    #[ignore]
+    async fn live_fetch_social_feed_owner_scoped_returns_owners_posts() {
+        let client = get_dapi_client();
+        let cache = ProfileCache::new();
+        // First, fetch the timeline to discover a live owner.
+        let timeline = fetch_social_feed_inner(
+            client,
+            &cache,
+            Some("testnet".to_string()),
+            Some(5),
+            None,
+        )
+        .await
+        .expect("timeline fetch must succeed");
+        assert!(!timeline.posts.is_empty(), "no posts to derive an owner from");
+        let owner = timeline.posts[0].owner_id.clone();
+        assert!(!owner.is_empty(), "post owner_id must be non-empty");
+
+        let owned = fetch_social_feed_inner(
+            client,
+            &cache,
+            Some("testnet".to_string()),
+            Some(50),
+            Some(owner.clone()),
+        )
+        .await
+        .expect("owner-scoped fetch must succeed");
+        assert!(
+            !owned.posts.is_empty(),
+            "owner-scoped feed for {} returned ZERO posts",
+            owner
+        );
+        assert!(
+            owned.posts.iter().all(|p| p.owner_id == owner),
+            "owner-scoped feed leaked posts from other owners"
+        );
+    }
+}
