@@ -1679,6 +1679,44 @@ mod live_feed {
     use crate::social::profile::ProfileCache;
     use serde_json::Value;
 
+    #[tokio::test]
+    #[ignore]
+    async fn live_raw_response_text_shape() {
+        // Bypass the DAPIClient parsing and hit the proxy directly with
+        // reqwest, using the SAME headers the client sends, to see the
+        // raw response body. This isolates whether the bug is in the
+        // proxy response or in DAPIResponse deserialization.
+        let body = serde_json::json!({
+            "method": "get_documents",
+            "params": {
+                "dataContractId": "EWR695MsqPUuW8EnTbYzD4KybNQD5n7CUDWydJYNg63F",
+                "documentType": "post",
+                "whereClause": [["language","==","en"],["$createdAt",">",0]],
+                "orderBy": [["language","asc"],["$createdAt","desc"]],
+                "limit": 1
+            },
+            "network": "testnet"
+        });
+        let resp = reqwest::Client::new()
+            .post("https://dapi.sansbank.dev/v1/dapi")
+            .header(reqwest::header::USER_AGENT, concat!("EvoNextDesktop/", env!("CARGO_PKG_VERSION")))
+            .header("Origin", "app://evonext")
+            .json(&body)
+            .send()
+            .await
+            .expect("reqwest send");
+        let status = resp.status();
+        let text = resp.text().await.expect("body");
+        eprintln!("[live_raw_text] status = {}", status);
+        eprintln!("[live_raw_text] body[:600] = {}", &text.chars().take(600).collect::<String>());
+        // Try DAPIResponse parse
+        let parsed: Result<crate::dapi::types::DAPIResponse, _> = serde_json::from_str(&text);
+        match &parsed {
+            Ok(r) => eprintln!("[live_raw_text] DAPIResponse parsed OK; success={}, result_is_array={}", r.success, r.result.is_array()),
+            Err(e) => eprintln!("[live_raw_text] DAPIResponse parse FAILED: {}", e),
+        }
+    }
+
     /// Diagnostic: fetch raw `post` documents from the live EWR695
     /// contract and assert the `$ownerId` field survives the
     /// DAPIResponse → Vec<Value> deserialization path. If this fails,
