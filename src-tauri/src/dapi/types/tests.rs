@@ -13,7 +13,7 @@ fn test_dapi_response_conversion() {
     let resp = DAPIResponse {
         success: true,
         method: "test".into(),
-        params: vec![],
+        params: json!([]),
         network: "testnet".into(),
         // Fixed: Ensure total_supply is a string as expected by TokenContractInfo
         result: json!([{
@@ -85,7 +85,7 @@ fn test_dapi_response_into_result_null() {
     let resp = DAPIResponse {
         success: true,
         method: "test".into(),
-        params: vec![],
+        params: json!([]),
         network: "testnet".into(),
         result: json!(null),
     };
@@ -98,7 +98,7 @@ fn test_dapi_response_into_result_single_object() {
     let resp = DAPIResponse {
         success: true,
         method: "test".into(),
-        params: vec![],
+        params: json!([]),
         network: "testnet".into(),
         result: json!({
             "contractId": "abc",
@@ -120,7 +120,7 @@ fn test_dapi_response_into_result_unparseable() {
     let resp = DAPIResponse {
         success: true,
         method: "test".into(),
-        params: vec![],
+        params: json!([]),
         network: "testnet".into(),
         result: json!(12345),
     };
@@ -166,7 +166,7 @@ fn test_dapi_response_clone_debug() {
     let resp = DAPIResponse {
         success: true,
         method: "test".into(),
-        params: vec![],
+        params: json!([]),
         network: "testnet".into(),
         result: json!(null),
     };

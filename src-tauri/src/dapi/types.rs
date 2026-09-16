@@ -46,7 +46,7 @@ pub struct DAPIResponse {
     pub success: bool,
     pub method: String,
     #[serde(default)]
-    pub params: Vec<Value>,
+    pub params: Value,
     pub network: String,
     #[serde(default)]
     pub result: Value,
