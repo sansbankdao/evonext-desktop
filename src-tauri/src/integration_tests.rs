@@ -1713,13 +1713,31 @@ mod live_feed {
         assert!(!docs.is_empty(), "no docs returned from live EWR695");
         let doc = &docs[0];
         let keys: Vec<&str> = doc.as_object().map(|o| o.keys().map(|k| k.as_str()).collect()).unwrap_or_default();
-        eprintln!("[live_raw] doc keys = {:?}", keys);
+        eprintln!("[live_raw] doc[0] keys = {:?}", keys);
+        eprintln!("[live_raw] doc[0] is_object={} is_array={}", doc.is_object(), doc.is_array());
+        // If the envelope leaked through, the first element IS the
+        // whole response; drill into its `result` array to find the
+        // real documents.
+        let real_docs: Vec<&Value> = if doc.get("result").is_some() && doc.get("success").is_some() {
+            eprintln!("[live_raw] ENVELOPE LEAK — get_documents returned the whole DAPIResponse per element");
+            doc.get("result")
+                .and_then(|r| r.as_array())
+                .map(|arr| arr.iter().collect())
+                .unwrap_or_default()
+        } else {
+            vec![doc]
+        };
+        eprintln!("[live_raw] real_docs count = {}", real_docs.len());
+        if let Some(real) = real_docs.first() {
+            let rkeys: Vec<&str> = real.as_object().map(|o| o.keys().map(|k| k.as_str()).collect()).unwrap_or_default();
+            eprintln!("[live_raw] real doc keys = {:?}", rkeys);
+        }
         assert!(
-            doc.get("$ownerId").is_some(),
-            "`$ownerId` missing from raw doc — keys = {:?}",
-            keys
+            real_docs.first().and_then(|d| d.get("$ownerId")).is_some(),
+            "`$ownerId` missing from real doc — keys = {:?}",
+            real_docs.first().and_then(|d| d.as_object().map(|o| o.keys().map(|k| k.as_str()).collect())).unwrap_or_default()
         );
-        let owner = doc.get("$ownerId").and_then(|v| v.as_str()).unwrap_or("");
+        let owner = real_docs.first().and_then(|d| d.get("$ownerId")).and_then(|v| v.as_str()).unwrap_or("");
         assert!(!owner.is_empty(), "`$ownerId` present but empty");
     }
 
