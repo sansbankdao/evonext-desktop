@@ -1752,30 +1752,22 @@ mod live_feed {
         let doc = &docs[0];
         let keys: Vec<&str> = doc.as_object().map(|o| o.keys().map(|k| k.as_str()).collect()).unwrap_or_default();
         eprintln!("[live_raw] doc[0] keys = {:?}", keys);
-        eprintln!("[live_raw] doc[0] is_object={} is_array={}", doc.is_object(), doc.is_array());
-        // If the envelope leaked through, the first element IS the
-        // whole response; drill into its `result` array to find the
-        // real documents.
-        let real_docs: Vec<&Value> = if doc.get("result").is_some() && doc.get("success").is_some() {
-            eprintln!("[live_raw] ENVELOPE LEAK — get_documents returned the whole DAPIResponse per element");
-            doc.get("result")
-                .and_then(|r| r.as_array())
-                .map(|arr| arr.iter().collect())
-                .unwrap_or_default()
-        } else {
-            vec![doc]
-        };
-        eprintln!("[live_raw] real_docs count = {}", real_docs.len());
-        if let Some(real) = real_docs.first() {
-            let rkeys: Vec<&str> = real.as_object().map(|o| o.keys().map(|k| k.as_str()).collect()).unwrap_or_default();
-            eprintln!("[live_raw] real doc keys = {:?}", rkeys);
-        }
+        // Regression guard: before the DAPIResponse.params type fix,
+        // parse_response_text fell through its fallback ladder and
+        // returned the WHOLE envelope object as the single element of
+        // Vec<Value>. If that ever recurs, this assertion catches it —
+        // the envelope has `success`/`method`/`result` keys, NOT `$id`.
         assert!(
-            real_docs.first().and_then(|d| d.get("$ownerId")).is_some(),
-            "`$ownerId` missing from real doc — keys = {:?}",
-            real_docs.first().and_then(|d| d.as_object().map(|o| o.keys().map(|k| k.as_str()).collect::<Vec<_>>())).unwrap_or_default()
+            !doc.get("success").is_some(),
+            "envelope leaked into Vec<Value> — doc[0] is the DAPIResponse, not a document. keys = {:?}",
+            keys
         );
-        let owner = real_docs.first().and_then(|d| d.get("$ownerId")).and_then(|v| v.as_str()).unwrap_or("");
+        assert!(
+            doc.get("$ownerId").is_some(),
+            "`$ownerId` missing from raw doc — keys = {:?}",
+            keys
+        );
+        let owner = doc.get("$ownerId").and_then(|v| v.as_str()).unwrap_or("");
         assert!(!owner.is_empty(), "`$ownerId` present but empty");
     }
 
