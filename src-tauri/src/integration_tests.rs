@@ -1735,7 +1735,7 @@ mod live_feed {
         assert!(
             real_docs.first().and_then(|d| d.get("$ownerId")).is_some(),
             "`$ownerId` missing from real doc — keys = {:?}",
-            real_docs.first().and_then(|d| d.as_object().map(|o| o.keys().map(|k| k.as_str()).collect())).unwrap_or_default()
+            real_docs.first().and_then(|d| d.as_object().map(|o| o.keys().map(|k| k.as_str()).collect::<Vec<_>>())).unwrap_or_default()
         );
         let owner = real_docs.first().and_then(|d| d.get("$ownerId")).and_then(|v| v.as_str()).unwrap_or("");
         assert!(!owner.is_empty(), "`$ownerId` present but empty");
