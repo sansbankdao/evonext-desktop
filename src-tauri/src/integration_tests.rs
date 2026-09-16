@@ -1675,7 +1675,53 @@ async fn test_license_command_wrapper_async_load() {
 mod live_feed {
     use crate::commands::social_commands::fetch_social_feed_inner;
     use crate::dapi::client::get_dapi_client;
+    use crate::dapi::types::Network;
     use crate::social::profile::ProfileCache;
+    use serde_json::Value;
+
+    /// Diagnostic: fetch raw `post` documents from the live EWR695
+    /// contract and assert the `$ownerId` field survives the
+    /// DAPIResponse → Vec<Value> deserialization path. If this fails,
+    /// the `$`-prefixed system fields are being stripped somewhere in
+    /// the proxy/response parsing layer (the user-visible symptom is an
+    /// empty `owner_id` on every shaped SocialPost → no author → no
+    /// owner-scoped feed → the Posts screen shows posts but Home's
+    /// "your posts" tab is empty).
+    #[tokio::test]
+    #[ignore]
+    async fn live_raw_document_preserves_dollar_owner_id() {
+        let client = get_dapi_client();
+        let docs: Vec<Value> = client
+            .get_documents_fresh(
+                "EWR695MsqPUuW8EnTbYzD4KybNQD5n7CUDWydJYNg63F".to_string(),
+                "post".to_string(),
+                Network::Testnet,
+                Some(serde_json::json!([
+                    ["language", "==", "en"],
+                    ["$createdAt", ">", 0]
+                ])),
+                Some(serde_json::json!([
+                    ["language", "asc"],
+                    ["$createdAt", "desc"]
+                ])),
+                Some(1),
+                None,
+                None,
+            )
+            .await
+            .expect("live get_documents must succeed");
+        assert!(!docs.is_empty(), "no docs returned from live EWR695");
+        let doc = &docs[0];
+        let keys: Vec<&str> = doc.as_object().map(|o| o.keys().map(|k| k.as_str()).collect()).unwrap_or_default();
+        eprintln!("[live_raw] doc keys = {:?}", keys);
+        assert!(
+            doc.get("$ownerId").is_some(),
+            "`$ownerId` missing from raw doc — keys = {:?}",
+            keys
+        );
+        let owner = doc.get("$ownerId").and_then(|v| v.as_str()).unwrap_or("");
+        assert!(!owner.is_empty(), "`$ownerId` present but empty");
+    }
 
     /// The live EWR695 testnet posts contract must serve at least one
     /// `language == "en"` post on a timeline fetch (probe-verified
