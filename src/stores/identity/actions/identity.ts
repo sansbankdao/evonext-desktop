@@ -5,7 +5,7 @@ import { invoke } from '@/utils/tauri'
 import { DAPIService } from '@/services/identity/discovery/DAPIService'
 import { commands } from '@/bindings'
 import type { IIdentityState, IIdentity } from '@/types/identity'
-import { transformPublicKeys } from '../utils'
+import { transformPublicKeys, validatePrivateKeyEntries } from '../utils'
 /**
  * Normalizes command responses based on the Rust Specta/Standard.
  * Handles {success, data, error}, {success, payload, error}, and raw objects.
@@ -62,6 +62,24 @@ export const identityActions = {
         return result
     },
     async saveKeys(this: any, network: string, identityId: string, keys: any[]): Promise<any> {
+        // Defence in depth: `save_keys` takes `Vec<IPrivateKeyEntry>` where
+        // every field is required (src-tauri/src/models.rs:150-160). A
+        // missing field makes Tauri reject the args, and callers only see a
+        // generic fallback message. Fail loudly here instead, so the real
+        // cause is never masked again (v26.9.14 "Connection failed").
+        const violations = validatePrivateKeyEntries(keys)
+        const badIndexes = Object.keys(violations)
+        if (badIndexes.length > 0) {
+            const detail = badIndexes
+                .map((i) => `  [${i}] ${(violations[Number(i)] ?? []).join(', ')}`)
+                .join('\n')
+            const msg =
+                `saveKeys: ${badIndexes.length} key entr${badIndexes.length === 1 ? 'y' : 'ies'} ` +
+                `do not satisfy the IPrivateKeyEntry contract required by the Rust ` +
+                `\`save_keys\` command:\n${detail}`
+            console.error('[saveKeys]', msg, { keys })
+            return { success: false, data: null, error: { message: msg } }
+        }
         const response = await commands.saveKeys(network, identityId, keys)
         return normalizeResult<boolean>(response)
     },

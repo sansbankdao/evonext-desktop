@@ -416,10 +416,26 @@ describe('Identity Store - Connection Actions', () => {
             expect(store.saveIdentityWithKeys).toBeDefined()
         })
 
-        it('should save identity with keys', async () => {
+        it('should save identity and forward genuine private-key entries', async () => {
+            vi.mocked(commands.saveKeys).mockClear()
+
+            // `save_keys` requires `Vec<IPrivateKeyEntry>`; public-key
+            // objects are filtered out (see the regression guards below).
             const payload = {
                 identityId: mockIdentityId,
-                publicKeys: [{ id: 0, purpose: 0, securityLevel: 0 }]
+                publicKeys: [
+                    {
+                        identityId: mockIdentityId,
+                        keyId: 0,
+                        purpose: 0,
+                        securityLevel: 0,
+                        keyType: 'ECDSA_HASH160',
+                        privateKey: 'wif',
+                        publicKey: 'hash',
+                        createdAt: '2026-09-19T00:00:00Z',
+                        lastUsed: '2026-09-19T00:00:00Z'
+                    }
+                ]
             }
 
             const result = await store.saveIdentityWithKeys(mockNetwork, payload)
@@ -451,6 +467,101 @@ describe('Identity Store - Connection Actions', () => {
             await store.saveIdentityWithKeys(mockNetwork, payload)
 
             expect(commands.saveKeys).not.toHaveBeenCalled()
+        })
+
+        // ================================================================
+        // REGRESSION GUARD (v26.9.14 "Connection failed" class of bug)
+        //
+        // `saveKeys` forwards its `keys` argument VERBATIM to the Rust
+        // command `save_keys`, whose parameter type is
+        // `Vec<IPrivateKeyEntry>` (src-tauri/src/models.rs:150-160).
+        // Every field is REQUIRED, including `lastUsed`.
+        //
+        // `transformPublicKeys()` (src/stores/identity/utils.ts:9-33)
+        // returns `IPublicKey` objects — `idx, type, keyType, purpose,
+        // securityLevel, data, dataBytes, dataB64, readOnly, disabledAt` —
+        // which have NO `privateKey`, `identityId`, `keyId`, `createdAt`
+        // or `lastUsed`. Forwarding those to `saveKeys` makes Tauri's
+        // argument deserialization fail, so the whole connect aborts.
+        //
+        // These tests pin the contract: only genuine IPrivateKeyEntry
+        // objects may ever reach `commands.saveKeys`.
+        // ================================================================
+
+        it('must NOT forward public-key objects to saveKeys (they are not IPrivateKeyEntry)', async () => {
+            vi.mocked(commands.saveKeys).mockClear()
+
+            // Exact shape produced by `transformPublicKeys()`.
+            const publicKeys = [
+                {
+                    idx: 0,
+                    type: 0,
+                    keyType: 'ECDSA_HASH160',
+                    purpose: 0,
+                    securityLevel: 0,
+                    data: 'abc123',
+                    dataBytes: '',
+                    dataB64: '',
+                    readOnly: false,
+                    disabledAt: null
+                }
+            ]
+
+            await store.saveIdentityWithKeys(mockNetwork, {
+                identityId: mockIdentityId,
+                publicKeys
+            })
+
+            // If saveKeys IS called, every element must satisfy the Rust
+            // IPrivateKeyEntry contract. Public-key objects do not, so the
+            // correct behaviour is to not call it at all.
+            const calls = vi.mocked(commands.saveKeys).mock.calls
+            for (const call of calls) {
+                const keysArg = call[2] as any[]
+                for (const entry of keysArg) {
+                    expect(
+                        typeof entry.lastUsed,
+                        'saveKeys was called with an entry missing `lastUsed`; ' +
+                            'this is the exact v26.9.14 "Connection failed" bug'
+                    ).toBe('string')
+                    expect(typeof entry.privateKey).toBe('string')
+                    expect(typeof entry.identityId).toBe('string')
+                    expect(typeof entry.keyId).toBe('number')
+                    expect(typeof entry.createdAt).toBe('string')
+                }
+            }
+        })
+
+        it('should forward genuine IPrivateKeyEntry objects to saveKeys', async () => {
+            vi.mocked(commands.saveKeys).mockClear()
+
+            const realKeys = [
+                {
+                    identityId: mockIdentityId,
+                    keyId: 0,
+                    purpose: 0,
+                    securityLevel: 0,
+                    keyType: 'ECDSA_HASH160',
+                    privateKey: 'cVtXfoMMnUCxHFLQwjVY3RpQmUJoZcpuokyHw2BQq41tzKeLXxAP',
+                    publicKey: 'abc123',
+                    createdAt: '2026-09-19T00:00:00Z',
+                    lastUsed: '2026-09-19T00:00:00Z'
+                }
+            ]
+
+            await store.saveIdentityWithKeys(
+                mockNetwork,
+                { identityId: mockIdentityId },
+                realKeys
+            )
+
+            expect(commands.saveKeys).toHaveBeenCalled()
+            const keysArg = vi.mocked(commands.saveKeys).mock.calls[0]?.[2] as any[]
+            expect(keysArg).toHaveLength(1)
+            expect(keysArg[0]?.lastUsed).toBe('2026-09-19T00:00:00Z')
+            expect(keysArg[0]?.privateKey).toBe(
+                'cVtXfoMMnUCxHFLQwjVY3RpQmUJoZcpuokyHw2BQq41tzKeLXxAP'
+            )
         })
     })
 

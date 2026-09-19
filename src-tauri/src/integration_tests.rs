@@ -1699,7 +1699,10 @@ mod live_feed {
         });
         let resp = reqwest::Client::new()
             .post("https://dapi.sansbank.dev/v1/dapi")
-            .header(reqwest::header::USER_AGENT, concat!("EvoNextDesktop/", env!("CARGO_PKG_VERSION")))
+            .header(
+                reqwest::header::USER_AGENT,
+                concat!("EvoNextDesktop/", env!("CARGO_PKG_VERSION")),
+            )
             .header("Origin", "app://evonext")
             .json(&body)
             .send()
@@ -1708,11 +1711,18 @@ mod live_feed {
         let status = resp.status();
         let text = resp.text().await.expect("body");
         eprintln!("[live_raw_text] status = {}", status);
-        eprintln!("[live_raw_text] body[:600] = {}", &text.chars().take(600).collect::<String>());
+        eprintln!(
+            "[live_raw_text] body[:600] = {}",
+            &text.chars().take(600).collect::<String>()
+        );
         // Try DAPIResponse parse
         let parsed: Result<crate::dapi::types::DAPIResponse, _> = serde_json::from_str(&text);
         match &parsed {
-            Ok(r) => eprintln!("[live_raw_text] DAPIResponse parsed OK; success={}, result_is_array={}", r.success, r.result.is_array()),
+            Ok(r) => eprintln!(
+                "[live_raw_text] DAPIResponse parsed OK; success={}, result_is_array={}",
+                r.success,
+                r.result.is_array()
+            ),
             Err(e) => eprintln!("[live_raw_text] DAPIResponse parse FAILED: {}", e),
         }
     }
@@ -1750,7 +1760,10 @@ mod live_feed {
             .expect("live get_documents must succeed");
         assert!(!docs.is_empty(), "no docs returned from live EWR695");
         let doc = &docs[0];
-        let keys: Vec<&str> = doc.as_object().map(|o| o.keys().map(|k| k.as_str()).collect()).unwrap_or_default();
+        let keys: Vec<&str> = doc
+            .as_object()
+            .map(|o| o.keys().map(|k| k.as_str()).collect())
+            .unwrap_or_default();
         eprintln!("[live_raw] doc[0] keys = {:?}", keys);
         // Regression guard: before the DAPIResponse.params type fix,
         // parse_response_text fell through its fallback ladder and
@@ -1781,15 +1794,10 @@ mod live_feed {
     async fn live_fetch_social_feed_testnet_returns_posts() {
         let client = get_dapi_client();
         let cache = ProfileCache::new();
-        let page = fetch_social_feed_inner(
-            client,
-            &cache,
-            Some("testnet".to_string()),
-            Some(5),
-            None,
-        )
-        .await
-        .expect("live fetch_social_feed(testnet, limit=5) must succeed");
+        let page =
+            fetch_social_feed_inner(client, &cache, Some("testnet".to_string()), Some(5), None)
+                .await
+                .expect("live fetch_social_feed(testnet, limit=5) must succeed");
 
         assert!(
             !page.posts.is_empty(),
@@ -1808,15 +1816,10 @@ mod live_feed {
     async fn live_fetch_social_feed_records_both_active_contracts() {
         let client = get_dapi_client();
         let cache = ProfileCache::new();
-        let page = fetch_social_feed_inner(
-            client,
-            &cache,
-            Some("testnet".to_string()),
-            Some(5),
-            None,
-        )
-        .await
-        .expect("live fetch must succeed");
+        let page =
+            fetch_social_feed_inner(client, &cache, Some("testnet".to_string()), Some(5), None)
+                .await
+                .expect("live fetch must succeed");
 
         let evonext = "465jdPpFCZefhb4g2k2FpCcrKpPYhJJskDqbGFsKu6wb";
         let yappr = "EWR695MsqPUuW8EnTbYzD4KybNQD5n7CUDWydJYNg63F";
@@ -1841,16 +1844,14 @@ mod live_feed {
         let client = get_dapi_client();
         let cache = ProfileCache::new();
         // First, fetch the timeline to discover a live owner.
-        let timeline = fetch_social_feed_inner(
-            client,
-            &cache,
-            Some("testnet".to_string()),
-            Some(5),
-            None,
-        )
-        .await
-        .expect("timeline fetch must succeed");
-        assert!(!timeline.posts.is_empty(), "no posts to derive an owner from");
+        let timeline =
+            fetch_social_feed_inner(client, &cache, Some("testnet".to_string()), Some(5), None)
+                .await
+                .expect("timeline fetch must succeed");
+        assert!(
+            !timeline.posts.is_empty(),
+            "no posts to derive an owner from"
+        );
         let owner = timeline.posts[0].owner_id.clone();
         assert!(!owner.is_empty(), "post owner_id must be non-empty");
 

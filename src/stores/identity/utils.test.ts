@@ -8,7 +8,9 @@ import {
     validateIdentityData,
     saveToStore,
     loadFromStore,
-    createSDK
+    createSDK,
+    validatePrivateKeyEntry,
+    validatePrivateKeyEntries
 } from './utils'
 import { invoke } from '@/utils/tauri'
 vi.mock('@evonext/utils', () => ({
@@ -86,5 +88,103 @@ describe('identity store utils', () => {
         expect(data.username).toBe('alice')
         expect(data.balance).toBe('0')
         expect(data.publicKeys).toEqual([])
+    })
+
+    // ================================================================
+    // REGRESSION GUARDS for the v26.9.14 "Connection failed" bug.
+    //
+    // `save_keys` takes `Vec<IPrivateKeyEntry>` where EVERY field is
+    // required (src-tauri/src/models.rs:150-160). These tests pin the
+    // validator that guards every call site.
+    // ================================================================
+
+    describe('validatePrivateKeyEntry', () => {
+        const valid = {
+            identityId: 'ADtgYG2MHikwv4UiZeY8faUsEkH1YDjEnJFhGbuXLfFB',
+            keyId: 0,
+            purpose: 0,
+            securityLevel: 0,
+            keyType: 'ECDSA_HASH160',
+            privateKey: 'cVtXfoMMnUCxHFLQwjVY3RpQmUJoZcpuokyHw2BQq41tzKeLXxAP',
+            publicKey: 'abc123',
+            createdAt: '2026-09-19T00:00:00Z',
+            lastUsed: '2026-09-19T00:00:00Z'
+        }
+
+        it('accepts a complete IPrivateKeyEntry', () => {
+            expect(validatePrivateKeyEntry(valid)).toEqual([])
+        })
+
+        it('rejects an entry missing lastUsed (the exact v26.9.14 bug)', () => {
+            const { lastUsed, ...withoutLastUsed } = valid
+            void lastUsed
+            const problems = validatePrivateKeyEntry(withoutLastUsed)
+            expect(problems.length).toBeGreaterThan(0)
+            expect(problems.join(' ')).toContain('lastUsed')
+        })
+
+        it('rejects an entry missing ANY required field', () => {
+            for (const field of Object.keys(valid)) {
+                const partial: any = { ...valid }
+                delete partial[field]
+                const problems = validatePrivateKeyEntry(partial)
+                expect(
+                    problems.length,
+                    `validator must reject an entry missing \`${field}\``
+                ).toBeGreaterThan(0)
+            }
+        })
+
+        it('rejects a public-key object from transformPublicKeys', () => {
+            const publicKeys = transformPublicKeys([
+                { id: 0, purpose: 0, securityLevel: 0, data: 'abc' }
+            ])
+            expect(publicKeys).toHaveLength(1)
+            const problems = validatePrivateKeyEntry(publicKeys[0])
+            expect(problems.length).toBeGreaterThan(0)
+        })
+
+        it('rejects non-objects', () => {
+            expect(validatePrivateKeyEntry(null).length).toBeGreaterThan(0)
+            expect(validatePrivateKeyEntry(undefined).length).toBeGreaterThan(0)
+            expect(validatePrivateKeyEntry('nope').length).toBeGreaterThan(0)
+            expect(validatePrivateKeyEntry([]).length).toBeGreaterThan(0)
+        })
+
+        it('rejects wrong primitive types', () => {
+            expect(validatePrivateKeyEntry({ ...valid, keyId: '0' }).length).toBeGreaterThan(0)
+            expect(validatePrivateKeyEntry({ ...valid, privateKey: 123 }).length).toBeGreaterThan(0)
+        })
+    })
+
+    describe('validatePrivateKeyEntries', () => {
+        const valid = {
+            identityId: 'id',
+            keyId: 0,
+            purpose: 0,
+            securityLevel: 0,
+            keyType: 'ECDSA_HASH160',
+            privateKey: 'wif',
+            publicKey: 'hash',
+            createdAt: 't0',
+            lastUsed: 't1'
+        }
+
+        it('returns empty map for an all-valid batch', () => {
+            expect(validatePrivateKeyEntries([valid, { ...valid, keyId: 1 }])).toEqual({})
+        })
+
+        it('reports the index of each invalid element', () => {
+            const { lastUsed, ...bad } = valid
+            void lastUsed
+            const result = validatePrivateKeyEntries([valid, bad, { ...valid, keyId: 2 }])
+            expect(Object.keys(result)).toEqual(['1'])
+            expect((result[1] ?? []).join(' ')).toContain('lastUsed')
+        })
+
+        it('rejects a non-array argument', () => {
+            expect(Object.keys(validatePrivateKeyEntries(null)).length).toBeGreaterThan(0)
+            expect(Object.keys(validatePrivateKeyEntries({})).length).toBeGreaterThan(0)
+        })
     })
 })

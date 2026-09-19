@@ -118,8 +118,31 @@ export const connectionActions = {
             ? { ...identityOrPayload, publicKeys: keysOverride }
             : identityOrPayload
         const res = await this.saveIdentity(network, payload)
-        if (res.success && payload.publicKeys) {
-            await this.saveKeys(network, payload.identityId, payload.publicKeys)
+        // Only forward entries that are genuine `IPrivateKeyEntry` objects.
+        //
+        // The Rust command `save_keys` takes `Vec<IPrivateKeyEntry>`
+        // (src-tauri/src/models.rs:150-160) where EVERY field is required,
+        // including `lastUsed`. `payload.publicKeys` is frequently an
+        // `IPublicKey[]` from `transformPublicKeys()`
+        // (src/stores/identity/utils.ts:9-33), which lacks `privateKey`,
+        // `identityId`, `keyId`, `createdAt` and `lastUsed`; forwarding
+        // those made Tauri reject the args and the connect flow aborted
+        // with the generic "Connection failed" message (v26.9.14).
+        // Entries without real private-key material cannot be persisted by
+        // `save_keys` anyway, so they are skipped rather than sent.
+        const keyEntries = Array.isArray(payload.publicKeys)
+            ? payload.publicKeys.filter(
+                  (k: any) =>
+                      k &&
+                      typeof k.privateKey === 'string' &&
+                      typeof k.identityId === 'string' &&
+                      typeof k.keyId === 'number' &&
+                      typeof k.createdAt === 'string' &&
+                      typeof k.lastUsed === 'string'
+              )
+            : []
+        if (res.success && keyEntries.length > 0) {
+            await this.saveKeys(network, payload.identityId, keyEntries)
         }
         return res
     },

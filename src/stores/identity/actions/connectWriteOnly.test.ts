@@ -63,4 +63,51 @@ describe('connectWriteOnlyActions', () => {
         expect(store.saveKeys).toHaveBeenCalled()
         expect(store.saveMnemonicToStore).toHaveBeenCalled()
     })
+
+    // Regression guard for the v26.9.14 "Connection failed" bug:
+    // the Rust `IPrivateKeyEntry` struct requires a non-optional `lastUsed`
+    // field (src-tauri/src/models.rs:150-160 + generated binding
+    // src/bindings.ts:203). Omitting it makes Tauri's argument
+    // deserialization fail, so `saveKeys` rejects and the whole connect
+    // aborts with the generic "Connection failed" message.
+    it('should send every field required by IPrivateKeyEntry (lastUsed NOT omitted)', async () => {
+        const mockIdentity = {
+            identityId: 'id123',
+            identityIdx: 0,
+            publicKeys: [{ id: 0, purpose: 0, securityLevel: 0, data: 'hex' }]
+        }
+        vi.mocked(DAPIService.getIdentityById).mockResolvedValue({
+            success: true,
+            data: mockIdentity as any,
+            searchType: 'none'
+        } as any)
+        vi.mocked(KeyDerivationService.getPrivateKeyWASM).mockResolvedValue({
+            privateKey: { WIF: () => 'mock-wif' },
+            publicKeyBytes: new Uint8Array([1, 2, 3]),
+            sourceType: 'MNEMONIC'
+        } as any)
+
+        await actions.connectWriteOnlyFromDiscovered.call(
+            store,
+            mockIdentity as any,
+            'correct seed phrase'
+        )
+
+        expect(store.saveKeys).toHaveBeenCalled()
+        const callArgs = vi.mocked(store.saveKeys).mock.calls[0]
+        const keysPayload = callArgs[2] as any[]
+        expect(keysPayload.length).toBeGreaterThan(0)
+        const entry = keysPayload[0]
+        // Fields required by the Rust struct / generated binding:
+        expect(entry.identityId).toBe('id123')
+        expect(entry.keyId).toBe(0)
+        expect(typeof entry.purpose).toBe('number')
+        expect(typeof entry.securityLevel).toBe('number')
+        expect(entry.keyType).toBeTruthy()
+        expect(entry.privateKey).toBe('mock-wif')
+        expect(typeof entry.publicKey).toBe('string')
+        expect(typeof entry.createdAt).toBe('string')
+        // The field whose absence caused the failure:
+        expect(typeof entry.lastUsed).toBe('string')
+    })
 })

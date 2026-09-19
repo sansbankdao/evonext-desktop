@@ -177,11 +177,81 @@ describe('Identity Store - Persistence & Normalization', () => {
                 error: null
             } as any)
 
+            // Fixture must satisfy the full IPrivateKeyEntry contract
+            // (src-tauri/src/models.rs:150-160) — every field required.
             const result = await store.saveKeys('testnet', 'identity_123', [
-                { keyId: 0, purpose: 0, securityLevel: 0, keyType: 'ECDSA', privateKey: 'x', publicKey: 'y', createdAt: '', lastUsed: '' }
+                {
+                    identityId: 'identity_123',
+                    keyId: 0,
+                    purpose: 0,
+                    securityLevel: 0,
+                    keyType: 'ECDSA',
+                    privateKey: 'x',
+                    publicKey: 'y',
+                    createdAt: '2026-09-19T00:00:00Z',
+                    lastUsed: '2026-09-19T00:00:00Z'
+                }
             ])
 
             expect(result.success).toBe(true)
+        })
+
+        // REGRESSION GUARD: `saveKeys` must reject malformed entries BEFORE
+        // invoking the Rust command, and surface the real reason instead of
+        // letting Tauri reject the args with a masked message (v26.9.14).
+        it('should reject entries missing required fields without invoking the Rust command', async () => {
+            vi.mocked(commands.saveKeys).mockClear()
+            vi.mocked(commands.saveKeys).mockResolvedValue({
+                success: true,
+                data: true,
+                error: null
+            } as any)
+
+            const result = await store.saveKeys('testnet', 'identity_123', [
+                {
+                    identityId: 'identity_123',
+                    keyId: 0,
+                    purpose: 0,
+                    securityLevel: 0,
+                    keyType: 'ECDSA',
+                    privateKey: 'x',
+                    publicKey: 'y',
+                    createdAt: '2026-09-19T00:00:00Z'
+                    // `lastUsed` deliberately omitted
+                }
+            ])
+
+            expect(result.success).toBe(false)
+            expect(result.error?.message).toContain('lastUsed')
+            expect(commands.saveKeys).not.toHaveBeenCalled()
+        })
+
+        it('should pass through valid entries to the Rust command', async () => {
+            vi.mocked(commands.saveKeys).mockClear()
+            vi.mocked(commands.saveKeys).mockResolvedValue({
+                success: true,
+                data: true,
+                error: null
+            } as any)
+
+            const keys = [
+                {
+                    identityId: 'identity_123',
+                    keyId: 0,
+                    purpose: 0,
+                    securityLevel: 0,
+                    keyType: 'ECDSA',
+                    privateKey: 'x',
+                    publicKey: 'y',
+                    createdAt: '2026-09-19T00:00:00Z',
+                    lastUsed: '2026-09-19T00:00:00Z'
+                }
+            ]
+
+            const result = await store.saveKeys('testnet', 'identity_123', keys)
+
+            expect(result.success).toBe(true)
+            expect(commands.saveKeys).toHaveBeenCalledWith('testnet', 'identity_123', keys)
         })
     })
 

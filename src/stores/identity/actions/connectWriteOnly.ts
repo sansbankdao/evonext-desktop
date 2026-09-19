@@ -105,7 +105,13 @@ export function connectWriteOnlyActions() {
                                 privateKey: res.privateKey.WIF(),
                                 publicKey: pk.data || (res.publicKeyBytes ? binToHex(res.publicKeyBytes) : ''),
                                 derivedFromMnemonic: true,
-                                createdAt: new Date().toISOString()
+                                createdAt: new Date().toISOString(),
+                                // Rust `IPrivateKeyEntry.last_used` is a non-optional
+                                // String (src-tauri/src/models.rs:159; generated binding
+                                // src/bindings.ts:203). Omitting it makes Tauri reject
+                                // the `save_keys` args and the connect flow aborts with
+                                // the generic "Connection failed" message.
+                                lastUsed: new Date().toISOString()
                             })
                             logToHUD('DEBUG', `Successfully derived key ${pk.idx}`)
                         } else {

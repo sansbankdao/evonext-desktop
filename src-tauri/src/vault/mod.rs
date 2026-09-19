@@ -204,6 +204,19 @@ impl Vault {
         key_provider: KeyProvider,
         key_origin: KeyOrigin,
     ) -> Result<Self, String> {
+        // Lower the Stronghold snapshot-encryption scrypt work factor BEFORE
+        // any snapshot load/commit. See the rationale in `init_vault_state`;
+        // this placement guarantees it applies for direct `Vault::open_at`
+        // callers (unit tests) too, not just the app `init_vault_state` path.
+        match iota_stronghold::engine::snapshot::try_set_encrypt_work_factor(12) {
+            Ok(()) => {}
+            Err(e) => {
+                eprintln!(
+                    "[Vault] WARN: could not lower snapshot work factor (using default 19): {:?}",
+                    e
+                );
+            }
+        }
         fs::create_dir_all(vault_dir).map_err(|e| format!("failed to create vault dir: {e}"))?;
         let snapshot_path = SnapshotPath::from_path(vault_dir.join(SNAPSHOT_FILE));
         let stronghold = Stronghold::default();
@@ -298,6 +311,27 @@ impl VaultState {
 /// Initialize + manage the vault at startup. NEVER fails app startup: on
 /// error the state holds `None` and keystore commands surface the error.
 pub fn init_vault_state<R: Runtime>(handle: &AppHandle<R>) {
+    // Lower the Stronghold snapshot-encryption scrypt work factor from the
+    // upstream default (19 => N=2^19, ~512 MiB working set, ~60-160s per
+    // commit on modest hardware) to a value appropriate for our threat
+    // model. Upstream defaults target *human passwords* (the age format
+    // uses scrypt to derive a wrap key from the passphrase); our snapshot
+    // key is a random 256-bit key provisioned by the OS keyring (or a
+    // 0600 fallback file), so the scrypt step only stretches an
+    // already-strong key and the upstream "too small (<15)" warning does
+    // not apply (it assumes a low-entropy password).
+    //
+    // Work factor 12 (N=2^12 = 4096, r=8, p=1, ~32 MiB working set) yields
+    // ~1s commits while keeping meaningful KDF cost on the snapshot file
+    // at rest. The actual `try_set_encrypt_work_factor(12)` call lives in
+    // `Vault::open_at` so it also covers direct unit-test callers that
+    // construct a `Vault` without going through `init_vault_state`.
+    //
+    // NOTE: lowering this does NOT weaken the snapshot key itself (still
+    // 32 random bytes from the keyring); it only reduces the per-commit
+    // scrypt cost of encrypting the snapshot file at rest. See:
+    //   - iota-crypto::keys::age::WorkFactor (keys/age.rs)
+    //   - stronghold_engine::snapshot::try_set_encrypt_work_factor
     let state = match Vault::open(handle) {
         Ok(v) => VaultState(Arc::new(Mutex::new(Some(v)))),
         Err(e) => {

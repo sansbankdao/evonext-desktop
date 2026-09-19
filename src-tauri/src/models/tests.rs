@@ -370,6 +370,171 @@ fn test_iprivate_key_entry_default() {
     assert_eq!(entry.key_id, 0);
 }
 
+// ==================== IPrivateKeyEntry WIRE CONTRACT ====================
+//
+// REGRESSION GUARD for the v26.9.14 "Connection failed" bug.
+//
+// Root cause: `connectWriteOnly.ts` built its `saveKeys` payload without
+// `lastUsed`. `last_used` is a NON-OPTIONAL `String` here, so Tauri's
+// argument deserialization of `Vec<IPrivateKeyEntry>` failed, `invoke`
+// rejected, and the connect flow surfaced the generic fallback string
+// "Connection failed".
+//
+// These tests assert the exact wire contract the frontend MUST satisfy.
+// If anyone ever makes `last_used` optional (or renames it), these fail
+// loudly with the reason, instead of the app failing silently at runtime.
+//
+// Keep in sync with the generated binding `src/bindings.ts`:
+//   export type IPrivateKeyEntry = { identityId: string; keyId: number;
+//     purpose: number; securityLevel: number; keyType: string;
+//     privateKey: string; publicKey: string; createdAt: string;
+//     lastUsed: string }
+
+/// Every field of `IPrivateKeyEntry` is REQUIRED on the wire. Deserializing
+/// a payload that omits ANY of them must fail.
+#[test]
+fn test_iprivate_key_entry_rejects_payload_missing_last_used() {
+    // Exact shape the buggy `connectWriteOnly.ts` sent: no `lastUsed`.
+    let buggy = serde_json::json!({
+        "identityId": "ADtgYG2MHikwv4UiZeY8faUsEkH1YDjEnJFhGbuXLfFB",
+        "keyId": 0,
+        "purpose": 0,
+        "securityLevel": 0,
+        "keyType": "ECDSA_HASH160",
+        "privateKey": "cVtXfoMMnUCxHFLQwjVY3RpQmUJoZcpuokyHw2BQq41tzKeLXxAP",
+        "publicKey": "",
+        "createdAt": "2026-09-19T00:00:00Z"
+    });
+    let parsed: Result<IPrivateKeyEntry, _> = serde_json::from_value(buggy);
+    assert!(
+        parsed.is_err(),
+        "IPrivateKeyEntry MUST reject a payload missing `lastUsed`; \
+         accepting it would silently re-introduce the v26.9.14 \
+         \"Connection failed\" bug"
+    );
+    let msg = parsed.unwrap_err().to_string();
+    assert!(
+        msg.contains("lastUsed"),
+        "error must name the missing field `lastUsed`, got: {msg}"
+    );
+}
+
+/// Same guard for every other required field, so no future edit can quietly
+/// relax one of them and reintroduce the same class of failure.
+#[test]
+fn test_iprivate_key_entry_requires_every_field() {
+    let complete = serde_json::json!({
+        "identityId": "id",
+        "keyId": 1,
+        "purpose": 0,
+        "securityLevel": 0,
+        "keyType": "ECDSA_HASH160",
+        "privateKey": "wif",
+        "publicKey": "hash",
+        "createdAt": "2026-09-19T00:00:00Z",
+        "lastUsed": "2026-09-19T00:00:00Z"
+    });
+    // Sanity: the complete shape parses.
+    serde_json::from_value::<IPrivateKeyEntry>(complete.clone())
+        .expect("complete IPrivateKeyEntry payload must deserialize");
+
+    for field in [
+        "identityId",
+        "keyId",
+        "purpose",
+        "securityLevel",
+        "keyType",
+        "privateKey",
+        "publicKey",
+        "createdAt",
+        "lastUsed",
+    ] {
+        let mut partial = complete.clone();
+        partial.as_object_mut().unwrap().remove(field);
+        let parsed: Result<IPrivateKeyEntry, _> = serde_json::from_value(partial);
+        assert!(
+            parsed.is_err(),
+            "IPrivateKeyEntry must REQUIRE `{field}`; it deserialized without it"
+        );
+    }
+}
+
+/// The serialized field names must be exactly camelCase, matching the
+/// generated TS binding. A rename here breaks the frontend silently.
+#[test]
+fn test_iprivate_key_entry_wire_field_names_are_camel_case() {
+    let entry = IPrivateKeyEntry {
+        identity_id: "id".into(),
+        key_id: 1,
+        purpose: 0,
+        security_level: 0,
+        key_type: "ECDSA_HASH160".into(),
+        private_key: "wif".into(),
+        public_key: "hash".into(),
+        created_at: "t0".into(),
+        last_used: "t1".into(),
+    };
+    let v = serde_json::to_value(&entry).unwrap();
+    let obj = v.as_object().unwrap();
+    for name in [
+        "identityId",
+        "keyId",
+        "purpose",
+        "securityLevel",
+        "keyType",
+        "privateKey",
+        "publicKey",
+        "createdAt",
+        "lastUsed",
+    ] {
+        assert!(
+            obj.contains_key(name),
+            "serialized IPrivateKeyEntry must contain `{name}`; got keys {:?}",
+            obj.keys().collect::<Vec<_>>()
+        );
+    }
+    assert_eq!(obj.len(), 9, "unexpected extra fields on the wire: {obj:?}");
+}
+
+/// A `Vec<IPrivateKeyEntry>` — the actual `keys` argument type of the
+/// `save_keys` command — must reject a batch where ANY element is incomplete.
+#[test]
+fn test_save_keys_argument_batch_rejects_incomplete_element() {
+    let good = serde_json::json!({
+        "identityId": "id",
+        "keyId": 0,
+        "purpose": 0,
+        "securityLevel": 0,
+        "keyType": "ECDSA_HASH160",
+        "privateKey": "wif",
+        "publicKey": "hash",
+        "createdAt": "t0",
+        "lastUsed": "t1"
+    });
+    let bad = serde_json::json!({
+        "identityId": "id",
+        "keyId": 1,
+        "purpose": 0,
+        "securityLevel": 0,
+        "keyType": "ECDSA_HASH160",
+        "privateKey": "wif",
+        "publicKey": "hash",
+        "createdAt": "t0"
+        // `lastUsed` missing
+    });
+
+    let all_good: Result<Vec<IPrivateKeyEntry>, _> =
+        serde_json::from_value(serde_json::json!([good.clone()]));
+    assert!(all_good.is_ok(), "a complete batch must deserialize");
+
+    let mixed: Result<Vec<IPrivateKeyEntry>, _> =
+        serde_json::from_value(serde_json::json!([good, bad]));
+    assert!(
+        mixed.is_err(),
+        "a batch containing an incomplete entry must be rejected wholesale"
+    );
+}
+
 // ==================== IPrivateKeyStore Tests ====================
 
 #[test]
