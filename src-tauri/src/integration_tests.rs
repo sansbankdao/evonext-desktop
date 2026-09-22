@@ -18,7 +18,11 @@ use crate::commands::mnemonic_commands;
 use crate::commands::settings_commands;
 use crate::identity::storage;
 use crate::models::*;
+// NOTE: serial_test is used ONLY to serialise the two tests that share
+// `settings.json` in the real app-data directory. See the dev-dependency
+// comment in Cargo.toml.
 use crate::utils::{PersistentStore, StoreManager};
+use serial_test::serial;
 use tauri::test::MockRuntime;
 
 use crate::commands::crypto_commands;
@@ -196,6 +200,7 @@ fn test_store_manager_complex_nested_data() {
 // =====================================================
 
 #[test]
+#[serial]
 fn test_settings_full_lifecycle() {
     let app = mock_app();
     let handle = app.handle();
@@ -1277,6 +1282,7 @@ fn test_constants_get_evonext_contract_id() {
 // Add to the end of integration_tests.rs, inside the file
 
 #[test]
+#[serial]
 fn test_settings_command_wrapper_generic() {
     let app = mock_app();
     let handle = app.handle();

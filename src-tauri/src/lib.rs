@@ -3,11 +3,13 @@
 use tauri::Manager;
 pub mod commands;
 pub mod constants;
+pub mod crypto;
 pub mod dapi;
 pub mod history;
 pub mod identity;
 pub mod menu;
 pub mod models;
+pub mod realtime;
 pub mod social;
 pub mod utils;
 pub mod vault;
@@ -58,6 +60,7 @@ pub fn create_app() -> tauri::App {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             commands::asset_commands::discover_assets,
             commands::asset_commands::fetch_identity_tokens,
@@ -114,12 +117,32 @@ pub fn create_app() -> tauri::App {
             commands::history_commands::history_clear_network,
             commands::social_commands::fetch_social_feed,
             commands::social_commands::fetch_social_feed_prefetched,
+            realtime::register::register_realtime_device,
+            realtime::commands::connect_realtime,
+            realtime::commands::disconnect_realtime,
         ])
         .setup(|app| {
+            // NOTE: MUST be first. rustls 0.23 panics on the first
+            //       `ClientConfig::builder()` when two provider crates are
+            //       compiled in, which is the case here (reqwest pulls
+            //       aws-lc-rs, tauri-plugin-updater pulls ring). Installing
+            //       the provider before any subsystem starts means no TLS
+            //       client — the updater, the API, or the realtime socket —
+            //       can observe the ambiguous state.
+            crypto::tls::install_tls_provider();
+
             let handle = app.handle();
             history::init_history_state(handle);
             vault::init_vault_state(handle);
             commands::social_commands::init_social_state(handle);
+
+            // NOTE: The realtime handle holder must be managed BEFORE any
+            //       connect command runs, or `app.state::<RealtimeState>()`
+            //       panics. Registering it here (rather than in an on_ready
+            //       hook) keeps it inside the same managed-state initialisation
+            //       block as the other stateful subsystems.
+            app.manage(realtime::state::RealtimeState::default());
+
             menu::setup_menus(handle)?;
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_menu(app.menu().unwrap());

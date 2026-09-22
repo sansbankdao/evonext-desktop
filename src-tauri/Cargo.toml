@@ -37,11 +37,45 @@ tokio = { version = "1.47", features = ["full", "test-util"] }
 tower = { version = "0.5.3", features = ["limit", "load-shed", "util"] }
 tracing = "0.1"
 
+# Realtime (WebSocket) client for the `wss://evonext.app/ws` notification hub.
+# Gated behind the `realtime` feature so a from-source build can omit the
+# whole socket stack — see [features] below.
+#
+# `rustls-tls-webpki-roots` is used instead of `native-tls` so TLS does not
+# depend on the host's OpenSSL. That matters for the reproducible
+# cross-platform release pipeline (Linux builds run inside evobuild:22.04 and
+# Windows is cross-compiled via cargo-xwin), where a system-CA build would
+# differ per machine.
+tokio-tungstenite = { version = "0.30.0", features = ["rustls-tls-webpki-roots"], optional = true }
+
+# Direct rustls dependency so the process-wide CryptoProvider can be installed
+# explicitly at startup.
+#
+# WHY THIS IS REQUIRED, NOT OPTIONAL
+# ----------------------------------
+# rustls 0.23 removed the implicit provider default: if more than one provider
+# crate is compiled in it cannot pick one and `ClientConfig::builder()` PANICS
+# with "Could not automatically determine the process-level CryptoProvider".
+# Both providers are present here — reqwest pulls `aws-lc-rs` (via
+# default-tls -> hyper-rustls) and tauri-plugin-updater pulls `ring`. The
+# panic fires on the FIRST WebSocket handshake, which is exactly the path the
+# realtime client takes, so without this the socket would panic in production
+# rather than merely fail.
+#
+# `aws-lc-rs` is selected because reqwest already compiles it, so choosing it
+# adds no new native build step to the release pipeline. The version tracks
+# tokio-tungstenite's own rustls.
+rustls = { version = "0.23.36", default-features = false, features = ["std", "aws-lc-rs"] }
+
 # Crypto
 sha2 = "0.10"
 rand = "0.9.2"
 ripemd = "0.1"
 bitcoin = "0.32.8"
+# secp256k1 ECDSA for Dash Signed Message (src/crypto/signed_message.rs).
+# Required as a real dependency, not dev-only: push registration signs with
+# k256 server-side-verified ECDSA. sha2 above provides the double-SHA256.
+k256 = { version = "0.13", features = ["ecdsa"] }
 
 # Utilities
 base64 = "0.22.1"
@@ -64,16 +98,28 @@ iota_stronghold = "=2.1.0"
 iota-crypto = { version = "0.23", features = ["secp256k1"] }
 keyring = "4.2"
 zeroize = "1"
+tauri-plugin-notification = { version = "2.4.0" }
 
 [dev-dependencies]
 ctor = "0.2"
 mockito = "1.7.2"
 tempfile = "3"
-k256 = { version = "0.13", features = ["ecdsa"] }
 sha2 = "0.10"
+# NOTE: The integration tests build a mock Tauri app whose plugin store
+# resolves to the SAME real app-data directory for every test. Two tests
+# (`test_settings_full_lifecycle` and `test_settings_command_wrapper_generic`)
+# both read and write `settings.json` there, so under the default parallel
+# test runner they interleave and one sees the other's data. `serial_test`
+# lets those two opt out of parallelism without changing their logic.
+serial_test = "4.0.1"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
+
+# Realtime WebSocket notifications (wss://evonext.app/ws). OFF by default:
+# a plain `cargo build` compiles no socket code, needs no network stack, and
+# produces the same binary as before. Enable with `--features realtime`.
+realtime = ["dep:tokio-tungstenite"]
 
 [[bin]]
 name = "evonext"

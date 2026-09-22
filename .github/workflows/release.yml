@@ -79,8 +79,14 @@ jobs:
       - name: Generate Rust Types (The Bridge)
         run: pnpm type:gen
 
+      # NOTE: `--features realtime` is REQUIRED. The realtime WebSocket
+      #       client is behind the off-by-default Cargo feature `realtime`
+      #       (src-tauri/Cargo.toml). Without this flag the socket code is
+      #       compiled out and `connect_realtime` returns "this build was
+      #       compiled without the `realtime` feature" at runtime, so the
+      #       shipped app receives no notifications.
       - name: Build Tauri Application
-        run: pnpm tauri build --verbose
+        run: pnpm tauri build --features realtime --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -140,8 +146,9 @@ jobs:
             target/aarch64-apple-darwin/release/export_types
           cd ..
 
+      # NOTE: `--features realtime` is REQUIRED; see the Linux build step.
       - name: Build Tauri Application
-        run: pnpm tauri build --target universal-apple-darwin --verbose
+        run: pnpm tauri build --features realtime --target universal-apple-darwin --verbose
         env:
           NODE_OPTIONS: --max-old-space-size=4096
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -182,8 +189,9 @@ jobs:
         run: pnpm type:gen
         shell: bash
 
+      # NOTE: `--features realtime` is REQUIRED; see the Linux build step.
       - name: Build Application
-        run: pnpm tauri build --verbose
+        run: pnpm tauri build --features realtime --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
