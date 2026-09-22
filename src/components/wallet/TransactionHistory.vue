@@ -98,7 +98,12 @@ import { useWalletStore } from '@/stores/wallet'
 import { fetchTokenTransitions } from '@/stores/wallet/actions/api'
 import { transformTokenTransitions } from '@/stores/wallet/actions/transforms'
 import { useIdentityStore } from '@/stores/identity'
-import { DUSD_CONTRACT_ID_TESTNET, SANS_CONTRACT_ID_TESTNET, DUSD_DECIMAL_PLACES, SANS_DECIMAL_PLACES } from '@/constants'
+import {
+    getDUSDContractId,
+    getSANSContractId,
+    DUSD_DECIMAL_PLACES,
+    SANS_DECIMAL_PLACES,
+} from '@/constants'
 import type { ITransaction } from '@/types'
 
 const props = defineProps<{
@@ -177,20 +182,50 @@ const getStatusClasses = (status: string) => {
 }
 
 // --- 3. Explicitly Fetch Token History (DUSD/SANS) ---
+/**
+ * Unwrap a token-transition response.
+ *
+ * `fetchTokenTransitions` resolves to a plain ARRAY (it returns
+ * `data.resultSet`). Reading `.data` off an array yields `undefined`, which
+ * silently discarded every token transaction and made the history panel show
+ * "No recent activity" despite a non-zero balance. Both shapes are accepted so
+ * a future envelope response does not reintroduce the bug.
+ */
+const unwrapTransitions = (response: unknown): any[] => {
+    if (Array.isArray(response)) return response
+    const data = (response as any)?.data
+    return Array.isArray(data) ? data : []
+}
+
 const fetchMissingTokens = async () => {
     if (!Identity.identityId) return
     isFetchingTokens.value = true
 
     try {
-        // Fetch DUSD - Unwrap the ActionResponse
-        const dusdResponse = await fetchTokenTransitions(DUSD_CONTRACT_ID_TESTNET, 20, Wallet.network)
-        const dusdRaw = (dusdResponse as any)?.data || []
-        const dusdTxs = transformTokenTransitions(dusdRaw, Identity.identityId, 'DUSD', DUSD_DECIMAL_PLACES)
+        // NOTE: Contract ids MUST be resolved for the ACTIVE network. These
+        //       were previously hardcoded to the TESTNET constants while
+        //       passing `Wallet.network`, so a mainnet user queried testnet
+        //       contracts and always saw an empty history.
+        const dusdContractId = getDUSDContractId(Wallet.network)
+        const sansContractId = getSANSContractId(Wallet.network)
 
-        // Fetch SANS - Unwrap the ActionResponse
-        const sansResponse = await fetchTokenTransitions(SANS_CONTRACT_ID_TESTNET, 20, Wallet.network)
-        const sansRaw = (sansResponse as any)?.data || []
-        const sansTxs = transformTokenTransitions(sansRaw, Identity.identityId, 'SANS', SANS_DECIMAL_PLACES)
+        // Fetch DUSD
+        const dusdResponse = await fetchTokenTransitions(
+            dusdContractId,
+            20,
+            Wallet.network,
+        )
+        const dusdRaw = unwrapTransitions(dusdResponse)
+        const dusdTxs = transformTokenTransitions(dusdRaw, Identity.identityId, 'DUSD', DUSD_DECIMAL_PLACES, Wallet.network)
+
+        // Fetch SANS
+        const sansResponse = await fetchTokenTransitions(
+            sansContractId,
+            20,
+            Wallet.network,
+        )
+        const sansRaw = unwrapTransitions(sansResponse)
+        const sansTxs = transformTokenTransitions(sansRaw, Identity.identityId, 'SANS', SANS_DECIMAL_PLACES, Wallet.network)
 
         localTokenTransactions.value = [...dusdTxs, ...sansTxs]
     } catch (e) {

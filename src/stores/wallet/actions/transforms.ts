@@ -248,7 +248,8 @@ export function transformTokenTransitions(
     transitions: any[], // Type 'any' used to handle raw API variation
     identityId: string,
     tokenTicker: string,
-    decimalPlaces: number
+    decimalPlaces: number,
+    network: 'mainnet' | 'testnet' = 'testnet'
 ): ITransaction[] {
     const result: ITransaction[] = []
 
@@ -310,8 +311,16 @@ export function transformTokenTransitions(
             // Parse Date
             const dateVal = new Date(rawTimestamp).getTime()
 
+            // NOTE: `id` becomes a route parameter (`/wallet/transaction/:id`),
+            //       so it must never be empty. Some transitions omit the hash;
+            //       falling back to a deterministic composite keeps the row
+            //       linkable and unique instead of producing an unroutable
+            //       link and duplicate Vue keys.
+            const id = rawHash
+                || `${tokenTicker}-${rawOwner}-${rawRecipient}-${rawTimestamp}-${transitionAmount}`
+
             result.push({
-                id: rawHash,
+                id,
                 type,
                 title,
                 subtitle,
@@ -326,7 +335,7 @@ export function transformTokenTransitions(
                 assetType: 'TOKEN',
                 assetSymbol: tokenTicker,
                 direction: isOwner ? 'OUTGOING' : 'INCOMING',
-                network: 'testnet',
+                network,
             })
         }
     }
