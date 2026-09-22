@@ -12,6 +12,8 @@ import { useRouter } from 'vue-router'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { useUpdater } from '@/composables/useUpdater'
 import { useNotification } from '@/composables/useNotification'
+import { startRealtime, stopRealtime } from '@/composables/useRealtime'
+import { useRealtimeLifecycle } from '@/composables/useRealtimeLifecycle'
 
 import { useStorageStore } from '@/stores/storage'
 import { useSystemStore } from '@/stores/system'
@@ -28,6 +30,16 @@ const Wallet = useWalletStore()
 const Settings = useSettingsStore()
 const updater = useUpdater()
 const notifier = useNotification()
+
+/*
+ * Realtime socket lifetime.
+ *
+ * NOTE: Instantiated here at setup scope, not inside onMounted. The composable
+ *       registers an onUnmounted hook, and hooks can only be registered while
+ *       a component instance is active — calling it from inside an async
+ *       onMounted callback would log a Vue warning and leak the socket.
+ */
+const realtime = useRealtimeLifecycle()
 
 const rootClass = computed(() => {
     if (Settings.state.theme === 'light') {
@@ -114,12 +126,30 @@ onMounted(async () => {
 
     console.log('App initialization complete. isAuthenticated:', Identity.isAuthenticated, 'DASH price:', System.currentDashPrice)
 
+    /* Start listening for realtime notifications. */
+    // NOTE: Two steps, and the order matters. `startRealtime` attaches the
+    //       OS-notification listeners first, so an event arriving immediately
+    //       after the socket opens cannot be missed. `realtime.start()` then
+    //       tracks the identity and opens the socket for it — including the
+    //       common case where an identity is already connected from storage
+    //       before this runs, which is why the watcher is `immediate`.
+    await startRealtime()
+    realtime.start()
+
     manageUpdater()
 })
 
 // Clean up the listener when the component is unmounted
 onUnmounted(() => {
     System.stopPriceUpdates()
+
+    // NOTE: `realtime.stop()` closes the socket and detaches its watcher.
+    //       The lifecycle composable also registers its own onUnmounted hook,
+    //       so this is belt-and-braces: whichever runs first wins, and the
+    //       second is a no-op because `connectedFor` is already cleared.
+    void realtime.stop()
+
+    stopRealtime()
 
     if (unlisten) {
         unlisten()
