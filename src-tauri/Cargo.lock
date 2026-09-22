@@ -1762,7 +1762,7 @@ dependencies = [
 
 [[package]]
 name = "evonext"
-version = "26.9.16"
+version = "26.9.21"
 dependencies = [
  "base64 0.22.1",
  "bitcoin",
