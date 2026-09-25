@@ -37,7 +37,9 @@
     "notification:allow-request-permission",
     "notification:allow-notify",
 
-    "deep-link:default"
+    "deep-link:default",
+
+    "sentry:default"
   ],
   "platforms": ["linux", "macOS", "windows"],
   "contexts": [

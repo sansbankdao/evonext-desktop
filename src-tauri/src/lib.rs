@@ -11,6 +11,7 @@ pub mod identity;
 pub mod menu;
 pub mod models;
 pub mod realtime;
+pub mod sentry;
 pub mod social;
 pub mod utils;
 pub mod vault;
@@ -54,7 +55,14 @@ pub fn run() {
 }
 
 pub fn create_app() -> tauri::App {
-    tauri::Builder::default()
+    // NOTE: The Sentry client and its guard are created BEFORE the builder.
+    //       The guard owns the client: dropping it flushes and shuts the
+    //       client down, so it must outlive the app. It is parked in a
+    //       `static` inside `sentry::init`, which is why this returns a
+    //       borrow rather than a local.
+    let sentry_client = sentry::init();
+
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -62,7 +70,19 @@ pub fn create_app() -> tauri::App {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_deep_link::init());
+
+    // NOTE: Attached only when a DSN was compiled in. Without one there is no
+    //       client, so the `plugin:sentry|envelope` and
+    //       `plugin:sentry|breadcrumb` IPC commands are never registered —
+    //       correct, since the injected browser SDK would have nowhere to send.
+    if sentry_client.is_some() {
+        builder = builder.plugin(
+            sentry::plugin().expect("a DSN implies an initialised Sentry client"),
+        );
+    }
+
+    let app = builder
         .invoke_handler(tauri::generate_handler![
             commands::asset_commands::discover_assets,
             commands::asset_commands::fetch_identity_tokens,
@@ -166,5 +186,7 @@ pub fn create_app() -> tauri::App {
             menu::handle_menu_event(app, event);
         })
         .build(tauri::generate_context!())
-        .expect("error while building tauri application")
+        .expect("error while building tauri application");
+
+    app
 }

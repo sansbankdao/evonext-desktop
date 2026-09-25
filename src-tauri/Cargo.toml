@@ -97,9 +97,47 @@ k256 = { version = "0.13", features = ["ecdsa"] }
 base64 = "0.22.1"
 hex = "0.4.3"
 
-# Debugging
-sentry = "0.46.1"
-tauri-plugin-sentry = "0.5"
+# Error reporting (see src/sentry/mod.rs for the full rationale).
+#
+# WHY THE VERSIONS ARE COUPLED. `tauri-plugin-sentry` 0.5 pins `sentry ^0.42`,
+# so the previously-declared `sentry = "0.46.1"` did not merely sit in two
+# copies — it failed to compile:
+#
+#   error[E0308]: mismatched types
+#     expected `&Client`, found `&ClientInitGuard`
+#
+# `init()` returned a 0.46 `ClientInitGuard` while the plugin wanted a `&Client`
+# from the 0.42 crate. Both sides move together: plugin 0.6 for `sentry 0.49`.
+# That also collapses the duplicate crates (0.42 + 0.46) to a single 0.49.
+#
+# WHY default-features = false + rustls. `sentry`'s default set includes
+# `transport`, and `transport = ["reqwest", "native-tls"]`. That pulled:
+#
+#   openssl-sys <- native-tls <- hyper-tls <- reqwest 0.12 <- sentry 0.46.2
+#
+# which violates the rustls-only rule stated below for the release pipeline
+# (Linux builds in evobuild:22.04, Windows via cargo-xwin must not depend on a
+# per-machine OpenSSL). Building with `rustls` instead REMOVES that chain; the
+# features below re-add the default set minus `transport`/`debug-images`,
+# which minidump relies on.
+#
+# WHY minidump IS OFF. The plugin's default feature is `minidump`, and it is
+# disabled here on purpose:
+#   1. It does not resolve: sentry-rust-minidump 0.17 -> minidumper 0.10 ->
+#      minidump-writer 0.12 -> `error-graph`, which is not on crates.io.
+#   2. It is unsafe for this app: the vault documents the keystore as an
+#      in-memory plain buffer, so the mnemonic is resident while running, and
+#      what a minidump captures by default is UNVERIFIED. AGENTS.md forbids
+#      exporting sensitive material; see src/sentry/mod.rs before enabling.
+sentry = { version = "0.49", default-features = false, features = [
+    "backtrace",
+    "contexts",
+    "panic",
+    "release-health",
+    "rustls",
+    "reqwest",
+] }
+tauri-plugin-sentry = { version = "0.6", default-features = false }
 
 # Anti-Regression Suite (Specta v2 Unified)
 specta = { version = "2.0.0-rc.22", features = ["derive", "serde", "serde_json", "chrono"] }

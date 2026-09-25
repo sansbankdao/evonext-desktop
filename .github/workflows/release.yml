@@ -85,10 +85,16 @@ jobs:
       #       compiled out and `connect_realtime` returns "this build was
       #       compiled without the `realtime` feature" at runtime, so the
       #       shipped app receives no notifications.
+      # NOTE: `SENTRY_DSN` is read at COMPILE time by `option_env!` in
+      #       src-tauri/src/sentry/mod.rs, so it MUST be present on this
+      #       step — setting it at runtime has no effect. Without it the
+      #       shipped app has error reporting DISABLED (`sentry::init`
+      #       returns None and the plugin is never attached).
       - name: Build Tauri Application
         run: pnpm tauri build --features realtime --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
@@ -147,10 +153,13 @@ jobs:
           cd ..
 
       # NOTE: `--features realtime` is REQUIRED; see the Linux build step.
+      # NOTE: `SENTRY_DSN` must be present at COMPILE time; see the Linux
+      #       build step for why.
       - name: Build Tauri Application
         run: pnpm tauri build --features realtime --target universal-apple-darwin --verbose
         env:
           NODE_OPTIONS: --max-old-space-size=4096
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
@@ -190,10 +199,13 @@ jobs:
         shell: bash
 
       # NOTE: `--features realtime` is REQUIRED; see the Linux build step.
+      # NOTE: `SENTRY_DSN` must be present at COMPILE time; see the Linux
+      #       build step for why.
       - name: Build Application
         run: pnpm tauri build --features realtime --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
