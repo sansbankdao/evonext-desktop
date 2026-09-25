@@ -3,6 +3,7 @@
 export { useBalances } from './useBalances'
 export { useConnect } from './useConnect'
 export { useDebounce } from './useDebounce'
+export { parseDashUri, useDeepLink } from './useDeepLink'
 export { useDocuments } from './useDocuments'
 export { useIdentity } from './useIdentity'
 export { useIdentityDiscovery } from './useIdentityDiscovery'

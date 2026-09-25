@@ -5,6 +5,7 @@ pub mod commands;
 pub mod constants;
 pub mod crypto;
 pub mod dapi;
+pub mod deeplink;
 pub mod history;
 pub mod identity;
 pub mod menu;
@@ -61,6 +62,7 @@ pub fn create_app() -> tauri::App {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_deep_link::init())
         .invoke_handler(tauri::generate_handler![
             commands::asset_commands::discover_assets,
             commands::asset_commands::fetch_identity_tokens,
@@ -147,6 +149,17 @@ pub fn create_app() -> tauri::App {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_menu(app.menu().unwrap());
             }
+
+            // NOTE: Deep-link scheme registration. Runs here because `.setup()`
+            //       is invoked after Tauri has initialised the plugins
+            //       (`App::build` -> `manager.initialize_plugins` -> `App::setup`),
+            //       so the deep-link plugin's managed state already exists.
+            //       Registration is what writes the `%u` argument into the
+            //       user-level .desktop file — the bundled one has
+            //       `Exec=evonext` with no field code and would drop the URL.
+            //       Failures are non-fatal and logged inside the helper.
+            deeplink::register_schemes(handle);
+
             Ok(())
         })
         .on_menu_event(|app, event| {

@@ -366,7 +366,7 @@
 <script setup lang="ts">
 /* Import modules. */
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useWallet } from '@/composables/useWallet'
 import { useIdentity } from '@/composables/useIdentity'
 // import { useKeyManagement } from '@/composables/useKeyManagement'
@@ -382,6 +382,7 @@ import { useSystemStore } from '@/stores/system'
 import { useNetwork } from '@/composables/useNetwork'
 
 const router = useRouter()
+const route = useRoute()
 
 // Initialize composables
 const wallet = useWallet()
@@ -562,6 +563,35 @@ const setMaxAmount = () => {
 }
 
 onMounted(async () => {
+    /* 0. Prefill from a `dash:` deep link, if this mount came from one.
+     *
+     * NOTE: `watch` is deliberately not used. The deep link only ever arrives
+     *       by navigating to this screen, so a one-shot read on mount covers
+     *       every case and cannot clobber edits the user is mid-way through
+     *       making if the route object is later replaced.
+     *
+     * NOTE: Query parameters arrive as strings; `amount` is validated here
+     *       rather than trusted. The parser in useDeepLink already rejects
+     *       non-positive/non-numeric values, but this screen can also be
+     *       reached by a hand-edited or externally-generated URL.
+     */
+    const linkedRecipient = route.query.recipient
+    if (typeof linkedRecipient === 'string' && linkedRecipient.length > 0) {
+        recipient.value = linkedRecipient
+        console.log(`🔗 Deep link recipient: ${linkedRecipient}`)
+    }
+
+    const linkedAmount = route.query.amount
+    if (typeof linkedAmount === 'string' && linkedAmount.length > 0) {
+        const parsed = Number(linkedAmount)
+        if (Number.isFinite(parsed) && parsed > 0) {
+            amount.value = parsed
+            console.log(`🔗 Deep link amount: ${parsed}`)
+        } else {
+            console.warn(`🔗 Ignoring invalid deep link amount: ${linkedAmount}`)
+        }
+    }
+
     /* 1. Ensure Network Settings are Loaded */
     const currentNetwork = await ensure()
     console.log(`🌐 Network initialized: ${currentNetwork}`)

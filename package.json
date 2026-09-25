@@ -29,6 +29,7 @@
     "@evonext/utils": "25.11.25",
     "@heroicons/vue": "2.2.0",
     "@scure/base": "2.0.0",
+    "@tauri-apps/plugin-deep-link": "2.4.5",
     "@tauri-apps/plugin-notification": "^2.4.0",
     "@tauri-apps/plugin-opener": "2.5.0",
     "@tauri-apps/plugin-process": "2.3.0",

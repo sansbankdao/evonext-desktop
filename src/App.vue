@@ -14,6 +14,7 @@ import { useUpdater } from '@/composables/useUpdater'
 import { useNotification } from '@/composables/useNotification'
 import { startRealtime, stopRealtime } from '@/composables/useRealtime'
 import { useRealtimeLifecycle } from '@/composables/useRealtimeLifecycle'
+import { useDeepLink } from '@/composables/useDeepLink'
 
 import { useStorageStore } from '@/stores/storage'
 import { useSystemStore } from '@/stores/system'
@@ -40,6 +41,15 @@ const notifier = useNotification()
  *       onMounted callback would log a Vue warning and leak the socket.
  */
 const realtime = useRealtimeLifecycle()
+
+/*
+ * `dash:` deep-link handling.
+ *
+ * NOTE: Instantiated at setup scope for the same reason as `realtime` — this
+ *       composable registers no lifecycle hooks itself, and `App.vue` owns
+ *       when listening starts and stops.
+ */
+const deepLink = useDeepLink()
 
 const rootClass = computed(() => {
     if (Settings.state.theme === 'light') {
@@ -136,6 +146,20 @@ onMounted(async () => {
     await startRealtime()
     realtime.start()
 
+    /* Start handling `dash:` deep links.
+     * NOTE: On Linux/Windows a deep link starts a NEW process with the URL as
+     *       its only argument, so this is also what reads the launch URL —
+     *       there is no long-lived listener for that path.
+     */
+    // NOTE: `router.isReady()` is awaited before pushing. This is the ROOT
+    //       component, so the initial navigation may not have resolved yet;
+    //       a push issued before readiness can be dropped, which would make a
+    //       cold-start `dash:` click silently do nothing.
+    await deepLink.start(async (to) => {
+        await router.isReady()
+        return router.push(to)
+    })
+
     manageUpdater()
 })
 
@@ -150,6 +174,8 @@ onUnmounted(() => {
     void realtime.stop()
 
     stopRealtime()
+
+    deepLink.stop()
 
     if (unlisten) {
         unlisten()

@@ -19,6 +19,22 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 tauri = { version = "2.4.0", features = ["tray-icon", "image-png", "test"] }
 tauri-plugin-dialog = { version = "2.6.0" }
+
+# Deep links (`dash:` payment URIs). The app already EMITS `dash:` URIs as
+# QR codes (src/screens/identity/Register.vue, src/screens/Bootstrap.vue) but
+# could not previously RECEIVE them: clicking one in a browser or another app
+# did nothing.
+#
+# PINNED TO 2.4.5 ON PURPOSE. 2.4.9+ declares `@tauri-apps/api: ^2.11.0` and
+# `tauri = "2.10"`; this repo pins @tauri-apps/api 2.10.1 and tauri 2.4.0.
+# 2.4.7/2.4.8 still require tauri 2.10 (only the npm side is relaxed).
+#
+# NOTE: there is deliberately NO tauri-plugin-single-instance. Multiple
+#       instances are supported by design, so on Linux/Windows the OS starts
+#       a NEW process with the URL as its only CLI argument and that process
+#       reads it via `get_current()`. Nothing is forwarded to an existing
+#       window.
+tauri-plugin-deep-link = { version = "=2.4.5" }
 tauri-plugin-fs = { version = "2.4.5" }
 tauri-plugin-opener = { version = "2.5.3" }
 tauri-plugin-shell = { version = "2.3.4" }
