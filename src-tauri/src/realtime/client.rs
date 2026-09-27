@@ -134,13 +134,17 @@ pub async fn run<R: Runtime>(app: AppHandle<R>, identity_id: String, wif: String
                 emit_status(&app, "connected");
 
                 /* Serve the socket until it drops. */
-                let served = serve_socket(&app, stream).await;
+                // NOTE: `serve_socket` returns `()`, so its result carries no
+                //       information to act on. Awaiting it IS the work; the
+                //       outcome is intentionally ignored (clippy flagged the
+                //       old `let _ = served;` as a unit binding with no
+                //       effect). The await is what keeps the socket alive.
+                serve_socket(&app, stream).await;
 
                 // NOTE: Falling through reconnects regardless of whether the
                 //       socket ended cleanly — the hub evicting the object
                 //       looks like a clean close, and the client must
                 //       reconnect either way.
-                let _ = served;
             }
             Err(_e) => {
                 // NOTE: Deliberately not logging the URL — it carries the

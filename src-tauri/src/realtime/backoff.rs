@@ -54,7 +54,7 @@ impl Backoff {
     pub fn delay_for(&self, attempt: u32) -> Duration {
         // Saturating: a long outage must not overflow into a tiny delay.
         let factor = self.factor.max(1) as u64;
-        let exponent = attempt.min(32) as u32;
+        let exponent = attempt.min(32);
 
         let base_ms = self.initial.as_millis() as u64;
         let max_ms = self.max.as_millis() as u64;

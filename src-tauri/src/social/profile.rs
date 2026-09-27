@@ -293,7 +293,7 @@ async fn resolve_author_uncached<B: DocumentBackend + Sync>(
     let username = dpns_name
         .as_ref()
         .map(|n| format!("@{n}"))
-        .unwrap_or_else(|| format!("@{}", &owner_id[..owner_id.len().min(8)].to_lowercase()));
+        .unwrap_or_else(|| format!("@{}", owner_id[..owner_id.len().min(8)].to_lowercase()));
 
     let avatar = resolve_author_avatar(
         yappr.as_ref().and_then(|d| field_str(d, "avatar")),
@@ -317,7 +317,7 @@ pub fn anonymous_author(owner_id: &str) -> AuthorProfile {
     AuthorProfile {
         identity_id: owner_id.to_string(),
         display_name: format!("User {}", &owner_id[..owner_id.len().min(6)]),
-        username: format!("@{}", &owner_id[..owner_id.len().min(8)].to_lowercase()),
+        username: format!("@{}", owner_id[..owner_id.len().min(8)].to_lowercase()),
         verified: false,
         bio: String::new(),
         avatar: resolve_author_avatar(None, None, owner_id),

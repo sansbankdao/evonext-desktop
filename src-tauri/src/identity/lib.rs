@@ -24,11 +24,14 @@ pub fn normalize_public_key(default_id: u32, raw: &JsonValue) -> Option<IIdentit
     // 1. Extract 'data' (hex) or decode from 'dataB64'
     let data = if let Some(d) = obj.get("data").and_then(|v| v.as_str()) {
         d.to_string()
-    } else if let Some(b64) = obj.get("dataB64").and_then(|v| v.as_str()) {
+    } else {
+        // NOTE: clippy (question_mark) prefers `?` over an explicit
+        //       `return None` here. Behaviour is identical: a missing or
+        //       non-string `dataB64` still yields `None` from the whole
+        //       function, and a malformed base64 still yields `None`.
+        let b64 = obj.get("dataB64").and_then(|v| v.as_str())?;
         let bytes = general_purpose::STANDARD.decode(b64).ok()?;
         hex::encode(bytes)
-    } else {
-        return None;
     };
     // 2. Normalize Purpose (Strictly u32)
     let purpose = match obj.get("purpose") {

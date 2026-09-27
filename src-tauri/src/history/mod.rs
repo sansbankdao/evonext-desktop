@@ -151,7 +151,7 @@ pub fn init_history_state<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
             Err(first) => {
                 eprintln!("HISTORY INIT: {}, renaming aside and retrying", first);
                 let aside = path.with_extension("db.corrupt");
-                match std::fs::rename(&path, &aside).and_then(|_| Ok(())) {
+                match std::fs::rename(&path, &aside).map(|_| ()) {
                     Ok(()) => match HistoryStore::open(&path) {
                         Ok(store) => HistoryState::new(store),
                         Err(second) => {
@@ -232,7 +232,14 @@ impl HistoryStore {
                 .map_err(|e| format!("HISTORY MIGRATION v1 FAILED: {}", e))?;
         }
 
-        debug_assert!(SCHEMA_VERSION == 1);
+        // NOTE: `SCHEMA_VERSION == 1` compares two constants, so clippy
+        //       (assertions_on_constants) requires the check to be a const
+        //       block rather than a runtime `debug_assert!`. A const assert
+        //       is strictly stronger: it was a debug-build tripwire, and is
+        //       now enforced at COMPILE time in every profile, at zero
+        //       runtime cost. Logic is unchanged — the migration above still
+        //       sets user_version = 1.
+        const { assert!(SCHEMA_VERSION == 1) };
         Ok(())
     }
 
