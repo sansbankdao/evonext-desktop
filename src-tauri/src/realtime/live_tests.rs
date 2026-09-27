@@ -171,8 +171,9 @@ async fn live_registration_creates_a_push_devices_row() {
         .unwrap_or(0);
 
     /* Build the payload with the PRODUCTION builder. */
-    let body = super::register::build_registration_payload(&identity, &device_token, &wif, timestamp)
-        .expect("registration payload must be buildable from a valid testnet WIF");
+    let body =
+        super::register::build_registration_payload(&identity, &device_token, &wif, timestamp)
+            .expect("registration payload must be buildable from a valid testnet WIF");
 
     println!("registering deviceToken={device_token} for identity={identity}");
 

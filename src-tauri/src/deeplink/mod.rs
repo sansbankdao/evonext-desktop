@@ -70,15 +70,12 @@ pub fn register_schemes<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
 /// On Windows/Linux a `dash:` click spawns a new process whose only argument
 /// is the URL, so this must be checked on every startup rather than only in a
 /// listener. Returns the first URL whose scheme matches [`DASH_SCHEME`].
-pub fn current_dash_url<R: tauri::Runtime>(
-    app: &tauri::AppHandle<R>,
-) -> Option<tauri::Url> {
+pub fn current_dash_url<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Option<tauri::Url> {
     use tauri_plugin_deep_link::DeepLinkExt;
 
     let urls = app.deep_link().get_current().ok().flatten()?;
 
-    urls.into_iter()
-        .find(|url| url.scheme() == DASH_SCHEME)
+    urls.into_iter().find(|url| url.scheme() == DASH_SCHEME)
 }
 
 #[cfg(test)]

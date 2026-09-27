@@ -269,4 +269,113 @@ mod tests {
             Some("https://key@host/1")
         );
     }
+
+    #[test]
+    fn a_real_panic_produces_a_captured_sentry_event() {
+        // WHY THIS LIVES IN `--lib` AND NOT `tests/`
+        // ----------------------------------------
+        // `check.sh` (the gate AGENTS.md mandates) runs ONLY
+        // `cargo test --lib`, so a `tests/*.rs` binary would never execute
+        // here and would protect nothing. This has to be a unit test.
+        //
+        // IS IT SAFE IN THE SHARED BINARY? The two globals involved are the
+        // panic hook (`sentry_panic::PanicIntegration::setup`, installed via
+        // a process-wide `Once`) and the current hub.
+        //
+        //   * The hub is `thread_local!` (hub_impl.rs:15) and
+        //     `Hub::run` returns a `SwitchGuard` that is deliberately `!Send`,
+        //     so the test hub is bound to THIS test's thread only. Cargo runs
+        //     each test on its own thread, and the panic hook fires on the
+        //     panicking thread, so the hook sees this test's client and not a
+        //     neighbour's.
+        //   * The hook warns on DOUBLE faults but only installs once; that is
+        //     fine because this is the only test in the binary that panics on
+        //     purpose — there are NO `#[should_panic]` tests in `src/`
+        //     (verified: `grep -rn should_panic src/` is empty), and no other
+        //     module binds a client.
+        //
+        // WHAT THIS PROVES. `sentry::init` does not use `sentry::test::*`
+        // (that feature is a dev-dependency, absent from release builds), so
+        // the production path itself is exercised by the DSN probe above.
+        // What is proven HERE, and nowhere else, is the LINK production
+        // depends on: that `apply_defaults` installs `PanicIntegration` so a
+        // real panic yields an event carrying an exception. Drop the `panic`
+        // feature from Cargo.toml and this test fails while every other test
+        // still passes — which is the whole point, since reporting crashes is
+        // the primary job of an error reporter.
+
+        // `with_captured_events_options` binds a fresh hub with a
+        // `TestTransport` for the closure, so nothing is sent over the
+        // network and SENTRY_DSN is not needed at build time.
+        //
+        // NOTE: `sentry::apply_defaults` MUST be called explicitly. The test
+        //       helper does NOT call it — it goes straight through
+        //       `ClientOptions -> Client::with_options`, which runs
+        //       `integration.setup()` only over the integrations ALREADY in
+        //       the options. `ClientOptions` starts with an empty integration
+        //       list, so omitting this installs no panic hook and the test
+        //       captures zero events. Production `sentry::init` calls
+        //       `apply_defaults` itself, so this mirrors the real path.
+        let options = sentry::apply_defaults(
+            sentry::ClientOptions::new().environment("panic-integration-test"),
+        );
+        let events = sentry::test::with_captured_events_options(
+            || {
+                // `catch_unwind` so the panic does not abort this test
+                // process; the hook still runs before unwinding proceeds.
+                let _ = std::panic::catch_unwind(|| {
+                    panic!("EVONEXT-PANIC-INTEGRATION-TEST: deliberate panic");
+                });
+            },
+            options,
+        );
+
+        assert_eq!(
+            events.len(),
+            1,
+            "a panic must produce exactly one captured event"
+        );
+
+        let event = &events[0];
+
+        // An event with no exception is a bare message: it would still be an
+        // event but would carry no payload or stacktrace, so this assertion
+        // distinguishes a real PanicIntegration from a placeholder emitter.
+        assert_eq!(
+            event.exception.values.len(),
+            1,
+            "the event must carry exactly one exception"
+        );
+
+        let exception = &event.exception.values[0];
+
+        // `PanicIntegration::event_from_panic_info` sets `ty` to this exact
+        // string, proving the event came from the panic integration.
+        assert_eq!(
+            exception.ty, "panic",
+            "exception type must be 'panic' to prove PanicIntegration produced it"
+        );
+
+        // The payload must survive, or a crash report would say only that a
+        // panic happened with no way to identify it.
+        let value = exception
+            .value
+            .as_deref()
+            .expect("the panic message must not be lost");
+        assert!(
+            value.contains("EVONEXT-PANIC-INTEGRATION-TEST"),
+            "the panic payload must be preserved in the event, got: {value}"
+        );
+
+        // NOTE: `sentry_panic` sets `Level::Fatal`, NOT `Level::Error`
+        //       (sentry-panic-0.49.3/src/lib.rs:131). The first version of
+        //       this test asserted `Error` from assumption and failed;
+        //       `Fatal` is the verified value. Level drives alerting, so it
+        //       must match the integration rather than a guess.
+        assert_eq!(
+            event.level,
+            sentry::Level::Fatal,
+            "sentry_panic reports panics as Fatal; a change here changes alerting"
+        );
+    }
 }

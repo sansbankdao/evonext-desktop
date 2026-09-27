@@ -77,9 +77,8 @@ pub fn create_app() -> tauri::App {
     //       `plugin:sentry|breadcrumb` IPC commands are never registered —
     //       correct, since the injected browser SDK would have nowhere to send.
     if sentry_client.is_some() {
-        builder = builder.plugin(
-            sentry::plugin().expect("a DSN implies an initialised Sentry client"),
-        );
+        builder =
+            builder.plugin(sentry::plugin().expect("a DSN implies an initialised Sentry client"));
     }
 
     let app = builder
