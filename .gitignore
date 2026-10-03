@@ -34,3 +34,6 @@ src/types/rust_generated.ts
 # Coverage reports
 coverage/
 *.lcov
+
+# cargo-llvm-cov LCOV output produced by ci-mirror.sh
+src-tauri/lcov-rust.info
