@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import { invoke } from '@/utils/tauri'
 import { ErrorBoundary } from '@/utils/errors'
 import { log } from '@/utils/env'
+import { nativeDapiRequest } from '@/services/nativeDapi'
 
 // API Constants
 const DASH_QT_API = 'https://dapi.sansbank.dev/v1/dapi'
@@ -59,11 +60,19 @@ export const useBootstrap = () => {
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body
       })
-      if (!response.ok) {
-        if (response.status === 404) return { success: false, result: null }
-        throw new Error(`DAPI Fetch Error: ${response.status}`)
+      try {
+        if (!response.ok) {
+          if (response.status === 404) return { success: false, result: null }
+          throw new Error(`DAPI Fetch Error: ${response.status}`)
+        }
+        return await response.json()
+      } catch (err) {
+        // Tier-2: the Sansbank DAPI proxy is down (5xx / unreachable) —
+        // query the native DAPI network directly via the bundled SDK so
+        // bootstrap keeps working through proxy outages.
+        log('warn', `[Bootstrap] DAPI proxy failed for ${method}, falling back to native DAPI`, err)
+        return nativeDapiRequest(method, params, currentNetwork)
       }
-      return await response.json()
     }, 'QUERY_DAPI_FAILED')
   }
   /**

@@ -2,10 +2,32 @@
 
 import { invoke } from '@/utils/tauri'
 import { useNetwork } from '@/composables/useNetwork'
+import { nativeDapiRequest } from '@/services/nativeDapi'
 import { normalizeDocument, ensureBase58, getContractId } from './utils'
 import { YAPPR_CONTRACT_ID_TESTNET } from '@/constants'
 import type { IPostDocument, IPost, PostsFetchResult } from '@/types/posts'
 const MAX_DPNS_NAMES_LIMIT = 100
+
+/**
+ * Tier-1 is the Rust DAPI client behind `get_posts` (the Sansbank DAPI
+ * proxy). If that transport is unreachable, re-run the SAME document
+ * query against the native DAPI network directly (tier-2, bundled SDK)
+ * so reads keep working through proxy outages.
+ */
+async function invokeGetPostsWithFallback(payload: Record<string, unknown>): Promise<any[]> {
+    try {
+        return await invoke<any[]>('get_posts', payload)
+    } catch (err) {
+        const res = await nativeDapiRequest('get_documents', [
+            payload.dataContractId,
+            payload.documentType,
+            payload.whereClause ?? null,
+            payload.orderBy ?? null,
+            typeof payload.limit === 'number' ? payload.limit : null
+        ], String(payload.network))
+        return res.success ? (res.result as any[]) : []
+    }
+}
 export async function fetchPostsFromTauri(
     network: string,
     options: { ownerId?: string; orderBy?: 'desc' | 'asc'; limit?: number; contractId: string }
@@ -13,7 +35,7 @@ export async function fetchPostsFromTauri(
     const { ownerId, orderBy, limit, contractId } = options
     const where: any[] = [["$createdAt", ">", 0]]
     if (ownerId) where.push(["$ownerId", "==", ensureBase58(ownerId)])
-    const documents = await invoke<any[]>('get_posts', {
+    const documents = await invokeGetPostsWithFallback({
         dataContractId: contractId,
         documentType: 'post',
         whereClause: JSON.stringify(where),
@@ -40,7 +62,7 @@ export async function fetchPostsFromDAPI(options?: { ownerId?: string; orderBy?:
 }
 export async function fetchDocumentsById(network: string, contractId: string, ids: string[]): Promise<IPostDocument[]> {
     if (!ids.length) return []
-    const documents = await invoke<any[]>('get_posts', {
+    const documents = await invokeGetPostsWithFallback({
         dataContractId: contractId,
         documentType: 'post',
         whereClause: JSON.stringify([["$id", "in", ids.map(ensureBase58)]]),
@@ -53,7 +75,7 @@ export async function fetchUserProfile(ownerId: string, networkOverride?: string
     const { network } = useNetwork()
     const targetNetwork = networkOverride || network.value
     const contractId = getContractId('dashpay', targetNetwork)
-    const profiles = await invoke<any[]>('get_posts', {
+    const profiles = await invokeGetPostsWithFallback({
         dataContractId: contractId,
         documentType: 'profile',
         whereClause: [["$ownerId", "==", ensureBase58(ownerId)]],
@@ -66,7 +88,7 @@ export async function fetchDPNSName(ownerId: string, networkOverride?: string): 
     const { network } = useNetwork()
     const targetNetwork = networkOverride || network.value
     const contractId = getContractId('dpns', targetNetwork)
-    const records = await invoke<any[]>('get_posts', {
+    const records = await invokeGetPostsWithFallback({
         dataContractId: contractId,
         documentType: 'domain',
         whereClause: [["records.identity", "==", ensureBase58(ownerId)]],

@@ -5,33 +5,6 @@
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
 
-            <!-- VERBOSE DIAGNOSTIC CONSOLE -->
-            <section v-if="showDebug" class="mb-6 bg-slate-900 border-2 border-cyan-500/50 rounded-3xl p-6 font-mono text-xs text-cyan-400 overflow-hidden shadow-2xl">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-sm font-bold uppercase tracking-tighter text-white">Diagnostic Console</h3>
-                    <div class="flex gap-2">
-                        <button @click="debugLogs = []" class="text-[10px] bg-white/10 px-2 py-1 rounded border border-white/20 text-white">Clear Logs</button>
-                        <button @click="showDebug = false" class="text-[10px] bg-red-500/20 px-2 py-1 rounded border border-red-500/50 text-red-500">Close</button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-1 bg-black/20 p-3 rounded-xl border border-white/5">
-                        <p class="text-[10px] text-slate-500 uppercase mb-2 font-bold">Store States</p>
-                        <p>Identity: <span class="text-white">{{ identityStore.identityId || 'Missing' }}</span></p>
-                        <p>Platform Auth: <span :class="isAuthenticated ? 'text-emerald-400' : 'text-red-400'">{{ isAuthenticated }}</span></p>
-                        <p>Store Loading: <span class="text-white">{{ posts.isLoading.value }}</span></p>
-                        <p>Store Error: <span class="text-red-400">{{ posts.error.value || 'None' }}</span></p>
-                    </div>
-                    <div class="bg-black/40 rounded-xl p-4 max-h-48 overflow-y-auto border border-white/5">
-                        <p class="text-[10px] text-slate-500 uppercase mb-2 font-bold">Execution Steps</p>
-                        <div v-for="(log, i) in debugLogs" :key="i" class="mb-1 border-l border-cyan-500/30 pl-2">
-                            <span class="text-cyan-700">[{{ log.time }}]</span> {{ log.msg }}
-                        </div>
-                    </div>
-                </div>
-            </section>
-
             <!-- Top Section: Balance & Assets -->
             <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 <div class="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
@@ -152,6 +125,33 @@
                     <PendingMessages />
                     <ContactRequests />
                     <TrendingTopics />
+                </div>
+            </section>
+
+            <!-- VERBOSE DIAGNOSTIC CONSOLE -->
+            <section v-if="showDebug" class="mt-6 bg-slate-900 border-2 border-cyan-500/50 rounded-3xl p-6 font-mono text-xs text-cyan-400 overflow-hidden shadow-2xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-sm font-bold uppercase tracking-tighter text-white">Diagnostic Console</h3>
+                    <div class="flex gap-2">
+                        <button @click="debugLogs = []" class="text-[10px] bg-white/10 px-2 py-1 rounded border border-white/20 text-white">Clear Logs</button>
+                        <button @click="showDebug = false" class="text-[10px] bg-red-500/20 px-2 py-1 rounded border border-red-500/50 text-red-500">Close</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-1 bg-black/20 p-3 rounded-xl border border-white/5">
+                        <p class="text-[10px] text-slate-500 uppercase mb-2 font-bold">Store States</p>
+                        <p>Identity: <span class="text-white">{{ identityStore.identityId || 'Missing' }}</span></p>
+                        <p>Platform Auth: <span :class="isAuthenticated ? 'text-emerald-400' : 'text-red-400'">{{ isAuthenticated }}</span></p>
+                        <p>Store Loading: <span class="text-white">{{ posts.isLoading.value }}</span></p>
+                        <p>Store Error: <span class="text-red-400">{{ posts.error.value || 'None' }}</span></p>
+                    </div>
+                    <div class="bg-black/40 rounded-xl p-4 max-h-48 overflow-y-auto border border-white/5">
+                        <p class="text-[10px] text-slate-500 uppercase mb-2 font-bold">Execution Steps</p>
+                        <div v-for="(log, i) in debugLogs" :key="i" class="mb-1 border-l border-cyan-500/30 pl-2">
+                            <span class="text-cyan-700">[{{ log.time }}]</span> {{ log.msg }}
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>
