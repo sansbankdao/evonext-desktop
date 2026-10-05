@@ -144,6 +144,55 @@ async fn timeline_query_uses_language_timeline_index_owner_scope_owner_and_time(
 }
 
 // ---------------------------------------------------------------------------
+// Total transport failure — the trigger for the frontend SDK fallback.
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn all_contracts_failing_returns_error_not_blank_page() {
+    // When EVERY timeline query fails at the transport level, fetch_feed
+    // must surface the error (not Ok(empty)) so the frontend can fall back
+    // to the direct-SDK transport. A silent Ok(empty) reads as "No posts
+    // yet" while the proxy is down — the v26.10.1 field bug.
+    let backend = MockBackend::new();
+    backend.push(
+        EVONEXT_CONTRACT_ID_TESTNET,
+        "post",
+        Err("proxy unreachable".into()),
+    );
+    backend.push(
+        YAPPR_POSTS_CONTRACT_TESTNET,
+        "post",
+        Err("proxy unreachable".into()),
+    );
+
+    let cache = ProfileCache::new();
+    let result = fetch_feed(&backend, &cache, Network::Testnet, 20, None).await;
+    let err = result.expect_err("all-failed fetch must return Err, not Ok(empty)");
+    assert!(err.contains("proxy unreachable"), "error carries cause: {err}");
+}
+
+#[tokio::test]
+async fn all_failed_but_one_contract_ok_still_degrades_gracefully() {
+    // Mixed failure: one transport error, one success (even with zero
+    // documents) → still Ok. Only a TOTAL failure escalates.
+    let backend = MockBackend::new();
+    backend.push(
+        EVONEXT_CONTRACT_ID_TESTNET,
+        "post",
+        Err("proxy unreachable".into()),
+    );
+    backend.ok(YAPPR_POSTS_CONTRACT_TESTNET, "post", Vec::new());
+
+    let cache = ProfileCache::new();
+    let page = fetch_feed(&backend, &cache, Network::Testnet, 20, None)
+        .await
+        .unwrap();
+    assert!(page.posts.is_empty());
+    assert_eq!(page.fetched_counts[EVONEXT_CONTRACT_ID_TESTNET], 0);
+    assert_eq!(page.fetched_counts[YAPPR_POSTS_CONTRACT_TESTNET], 0);
+}
+
+// ---------------------------------------------------------------------------
 // Degradation
 // ---------------------------------------------------------------------------
 

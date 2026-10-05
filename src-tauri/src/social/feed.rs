@@ -146,6 +146,13 @@ pub async fn fetch_feed<B: DocumentBackend + Sync>(
     //    written against the stale AyWK6nD… generation — do not restore it).
     let mut fetched_counts = HashMap::new();
     let mut raw: Vec<(Value, &str)> = Vec::new();
+    // Transport errors from the timeline fetch, in contract order. When
+    // EVERY contract fails the feed must surface the error (not an empty
+    // page): the frontend's direct-SDK fallback only engages on a command
+    // error, and a silent Ok(empty) reads as "No posts yet" while the
+    // proxy is down. Per-contract tolerance still stands for mixed
+    // failures — one dead contract must not blank the whole feed.
+    let mut transport_errors: Vec<String> = Vec::new();
     for contract in &contracts {
         let (where_clause, order_by) = match owner_id {
             Some(id) => (
@@ -179,8 +186,14 @@ pub async fn fetch_feed<B: DocumentBackend + Sync>(
             Err(e) => {
                 eprintln!("[social] fetch failed for contract {contract}: {e}");
                 fetched_counts.insert(contract.to_string(), 0);
+                transport_errors.push(e);
             }
         }
+    }
+
+    // Total transport failure → surface it (frontend fallback trigger).
+    if raw.is_empty() && transport_errors.len() == contracts.len() {
+        return Err(transport_errors.join("; "));
     }
 
     // 2) Merge: dedupe by $id, newest first, truncate.
