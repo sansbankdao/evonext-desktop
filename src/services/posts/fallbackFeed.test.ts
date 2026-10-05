@@ -139,6 +139,38 @@ describe('fallbackFeed', () => {
         expect(ids).toEqual(expect.arrayContaining(['child1', 'parent1']))
     })
 
+    it('author-tier queries carry a matching orderBy (DAPI range rule)', async () => {
+        // Live-verified 2026-10-05: DAPI rejects `in` queries without an
+        // orderBy covering each range element —
+        // "query must have an orderBy field for each range element" —
+        // which silently dropped every author tier from the bundle and
+        // degraded all authors to "User <first6>".
+        vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            if (cmd === 'fetch_social_feed') throw new Error('down')
+            return makePage() as any
+        })
+        const query = mockSdk((args) => {
+            if (args.documentTypeName === 'post') return new Map([['p1', postDoc('p1', 'u1')]])
+            return new Map()
+        })
+
+        await fetchSocialFeedViaSdk('testnet', 20)
+
+        const profileQuery = query.mock.calls.find(([a]) =>
+            a.dataContractId === 'profile_test' && a.documentTypeName === 'profile')?.[0]
+        expect(profileQuery.where).toEqual([["$ownerId", "in", ["u1"]]])
+        expect(profileQuery.orderBy).toEqual([["$ownerId", "asc"]])
+
+        const dpnsQuery = query.mock.calls.find(([a]) => a.documentTypeName === 'domain')?.[0]
+        expect(dpnsQuery.where).toEqual([["records.identity", "in", ["u1"]]])
+        expect(dpnsQuery.orderBy).toEqual([["records.identity", "asc"]])
+
+        const dashpayQuery = query.mock.calls.find(([a]) =>
+            a.dataContractId === 'dashpay_test' && a.documentTypeName === 'profile')?.[0]
+        expect(dashpayQuery.where).toEqual([["$ownerId", "in", ["u1"]]])
+        expect(dashpayQuery.orderBy).toEqual([["$ownerId", "asc"]])
+    })
+
     it('tolerates author-tier failures (bundle omits the tier; resolver degrades)', async () => {
         vi.mocked(invoke).mockImplementation(async (cmd: string) => {
             if (cmd === 'fetch_social_feed') throw new Error('down')

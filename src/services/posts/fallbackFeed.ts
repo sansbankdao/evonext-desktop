@@ -102,9 +102,12 @@ async function prefetchBundle(
             : DASHPAY_CONTRACT_ID_TESTNET
         if (profileContract) {
             try {
+                // The orderBy MUST match the `in` field: DAPI rejects
+                // range queries without a covering orderBy (live-verified
+                // 2026-10-05). The Rust resolver re-filters with `==`.
                 documents[`${profileContract}:profile`] = await queryRaw(
                     sdk, profileContract, 'profile',
-                    [["$ownerId", "in", ownerIds]], null, PROFILE_FETCH_LIMIT
+                    [["$ownerId", "in", ownerIds]], [["$ownerId", "asc"]], PROFILE_FETCH_LIMIT
                 )
             } catch { /* tier unavailable → resolver degrades */ }
         }
@@ -112,7 +115,7 @@ async function prefetchBundle(
             try {
                 documents[`${dpnsContract}:domain`] = await queryRaw(
                     sdk, dpnsContract, 'domain',
-                    [["records.identity", "in", ownerIds]], null, PROFILE_FETCH_LIMIT
+                    [["records.identity", "in", ownerIds]], [["records.identity", "asc"]], PROFILE_FETCH_LIMIT
                 )
             } catch { /* tier unavailable → resolver degrades */ }
         }
@@ -120,7 +123,7 @@ async function prefetchBundle(
             try {
                 documents[`${dashpayContract}:profile`] = await queryRaw(
                     sdk, dashpayContract, 'profile',
-                    [["$ownerId", "in", ownerIds]], [["$updatedAt", "desc"]], PROFILE_FETCH_LIMIT
+                    [["$ownerId", "in", ownerIds]], [["$ownerId", "asc"]], PROFILE_FETCH_LIMIT
                 )
             } catch { /* tier unavailable → resolver degrades */ }
         }
