@@ -3,24 +3,25 @@
     <main class="min-h-screen bg-slate-50 dark:bg-slate-950 pb-12">
         <Header title="Maīson Ξvolution" />
 
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3">
 
-            <!-- Top Section: Balance & Assets -->
-            <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                <div class="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-                    <div class="flex flex-col md:flex-row justify-between gap-6 relative z-10">
+            <!-- Top Section: Balance (full width) -->
+            <section class="mb-6">
+                <div class="bg-gradient-to-br from-white via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+                    <div class="absolute bottom-0 left-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none"></div>
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
                         <div class="flex-1">
                             <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Total Balance</p>
                             <div class="flex items-baseline gap-2">
                                 <p class="text-4xl font-black text-slate-900 dark:text-white">{{ formatCurrency(totalBalance.usd) }}</p>
                             </div>
-                            <p class="text-lg font-medium text-slate-500 dark:text-slate-400">
+                            <p class="text-lg font-medium text-slate-500 dark:text-slate-400 mt-1">
                                 {{ totalBalance.dash.toLocaleString(undefined, { maximumFractionDigits: 6 }) }} DASH
                             </p>
-                            <p class="text-xs font-mono text-slate-400 mt-1">{{ totalBalance.credits.toLocaleString() }} credits</p>
                         </div>
 
-                        <div class="flex-1 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-800 md:pl-6 pt-4 md:pt-0">
+                        <div class="md:border-l border-slate-100 dark:border-slate-800 md:pl-6">
                             <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">My Tokens</p>
                             <div class="flex flex-wrap gap-3">
                                 <div v-for="asset in walletStore.assets.slice(0, 4)" :key="asset.symbol" class="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 min-w-[100px]">
@@ -37,9 +38,13 @@
                         </div>
                     </div>
                 </div>
-                <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-6 flex flex-col items-center justify-center text-center text-white border border-slate-800 transition-transform">
-                    <h3 class="text-xl font-bold mb-1">Collectibles</h3>
-                    <button class="mt-4 w-full py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold transition-all">Coming Soon</button>
+            </section>
+
+            <!-- Collectibles Row -->
+            <section class="mb-8">
+                <div class="bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-white border border-slate-800 relative overflow-hidden">
+                    <h3 class="text-xl font-bold">Collectibles</h3>
+                    <button class="sm:w-auto w-full py-2 px-6 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold transition-all">Coming Soon</button>
                 </div>
             </section>
 
