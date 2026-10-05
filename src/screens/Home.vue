@@ -22,17 +22,35 @@
                         </div>
 
                         <div class="md:border-l border-slate-100 dark:border-slate-800 md:pl-6">
-                            <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">My Tokens</p>
-                            <div class="flex flex-wrap gap-3">
-                                <div v-for="asset in walletStore.assets.slice(0, 4)" :key="asset.symbol" class="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 min-w-[100px]">
-                                    <div class="w-8 h-8 rounded-full bg-white dark:bg-slate-700 flex items-center justify-center">
-                                        <img v-if="getIconSrc(asset.symbol)" :src="getIconSrc(asset.symbol) as string" class="w-5 h-5" />
-                                        <span v-else class="text-sm font-bold uppercase">{{ asset.symbol[0] }}</span>
+                            <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">My Assets</p>
+                            <div class="flex flex-col gap-2">
+                                <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                                    <div class="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-slate-500 dark:text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.282M12 3a8.997 8.997 0 00-7.843 4.282m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.218m0 0A11.995 11.995 0 001.5 12c0 1.605.42 3.113 1.157 4.418" /></svg>
                                     </div>
-                                    <div class="min-w-0">
-                                        <p class="text-sm font-black text-slate-900 dark:text-white truncate">{{ getNormalizedBalance(asset) }}</p>
-                                        <p class="text-xs font-bold text-slate-500 uppercase">{{ asset.symbol }}</p>
+                                    <p class="text-sm font-bold text-slate-700 dark:text-slate-200 flex-1">Core L1 Balance</p>
+                                    <p class="text-sm font-mono text-slate-500 dark:text-slate-400">—</p>
+                                </div>
+                                <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                                    <div class="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-slate-500 dark:text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>
                                     </div>
+                                    <p class="text-sm font-bold text-slate-700 dark:text-slate-200 flex-1">Platform Address Balance</p>
+                                    <p class="text-sm font-mono text-slate-500 dark:text-slate-400">—</p>
+                                </div>
+                                <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                                    <div class="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-slate-500 dark:text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" /></svg>
+                                    </div>
+                                    <p class="text-sm font-bold text-slate-700 dark:text-slate-200 flex-1">Platform Shielded Balance</p>
+                                    <p class="text-sm font-mono text-slate-500 dark:text-slate-400">—</p>
+                                </div>
+                                <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                                    <div class="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-slate-500 dark:text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Zm6-10.125a1.875 1.875 0 1 1-3.75 0 1.875 1.875 0 0 1 3.75 0Zm1.294 6.336a6.721 6.721 0 0 1-3.17.789 6.721 6.721 0 0 1-3.168-.789 3.376 3.376 0 0 1 6.338 0Z" /></svg>
+                                    </div>
+                                    <p class="text-sm font-bold text-slate-700 dark:text-slate-200 flex-1">Identity ID Balance</p>
+                                    <p class="text-sm font-mono font-bold text-slate-900 dark:text-white">{{ identityBalanceDisplay }}</p>
                                 </div>
                             </div>
                         </div>
@@ -40,8 +58,25 @@
                 </div>
             </section>
 
-            <!-- Collectibles Row -->
-            <section class="mb-8">
+            <!-- Token Assets & Collectibles Row -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <p class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">Token Assets</p>
+                    <div v-if="walletStore.assets.length" class="flex flex-wrap gap-3">
+                        <div v-for="asset in walletStore.assets" :key="asset.symbol" class="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 min-w-[100px]">
+                            <div class="w-8 h-8 rounded-full bg-white dark:bg-slate-700 flex items-center justify-center">
+                                <img v-if="getIconSrc(asset.symbol)" :src="getIconSrc(asset.symbol) as string" class="w-5 h-5" />
+                                <span v-else class="text-sm font-bold uppercase">{{ asset.symbol[0] }}</span>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-sm font-black text-slate-900 dark:text-white truncate">{{ getNormalizedBalance(asset) }}</p>
+                                <p class="text-xs font-bold text-slate-500 uppercase">{{ asset.symbol }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <p v-else class="text-sm text-slate-400 font-medium">No token assets yet.</p>
+                </div>
+
                 <div class="bg-gradient-to-r from-slate-900 to-slate-800 rounded-3xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-white border border-slate-800 relative overflow-hidden">
                     <h3 class="text-xl font-bold">Collectibles</h3>
                     <button class="sm:w-auto w-full py-2 px-6 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold transition-all">Coming Soon</button>
@@ -305,6 +340,12 @@ const totalBalance = computed(() => {
         return { dash, usd: dash * (systemStore.currentDashPrice || 0), credits: raw }
     }
     return { dash: 0, usd: 0, credits: 0 }
+})
+
+// Identity ID balance row — same conversion as totalBalance (credits -> DASH)
+const identityBalanceDisplay = computed(() => {
+    if (!isAuthenticated.value || !identityStore.balance) return '—'
+    return totalBalance.value.dash.toLocaleString(undefined, { maximumFractionDigits: 6 }) + ' DASH'
 })
 
 // --- Lifecycle ---
