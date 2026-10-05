@@ -1,6 +1,6 @@
 <!-- src/components/wallet/WalletHeader.vue -->
  <template>
-    <header class="w-full max-w-5xl flex items-center justify-between px-6 py-6">
+    <header class="w-full max-w-5xl flex items-center justify-between px-6 pt-3 pb-5">
         <div class="flex items-center gap-3">
             <div class="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

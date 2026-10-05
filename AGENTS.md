@@ -2,8 +2,11 @@
 
 This file provides guidance to AI coding agents (Claude Code, Cursor, Copilot, Devin, etc.) when working with code in this repository. Use this as your primary reference for project structure, commands, flows, and conventions to minimize errors and hallucinations.
 
-## Project Overview
+## Critical Environment Notes
 
+- **Paths are case-sensitive:** the repository lives at `/Workspace/sansbank/evonext-desktop` — capital **W** in `/Workspace`. A lowercase `/workspace` does NOT exist: the file tools will fail (or attempt to create a new directory) if it is used. ALWAYS type `/Workspace` in file tool paths.
+
+## Project Overview
 EvoNext Desktop is a cross-platform (Windows/macOS/Linux) Tauri v2 desktop application for a decentralized social platform. It is built on the Dash Platform, offering features such as censorship-resistant posting, decentralized identities (DPNS), integrated wallet functionality (assets/transactions), staking for premium access (Sansnote/SANS), app discovery, and secure key management. All cryptographic operations are handled client-side, communicating with the Dash network via DAPI gRPC without any central servers.
 
 **Tech Stack:**
