@@ -48,11 +48,6 @@
                     <p class="font-bold text-slate-900 dark:text-slate-100 truncate">
                         {{ post.author.displayName }}
                     </p>
-
-                    <!-- YAPPR Badge -->
-                    <span v-if="isYAPPR" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 ring-1 ring-inset ring-purple-500/20">
-                        YAPPR
-                    </span>
                 </div>
 
                 <div class="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
@@ -207,7 +202,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { IPost } from '@/types/posts'
-import { YAPPR_CONTRACT_ID_TESTNET } from '@/constants'
 import ContentRenderer from '@/components/posts/ContentRenderer.vue'
 
 interface Props {
@@ -225,10 +219,6 @@ const emit = defineEmits<{
 }>()
 
 const isSensitive = computed(() => props.post.isSensitive)
-
-const isYAPPR = computed(() => {
-    return props.post.contractId === YAPPR_CONTRACT_ID_TESTNET
-})
 
 const timeAgo = computed(() => {
     const now = new Date()

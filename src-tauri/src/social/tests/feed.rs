@@ -1,15 +1,16 @@
 // src-tauri/src/social/tests/feed.rs
 
-//! Feed orchestration tests — merge, dedupe-by-$id, truncation, graceful
-//! degradation, timeline-query shape, parent embedding.
+//! Feed orchestration tests — merge, dedupe-by-$id, truncation, timeline
+//! query shape, parent embedding. Single-contract policy: the Yappr
+//! contract is the only posts contract (the EvoNext posts contract is
+//! retired as of 2026-10-05).
 
 use super::{post_doc, prime_empty_profile, MockBackend};
 use crate::dapi::types::Network;
 use crate::social::feed::fetch_feed;
 use crate::social::profile::ProfileCache;
 use crate::social::{
-    active_post_contracts, ContentPartType as T, EVONEXT_CONTRACT_ID_MAINNET,
-    EVONEXT_CONTRACT_ID_TESTNET, YAPPR_POSTS_CONTRACT_TESTNET,
+    active_post_contracts, ContentPartType as T, YAPPR_POSTS_CONTRACT_TESTNET,
 };
 
 const OWNER_A: &str = "Aa1Aa1Aa1Aa1Aa1Aa1Aa1Aa1Aa1Aa1Aa1Aa1Aa1Aa1";
@@ -20,14 +21,11 @@ const OWNER_B: &str = "Bb2Bb2Bb2Bb2Bb2Bb2Bb2Bb2Bb2Bb2Bb2Bb2Bb2Bb2";
 // ---------------------------------------------------------------------------
 
 #[test]
-fn active_contracts_testnet_merges_both_mainnet_evonext_only() {
+fn active_contracts_testnet_yappr_only_mainnet_none() {
     let testnet = active_post_contracts(Network::Testnet);
-    assert_eq!(
-        testnet,
-        vec![EVONEXT_CONTRACT_ID_TESTNET, YAPPR_POSTS_CONTRACT_TESTNET]
-    );
-    let mainnet = active_post_contracts(Network::Mainnet);
-    assert_eq!(mainnet, vec![EVONEXT_CONTRACT_ID_MAINNET]);
+    assert_eq!(testnet, vec![YAPPR_POSTS_CONTRACT_TESTNET]);
+    // Mainnet has no deployed posts contract.
+    assert!(active_post_contracts(Network::Mainnet).is_empty());
 }
 
 // ---------------------------------------------------------------------------
@@ -35,22 +33,16 @@ fn active_contracts_testnet_merges_both_mainnet_evonext_only() {
 // ---------------------------------------------------------------------------
 
 #[tokio::test]
-async fn merges_contracts_newest_first_and_truncates() {
+async fn merges_newest_first_and_truncates() {
     let backend = MockBackend::new();
-    backend.ok(
-        EVONEXT_CONTRACT_ID_TESTNET,
-        "post",
-        vec![
-            post_doc("evo-old", OWNER_A, 1_000, "old evo"),
-            post_doc("evo-new", OWNER_A, 4_000, "new evo"),
-        ],
-    );
     backend.ok(
         YAPPR_POSTS_CONTRACT_TESTNET,
         "post",
         vec![
-            post_doc("yap-mid", OWNER_B, 3_000, "mid yap"),
-            post_doc("yap-oldest", OWNER_B, 500, "oldest yap"),
+            post_doc("p-old", OWNER_A, 1_000, "old"),
+            post_doc("p-new", OWNER_A, 4_000, "new"),
+            post_doc("p-mid", OWNER_B, 3_000, "mid"),
+            post_doc("p-oldest", OWNER_B, 500, "oldest"),
         ],
     );
     prime_empty_profile(&backend, Network::Testnet);
@@ -62,9 +54,8 @@ async fn merges_contracts_newest_first_and_truncates() {
         .unwrap();
 
     let ids: Vec<&str> = page.posts.iter().map(|p| p.id.as_str()).collect();
-    assert_eq!(ids, vec!["evo-new", "yap-mid", "evo-old"]);
-    assert_eq!(page.fetched_counts[EVONEXT_CONTRACT_ID_TESTNET], 2);
-    assert_eq!(page.fetched_counts[YAPPR_POSTS_CONTRACT_TESTNET], 2);
+    assert_eq!(ids, vec!["p-new", "p-mid", "p-old"]);
+    assert_eq!(page.fetched_counts[YAPPR_POSTS_CONTRACT_TESTNET], 4);
     assert_eq!(page.posts[1].source, "yappr");
     assert_eq!(page.posts[1].owner_id, OWNER_B);
     assert_eq!(page.next_cursor, None);
@@ -74,19 +65,16 @@ async fn merges_contracts_newest_first_and_truncates() {
 async fn dedupes_by_id_but_keeps_same_ms_distinct_posts() {
     let backend = MockBackend::new();
     backend.ok(
-        EVONEXT_CONTRACT_ID_TESTNET,
-        "post",
-        vec![
-            post_doc("dup-id", OWNER_A, 2_000, "dup evo"),
-            post_doc("same-ms-a", OWNER_A, 1_000, "first"),
-            post_doc("same-ms-b", OWNER_A, 1_000, "second"),
-        ],
-    );
-    // Same $id echoed by the second contract (cross-contract mirror).
-    backend.ok(
         YAPPR_POSTS_CONTRACT_TESTNET,
         "post",
-        vec![post_doc("dup-id", OWNER_A, 2_000, "dup yap")],
+        vec![
+            post_doc("dup-id", OWNER_A, 2_000, "dup"),
+            post_doc("same-ms-a", OWNER_A, 1_000, "first"),
+            post_doc("same-ms-b", OWNER_A, 1_000, "second"),
+            // Same $id appearing twice within the one contract's results
+            // (e.g. overlapping pages).
+            post_doc("dup-id", OWNER_A, 2_000, "dup echo"),
+        ],
     );
     prime_empty_profile(&backend, Network::Testnet);
 
@@ -101,15 +89,13 @@ async fn dedupes_by_id_but_keeps_same_ms_distinct_posts() {
         vec!["dup-id", "same-ms-a", "same-ms-b"],
         "same owner+timestamp posts by one author MUST both survive"
     );
-    assert_eq!(page.duplicate_count, 1, "the mirrored $id counts once");
+    assert_eq!(page.duplicate_count, 1, "the echoed $id counts once");
 }
 
 #[tokio::test]
 async fn timeline_query_uses_language_timeline_index_owner_scope_owner_and_time() {
     let backend = MockBackend::new();
-    backend.ok(EVONEXT_CONTRACT_ID_TESTNET, "post", vec![]);
     backend.ok(YAPPR_POSTS_CONTRACT_TESTNET, "post", vec![]);
-    backend.ok(EVONEXT_CONTRACT_ID_TESTNET, "post", vec![]);
     backend.ok(YAPPR_POSTS_CONTRACT_TESTNET, "post", vec![]);
 
     let cache = ProfileCache::new();
@@ -121,7 +107,7 @@ async fn timeline_query_uses_language_timeline_index_owner_scope_owner_and_time(
         .unwrap();
 
     let calls = backend.calls.lock().unwrap();
-    // Timeline calls: languageTimeline index — where
+    // Timeline call: languageTimeline index — where
     // [["language","==","en"],["$createdAt",">",0]], orderBy
     // [["language","asc"],["$createdAt","desc"]] (yappr getTimeline
     // parity; probe-verified 2026-09-11 — bare $createdAt orderBy is
@@ -129,36 +115,28 @@ async fn timeline_query_uses_language_timeline_index_owner_scope_owner_and_time(
     let tl_where = serde_json::json!([["language", "==", "en"], ["$createdAt", ">", 0]]);
     let tl_order = serde_json::json!([["language", "asc"], ["$createdAt", "desc"]]);
     assert_eq!(calls[0].2, Some(tl_where.clone()));
-    assert_eq!(calls[0].3, Some(tl_order.clone()));
-    assert_eq!(calls[1].2, Some(tl_where));
-    assert_eq!(calls[1].3, Some(tl_order));
-    // Owner-scoped calls: ownerAndTime index —
+    assert_eq!(calls[0].3, Some(tl_order));
+    // Owner-scoped call: ownerAndTime index —
     // where [["$ownerId","==",owner],["$createdAt",">",0]], orderBy
     // [["$ownerId","asc"],["$createdAt","desc"]].
     let ow_where = serde_json::json!([["$ownerId", "==", OWNER_A], ["$createdAt", ">", 0]]);
     let ow_order = serde_json::json!([["$ownerId", "asc"], ["$createdAt", "desc"]]);
-    assert_eq!(calls[2].2, Some(ow_where.clone()));
-    assert_eq!(calls[2].3, Some(ow_order.clone()));
-    assert_eq!(calls[3].2, Some(ow_where));
-    assert_eq!(calls[3].3, Some(ow_order));
+    assert_eq!(calls[1].2, Some(ow_where.clone()));
+    assert_eq!(calls[1].3, Some(ow_order));
 }
 
 // ---------------------------------------------------------------------------
-// Total transport failure — the trigger for the frontend SDK fallback.
+// Transport failure — the trigger for the frontend SDK fallback.
 // ---------------------------------------------------------------------------
 
 #[tokio::test]
-async fn all_contracts_failing_returns_error_not_blank_page() {
-    // When EVERY timeline query fails at the transport level, fetch_feed
-    // must surface the error (not Ok(empty)) so the frontend can fall back
-    // to the direct-SDK transport. A silent Ok(empty) reads as "No posts
-    // yet" while the proxy is down — the v26.10.1 field bug.
+async fn transport_failure_returns_error_not_blank_page() {
+    // With a single posts contract, any transport failure IS a total
+    // failure: fetch_feed must surface the error (not Ok(empty)) so the
+    // frontend can fall back to the direct-SDK transport. A silent
+    // Ok(empty) reads as "No posts yet" while the proxy is down — the
+    // v26.10.1 field bug.
     let backend = MockBackend::new();
-    backend.push(
-        EVONEXT_CONTRACT_ID_TESTNET,
-        "post",
-        Err("proxy unreachable".into()),
-    );
     backend.push(
         YAPPR_POSTS_CONTRACT_TESTNET,
         "post",
@@ -167,20 +145,15 @@ async fn all_contracts_failing_returns_error_not_blank_page() {
 
     let cache = ProfileCache::new();
     let result = fetch_feed(&backend, &cache, Network::Testnet, 20, None).await;
-    let err = result.expect_err("all-failed fetch must return Err, not Ok(empty)");
+    let err = result.expect_err("failed fetch must return Err, not Ok(empty)");
     assert!(err.contains("proxy unreachable"), "error carries cause: {err}");
 }
 
 #[tokio::test]
-async fn all_failed_but_one_contract_ok_still_degrades_gracefully() {
-    // Mixed failure: one transport error, one success (even with zero
-    // documents) → still Ok. Only a TOTAL failure escalates.
+async fn empty_timeline_returns_ok_empty_page() {
+    // A successful query that simply has no documents is a normal empty
+    // feed — NOT an error.
     let backend = MockBackend::new();
-    backend.push(
-        EVONEXT_CONTRACT_ID_TESTNET,
-        "post",
-        Err("proxy unreachable".into()),
-    );
     backend.ok(YAPPR_POSTS_CONTRACT_TESTNET, "post", Vec::new());
 
     let cache = ProfileCache::new();
@@ -188,60 +161,7 @@ async fn all_failed_but_one_contract_ok_still_degrades_gracefully() {
         .await
         .unwrap();
     assert!(page.posts.is_empty());
-    assert_eq!(page.fetched_counts[EVONEXT_CONTRACT_ID_TESTNET], 0);
     assert_eq!(page.fetched_counts[YAPPR_POSTS_CONTRACT_TESTNET], 0);
-}
-
-// ---------------------------------------------------------------------------
-// Degradation
-// ---------------------------------------------------------------------------
-
-#[tokio::test]
-async fn one_contract_failing_does_not_blank_the_feed() {
-    let backend = MockBackend::new();
-    backend.push(
-        EVONEXT_CONTRACT_ID_TESTNET,
-        "post",
-        Err("contract down".into()),
-    );
-    backend.ok(
-        YAPPR_POSTS_CONTRACT_TESTNET,
-        "post",
-        vec![post_doc("y1", OWNER_B, 9_000, "survivor")],
-    );
-    prime_empty_profile(&backend, Network::Testnet);
-
-    let cache = ProfileCache::new();
-    let page = fetch_feed(&backend, &cache, Network::Testnet, 20, None)
-        .await
-        .unwrap();
-
-    assert_eq!(page.posts.len(), 1);
-    assert_eq!(page.posts[0].id, "y1");
-    assert_eq!(page.fetched_counts[EVONEXT_CONTRACT_ID_TESTNET], 0);
-}
-
-#[tokio::test]
-async fn mainnet_feed_never_touches_yappr_contracts() {
-    let backend = MockBackend::new();
-    backend.ok(
-        EVONEXT_CONTRACT_ID_MAINNET,
-        "post",
-        vec![post_doc("m1", OWNER_A, 5_000, "mainnet hello")],
-    );
-    prime_empty_profile(&backend, Network::Mainnet);
-
-    let cache = ProfileCache::new();
-    let page = fetch_feed(&backend, &cache, Network::Mainnet, 20, None)
-        .await
-        .unwrap();
-
-    assert_eq!(page.posts.len(), 1);
-    assert_eq!(backend.call_count(YAPPR_POSTS_CONTRACT_TESTNET, "post"), 0);
-    assert_eq!(
-        backend.call_count(YAPPR_POSTS_CONTRACT_TESTNET, "profile"),
-        0
-    );
 }
 
 // ---------------------------------------------------------------------------
@@ -251,7 +171,6 @@ async fn mainnet_feed_never_touches_yappr_contracts() {
 #[tokio::test]
 async fn posts_carry_parsed_content_parts() {
     let backend = MockBackend::new();
-    backend.ok(EVONEXT_CONTRACT_ID_TESTNET, "post", vec![]);
     backend.ok(
         YAPPR_POSTS_CONTRACT_TESTNET,
         "post",
@@ -272,7 +191,6 @@ async fn posts_carry_parsed_content_parts() {
 #[tokio::test]
 async fn reply_parent_is_embedded_by_id_lookup() {
     let backend = MockBackend::new();
-    backend.ok(EVONEXT_CONTRACT_ID_TESTNET, "post", vec![]);
     // Feed page: a reply referencing a parent not on the page.
     backend.ok(
         YAPPR_POSTS_CONTRACT_TESTNET,
@@ -309,7 +227,6 @@ async fn reply_parent_is_embedded_by_id_lookup() {
 #[tokio::test]
 async fn parent_lookup_failure_leaves_id_only() {
     let backend = MockBackend::new();
-    backend.ok(EVONEXT_CONTRACT_ID_TESTNET, "post", vec![]);
     backend.ok(
         YAPPR_POSTS_CONTRACT_TESTNET,
         "post",
@@ -321,9 +238,8 @@ async fn parent_lookup_failure_leaves_id_only() {
             "quotedPostId": "ghost",
         })],
     );
-    // Parent fetch errors on both contracts.
+    // Parent fetch errors on the contract.
     backend.push(YAPPR_POSTS_CONTRACT_TESTNET, "post", Err("nope".into()));
-    backend.push(EVONEXT_CONTRACT_ID_TESTNET, "post", Err("nope".into()));
     prime_empty_profile(&backend, Network::Testnet);
 
     let cache = ProfileCache::new();

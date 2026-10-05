@@ -2,12 +2,8 @@
 
 import type { IPost, ICreatePostParams } from '@/types/posts'
 import { useIdentityStore } from '@/stores/identity'
-import { useSettingsStore } from '@/stores/settings'
 import * as api from '@/services/posts/mutations'
-import {
-    EVONEXT_CONTRACT_ID_MAINNET,
-    EVONEXT_CONTRACT_ID_TESTNET
-} from '@/constants'
+import { YAPPR_CONTRACT_ID_TESTNET } from '@/constants'
 
 /**
  * Creates a new post with an optimistic UI update.
@@ -26,7 +22,6 @@ export async function createNewPostAction(
     }
 ): Promise<IPost | null> {
     const identityStore = useIdentityStore()
-    const settingsStore = useSettingsStore()
 
     if (!identityStore.isAuthenticated) {
         this.error = 'You must be connected to create a post'
@@ -39,11 +34,10 @@ export async function createNewPostAction(
     const currentUserId = identityStore.identityId as string
     const d = new Date()
     const now = d.getTime() / 1000
-    const network = settingsStore.state.network
 
-    const targetContractId = (network === 'mainnet')
-        ? EVONEXT_CONTRACT_ID_MAINNET
-        : EVONEXT_CONTRACT_ID_TESTNET
+    // Single-contract policy: posts are created on the YAPPR contract
+    // (the EVONEXT posts contract is retired). Posts exist on testnet only.
+    const targetContractId = YAPPR_CONTRACT_ID_TESTNET
 
     // Generate temporary ID to satisfy IPost interface and Vue :key requirements
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`

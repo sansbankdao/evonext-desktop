@@ -1827,11 +1827,13 @@ mod live_feed {
                 .await
                 .expect("live fetch must succeed");
 
-        let evonext = "465jdPpFCZefhb4g2k2FpCcrKpPYhJJskDqbGFsKu6wb";
         let yappr = "EWR695MsqPUuW8EnTbYzD4KybNQD5n7CUDWydJYNg63F";
-        assert!(
-            page.fetched_counts.contains_key(evonext),
-            "EvoNext contract missing from fetched_counts: {:?}",
+        // Single-contract policy: only the Yappr contract is active (the
+        // EvoNext posts contract is retired).
+        assert_eq!(
+            page.fetched_counts.len(),
+            1,
+            "only one active posts contract: {:?}",
             page.fetched_counts
         );
         assert!(

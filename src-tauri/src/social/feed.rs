@@ -19,7 +19,6 @@ use super::backend::DocumentBackend;
 use super::content::parse_post_content;
 use super::profile::{resolve_author, ProfileCache};
 use super::{active_post_contracts, AuthorProfile, SocialFeedPage, SocialPost};
-use super::{YAPPR_POSTS_CONTRACT_MAINNET, YAPPR_POSTS_CONTRACT_TESTNET};
 use crate::dapi::types::Network;
 use serde_json::{json, Value};
 use std::collections::{HashMap, HashSet};
@@ -59,12 +58,11 @@ fn doc_owner(doc: &Value) -> String {
         .to_string()
 }
 
-fn source_for(contract_id: &str) -> &'static str {
-    if contract_id == YAPPR_POSTS_CONTRACT_TESTNET || contract_id == YAPPR_POSTS_CONTRACT_MAINNET {
-        "yappr"
-    } else {
-        "evonext"
-    }
+fn source_for(_contract_id: &str) -> &'static str {
+    // Single-contract policy: every post comes from the Yappr contract
+    // (the EvoNext posts contract is retired). The parameter remains for
+    // call-site stability.
+    "yappr"
 }
 
 fn shape_post(

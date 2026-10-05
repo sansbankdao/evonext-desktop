@@ -61,17 +61,14 @@ pub fn yappr_profile_contract(network: Network) -> Option<&'static str> {
     }
 }
 
-/// Post contracts merged into the social feed (EvoNext always; Yappr when
-/// deployed). Mirrors the TS `getActivePostContracts`.
+/// Post contracts merged into the social feed. Single-contract policy:
+/// the Yappr contract only (the EvoNext posts contract is retired as of
+/// 2026-10-05). Mirrors the TS `getActivePostContracts`.
 pub fn active_post_contracts(network: Network) -> Vec<&'static str> {
-    let mut out = vec![match network {
-        Network::Testnet => crate::constants::EVONEXT_CONTRACT_ID_TESTNET,
-        Network::Mainnet => crate::constants::EVONEXT_CONTRACT_ID_MAINNET,
-    }];
-    if let Some(yappr) = yappr_posts_contract(network) {
-        out.push(yappr);
+    match yappr_posts_contract(network) {
+        Some(yappr) => vec![yappr],
+        None => Vec::new(),
     }
-    out
 }
 
 // -----------------------------------------------------------------------------

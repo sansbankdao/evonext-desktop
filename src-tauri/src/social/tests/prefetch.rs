@@ -10,7 +10,7 @@ use crate::dapi::types::Network;
 use crate::social::feed::fetch_feed;
 use crate::social::prefetch::{apply_where, PrefetchedBackend, SocialFetchBundle};
 use crate::social::profile::ProfileCache;
-use crate::social::{EVONEXT_CONTRACT_ID_TESTNET, YAPPR_POSTS_CONTRACT_TESTNET};
+use crate::social::YAPPR_POSTS_CONTRACT_TESTNET;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
@@ -85,11 +85,10 @@ fn apply_where_unknown_shape_matches_nothing() {
 #[tokio::test]
 async fn prefetched_backend_serves_full_feed_with_profiles() {
     let posts = vec![
-        post_doc("p1", OWNER_A, 1_000, "from evonext"),
-        post_doc("p2", OWNER_B, 2_000, "from yappr"),
+        post_doc("p1", OWNER_A, 1_000, "first"),
+        post_doc("p2", OWNER_B, 2_000, "second"),
     ];
     let bundle = bundle(vec![
-        (format!("{EVONEXT_CONTRACT_ID_TESTNET}:post"), posts.clone()),
         (format!("{YAPPR_POSTS_CONTRACT_TESTNET}:post"), posts),
         (
             format!("{}:profile", crate::social::YAPPR_PROFILE_CONTRACT_TESTNET),
@@ -109,11 +108,7 @@ async fn prefetched_backend_serves_full_feed_with_profiles() {
         .await
         .unwrap();
 
-    assert_eq!(page.posts.len(), 2, "merged across both contracts");
-    assert_eq!(
-        page.fetched_counts.get(EVONEXT_CONTRACT_ID_TESTNET),
-        Some(&2)
-    );
+    assert_eq!(page.posts.len(), 2, "all bundled posts served");
     assert_eq!(
         page.fetched_counts.get(YAPPR_POSTS_CONTRACT_TESTNET),
         Some(&2)
@@ -134,32 +129,21 @@ async fn prefetched_backend_serves_full_feed_with_profiles() {
 }
 
 #[tokio::test]
-async fn prefetched_backend_missing_post_contract_degrades_to_empty_tier() {
-    // Only ONE contract bundled → the other reports a transport miss;
-    // fetch_feed keeps the contract in fetchedContracts with zero docs
-    // (same semantics as a DAPI error on the primary path).
+async fn prefetched_backend_missing_post_tier_yields_transport_error() {
+    // Single-contract policy: if the bundle lacks the (only) posts tier,
+    // the backend reports a transport miss — which with one active
+    // contract is a TOTAL failure, so fetch_feed surfaces Err and the
+    // frontend can retry with another transport.
     let bundle = bundle(vec![(
-        format!("{EVONEXT_CONTRACT_ID_TESTNET}:post"),
+        "some-other-contract:post".to_string(),
         vec![post_doc("p1", OWNER_A, 1_000, "hello")],
     )]);
     let backend = PrefetchedBackend::new(bundle);
     let cache = ProfileCache::new();
-    let page = fetch_feed(&backend, &cache, Network::Testnet, 20, None)
-        .await
-        .unwrap();
-
-    assert_eq!(page.posts.len(), 1);
-    assert_eq!(page.fetched_counts.len(), 2);
-    assert_eq!(
-        page.fetched_counts.get(YAPPR_POSTS_CONTRACT_TESTNET),
-        Some(&0),
-        "missing bundle tier degrades to a zero-doc contract, not an error"
-    );
-    assert_eq!(page.posts[0].author.identity_id, OWNER_A);
-    // Author unresolved (no profile tiers bundled) → anonymous fallback.
-    assert_eq!(
-        page.posts[0].author.display_name,
-        format!("User {}", &OWNER_A[..6])
+    let result = fetch_feed(&backend, &cache, Network::Testnet, 20, None).await;
+    assert!(
+        result.is_err(),
+        "missing posts tier must surface as an error, not an empty feed"
     );
 }
 
@@ -170,7 +154,7 @@ async fn prefetched_backend_owner_scoped_feed_filters() {
         post_doc("p2", OWNER_B, 2_000, "not mine"),
     ];
     let bundle = bundle(vec![
-        (format!("{EVONEXT_CONTRACT_ID_TESTNET}:post"), posts.clone()),
+        (format!("{YAPPR_POSTS_CONTRACT_TESTNET}:post"), posts.clone()),
         (format!("{YAPPR_POSTS_CONTRACT_TESTNET}:post"), posts),
     ]);
     let backend = PrefetchedBackend::new(bundle);
@@ -189,7 +173,7 @@ async fn prefetched_backend_ignores_malformed_bundle_keys() {
     let bundle = bundle(vec![
         ("no-colon-separator".to_string(), vec![json!({"$id": "x"})]),
         (
-            format!("{EVONEXT_CONTRACT_ID_TESTNET}:post"),
+            format!("{YAPPR_POSTS_CONTRACT_TESTNET}:post"),
             vec![post_doc("p1", OWNER_A, 1_000, "hi")],
         ),
     ]);
@@ -210,7 +194,7 @@ async fn prefetched_backend_ignores_malformed_bundle_keys() {
     // Valid key served.
     let hit = backend
         .get_documents(
-            EVONEXT_CONTRACT_ID_TESTNET,
+            YAPPR_POSTS_CONTRACT_TESTNET,
             "post",
             Network::Testnet,
             None,

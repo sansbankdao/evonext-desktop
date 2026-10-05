@@ -7,11 +7,7 @@ import * as api from '@/services/posts/fetching'
 import * as transformers from '@/services/posts/transformers'
 import { avatarSrc, generateAvatarSvg } from '@/services/posts/avatar'
 import { fetchSocialFeedWithFallback } from '@/services/posts/fallbackFeed'
-import { getActivePostContracts } from '@/constants'
-import {
-    EVONEXT_CONTRACT_ID_MAINNET,
-    EVONEXT_CONTRACT_ID_TESTNET
-} from '@/constants'
+import { getActivePostContracts, YAPPR_CONTRACT_ID_TESTNET } from '@/constants'
 import { useSettingsStore } from '@/stores/settings'
 
 function getCurrentNetwork() {
@@ -124,7 +120,11 @@ export async function fetchMorePostsAction(this: any): Promise<void> {
         const network = getCurrentNetwork()
         const newOffset = (this.offset || 0) + this.limit
 
-        const primaryContractId = network === 'testnet' ? EVONEXT_CONTRACT_ID_TESTNET : EVONEXT_CONTRACT_ID_MAINNET
+        // Single-contract policy: read pages come from the YAPPR contract
+        // (the EVONEXT posts contract is retired). Mainnet has no posts
+        // contract, so there is nothing further to fetch there.
+        const primaryContractId = network === 'testnet' ? YAPPR_CONTRACT_ID_TESTNET : ''
+        if (!primaryContractId) return
 
         const documents = await api.fetchPostsFromTauri(network, {
             contractId: primaryContractId,

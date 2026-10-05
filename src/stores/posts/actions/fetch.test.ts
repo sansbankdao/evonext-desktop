@@ -16,7 +16,8 @@ vi.mock('@/stores/settings', () => ({
     useSettingsStore: () => ({ state: { network: 'testnet' } })
 }))
 vi.mock('@/constants', () => ({
-    getActivePostContracts: vi.fn(() => ['evo_test', 'yappr_test']),
+    getActivePostContracts: vi.fn(() => ['yappr_test']),
+    YAPPR_CONTRACT_ID_TESTNET: 'yappr_test',
     EVONEXT_CONTRACT_ID_TESTNET: 'evo_test',
     EVONEXT_CONTRACT_ID_MAINNET: 'evo_main'
 }))
@@ -125,7 +126,7 @@ describe('fetch.ts Store Actions — Rust feed command', () => {
             makePage([makeSocialPost()], { evo_test: 3, yappr_test: 4 }, 2)
         )
         await fetchPostsAction.call(mockStore)
-        expect(mockStore.debug.activeContracts).toEqual(['evo_test', 'yappr_test'])
+        expect(mockStore.debug.activeContracts).toEqual(['yappr_test'])
         expect(mockStore.debug.fetchCounts).toEqual({ evo_test: 3, yappr_test: 4 })
         expect(mockStore.debug.mergeCount).toBe(1)
         expect(mockStore.debug.duplicateCount).toBe(2)

@@ -18,7 +18,7 @@ vi.mock('@/constants', () => ({
     DPNS_CONTRACT_ID_TESTNET: 'dpns_test',
     YAPPR_PROFILE_CONTRACT_ID_MAINNET: 'profile_main',
     YAPPR_PROFILE_CONTRACT_ID_TESTNET: 'profile_test',
-    getActivePostContracts: vi.fn(() => ['evo_test', 'yappr_test'])
+    getActivePostContracts: vi.fn(() => ['yappr_test'])
 }))
 
 function makePage(posts: any[] = []): ISocialFeedPage {
@@ -80,7 +80,7 @@ describe('fallbackFeed', () => {
         expect(prefetched.network).toBe('testnet')
         expect(prefetched.ownerId).toBeNull()
         expect(Object.keys(prefetched.bundle.documents)).toEqual(
-            expect.arrayContaining(['evo_test:post', 'yappr_test:post'])
+            expect.arrayContaining(['yappr_test:post'])
         )
         expect(prefetched.bundle.documents['yappr_test:post'][0].$id).toBe('p1')
     })
