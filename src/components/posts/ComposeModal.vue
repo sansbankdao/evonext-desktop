@@ -31,7 +31,7 @@
 
                         <div class="flex-1 overflow-hidden">
                             <p class="text-sm font-medium text-purple-800 dark:text-purple-300">
-                                You are remixing <span class="font-bold">@{{ originalRemixPost.author?.username || 'unknown' }}</span>
+                                You are remixing <span class="font-bold">{{ originalRemixPost.author?.displayName || originalRemixPost.author?.username || 'unknown' }}</span>
                             </p>
 
                             <p class="text-xs text-purple-600 dark:text-purple-400 truncate mt-0.5">

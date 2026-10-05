@@ -50,13 +50,13 @@
                     </p>
                 </div>
 
-                <div class="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400">
-                    <!-- CLICKABLE USERNAME -->
+                <div class="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 -mt-1">
+                    <!-- SECONDARY IDENTIFIER: full, unabbreviated IdentityId -->
                     <a
                         :href="getExplorerUrl(post.ownerId)"
                         target="_blank"
                         rel="noopener noreferrer"
-                        class="truncate hover:underline hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                        class="text-[10px] leading-tight break-all hover:underline hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
                         title="View on Explorer"
                     >
                         {{ post.author.username }}

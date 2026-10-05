@@ -82,7 +82,9 @@ export function getUserInfo(
 
     return {
         identityId: ownerId,
-        username: dpnsName ? `@${dpnsName}` : `@${abbreviateId(ownerId)}`,
+        // Secondary identifier: the FULL, unabbreviated IdentityId
+        // (mirrors the Rust resolver; display name carries the @handle).
+        username: ownerId,
         displayName,
         avatar,
         avatarUrl: avatar, // Maintain parity for older code

@@ -124,7 +124,7 @@ async fn prefetched_backend_serves_full_feed_with_profiles() {
         .iter()
         .find(|p| p.owner_id == OWNER_B)
         .expect("owner B post");
-    assert_eq!(bob.author.username, "@bob");
+    assert_eq!(bob.author.username, OWNER_B);
     assert!(bob.author.verified, "DPNS name → verified badge");
 }
 

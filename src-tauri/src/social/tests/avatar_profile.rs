@@ -165,7 +165,8 @@ async fn resolves_full_chain_yappr_displayname_dpns_verified_dashpay_bio() {
     let author = resolve_author(&backend, &cache, Network::Testnet, OWNER).await;
 
     assert_eq!(author.display_name, "Alice Yappr"); // Yappr beats DashPay
-    assert_eq!(author.username, "@alice");
+    // Secondary identifier = the full, unabbreviated IdentityId.
+    assert_eq!(author.username, OWNER);
     assert!(author.verified);
     assert_eq!(author.bio, "hi there");
     assert!(matches!(author.avatar, AvatarSource::Dicebear { .. }));
@@ -196,7 +197,7 @@ async fn falls_back_to_at_username_when_no_yappr_name() {
     let cache = ProfileCache::new();
     let author = resolve_author(&backend, &cache, Network::Testnet, OWNER).await;
     assert_eq!(author.display_name, "@bob");
-    assert_eq!(author.username, "@bob");
+    assert_eq!(author.username, OWNER);
     assert!(author.verified);
 }
 
@@ -210,7 +211,7 @@ async fn anonymous_when_nothing_anywhere_and_negative_is_cached() {
     let cache = ProfileCache::new();
     let first = resolve_author(&backend, &cache, Network::Testnet, OWNER).await;
     assert_eq!(first.display_name, format!("User {}", &OWNER[..6]));
-    assert_eq!(first.username, format!("@{}", &OWNER[..8].to_lowercase()));
+    assert_eq!(first.username, OWNER);
     assert!(!first.verified);
 
     let before = backend.calls.lock().unwrap().len();

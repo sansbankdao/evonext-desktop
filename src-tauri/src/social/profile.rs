@@ -4,7 +4,7 @@
 //! `PostsStore.fetchProfiles` + `UsernameService`):
 //!   1. Yappr unified profile (displayName, avatar) — skipped on networks
 //!      with no profile contract;
-//!   2. DPNS reverse-resolution (username), contested-first;
+//!   2. DPNS reverse-resolution (@name display fallback), contested-first;
 //!   3. DashPay profile (legacy fallback; defensive lowercase variants).
 //!
 //! Failures are logged, never block rendering, and are NEVER cached
@@ -290,10 +290,10 @@ async fn resolve_author_uncached<B: DocumentBackend + Sync>(
         })
         .unwrap_or_else(|| format!("User {}", &owner_id[..owner_id.len().min(6)]));
 
-    let username = dpns_name
-        .as_ref()
-        .map(|n| format!("@{n}"))
-        .unwrap_or_else(|| format!("@{}", owner_id[..owner_id.len().min(8)].to_lowercase()));
+    // Secondary identifier: the FULL, unabbreviated IdentityId. The UI
+    // shows display_name as the primary; the raw id doubles as the
+    // explorer link target (Item.vue builds href from ownerId).
+    let username = owner_id.to_string();
 
     let avatar = resolve_author_avatar(
         yappr.as_ref().and_then(|d| field_str(d, "avatar")),
@@ -317,7 +317,7 @@ pub fn anonymous_author(owner_id: &str) -> AuthorProfile {
     AuthorProfile {
         identity_id: owner_id.to_string(),
         display_name: format!("User {}", &owner_id[..owner_id.len().min(6)]),
-        username: format!("@{}", owner_id[..owner_id.len().min(8)].to_lowercase()),
+        username: owner_id.to_string(),
         verified: false,
         bio: String::new(),
         avatar: resolve_author_avatar(None, None, owner_id),

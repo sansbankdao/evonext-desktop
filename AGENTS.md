@@ -197,6 +197,14 @@ src-tauri/
 - **SANS:** Sansnote token used for staking/premium features.
 - **DAPI:** Decentralized API for Dash Platform communication.
 
+## Social Feed Conventions (established 2026-10)
+
+- **Single-contract policy:** the Yappr posts contract (`EWR695MsqPUuW8EnTbYzD4KybNQD5n7CUDWydJYNg63F`) is the ONLY posts contract, on read and write (testnet). The old EVONEXT posts contract (`465jdPpFCZefhb4g2k2FpCcrKpPYhJJkDqbGFsKu6wb`) is RETIRED. Mainnet has no posts contract (feed is testnet-only). Rust: `social::active_post_contracts`; TS: `getActivePostContracts` in `src/constants/index.ts`.
+- **Author display (post cards):** primary = Yappr `displayName` → `@DPNS name` → DashPay `displayName` → anonymous `User <first6>` fallback. Secondary identifier = the FULL, unabbreviated IdentityId (never truncated, no ellipsis); the post card renders it at reduced font size and links it to the block explorer via `ownerId`.
+- **DAPI query rule:** an `in` query MUST carry an `orderBy` covering each range element (`in` compiles to a range; DAPI rejects it with "query must have an orderBy field for each range element"). Applies to TS `queryRaw` calls and any direct DAPI queries. `==` and `$id in` are safe without orderBy.
+- **Feed error semantics:** a total transport failure MUST surface as `Err` (frontend falls back to the bundled SDK via `fetch_social_feed_prefetched`); an empty-but-successful result is a normal empty feed. Per-tier profile lookup failures are tolerated and degrade to the anonymous author — never cached.
+- **Timeline queries:** Yappr posts use the `languageTimeline` index (`language == "en"` + `$createdAt`); a bare `$createdAt` orderBy matches no index and silently returns 0 rows.
+
 ## Dependencies
 
 **Frontend:**

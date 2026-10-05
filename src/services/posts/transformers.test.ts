@@ -18,7 +18,8 @@ describe('transformers', () => {
             const yapprProfile = { displayName: 'YAPPR Name' }
             const result = getUserInfo(ownerId, dpnsProfile as any, yapprProfile as any, 'alice.dash')
             expect(result.displayName).toBe('YAPPR Name')
-            expect(result.username).toBe('@alice.dash')
+            // Secondary identifier = the full, unabbreviated IdentityId.
+            expect(result.username).toBe(ownerId)
             expect(result.verified).toBe(true)
         })
         it('uses @username when no YAPPR displayName exists', () => {
@@ -78,7 +79,7 @@ describe('transformers', () => {
         it('converts a blockchain document to a hydrated UI post', () => {
             const post = transformPostDocument(mockDoc)
             expect(post.id).toBe('post_1')
-            expect(post.author.username).toContain('@owner_1')
+            expect(post.author.username).toBe('owner_1')
             expect(post.isSensitive).toBe(true)
         })
         it('handles optional media and hashtags', () => {
