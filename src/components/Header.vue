@@ -6,7 +6,7 @@
         </h1>
 
         <!-- Authenticated View -->
-        <div v-if="isConnected" class="flex items-center gap-1 bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <div v-if="isConnected" class="flex items-center gap-0 bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
             <span class="w-[340px]">
                 <span class="block text-slate-900 dark:text-white text-lg font-bold font-mono px-2 tracking-wider truncate leading-tight">
                     {{ username }}
