@@ -8,7 +8,7 @@
         <!-- Authenticated View -->
         <div v-if="isConnected" class="flex items-center gap-1 bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
             <span class="w-[340px]">
-                <span class="block text-sky-900 dark:text-sky-100 text-lg font-mono px-2 tracking-wider truncate leading-tight">
+                <span class="block text-slate-900 dark:text-white text-lg font-bold font-mono px-2 tracking-wider truncate leading-tight">
                     {{ username }}
                 </span>
                 <span class="block text-slate-500 dark:text-slate-400 text-xs font-mono px-2 tracking-tighter leading-tight mt-1">
