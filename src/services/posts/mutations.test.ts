@@ -81,7 +81,7 @@ describe('Posts Mutations Service', () => {
     })
     it('createPost should handle optional fields', async () => {
         vi.mocked(invoke).mockResolvedValue({
-            identities: { 'mock_user': [{ purpose: 0, securityLevel: 0, privateKey: validWif }] }
+            identities: { 'mock_user': [{ purpose: 0, securityLevel: 2, privateKey: validWif }] }
         })
         const result = await mutations.createPost({
             content: 'Sensitive post',
@@ -112,6 +112,34 @@ describe('Posts Mutations Service', () => {
     it('updatePost should throw when no WIF found', async () => {
         vi.mocked(invoke).mockResolvedValue({
             identities: { 'mock_user': [{ purpose: 1, securityLevel: 0, privateKey: null }] }
+        })
+        await expect(mutations.updatePost('post_1', { documentId: 'post_1', content: 'x' }))
+            .rejects.toThrow('No suitable WIF found')
+    })
+    it('createPost must not sign with a MASTER key (platform requires CRITICAL|HIGH)', async () => {
+        // Live failure, 2026-10-05: "Invalid public key security level MASTER.
+        // The state transition requires one of CRITICAL | HIGH" — document
+        // transitions reject MASTER (level 0) authentication keys.
+        vi.mocked(invoke).mockResolvedValue({
+            identities: { 'mock_user': [{ purpose: 0, securityLevel: 0, privateKey: validWif }] }
+        })
+        await expect(mutations.createPost({ content: 'hello' } as any))
+            .rejects.toThrow('Auth Key not found')
+        expect(mockDocuments.create).not.toHaveBeenCalled()
+    })
+    it('createPost skips a MASTER key and signs with the following CRITICAL/HIGH key', async () => {
+        vi.mocked(invoke).mockResolvedValue({
+            identities: { 'mock_user': [
+                { id: 0, purpose: 0, securityLevel: 0, privateKey: validWif },
+                { id: 1, purpose: 0, securityLevel: 1, privateKey: validWif }
+            ] }
+        })
+        const result = await mutations.createPost({ content: 'hello' } as any)
+        expect(result).toBeDefined()
+    })
+    it('updatePost must not sign with a MASTER key either', async () => {
+        vi.mocked(invoke).mockResolvedValue({
+            identities: { 'mock_user': [{ purpose: 0, securityLevel: 0, privateKey: validWif }] }
         })
         await expect(mutations.updatePost('post_1', { documentId: 'post_1', content: 'x' }))
             .rejects.toThrow('No suitable WIF found')

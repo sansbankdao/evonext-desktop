@@ -20,7 +20,11 @@ export async function createPost(params: ICreatePostParams): Promise<IPost | nul
     try {
         const sdk = await connectEvoSdk(network.value)
         const keyData = await invoke<any>('load_keystore', { network: network.value })
-        const authKey = keyData?.identities?.[identityId]?.find((k: any) => k.purpose === 0 && k.securityLevel <= 2)
+        // Document transitions require CRITICAL (1) or HIGH (2) authentication
+        // keys — MASTER (0) is rejected by the platform ("Invalid public key
+        // security level MASTER. The state transition requires one of
+        // CRITICAL | HIGH").
+        const authKey = keyData?.identities?.[identityId]?.find((k: any) => k.purpose === 0 && k.securityLevel >= 1 && k.securityLevel <= 2)
         if (!authKey?.privateKey) throw new Error('Auth Key not found.')
         const trimmed = params.content.trim()
         if (trimmed.length > MAX_POST_CONTENT_LENGTH) {
@@ -64,7 +68,8 @@ export async function updatePost(postId: string, updates: IUpdatePostParams): Pr
     if (!identityId) throw new Error('updatePost failed: No identityId in store')
     try {
         const keyData = await invoke<any>('load_keystore', { network: network.value })
-        const authKey = keyData?.identities?.[identityId]?.find((k: any) => k.purpose === 0 && k.securityLevel <= 2)
+        // Same rule as createPost: MASTER keys cannot sign document transitions.
+        const authKey = keyData?.identities?.[identityId]?.find((k: any) => k.purpose === 0 && k.securityLevel >= 1 && k.securityLevel <= 2)
         const wif = authKey?.privateKeyWif || authKey?.privateKey
         if (!wif) throw new Error('updatePost failed: No suitable WIF found for identity')
         const sdk = await connectEvoSdk(network.value)
