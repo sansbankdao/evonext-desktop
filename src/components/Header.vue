@@ -11,7 +11,7 @@
                 <span class="block text-sky-900 dark:text-sky-100 text-lg font-mono px-2 tracking-wider truncate leading-tight">
                     {{ username }}
                 </span>
-                <span class="block text-sky-600/70 dark:text-sky-300/70 text-xs font-mono px-2 tracking-tighter leading-tight mt-1">
+                <span class="block text-slate-500 dark:text-slate-400 text-xs font-mono px-2 tracking-tighter leading-tight mt-1">
                     {{ displayIdentityId }}
                 </span>
             </span>
