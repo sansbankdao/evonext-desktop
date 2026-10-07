@@ -1,32 +1,32 @@
 <!-- src/components/Header.vue -->
 <template>
-    <header class="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 bg-gray-50 dark:bg-slate-900 p-4 rounded-xl shadow-lg border-2 border-slate-200 dark:border-slate-700">
-        <h1 class="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4 sm:mb-0">
+    <header class="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 bg-surface-card p-4 rounded-card shadow-card border border-edge">
+        <h1 class="text-2xl font-extrabold text-content tracking-tight mb-4 sm:mb-0">
             {{ props.title }}
         </h1>
 
         <!-- Authenticated View -->
-        <div v-if="isConnected" class="flex items-center gap-0 bg-white dark:bg-slate-800 p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <div v-if="isConnected" class="flex items-center gap-0 bg-surface-raise/60 p-3 rounded-inner border border-edge">
             <span class="w-[340px]">
-                <span class="block text-slate-900 dark:text-white text-lg font-bold font-mono px-2 tracking-wider truncate leading-tight">
+                <span class="block text-content text-lg font-bold font-mono px-2 tracking-wider truncate leading-tight">
                     {{ username }}
                 </span>
-                <span class="block text-slate-500 dark:text-slate-400 text-xs font-mono px-2 tracking-tighter leading-tight mt-1">
+                <span class="block text-content-faint text-xs font-mono px-2 tracking-tighter leading-tight mt-1">
                     {{ displayIdentityId }}
                 </span>
             </span>
             <button
-                class="p-2 rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                class="p-2 rounded-control hover:bg-surface-raise transition-colors"
                 @click="copyIdentityId"
                 type="button"
                 :title="isCopied ? 'Copied!' : 'Copy to clipboard'"
             >
                 <!-- Copy Icon -->
-                <svg v-if="!isCopied" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-700 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg v-if="!isCopied" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-content-soft" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
                 <!-- Success/Check Icon -->
-                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-500 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-up" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
             </button>
@@ -36,7 +36,7 @@
         <div v-else class="flex items-center">
             <router-link
                 to="/connect"
-                class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition-all duration-200 shadow-md hover:shadow-lg"
+                class="flex items-center gap-2 bg-brand-deep hover:bg-brand text-white px-6 py-3 rounded-control font-bold transition-all duration-200 shadow-glow"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 00-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />

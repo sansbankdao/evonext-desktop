@@ -2,18 +2,18 @@
 <template>
     <article
         :class="[
-            'bg-white dark:bg-slate-800 p-4 rounded-2xl flex flex-col gap-4 border-2 border-slate-200 dark:border-slate-700 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 group relative',
-            isSensitive ? 'border-orange-500' : ''
+            'bg-surface-card p-5 rounded-card flex flex-col gap-4 border border-edge shadow-card hover:shadow-glow hover:-translate-y-0.5 transition-all duration-200 group relative',
+            isSensitive ? 'border-warn/60' : ''
         ]"
     >
         <!-- REPLY CONTEXT (Parent Post) -->
-        <div v-if="post.quotedPost" class="mb-2 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-700">
-            <div class="flex items-center gap-2 mb-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
-                <span class="text-slate-400">Replying to</span>
-                <div class="flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
+        <div v-if="post.quotedPost" class="mb-2 p-3 bg-surface-raise/60 rounded-inner border border-edge">
+            <div class="flex items-center gap-2 mb-1.5 text-caption text-content-faint font-medium">
+                <span class="text-content-faint">Replying to</span>
+                <div class="flex items-center gap-1.5 text-content">
                     <img
                         :src="post.quotedPost.author.avatar"
-                        class="w-4 h-4 rounded-full ring-1 ring-slate-300 dark:ring-slate-600"
+                        class="w-4 h-4 rounded-full ring-1 ring-edge"
                         alt="Avatar"
                     />
                     <span class="font-semibold">
@@ -21,7 +21,7 @@
                     </span>
                 </div>
             </div>
-            <p class="text-sm text-slate-700 dark:text-slate-300 line-clamp-3 leading-snug">
+            <p class="text-body text-content-soft line-clamp-3 leading-snug">
                 {{ post.quotedPost.content }}
             </p>
         </div>
@@ -32,10 +32,10 @@
                 <img
                     :src="post.author.avatar"
                     :alt="`${post.author.displayName}'s Avatar`"
-                    class="size-12 rounded-full ring-2 ring-slate-200 dark:ring-slate-700 shadow-md object-cover transition-transform duration-200 group-hover:scale-105"
+                    class="size-12 rounded-full ring-2 ring-edge shadow-md object-cover transition-transform duration-200 group-hover:scale-105"
                 />
                 <!-- Verification Badge (Absolute) -->
-                <div v-if="post.author.verified" class="absolute -bottom-0.5 -right-0.5 bg-cyan-500 text-white rounded-full p-0.5 border-2 border-white dark:border-slate-800 shadow-sm">
+                <div v-if="post.author.verified" class="absolute -bottom-0.5 -right-0.5 bg-brand text-white rounded-full p-0.5 border-2 border-surface-card shadow-sm">
                     <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
                     </svg>
@@ -45,18 +45,18 @@
             <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
                     <!-- Display Name -->
-                    <p class="font-bold text-slate-900 dark:text-slate-100 truncate">
+                    <p class="font-bold text-content truncate">
                         {{ post.author.displayName }}
                     </p>
                 </div>
 
-                <div class="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 -mt-1">
+                <div class="flex items-center gap-1.5 text-sm text-content-faint -mt-1">
                     <!-- SECONDARY IDENTIFIER: full, unabbreviated IdentityId -->
                     <a
                         :href="getExplorerUrl(post.ownerId)"
                         target="_blank"
                         rel="noopener noreferrer"
-                        class="text-[10px] leading-tight break-all hover:underline hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                        class="text-[10px] leading-tight break-all hover:underline hover:text-brand transition-colors"
                         title="View on Explorer"
                     >
                         {{ post.author.username }}
@@ -68,7 +68,7 @@
         </div>
 
         <!-- Post Content (Phase A rich text; Rust-parsed segments) -->
-        <p class="text-slate-800 dark:text-slate-200 leading-relaxed text-[15px] whitespace-pre-wrap break-words">
+        <p class="text-content leading-relaxed text-[15px] whitespace-pre-wrap break-words">
             <ContentRenderer v-if="post.contentParts?.length" :parts="post.contentParts" />
             <template v-else>{{ post.content }}</template>
         </p>
@@ -78,17 +78,17 @@
             <div
                 v-for="(mediaUrl, index) in post.mediaUrls.slice(0, 3)"
                 :key="index"
-                class="relative rounded-2xl overflow-hidden group/media cursor-pointer"
+                class="relative rounded-inner overflow-hidden group/media cursor-pointer"
             >
                 <img
                     :src="getMediaUrl(mediaUrl)"
                     :alt="`Media ${index + 1}`"
-                    class="w-full h-64 object-cover rounded-2xl shadow-md ring-1 ring-slate-200 dark:ring-slate-700 transition-transform duration-500 group-hover/media:scale-105"
+                    class="w-full h-64 object-cover rounded-inner shadow-md ring-1 ring-edge transition-transform duration-500 group-hover/media:scale-105"
                     @error="handleImageError"
                 />
                 <div
                     v-if="post.mediaUrls && post.mediaUrls.length > 3 && index === 2"
-                    class="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center rounded-2xl"
+                    class="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center rounded-inner"
                 >
                     <span class="text-white text-lg font-bold drop-shadow-md">
                         +{{ post.mediaUrls.length - 3 }}
@@ -99,13 +99,13 @@
 
         <!-- Hashtags -->
         <div v-if="post.hashtag" class="flex flex-wrap gap-2 mt-1">
-            <span class="px-3 py-1 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-full text-sm font-medium hover:bg-cyan-500/20 transition-colors cursor-pointer">
+            <span class="px-3 py-1 bg-brand/10 text-brand-deep dark:text-brand rounded-full text-body font-medium hover:bg-brand/20 transition-colors cursor-pointer">
                 #{{ post.hashtag }}
             </span>
         </div>
 
         <!-- Sensitive Content Warning (Inline) -->
-        <div v-if="isSensitive" class="flex items-center gap-2 text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/10 px-3 py-2 rounded-lg border border-orange-200 dark:border-orange-900/30">
+        <div v-if="isSensitive" class="flex items-center gap-2 text-warn bg-warn/10 px-3 py-2 rounded-control border border-warn/30">
             <svg class="h-4 w-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
             </svg>
@@ -113,11 +113,11 @@
         </div>
 
         <!-- Post Actions -->
-        <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-slate-700/50">
+        <div class="flex items-center justify-between text-content-faint pt-3 border-t border-edge">
             <!-- Comment Button -->
             <button
                 @click="handleComment"
-                class="flex items-center gap-2 p-2 -ml-2 rounded-full hover:bg-cyan-50 hover:text-cyan-600 dark:hover:bg-cyan-900/20 dark:hover:text-cyan-400 transition-all duration-200 group-hover:scale-110"
+                class="flex items-center gap-2 p-2 -ml-2 rounded-full hover:bg-brand/10 hover:text-brand transition-all duration-200 group-hover:scale-110"
                 title="Reply"
             >
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -129,7 +129,7 @@
             <!-- Repost/Remix Button -->
             <button
                 @click="handleRepost"
-                class="flex items-center gap-2 p-2 rounded-full hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400 transition-all duration-200 group-hover:scale-110"
+                class="flex items-center gap-2 p-2 rounded-full hover:bg-up/10 hover:text-up transition-all duration-200 group-hover:scale-110"
                 title="Remix"
             >
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -144,8 +144,8 @@
                 :class="[
                     'flex items-center gap-2 p-2 rounded-full transition-all duration-200 group-hover:scale-110',
                     post.liked
-                        ? 'text-red-500 bg-red-50 dark:bg-red-900/20'
-                        : 'hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400'
+                        ? 'text-down bg-down/10'
+                        : 'hover:bg-down/10 hover:text-down'
                 ]"
                 title="Like"
             >
@@ -166,8 +166,8 @@
                 :class="[
                     'flex items-center gap-2 p-2 rounded-full transition-all duration-200 group-hover:scale-110',
                     post.bookmarked
-                        ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20'
-                        : 'hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-700 dark:hover:text-slate-100'
+                        ? 'text-warn bg-warn/10'
+                        : 'hover:bg-surface-raise hover:text-content'
                 ]"
                 :title="post.bookmarked ? 'Remove bookmark' : 'Bookmark post'"
             >
@@ -182,7 +182,7 @@
             <!-- Share Button -->
             <button
                 @click="handleShare"
-                class="flex items-center gap-2 p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-slate-100 transition-all duration-200 group-hover:scale-110"
+                class="flex items-center gap-2 p-2 rounded-full hover:bg-surface-raise hover:text-content transition-all duration-200 group-hover:scale-110"
                 title="Share post"
             >
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -193,7 +193,7 @@
 
         <!-- Remix Content (if this is a remix and different from reply context) -->
         <!-- We usually don't show this if it's a standard reply, but if there's specific 'remix' text -->
-        <div v-if="post.remix && !post.quotedPost" class="mt-3 border-l-4 border-slate-300 dark:border-slate-600 pl-3 py-1 bg-slate-50 dark:bg-slate-700/30 italic text-slate-600 dark:text-slate-400 text-sm">
+        <div v-if="post.remix && !post.quotedPost" class="mt-3 border-l-4 border-edge pl-3 py-1 bg-surface-raise/60 italic text-content-soft text-body">
             <span class="font-bold not-italic">Remixing:</span> "{{ post.remix }}"
         </div>
     </article>

@@ -1,12 +1,12 @@
 <!-- src/components/SidebarNav.vue -->
 <template>
-    <aside class="flex-shrink-0 bg-white dark:bg-slate-800 p-4 flex flex-col gap-4 justify-between border-r-2 border-slate-200 dark:border-slate-700 shadow-lg rounded-r-2xl">
+    <aside class="flex-shrink-0 bg-surface-card p-4 flex flex-col gap-4 justify-between border-r border-edge shadow-card">
         <div>
             <!-- Logo -->
-            <RouterLink to="/" class="flex items-center gap-3 mb-8 p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 group">
+            <RouterLink to="/" class="flex items-center gap-3 mb-8 p-3 rounded-inner hover:bg-surface-raise transition-all duration-200 group">
                 <img src="/icon.svg" class="size-8 group-hover:scale-110 transition-transform duration-200" />
 
-                <span class="text-3xl font-bold text-blue-600 dark:text-blue-400 tracking-widest bg-gradient-to-r dark:from-blue-400/20 dark:to-cyan-400/20 px-2 py-1 rounded-lg">
+                <span class="text-2xl font-extrabold tracking-widest bg-gradient-to-r from-brand-deep to-accent2 dark:from-brand dark:to-accent2 bg-clip-text text-transparent px-1">
                     ΞvoNext
                 </span>
             </RouterLink>
@@ -17,11 +17,11 @@
                     v-for="link in navLinks"
                     :key="link.to"
                     :to="link.to"
-                    class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white transition-all duration-200 font-medium shadow-sm hover:shadow-md hover:-translate-x-1 border-l-4 border-transparent hover:border-blue-500 dark:hover:border-blue-400
-                            [&.router-link-exact-active]:bg-gradient-to-r [&.router-link-exact-active]:from-blue-500/10 [&.router-link-exact-active]:to-cyan-500/10
-                            [&.router-link-exact-active]:text-blue-600 dark:[&.router-link-exact-active]:text-blue-400
-                            [&.router-link-exact-active]:border-blue-500 dark:[&.router-link-exact-active]:border-blue-400
-                            [&.router-link-exact-active]:shadow-blue-200/50 dark:[&.router-link-exact-active]:shadow-blue-500/20"
+                    class="flex items-center gap-3 px-4 py-3 rounded-inner text-content-soft hover:bg-surface-raise hover:text-content transition-all duration-200 font-medium border-l-4 border-transparent hover:border-brand/50
+                            [&.router-link-exact-active]:bg-gradient-to-r [&.router-link-exact-active]:from-brand/10 [&.router-link-exact-active]:to-accent2/10
+                            [&.router-link-exact-active]:text-brand-deep dark:[&.router-link-exact-active]:text-brand
+                            [&.router-link-exact-active]:border-brand
+                            [&.router-link-exact-active]:shadow-glow"
                 >
                     <component :is="link.icon" class="size-5 transition-transform duration-200 group-hover:scale-110 [&.router-link-exact-active]:scale-110" />
                     <span>{{ link.text }}</span>
@@ -30,11 +30,11 @@
         </div>
 
         <!-- Disconnect / Connect Identity -->
-        <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
+        <div class="border-t border-edge pt-4">
             <button
                 @click="handleDisconnect"
-                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-x-1 group border border-transparent text-white"
-                :class="isConnected ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-control transition-all duration-200 shadow-sm hover:shadow-md group border border-transparent text-white"
+                :class="isConnected ? 'bg-down/90 hover:bg-down' : 'bg-brand-deep hover:bg-brand shadow-glow'"
             >
                 <component
                     :is="isConnected ? ArrowLeftStartOnRectangleIcon : ArrowRightStartOnRectangleIcon"
