@@ -2,12 +2,12 @@
 <template>
     <main>
         <Header :title="`Manage Keys - ${displayName}`" />
-        <section class="bg-gray-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl">
+        <section class="bg-surface-base font-sans text-content min-h-screen border border-edge rounded-inner shadow-2xl">
             <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
                 <div class="space-y-8">
                     <!-- Back Nav & Conditional Transfer Key Button -->
                     <div class="flex items-center justify-between">
-                        <RouterLink to="/identity" class="inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors duration-200">
+                        <RouterLink to="/identity" class="inline-flex items-center gap-2 text-content-soft hover:text-cyan-600 dark:hover:text-brand transition-colors duration-200">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                             </svg>
@@ -15,7 +15,7 @@
                         </RouterLink>
                         <RouterLink :to="`/identity/${identityId}/keys/add`"
                                     v-if="!hasTransferKey"
-                                    class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-2 px-4 text-sm font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
+                                    class="inline-flex items-center gap-2 rounded-control bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-2 px-4 text-sm font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                             </svg>
@@ -29,16 +29,16 @@
                                 {{ displayName.charAt(0).toUpperCase() }}
                             </div>
                             <div class="flex-1">
-                                <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">Manage Keys</h1>
-                                <p class="text-lg text-slate-600 dark:text-slate-400">{{ displayName }}</p>
+                                <h1 class="text-3xl font-extrabold tracking-tight text-content sm:text-4xl">Manage Keys</h1>
+                                <p class="text-lg text-content-soft">{{ displayName }}</p>
                             </div>
                             <div class="flex-shrink-0">
-                                <div class="text-sm font-mono bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-lg">ID: {{ shortId }}</div>
+                                <div class="text-sm font-mono bg-surface-raise px-3 py-2 rounded-lg">ID: {{ shortId }}</div>
                             </div>
                         </div>
                     </div>
                     <!-- Missing Transfer Key Alert -->
-                    <div v-if="!hasTransferKey && !loading" class="rounded-xl bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-2 border-amber-400/30 p-4">
+                    <div v-if="!hasTransferKey && !loading" class="rounded-control bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-2 border-amber-400/30 p-4">
                         <div class="flex items-start gap-4">
                             <div class="flex-shrink-0">
                                 <div class="rounded-full bg-amber-500/20 p-3">
@@ -71,24 +71,24 @@
                     <!-- Loading State -->
                     <div v-if="loading" class="text-center py-12">
                         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
-                        <p class="mt-4 text-slate-600 dark:text-slate-400">Loading keys...</p>
+                        <p class="mt-4 text-content-soft">Loading keys...</p>
                     </div>
                     <!-- Keys Grid -->
                     <div v-else class="space-y-6">
                         <div class="space-y-4">
                             <div class="flex items-center justify-between">
-                                <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">Registered Keys</h2>
-                                <div class="text-sm text-slate-600 dark:text-slate-400">{{ keys.length }} keys</div>
+                                <h2 class="text-xl font-bold text-content">Registered Keys</h2>
+                                <div class="text-sm text-content-soft">{{ keys.length }} keys</div>
                             </div>
-                            <div v-if="keys.length === 0" class="text-center py-8 rounded-xl border-2 border-dashed border-slate-300">
-                                <p class="text-slate-500">No keys registered</p>
+                            <div v-if="keys.length === 0" class="text-center py-8 rounded-control border-2 border-dashed border-edge">
+                                <p class="text-content-soft">No keys registered</p>
                             </div>
                             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div v-for="key in keys" :key="key.idx"
                                     :class="[
-                                        'bg-white dark:bg-slate-800 rounded-xl border-2 transition-all duration-200 p-5 flex flex-col relative',
+                                        'bg-surface-card rounded-control border-2 transition-all duration-200 p-5 flex flex-col relative',
                                         key.disabledAt ? 'opacity-75 grayscale' : '',
-                                        !localKeys[key.idx] ? 'border-amber-400 bg-amber-500/5' : 'border-slate-200 dark:border-slate-700'
+                                        !localKeys[key.idx] ? 'border-amber-400 bg-amber-500/5' : 'border-edge'
                                     ]"
                                 >
                                     <div class="flex items-start justify-between mb-4">
@@ -100,7 +100,7 @@
                                                     </svg>
                                                 </span>
                                                 <div>
-                                                    <h3 class="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-wide">
+                                                    <h3 class="font-bold text-content flex items-center gap-2 uppercase tracking-wide">
                                                         {{ getPurposeLabel(key.purpose) }}
                                                         <span v-if="key.disabledAt" class="text-xs text-red-500 border border-red-200 px-2 py-0.5 rounded">Disabled</span>
                                                         <span v-if="!localKeys[key.idx]" class="text-[10px] bg-amber-500 text-white px-2 py-0.5 rounded-md font-bold">Orphaned</span>
@@ -109,7 +109,7 @@
                                                         <span :class="getSecurityLevelClass(key.securityLevel)" class="px-2 py-0.5 text-xs font-semibold rounded-full border border-transparent">
                                                             {{ getSecurityLevelLabel(key.securityLevel) }}
                                                         </span>
-                                                        <span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs rounded-full border border-slate-200 dark:border-slate-600">
+                                                        <span class="px-2 py-0.5 bg-surface-raise text-content text-xs rounded-full border border-edge ">
                                                             {{ key.keyType }}
                                                         </span>
                                                     </div>
@@ -117,12 +117,12 @@
                                             </div>
                                             <div class="space-y-2 pl-13">
                                                 <div class="flex items-center justify-between text-sm">
-                                                    <span class="text-slate-500 min-w-[60px]">Key ID:</span>
-                                                    <span class="font-mono text-xs bg-slate-50 dark:bg-slate-900 px-2 py-1 rounded text-slate-700">{{ key.idx ?? 'N/A' }}</span>
+                                                    <span class="text-content-soft min-w-[60px]">Key ID:</span>
+                                                    <span class="font-mono text-xs bg-surface-raise bg-surface-card px-2 py-1 rounded text-content">{{ key.idx ?? 'N/A' }}</span>
                                                 </div>
                                                 <div v-if="key.data" class="text-sm">
-                                                    <div class="text-slate-500 mb-1">Public Key Data:</div>
-                                                    <div class="font-mono text-xs bg-slate-50 dark:bg-slate-900 p-2 rounded-lg break-all text-slate-600 border border-slate-200">
+                                                    <div class="text-content-soft mb-1">Public Key Data:</div>
+                                                    <div class="font-mono text-xs bg-surface-raise bg-surface-card p-2 rounded-lg break-all text-content-soft border border-edge">
                                                         {{ key.data }}
                                                     </div>
                                                 </div>
@@ -140,7 +140,7 @@
                                             </button>
                                         </template>
                                         <button v-else @click="showUnimplemented"
-                                            class="w-full rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-red-50 hover:text-red-700 py-2.5 px-4 text-xs font-semibold transition-all"
+                                            class="w-full rounded-lg border border-edge  text-content hover:bg-red-50 hover:text-red-700 py-2.5 px-4 text-xs font-semibold transition-all"
                                         >
                                             {{ key.disabledAt ? 'Key Disabled' : 'Disable Key' }}
                                         </button>
@@ -152,22 +152,22 @@
                 </div>
             </div>
             <!-- IMPORT MODAL -->
-            <div v-if="showImportModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-                <div class="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-8 shadow-2xl border border-slate-200 dark:border-slate-700 transform transition-all duration-300 scale-100">
+            <div v-if="showImportModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-surface-base/80 backdrop-blur-md">
+                <div class="bg-surface-card rounded-inner w-full max-w-md p-8 shadow-2xl border border-edge transform transition-all duration-300 scale-100">
                     <div class="flex items-center gap-3 mb-6">
                         <div class="size-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500">
                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" /></svg>
                         </div>
-                        <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100">Import Private Key</h3>
+                        <h3 class="text-xl font-bold text-content">Import Private Key</h3>
                     </div>
-                    <p class="text-sm text-slate-500 mb-6">Enter the private key (Hex or WIF) associated with <span class="font-mono text-cyan-600">Key ID {{ targetKeyId }}</span>.</p>
+                    <p class="text-sm text-content-soft mb-6">Enter the private key (Hex or WIF) associated with <span class="font-mono text-cyan-600">Key ID {{ targetKeyId }}</span>.</p>
                     <div class="space-y-5">
                         <textarea v-model="importKeyInput" rows="3" placeholder="Paste private key here..."
-                                  class="w-full rounded-xl bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 p-4 text-sm font-mono focus:ring-2 focus:ring-amber-500 outline-none transition-all"></textarea>
+                                  class="w-full rounded-control bg-surface-raise bg-surface-card border border-edge p-4 text-sm font-mono focus:ring-2 focus:ring-amber-500 outline-none transition-all"></textarea>
                         <div class="flex gap-4">
-                            <button @click="showImportModal = false" class="flex-1 py-3 text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors">Cancel</button>
+                            <button @click="showImportModal = false" class="flex-1 py-3 text-sm font-bold text-content-soft hover:text-content transition-colors">Cancel</button>
                             <button @click="handleImport" :disabled="importKeyInput.length < 32"
-                                    class="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-bold shadow-lg disabled:opacity-50">
+                                    class="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-control text-sm font-bold shadow-lg disabled:opacity-50">
                                 Save to Safu
                             </button>
                         </div>
@@ -175,26 +175,26 @@
                 </div>
             </div>
             <!-- YOUR ORIGINAL DEBUG SECTION -->
-            <div class="mt-8 mx-4 sm:mx-6 lg:mx-8 mb-8 bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden">
-                <div class="p-4 border-b border-slate-700 flex justify-between items-center cursor-pointer hover:bg-slate-800 transition-colors" @click="isDebugOpen = !isDebugOpen">
+            <div class="mt-8 mx-4 sm:mx-6 lg:mx-8 mb-8 bg-surface-card rounded-inner border border-edge overflow-hidden">
+                <div class="p-4 border-b border-edge flex justify-between items-center cursor-pointer hover:bg-surface-card transition-colors" @click="isDebugOpen = !isDebugOpen">
                     <div class="flex items-center gap-2">
                         <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3, 1.732 3z"/></svg>
                         <h3 class="text-sm font-bold text-red-400 uppercase tracking-widest">Debug Information</h3>
                     </div>
-                    <svg class="w-4 h-4 text-slate-400 transition-transform duration-300" :class="{ 'rotate-180': isDebugOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-content-faint transition-transform duration-300" :class="{ 'rotate-180': isDebugOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
                 </div>
                 <div v-if="isDebugOpen" class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs font-mono">
-                    <div class="bg-black/50 p-4 rounded border border-slate-700">
-                        <p class="font-bold text-slate-300 mb-2 border-b border-slate-700 pb-1 uppercase">Local Map Check</p>
+                    <div class="bg-black/50 p-4 rounded border border-edge">
+                        <p class="font-bold text-content-faint mb-2 border-b border-edge pb-1 uppercase">Local Map Check</p>
                         <pre class="text-amber-500">{{ JSON.stringify(localKeys, null, 2) }}</pre>
                     </div>
-                    <div class="bg-black/50 p-4 rounded border border-slate-700">
-                        <p class="font-bold text-slate-300 mb-2 border-b border-slate-700 pb-1 uppercase">Live Fetch</p>
+                    <div class="bg-black/50 p-4 rounded border border-edge">
+                        <p class="font-bold text-content-faint mb-2 border-b border-edge pb-1 uppercase">Live Fetch</p>
                         <div class="mb-2 text-blue-400">Status: {{ debugLiveStatus }}</div>
                         <div v-if="debugLiveData" class="max-h-40 overflow-y-auto custom-scrollbar">
-                            <pre class="text-slate-300 whitespace-pre-wrap">{{ JSON.stringify(debugLiveData, null, 2) }}</pre>
+                            <pre class="text-content-faint whitespace-pre-wrap">{{ JSON.stringify(debugLiveData, null, 2) }}</pre>
                         </div>
                     </div>
                 </div>

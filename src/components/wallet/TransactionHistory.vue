@@ -1,16 +1,16 @@
 <!-- src/components/wallet/TransactionHistory.vue -->
 <template>
-    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-0 flex flex-col h-full">
+    <div class="bg-surface-card rounded-card border border-edge shadow-sm p-0 flex flex-col h-full">
         <!-- Header -->
-        <div class="p-8 pb-4 border-b border-slate-100 dark:border-slate-800">
+        <div class="p-8 pb-4 border-b border-edge ">
             <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <h2 class="text-xl font-bold text-content flex items-center gap-2">
                     <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     Recent Activity
                 </h2>
-                <div class="text-xs font-bold text-slate-500 dark:text-slate-400">
+                <div class="text-xs font-bold text-content-faint">
                     Page <span class="text-indigo-600 dark:text-indigo-400">{{ currentPage }}</span> of {{ totalPages || 1 }}
                 </div>
             </div>
@@ -23,11 +23,11 @@
                 :key="tx.id"
                 role="button"
                 @click="router.push(`/wallet/transaction/${tx.id}`)"
-                class="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-indigo-500/30 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer group"
+                class="flex items-center justify-between p-4 rounded-control border border-edge  hover:border-indigo-500/30 hover:bg-surface-raise dark:hover:bg-surface-card transition-all cursor-pointer group"
             >
                 <div class="flex items-center gap-4">
                     <!-- Icon Logic -->
-                    <div class="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center flex-shrink-0">
+                    <div class="w-10 h-10 rounded-full bg-surface-raise bg-surface-card border border-edge flex items-center justify-center flex-shrink-0">
                         <svg v-if="tx.type === 'sent'" class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
                         </svg>
@@ -37,17 +37,17 @@
                         <svg v-else-if="tx.type === 'swap'" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                         </svg>
-                        <svg v-else class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg v-else class="w-5 h-5 text-content-soft" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                         </svg>
                     </div>
                     <div class="min-w-0">
-                        <p class="font-bold text-slate-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{{ tx.title }}</p>
-                        <p class="text-xs font-mono text-slate-500 dark:text-slate-400 truncate">{{ tx.subtitle }}</p>
+                        <p class="font-bold text-content truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{{ tx.title }}</p>
+                        <p class="text-xs font-mono text-content-faint truncate">{{ tx.subtitle }}</p>
                     </div>
                 </div>
                 <div class="flex flex-col items-end gap-1">
-                    <span class="font-bold text-slate-900 dark:text-white">
+                    <span class="font-bold text-content">
                         {{ getDisplayAmount(tx) }}
                     </span>
                     <span class="px-2 py-0.5 rounded text-[10px] font-bold" :class="getStatusClasses(tx.status)">
@@ -57,33 +57,33 @@
             </div>
 
             <!-- Empty State -->
-            <div v-if="displayedTransactions.length === 0 && !isLoading" class="flex flex-col items-center justify-center h-full min-h-[200px] text-slate-400">
+            <div v-if="displayedTransactions.length === 0 && !isLoading" class="flex flex-col items-center justify-center h-full min-h-[200px] text-content-faint">
                 <svg class="w-12 h-12 mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 <p class="text-sm font-medium">No recent activity</p>
             </div>
-            <div v-if="isLoading" class="flex flex-col items-center justify-center py-8 text-slate-400 animate-pulse">
+            <div v-if="isLoading" class="flex flex-col items-center justify-center py-8 text-content-faint animate-pulse">
                 <p>Loading History...</p>
             </div>
         </div>
 
         <!-- Pagination -->
-        <div v-if="totalPages > 1" class="p-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div v-if="totalPages > 1" class="p-6 border-t border-edge  flex items-center justify-between">
             <button
                 @click="currentPage--"
                 :disabled="currentPage === 1"
-                class="flex-1 py-2 px-4 mr-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-white border border-slate-200 dark:bg-slate-800 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all flex items-center justify-center gap-2"
+                class="flex-1 py-2 px-4 mr-2 text-sm font-bold text-content bg-surface-card border border-edge bg-surface-card  hover:bg-surface-raise dark:hover:bg-surface-raise disabled:opacity-50 disabled:cursor-not-allowed rounded-control transition-all flex items-center justify-center gap-2"
             >
                 Previous
             </button>
-            <span class="text-xs font-bold text-slate-500 dark:text-slate-400 mx-2">
+            <span class="text-xs font-bold text-content-faint mx-2">
                 {{ displayedTransactions.length }} / {{ allTransactions.length }}
             </span>
             <button
                 @click="currentPage++"
                 :disabled="currentPage === totalPages"
-                class="flex-1 py-2 px-4 ml-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all flex items-center justify-center gap-2"
+                class="flex-1 py-2 px-4 ml-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-control transition-all flex items-center justify-center gap-2"
             >
                 Next
             </button>
@@ -177,7 +177,7 @@ const getStatusClasses = (status: string) => {
         case 'Failed':
         case 'FAILED':
             return 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
-        default: return 'bg-slate-50 dark:bg-slate-900/20 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+        default: return 'bg-surface-raise bg-surface-card/20 text-content border border-edge'
     }
 }
 

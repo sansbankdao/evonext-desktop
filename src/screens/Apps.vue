@@ -3,18 +3,18 @@
     <main>
         <Header title="Mini Apps" />
 
-        <section class="bg-white dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen rounded-2xl mx-4">
+        <section class="bg-surface-card font-sans text-content min-h-screen rounded-inner mx-4">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <div class="flex flex-col gap-12">
 
                     <!-- 1. Featured Cards -->
                     <div>
-                        <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4">
+                        <h2 class="text-2xl font-bold text-content mb-4">
                             Featured Apps
                         </h2>
 
                         <div class="flex space-x-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-slate-500 dark:scrollbar-thumb-slate-700 scrollbar-track-slate-100 dark:scrollbar-track-slate-800">
-                            <div v-for="app in featuredApps" :key="app.id" class="flex-shrink-0 h-32 md:h-48 group relative rounded-2xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-700">
+                            <div v-for="app in featuredApps" :key="app.id" class="flex-shrink-0 h-32 md:h-48 group relative rounded-inner overflow-hidden shadow-sm border border-edge">
                                 <img
                                     :src="app.imageUrl"
                                     :alt="app.title"
@@ -28,7 +28,7 @@
                                         {{ app.title }}
                                     </h3>
 
-                                    <p class="text-slate-200 dark:text-slate-300 mt-1 text-sm">
+                                    <p class="text-content  mt-1 text-sm">
                                         {{ app.description }}
                                     </p>
                                 </div>
@@ -38,31 +38,31 @@
 
                     <!-- 2. Installed Apps -->
                     <div>
-                        <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
+                        <h2 class="text-xl font-semibold text-content mb-4">
                             Installed Apps
                         </h2>
 
                         <div class="flex space-x-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-slate-500 dark:scrollbar-thumb-slate-700 scrollbar-track-slate-100 dark:scrollbar-track-slate-800">
                             <a v-for="app in installedApps" :key="app.id" href="#" class="flex flex-col items-center gap-2 flex-shrink-0 w-24 text-center group">
-                                <div class="size-20 rounded-2xl bg-slate-100 dark:bg-slate-700 p-1 transition duration-300 group-hover:scale-105 group-hover:bg-slate-200 dark:group-hover:bg-slate-600 border border-slate-200 dark:border-slate-600">
+                                <div class="size-20 rounded-inner bg-surface-raise p-1 transition duration-300 group-hover:scale-105 group-hover:bg-surface-raise dark:group-hover:bg-surface-raise border border-edge ">
                                     <img
                                         :src="app.iconUrl"
                                         :alt="app.name"
-                                        class="w-full h-full object-cover rounded-xl"
+                                        class="w-full h-full object-cover rounded-control"
                                     />
                                 </div>
 
-                                <span class="text-xs text-slate-600 dark:text-slate-400 font-medium truncate w-full">
+                                <span class="text-xs text-content-soft font-medium truncate w-full">
                                     {{ app.name }}
                                 </span>
                             </a>
 
                             <router-link to="/studio" class="flex flex-col items-center gap-2 flex-shrink-0 w-24 text-center group">
-                                <div class="size-20 rounded-2xl bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center transition duration-300 group-hover:border-slate-200 dark:group-hover:border-slate-500 group-hover:bg-slate-200 dark:group-hover:bg-slate-700">
-                                    <svg class="h-8 w-8 text-slate-500 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                <div class="size-20 rounded-inner bg-surface-raise border-2 border-dashed border-edge flex items-center justify-center transition duration-300 group-hover:border-edge dark:group-hover:border-edge group-hover:bg-surface-raise dark:group-hover:bg-surface-raise">
+                                    <svg class="h-8 w-8 text-content-faint" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                                 </div>
 
-                                <span class="text-xs text-slate-500 dark:text-slate-500 font-medium">
+                                <span class="text-xs text-content-soft dark:text-content-soft font-medium">
                                     Add New
                                 </span>
                             </router-link>
@@ -71,15 +71,15 @@
 
                     <!-- 3. Trending List -->
                     <div>
-                        <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-6">
+                        <h2 class="text-2xl font-bold text-content mb-6">
                             Trending Apps
                         </h2>
 
                         <!-- Category Filters -->
-                        <div class="mb-6 border-b border-slate-200 dark:border-slate-700">
+                        <div class="mb-6 border-b border-edge">
                             <nav class="-mb-px flex space-x-6 overflow-x-auto">
                                 <button v-for="category in categories" :key="category.id" @click="activeCategory = category.id"
-                                    :class="[activeCategory === category.id ? 'border-sky-400 text-sky-600 dark:text-sky-400' : 'border-transparent text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-slate-100', 'flex items-center gap-2 whitespace-nowrap border-b-2 py-3 px-1 text-base font-medium transition rounded-t-xl']">
+                                    :class="[activeCategory === category.id ? 'border-sky-400 text-sky-600 dark:text-sky-400' : 'border-transparent text-content-soft hover:border-edge dark:hover:border-edge hover:text-content dark:hover:text-content', 'flex items-center gap-2 whitespace-nowrap border-b-2 py-3 px-1 text-base font-medium transition rounded-t-xl']">
                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" v-html="category.icon"></svg>
                                     <span>{{ category.name }}</span>
                                 </button>
@@ -88,37 +88,37 @@
 
                         <!-- List of Trending Apps -->
                         <div class="space-y-3">
-                            <div v-for="app in filteredTrendingApps" :key="app.id" class="bg-white dark:bg-slate-800 p-4 rounded-2xl flex items-center justify-between gap-4 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <div v-for="app in filteredTrendingApps" :key="app.id" class="bg-surface-card p-4 rounded-inner flex items-center justify-between gap-4 hover:bg-surface-raise dark:hover:bg-surface-raise/50 transition border border-edge shadow-sm">
                                 <div class="flex items-center gap-4">
                                     <img
                                         :src="app.iconUrl"
                                         :alt="app.name"
-                                        class="size-20 rounded-2xl bg-slate-100 dark:bg-slate-700 p-1 border border-slate-200 dark:border-slate-600 object-cover"
+                                        class="size-20 rounded-inner bg-surface-raise p-1 border border-edge  object-cover"
                                     />
 
                                     <div>
-                                        <h3 class="font-bold text-slate-900 dark:text-slate-100">
+                                        <h3 class="font-bold text-content">
                                             {{ app.name }}
                                         </h3>
 
-                                        <p class="text-sm text-slate-600 dark:text-slate-400">
+                                        <p class="text-sm text-content-soft">
                                             by {{ app.publisher }}
                                         </p>
                                     </div>
                                 </div>
 
-                                <button class="inline-flex justify-center rounded-2xl bg-sky-500 hover:bg-sky-600 py-2 px-6 text-sm font-semibold text-white shadow-sm transition border border-sky-300">
+                                <button class="inline-flex justify-center rounded-inner bg-sky-500 hover:bg-sky-600 py-2 px-6 text-sm font-semibold text-white shadow-sm transition border border-sky-300">
                                     Launch
                                 </button>
                             </div>
 
                             <!-- Empty State -->
-                            <div v-if="filteredTrendingApps.length === 0" class="text-center py-12 px-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                                <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                            <div v-if="filteredTrendingApps.length === 0" class="text-center py-12 px-6 bg-surface-card rounded-inner border border-edge shadow-sm">
+                                <h3 class="text-lg font-semibold text-content">
                                     No Apps in this Category
                                 </h3>
 
-                                <p class="mt-1 text-slate-600 dark:text-slate-400">
+                                <p class="mt-1 text-content-soft">
                                     Check back later or explore another category.
                                 </p>
                             </div>

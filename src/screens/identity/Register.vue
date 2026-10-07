@@ -4,18 +4,18 @@
     <main>
         <Header title="Identity Registration" />
 
-        <section class="bg-white dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen rounded-2xl mx-4">
+        <section class="bg-surface-card font-sans text-content min-h-screen rounded-inner mx-4">
             <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
                 <div class="space-y-8">
                     <!-- Stepper Header -->
                     <div class="relative pt-8 pb-12">
-                        <div class="overflow-hidden h-2 mb-6 text-xs flex rounded bg-slate-100 dark:bg-slate-700">
+                        <div class="overflow-hidden h-2 mb-6 text-xs flex rounded bg-surface-raise">
                             <div
                                 class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-sky-500 transition-all duration-500 ease-in-out"
                                 :style="{ width: `${progressWidth}%` }"
                             ></div>
                         </div>
-                        <div class="flex justify-between text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                        <div class="flex justify-between text-xs sm:text-sm font-semibold text-content-soft uppercase tracking-wider">
                             <span :class="{'text-sky-500 dark:text-sky-400': currentStepIdx >= 0}">1. Details</span>
                             <span :class="{'text-sky-500 dark:text-sky-400': currentStepIdx >= 1}">2. Payment</span>
                             <span :class="{'text-sky-500 dark:text-sky-400': currentStepIdx >= 2}">3. Register</span>
@@ -24,18 +24,18 @@
                     </div>
 
                     <!-- Step 1: Form -->
-                    <div v-if="step === 'form'" class="bg-white dark:bg-slate-800 p-8 rounded-2xl space-y-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div v-if="step === 'form'" class="bg-surface-card p-8 rounded-inner space-y-6 border border-edge shadow-sm">
                         <div class="text-center space-y-2">
-                            <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
+                            <h1 class="text-3xl font-extrabold tracking-tight text-content sm:text-4xl">
                                 Create Identity
                             </h1>
-                            <p class="text-lg text-slate-600 dark:text-slate-400">
+                            <p class="text-lg text-content-soft">
                                 Register a new profile on the Dash Network.
                             </p>
                         </div>
 
                         <div>
-                            <label for="username" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Username</label>
+                            <label for="username" class="block text-sm font-medium text-content">Username</label>
                             <div class="relative mt-1 rounded-md shadow-sm">
                                 <input
                                     v-model="formData.username"
@@ -44,13 +44,13 @@
                                     id="username"
                                     placeholder="alice"
                                     :disabled="isChecking"
-                                    class="block w-full rounded-md border-0 py-3 pl-3 pr-16 ring-1 ring-inset ring-slate-300 dark:ring-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-inset focus:ring-sky-600 dark:focus:ring-sky-400 sm:text-sm sm:leading-6"
+                                    class="block w-full rounded-md border-0 py-3 pl-3 pr-16 ring-1 ring-inset ring-edge bg-surface-raise bg-surface-raise text-content focus:ring-2 focus:ring-inset focus:ring-sky-600 dark:focus:ring-sky-400 sm:text-sm sm:leading-6"
                                 />
                                 <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                    <span class="text-slate-500 sm:text-sm">.dash</span>
+                                    <span class="text-content-soft sm:text-sm">.dash</span>
                                 </div>
                             </div>
-                            <div class="mt-2 text-xs" :class="isAvailable === true ? 'text-green-600' : (isAvailable === false ? 'text-red-600' : 'text-slate-500')">
+                            <div class="mt-2 text-xs" :class="isAvailable === true ? 'text-green-600' : (isAvailable === false ? 'text-red-600' : 'text-content-soft')">
                                 <span v-if="isChecking">Checking availability...</span>
                                 <span v-else-if="isAvailable === true">Username is available!</span>
                                 <span v-else-if="isAvailable === false">Username is taken or invalid.</span>
@@ -59,14 +59,14 @@
                         </div>
 
                         <div>
-                            <label for="displayName" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Display Name (Optional)</label>
+                            <label for="displayName" class="block text-sm font-medium text-content">Display Name (Optional)</label>
                             <div class="mt-1">
                                 <input
                                     v-model="formData.displayName"
                                     type="text"
                                     id="displayName"
                                     placeholder="Alice Smith"
-                                    class="block w-full rounded-md border-0 py-3 px-3 ring-1 ring-inset ring-slate-300 dark:ring-slate-600 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-inset focus:ring-sky-600 dark:focus:ring-sky-400 sm:text-sm sm:leading-6"
+                                    class="block w-full rounded-md border-0 py-3 px-3 ring-1 ring-inset ring-edge bg-surface-raise bg-surface-raise text-content focus:ring-2 focus:ring-inset focus:ring-sky-600 dark:focus:ring-sky-400 sm:text-sm sm:leading-6"
                                 />
                             </div>
                         </div>
@@ -83,20 +83,20 @@
                     </div>
 
                     <!-- Step 2: Payment -->
-                    <div v-if="step === 'payment'" class="bg-white dark:bg-slate-800 p-8 rounded-2xl space-y-6 border border-slate-200 dark:border-slate-700 shadow-sm text-center">
-                        <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100">Deposit Required</h3>
-                        <p class="text-slate-600 dark:text-slate-400 text-sm">
+                    <div v-if="step === 'payment'" class="bg-surface-card p-8 rounded-inner space-y-6 border border-edge shadow-sm text-center">
+                        <h3 class="text-xl font-bold text-content">Deposit Required</h3>
+                        <p class="text-content-soft text-sm">
                             To register your identity, please send <span class="font-bold text-sky-500">0.1 DASH</span> to the address below.
                         </p>
 
                         <div v-if="payAddress" class="space-y-4">
-                            <div class="flex justify-center bg-white p-2 rounded-lg border border-slate-200 w-fit mx-auto">
+                            <div class="flex justify-center bg-surface-card p-2 rounded-lg border border-edge w-fit mx-auto">
                                 <qrcode-vue :value="paymentUri" :size="200" level="H" />
                             </div>
 
-                            <div class="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
-                                <p class="text-xs text-slate-500 mb-1">Payment Address</p>
-                                <p class="font-mono text-xs break-all text-slate-900 dark:text-slate-100">
+                            <div class="bg-surface-raise bg-surface-card p-4 rounded-lg border border-edge">
+                                <p class="text-xs text-content-soft mb-1">Payment Address</p>
+                                <p class="font-mono text-xs break-all text-content">
                                     {{ payAddress }}
                                 </p>
                             </div>
@@ -112,12 +112,12 @@
 
                         <div v-else class="flex flex-col items-center justify-center py-8">
                             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500"></div>
-                            <p class="mt-4 text-slate-500 text-sm">Initializing payment...</p>
+                            <p class="mt-4 text-content-soft text-sm">Initializing payment...</p>
                         </div>
                     </div>
 
                     <!-- Step 3: Loading (Broadcasting) -->
-                    <div v-if="step === 'loading'" class="bg-white dark:bg-slate-800 p-8 rounded-2xl space-y-6 border border-slate-200 dark:border-slate-700 shadow-sm text-center">
+                    <div v-if="step === 'loading'" class="bg-surface-card p-8 rounded-inner space-y-6 border border-edge shadow-sm text-center">
                         <div class="flex justify-center">
                             <div class="relative flex h-16 w-16">
                                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
@@ -128,20 +128,20 @@
                                 </span>
                             </div>
                         </div>
-                        <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100">{{ loadingState }}</h3>
-                        <p class="text-sm text-slate-500">This usually takes about 10-20 seconds.</p>
+                        <h3 class="text-xl font-bold text-content">{{ loadingState }}</h3>
+                        <p class="text-sm text-content-soft">This usually takes about 10-20 seconds.</p>
                     </div>
 
                     <!-- Step 4: Seed Phrase -->
-                    <div v-if="step === 'seed'" class="bg-white dark:bg-slate-800 p-8 rounded-2xl space-y-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+                    <div v-if="step === 'seed'" class="bg-surface-card p-8 rounded-inner space-y-6 border border-edge shadow-sm">
                         <div class="text-center space-y-2">
-                            <h3 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Save Your Recovery Phrase</h3>
-                            <p class="text-slate-600 dark:text-slate-400">
+                            <h3 class="text-2xl font-bold text-content">Save Your Recovery Phrase</h3>
+                            <p class="text-content-soft">
                                 Your identity <span class="font-bold text-sky-500">{{ formData.username }}.dash</span> has been successfully registered.
                             </p>
                         </div>
 
-                        <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex gap-4">
+                        <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-control p-4 flex gap-4">
                             <svg class="h-6 w-6 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
                             </svg>
@@ -150,10 +150,10 @@
                             </p>
                         </div>
 
-                        <div class="grid grid-cols-3 gap-2 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <div class="grid grid-cols-3 gap-2 bg-surface-raise/60 p-4 rounded-control border border-edge">
                             <div v-for="(word, i) in seedPhrase.split(' ')" :key="i" class="flex items-center gap-2">
-                                <span class="text-xs text-slate-400 font-mono select-none">{{ i + 1 }}.</span>
-                                <span class="font-medium text-slate-900 dark:text-slate-100">{{ word }}</span>
+                                <span class="text-xs text-content-faint font-mono select-none">{{ i + 1 }}.</span>
+                                <span class="font-medium text-content">{{ word }}</span>
                             </div>
                         </div>
 
@@ -163,11 +163,11 @@
                                     id="confirmation"
                                     v-model="seedPhraseConfirmed"
                                     type="checkbox"
-                                    class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 text-sky-500 focus:ring-sky-500 dark:focus:ring-sky-400"
+                                    class="h-4 w-4 rounded border-edge bg-surface-raise bg-surface-raise text-sky-500 focus:ring-sky-500 dark:focus:ring-sky-400"
                                 >
                             </div>
                             <div class="text-sm leading-6">
-                                <label for="confirmation" class="font-medium text-slate-900 dark:text-slate-100">I have securely written down my recovery phrase.</label>
+                                <label for="confirmation" class="font-medium text-content">I have securely written down my recovery phrase.</label>
                             </div>
                         </div>
 
@@ -175,7 +175,7 @@
                             <button
                                 @click="finishRegistration"
                                 :disabled="!seedPhraseConfirmed"
-                                class="w-full inline-flex justify-center rounded-2xl bg-sky-500 hover:bg-sky-600 py-3 px-6 text-base font-semibold text-white shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed border border-sky-300"
+                                class="w-full inline-flex justify-center rounded-inner bg-sky-500 hover:bg-sky-600 py-3 px-6 text-base font-semibold text-white shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed border border-sky-300"
                             >
                                 Complete Registration
                             </button>

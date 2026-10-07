@@ -148,13 +148,13 @@ const initializeCopyButtons = () => {
                 Failed
             `
             copyBtn.classList.add('bg-red-700', 'hover:bg-red-600')
-            copyBtn.classList.remove('bg-slate-700', 'hover:bg-slate-600')
+            copyBtn.classList.remove('bg-surface-raise', 'hover:bg-surface-raise')
 
             setTimeout(() => {
                 copyBtn.innerHTML = originalText
                 copyBtn.removeAttribute('disabled')
                 copyBtn.classList.remove('bg-red-700', 'hover:bg-red-600')
-                copyBtn.classList.add('bg-slate-700', 'hover:bg-slate-600')
+                copyBtn.classList.add('bg-surface-raise', 'hover:bg-surface-raise')
             }, 2000)
         }
     })
@@ -206,12 +206,12 @@ const _parseAllSections = (_src: string) => {
             const id = `code-${Math.random().toString(36).substr(2, 9)}`
             return `
                 <div class="relative code-block-container group my-3">
-                    <pre id="${id}" class="code-block block p-4 bg-slate-900 border-l-4 border-amber-500 rounded-r-md shadow-lg overflow-x-auto font-mono text-sm leading-relaxed">
+                    <pre id="${id}" class="code-block block p-4 bg-surface-card border-l-4 border-amber-500 rounded-r-md shadow-lg overflow-x-auto font-mono text-sm leading-relaxed">
                         <code class="language-${lang} text-amber-50">${escaped}</code>
                     </pre>
                     <button
                         data-copy-target="${id}"
-                        class="copy-btn absolute top-2 right-2 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium rounded-md border border-slate-600 opacity-0 group-hover:opacity-100 transition-opacity duration-200 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+                        class="copy-btn absolute top-2 right-2 px-3 py-1.5 bg-surface-raise hover:bg-surface-raise text-content text-xs font-medium rounded-md border border-edge opacity-0 group-hover:opacity-100 transition-opacity duration-200 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-slate-900"
                         title="Copy to clipboard"
                     >
                         <svg class="w-4 h-4 inline-block mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -230,10 +230,10 @@ const _parseAllSections = (_src: string) => {
         heading({ text, depth }: Tokens.Heading) {
             const parsedText = marked.parseInline(text) as string
             const sizes = {
-                1: 'text-3xl font-bold mb-4 pb-2 border-b border-slate-200',
-                2: 'text-2xl font-semibold mb-3 mt-6 text-slate-800',
-                3: 'text-xl font-medium mb-2 mt-5 text-slate-700',
-                4: 'text-lg font-medium mb-2 mt-4 text-slate-600'
+                1: 'text-3xl font-bold mb-4 pb-2 border-b border-edge',
+                2: 'text-2xl font-semibold mb-3 mt-6 text-content',
+                3: 'text-xl font-medium mb-2 mt-5 text-content',
+                4: 'text-lg font-medium mb-2 mt-4 text-content-soft'
             }
             const sizeClass = sizes[depth as keyof typeof sizes] || 'text-base font-medium'
             return `<h${depth} class="${sizeClass}">${parsedText}</h${depth}>`
@@ -246,41 +246,41 @@ const _parseAllSections = (_src: string) => {
 
             const listItems = items.map(item => {
                 const content = marked.parseInline(item.text) as string
-                return `<li class="text-slate-700">${content}</li>`
+                return `<li class="text-content">${content}</li>`
             }).join('')
             return `<${tag} class="${listClasses}">${listItems}</${tag}>`
         },
         paragraph({ text }: Tokens.Paragraph) {
             const parsedText = marked.parseInline(text) as string
-            return `<p class="mb-4 text-slate-600 leading-relaxed">${parsedText}</p>`
+            return `<p class="mb-4 text-content-soft leading-relaxed">${parsedText}</p>`
         },
         blockquote({ text }: Tokens.Blockquote) {
             const parsedText = marked.parseInline(text) as string
-            return `<blockquote class="border-l-4 border-amber-400 bg-amber-50 pl-4 py-2 my-3 italic text-slate-700">${parsedText}</blockquote>`
+            return `<blockquote class="border-l-4 border-amber-400 bg-amber-50 pl-4 py-2 my-3 italic text-content">${parsedText}</blockquote>`
         },
         table({ header, rows }: Tokens.Table) {
             // Extract text from table cell objects
             const headerCells = header.map(cell =>
-                `<th class="px-4 py-3 bg-slate-100 border border-slate-300 font-semibold text-slate-800 text-left">${marked.parseInline(cell.text)}</th>`
+                `<th class="px-4 py-3 bg-surface-raise border border-edge font-semibold text-content text-left">${marked.parseInline(cell.text)}</th>`
             ).join('')
 
             const bodyRows = rows.map(row => {
                 const cells = row.map(cell =>
-                    `<td class="px-4 py-2 border border-slate-300 text-slate-700">${marked.parseInline(cell.text)}</td>`
+                    `<td class="px-4 py-2 border border-edge text-content">${marked.parseInline(cell.text)}</td>`
                 ).join('')
-                return `<tr class="hover:bg-slate-50 transition-colors duration-150">${cells}</tr>`
+                return `<tr class="hover:bg-surface-raise transition-colors duration-150">${cells}</tr>`
             }).join('')
 
-            return `<div class="overflow-x-auto my-4 rounded-lg border border-slate-200 shadow-sm">
-                <table class="min-w-full divide-y divide-slate-200">
+            return `<div class="overflow-x-auto my-4 rounded-lg border border-edge shadow-sm">
+                <table class="min-w-full divide-y divide-edge">
                     <thead><tr>${headerCells}</tr></thead>
-                    <tbody class="divide-y divide-slate-200">${bodyRows}</tbody>
+                    <tbody class="divide-y divide-edge">${bodyRows}</tbody>
                 </table>
             </div>`
         },
         // Additional renderers for better coverage
         codespan({ text }: Tokens.Codespan) {
-            return `<code class="bg-slate-800 text-amber-200 px-1 py-0.5 rounded font-mono text-sm">${text}</code>`
+            return `<code class="bg-surface-card text-amber-200 px-1 py-0.5 rounded font-mono text-sm">${text}</code>`
         },
         link({ href, text }: Tokens.Link) {
             const parsedText = marked.parseInline(text) as string
@@ -288,11 +288,11 @@ const _parseAllSections = (_src: string) => {
         },
         strong({ text }: Tokens.Strong) {
             const parsedText = marked.parseInline(text) as string
-            return `<strong class="font-bold text-slate-900">${parsedText}</strong>`
+            return `<strong class="font-bold text-content">${parsedText}</strong>`
         },
         em({ text }: Tokens.Em) {
             const parsedText = marked.parseInline(text) as string
-            return `<em class="italic text-slate-800">${parsedText}</em>`
+            return `<em class="italic text-content">${parsedText}</em>`
         }
     }
     marked.use({ renderer })
@@ -358,7 +358,7 @@ async function askVibe() {
                 @mousedown="startResize"
                 :class="[
                     'w-1.5 h-full flex-shrink-0 cursor-col-resize relative group',
-                    'bg-slate-200 dark:bg-slate-700',
+                    'bg-surface-raise',
                     'hover:bg-cyan-500 dark:hover:bg-cyan-400',
                     'transition-colors duration-150'
                 ]"
@@ -370,53 +370,53 @@ async function askVibe() {
                             'w-1 h-12 rounded-full transition-colors duration-150',
                             isResizing
                                 ? 'bg-cyan-500 dark:bg-cyan-400'
-                                : 'bg-slate-400 dark:bg-slate-500 group-hover:bg-white'
+                                : 'bg-surface-raise dark:bg-surface-raise group-hover:bg-surface-card'
                         ]"
                     />
                 </div>
             </div>
 
             <!-- Panel Content -->
-            <div class="flex-1 flex flex-col bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div class="flex-1 flex flex-col bg-surface-card border-l border-edge overflow-hidden">
 
                 <!-- Header -->
-                <div class="flex-shrink-0 flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-                    <span class="font-semibold text-slate-900 dark:text-slate-200 flex items-center gap-2">
-                        <SparklesIcon class="w-5 h-5 text-cyan-500" />
+                <div class="flex-shrink-0 flex items-center justify-between p-4 border-b border-edge">
+                    <span class="font-semibold text-content flex items-center gap-2">
+                        <SparklesIcon class="w-5 h-5 text-brand" />
                         Vibe Terminal
                     </span>
-                    <button @click="emit('toggle')" class="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
-                        <ChevronRightIcon class="w-5 h-5 text-slate-500" />
+                    <button @click="emit('toggle')" class="p-1 hover:bg-surface-raise dark:hover:bg-surface-card rounded-full">
+                        <ChevronRightIcon class="w-5 h-5 text-content-soft" />
                     </button>
                 </div>
 
                 <!-- Chat History -->
                 <div class="flex-1 overflow-y-auto p-4 space-y-4 text-sm custom-scrollbar">
                     <div v-for="(msg, i) in chatHistory" :key="i" :class="msg.role === 'user' ? 'text-right' : 'text-left'">
-                        <div :class="['inline-block px-3 py-2 rounded-2xl max-w-[90%]',
+                        <div :class="['inline-block px-3 py-2 rounded-inner max-w-[90%]',
                             msg.role === 'user'
                                 ? 'bg-cyan-600 text-white rounded-tr-none'
-                                : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-tl-none']"
+                                : 'bg-surface-raise text-content  rounded-tl-none']"
                         >
                             <div v-html="displayContent(msg.content)" />
                         </div>
                     </div>
 
                     <div v-if="isThinking" class="text-left">
-                        <div class="inline-block px-3 py-2 rounded-2xl bg-slate-100 dark:bg-slate-700 animate-pulse text-cyan-500 font-medium tracking-widest">
+                        <div class="inline-block px-3 py-2 rounded-inner bg-surface-raise animate-pulse text-brand font-medium tracking-widest">
                             I'm thinking. Just a moment...
                         </div>
                     </div>
                 </div>
 
                 <!-- Input Controls -->
-                <div class="flex-shrink-0 p-4 border-t border-slate-200 dark:border-slate-700">
+                <div class="flex-shrink-0 p-4 border-t border-edge">
                     <textarea
                         v-model="vibeInput"
                         @keyup.enter.exact="askVibe"
                         :disabled="isThinking"
                         placeholder="Ask Domino..."
-                        class="w-full bg-slate-100 dark:bg-slate-900 font-bold text-sky-600 placeholder:text-sky-400 border border-slate-200 dark:border-slate-700 rounded-xl py-2 px-4 pr-10 focus:ring-2 focus:ring-cyan-500 outline-none transition-all resize-none"
+                        class="w-full bg-surface-raise bg-surface-card font-bold text-sky-600 placeholder:text-sky-400 border border-edge rounded-control py-2 px-4 pr-10 focus:ring-2 focus:ring-cyan-500 outline-none transition-all resize-none"
                         rows="2"
                     ></textarea>
 
@@ -427,7 +427,7 @@ async function askVibe() {
                                 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-full transition-all',
                                 useReasoning
                                     ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-300'
-                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                    : 'bg-surface-raise text-content-soft border border-edge hover:bg-surface-raise dark:hover:bg-surface-raise'
                             ]"
                         >
                             <LightBulbIcon class="w-4 h-4" />
@@ -435,15 +435,15 @@ async function askVibe() {
                         </button>
 
                         <button @click="askVibe" class="p-1 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 rounded-full">
-                            <PaperAirplaneIcon class="w-5 h-5 text-cyan-500" />
+                            <PaperAirplaneIcon class="w-5 h-5 text-brand" />
                         </button>
                     </div>
                 </div>
 
                 <!-- Debug Section -->
-                <div class="flex-shrink-0 h-32 p-2 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col gap-1">
-                    <div class="text-[10px] text-slate-400 uppercase font-bold">Debug Output</div>
-                    <div class="flex-1 p-2 border rounded bg-white dark:bg-slate-900 text-xs font-mono overflow-auto text-slate-500">
+                <div class="flex-shrink-0 h-32 p-2 border-t border-edge bg-surface-raise bg-surface-card/50 flex flex-col gap-1">
+                    <div class="text-[10px] text-content-faint uppercase font-bold">Debug Output</div>
+                    <div class="flex-1 p-2 border rounded bg-surface-card text-xs font-mono overflow-auto text-content-soft">
                         {{ htmlDisplay || '(empty)' }}
                     </div>
                 </div>
@@ -454,9 +454,9 @@ async function askVibe() {
         <button
             v-if="!isOpen"
             @click="emit('toggle')"
-            class="absolute top-4 right-4 z-30 bg-white dark:bg-slate-800 p-2 rounded-full shadow-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-transform hover:scale-110"
+            class="absolute top-4 right-4 z-30 bg-surface-card p-2 rounded-full shadow-lg border border-edge hover:bg-surface-raise dark:hover:bg-surface-raise transition-transform hover:scale-110"
         >
-            <SparklesIcon class="w-5 h-5 text-cyan-500" />
+            <SparklesIcon class="w-5 h-5 text-brand" />
         </button>
 
     </div>

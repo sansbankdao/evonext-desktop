@@ -3,7 +3,7 @@
     <div class="space-y-6">
         <!-- Key Input -->
         <div>
-            <label for="privateKey" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label for="privateKey" class="block text-sm font-medium text-content mb-2">
                 Private Key
             </label>
 
@@ -16,7 +16,7 @@
                     autocomplete="off"
                     spellcheck="false"
                     placeholder="Enter WIF (X..., 7..., c...) or HEX private key"
-                    class="w-full pl-4 pr-20 py-3 rounded-xl border-2 transition-colors duration-200 focus:ring-2 focus:ring-cyan-500 focus:border-transparent focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 font-mono text-sm"
+                    class="w-full pl-4 pr-20 py-3 rounded-control border-2 transition-colors duration-200 focus:ring-2 focus:ring-cyan-500 focus:border-transparent focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed bg-surface-card border-edge text-content placeholder-content-faint dark:placeholder-content-faint font-mono text-sm"
                     @blur="handleKeyInputBlur"
                 />
 
@@ -26,7 +26,7 @@
                     <button
                         type="button"
                         @click="showKey = !showKey"
-                        class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                        class="p-1.5 text-content-faint hover:text-content-soft dark:hover:text-content-faint transition-colors rounded-lg hover:bg-surface-raise dark:hover:bg-surface-raise"
                         title="Toggle visibility"
                     >
                         <svg v-if="!showKey" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,7 +42,7 @@
                     <button
                         v-if="keyInput"
                         @click="clearKeyInput"
-                        class="p-1.5 text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
+                        class="p-1.5 text-content-faint hover:text-red-500 dark:hover:text-red-400 transition-colors rounded-lg hover:bg-surface-raise dark:hover:bg-surface-raise"
                         title="Clear"
                     >
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,9 +52,9 @@
                 </div>
             </div>
 
-            <div class="mt-2 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+            <div class="mt-2 text-xs text-content-faint space-y-1">
                 <p class="font-medium">Supported Key Types:</p>
-                <ul class="list-disc list-inside space-y-0.5 pl-2 text-slate-500">
+                <ul class="list-disc list-inside space-y-0.5 pl-2 text-content-soft">
                     <li>Authentication (ECDSA/Hash160)</li>
                     <li>Transfer (ECDSA/Secp256k1)</li>
                     <li>Encryption (ECDSA/Secp256k1)</li>
@@ -68,7 +68,7 @@
                 type="button"
                 @click="handleDiscoverClick"
                 :disabled="!hasValidKeyInput || props.isDiscovering"
-                class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white font-medium rounded-xl transition-all duration-200 hover:from-slate-700 hover:to-slate-800 hover:shadow-lg disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed"
+                class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white font-medium rounded-control transition-all duration-200 hover:from-slate-700 hover:to-slate-800 hover:shadow-lg disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed"
             >
                 <svg v-if="props.isDiscovering" class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -83,7 +83,7 @@
 
         <!-- Discovery Results -->
         <div v-if="props.discoveredIdentity" class="space-y-4">
-            <div class="p-4 border-2 border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
+            <div class="p-4 border-2 border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 rounded-control">
                 <div class="flex items-center gap-3 mb-3">
                     <div class="p-2 bg-emerald-100 dark:bg-emerald-800 rounded-lg">
                         <svg class="w-6 h-6 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,31 +105,31 @@
                 <!-- Identity Details -->
                 <div class="space-y-2">
                     <div>
-                        <p class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+                        <p class="text-xs font-medium text-content-faint mb-1">
                             Identity ID
                         </p>
 
-                        <p class="font-mono text-sm break-all text-slate-800 dark:text-slate-200 select-all">
+                        <p class="font-mono text-sm break-all text-content  select-all">
                             {{ props.discoveredIdentity.identityId }}
                         </p>
                     </div>
 
                     <div v-if="props.discoveredIdentity.dpnsUsername" class="flex items-center gap-2">
-                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 text-content-soft" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
 
-                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        <span class="text-sm font-medium text-content">
                             {{ props.discoveredIdentity.dpnsUsername }}
                         </span>
                     </div>
 
                     <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 text-content-soft" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
 
-                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        <span class="text-sm font-medium text-content">
                             {{ formatBalance(props.discoveredIdentity.balance?.toString() || '0') }} Credits
                         </span>
                     </div>
@@ -138,16 +138,16 @@
 
             <!-- Associated Keys -->
             <div v-if="props.discoveryDetails?.associatedKeys?.length" class="space-y-3">
-                <h4 class="text-sm font-medium text-slate-700 dark:text-slate-300">
+                <h4 class="text-sm font-medium text-content">
                     Associated Keys ({{ props.discoveryDetails.associatedKeys.length }})
                 </h4>
 
                 <div class="max-h-48 overflow-y-auto space-y-2 pr-1">
                     <div v-for="(key, index) in props.discoveryDetails.associatedKeys" :key="index"
-                         class="p-3 border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900">
+                         class="p-3 border border-edge rounded-lg bg-surface-card">
                         <div class="flex flex-col gap-2">
                             <div class="flex items-center gap-2 flex-wrap">
-                                <span class="px-2 py-1 text-[10px] uppercase font-bold tracking-wider rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                                <span class="px-2 py-1 text-[10px] uppercase font-bold tracking-wider rounded bg-surface-raise text-content-soft">
                                     {{ key.purpose }}
                                 </span>
 
@@ -157,7 +157,7 @@
                                 </span>
                             </div>
 
-                            <p class="text-xs text-slate-500 dark:text-slate-500 font-mono truncate">
+                            <p class="text-xs text-content-soft dark:text-content-soft font-mono truncate">
                                 {{ key.keyType }}
                             </p>
                         </div>
@@ -169,17 +169,17 @@
             <button
                 type="button"
                 @click="handleReset"
-                class="w-full px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"
+                class="w-full px-4 py-2 text-sm font-medium text-content-soft hover:text-content dark:hover:text-content transition-colors border border-edge rounded-lg hover:bg-surface-raise dark:hover:bg-surface-card"
             >
                 Use Different Key
             </button>
         </div>
 
         <!-- Manual Identity ID Input (Fallback) -->
-        <div v-else class="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+        <div v-else class="space-y-4 pt-4 border-t border-edge">
             <!-- Only show "No Identity Found" warning if we actually have an error passed in debug/error props -->
             <div v-if="props.debugOutput?.error || (props.debugOutput?.step?.includes('failed') && !props.isDiscovering)"
-                 class="p-4 border-2 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 rounded-xl mb-4">
+                 class="p-4 border-2 border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 rounded-control mb-4">
                 <div class="flex items-center gap-3">
                     <div class="p-2 bg-amber-100 dark:bg-amber-800 rounded-lg">
                         <svg class="w-6 h-6 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,18 +201,18 @@
 
             <div class="relative">
                 <div class="absolute inset-0 flex items-center" aria-hidden="true">
-                    <div class="w-full border-t border-slate-200 dark:border-slate-700"></div>
+                    <div class="w-full border-t border-edge"></div>
                 </div>
 
                 <div class="relative flex justify-center">
-                    <span class="bg-white dark:bg-slate-900 px-2 text-sm text-slate-500">
+                    <span class="bg-surface-card px-2 text-sm text-content-soft">
                         Or enter Identity ID manually
                     </span>
                 </div>
             </div>
 
             <div>
-                <label for="manualIdentityId" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                <label for="manualIdentityId" class="block text-sm font-medium text-content mb-2">
                     Identity ID
                 </label>
 
@@ -221,7 +221,7 @@
                     v-model="localManualIdentityId"
                     type="text"
                     placeholder="e.g., v24uWwdXJ1fJx7YccBmVB48zXPVT5uRYv7vKr5LS5B5"
-                    class="w-full px-4 py-3 rounded-xl border-2 transition-colors duration-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:outline-none bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-400 font-mono text-sm"
+                    class="w-full px-4 py-3 rounded-control border-2 transition-colors duration-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:outline-none bg-surface-card border-edge  text-content placeholder-content-faint dark:placeholder-content-faint font-mono text-sm"
                     @input="handleManualIdentityIdInput"
                 />
 
@@ -229,7 +229,7 @@
                     type="button"
                     @click="handleUseManualIdentityClick"
                     :disabled="!localManualIdentityId.trim()"
-                    class="mt-3 w-full px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium rounded-xl transition-all duration-200 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="mt-3 w-full px-4 py-2 bg-surface-raise text-content font-medium rounded-control transition-all duration-200 hover:bg-surface-raise dark:hover:bg-surface-raise disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     Use This Identity ID
                 </button>
@@ -327,7 +327,7 @@ const getSecurityLevelClass = (level: string) => {
         'MEDIUM': 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300',
         'LOW': 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300'
     }
-    return classes[level as keyof typeof classes] || 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-300'
+    return classes[level as keyof typeof classes] || 'bg-surface-raise text-content '
 }
 
 // Watchers

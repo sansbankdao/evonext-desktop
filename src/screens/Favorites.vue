@@ -3,26 +3,26 @@
     <main>
         <Header title="My Favorites" />
 
-        <section class="bg-white dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen rounded-2xl mx-4">
+        <section class="bg-surface-card font-sans text-content min-h-screen rounded-inner mx-4">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
                 <div class="space-y-12">
 
                     <!-- Page Header -->
                     <div class="space-y-2">
-                        <p class="text-lg text-slate-600 dark:text-slate-400">A collection of your saved posts, topics, and creators.</p>
+                        <p class="text-lg text-content-soft">A collection of your saved posts, topics, and creators.</p>
                     </div>
 
                     <!-- Tab Navigation -->
                     <div>
-                        <div class="border-b border-slate-200 dark:border-slate-700">
+                        <div class="border-b border-edge">
                             <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                                <button @click="activeTab = 'posts'" :class="[activeTab === 'posts' ? 'border-sky-400 text-sky-600 dark:text-sky-400' : 'border-transparent text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-slate-100', 'whitespace-nowrap border-b-2 py-4 px-1 text-base font-medium transition rounded-t-xl']">
+                                <button @click="activeTab = 'posts'" :class="[activeTab === 'posts' ? 'border-sky-400 text-sky-600 dark:text-sky-400' : 'border-transparent text-content-soft hover:border-edge dark:hover:border-edge hover:text-content dark:hover:text-content', 'whitespace-nowrap border-b-2 py-4 px-1 text-base font-medium transition rounded-t-xl']">
                                     Posts
                                 </button>
-                                <button @click="activeTab = 'identities'" :class="[activeTab === 'identities' ? 'border-sky-400 text-sky-600 dark:text-sky-400' : 'border-transparent text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-slate-100', 'whitespace-nowrap border-b-2 py-4 px-1 text-base font-medium transition rounded-t-xl']">
+                                <button @click="activeTab = 'identities'" :class="[activeTab === 'identities' ? 'border-sky-400 text-sky-600 dark:text-sky-400' : 'border-transparent text-content-soft hover:border-edge dark:hover:border-edge hover:text-content dark:hover:text-content', 'whitespace-nowrap border-b-2 py-4 px-1 text-base font-medium transition rounded-t-xl']">
                                     Identities
                                 </button>
-                                <button @click="activeTab = 'topics'" :class="[activeTab === 'topics' ? 'border-sky-400 text-sky-600 dark:text-sky-400' : 'border-transparent text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-slate-100', 'whitespace-nowrap border-b-2 py-4 px-1 text-base font-medium transition rounded-t-xl']">
+                                <button @click="activeTab = 'topics'" :class="[activeTab === 'topics' ? 'border-sky-400 text-sky-600 dark:text-sky-400' : 'border-transparent text-content-soft hover:border-edge dark:hover:border-edge hover:text-content dark:hover:text-content', 'whitespace-nowrap border-b-2 py-4 px-1 text-base font-medium transition rounded-t-xl']">
                                     Topics
                                 </button>
                             </nav>
@@ -33,65 +33,65 @@
                     <div>
                         <!-- Favorited Posts Tab -->
                         <div v-if="activeTab === 'posts'" class="space-y-6">
-                            <div v-if="favoritedPosts.length > 0" v-for="post in favoritedPosts" :key="post.id" class="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <div v-if="favoritedPosts.length > 0" v-for="post in favoritedPosts" :key="post.id" class="bg-surface-card p-4 rounded-inner border border-edge shadow-sm">
                                 <div class="flex items-start justify-between">
                                     <div class="flex items-center gap-4">
-                                        <img :src="post.authorAvatarUrl" :alt="post.authorName" class="size-12 rounded-2xl"/>
+                                        <img :src="post.authorAvatarUrl" :alt="post.authorName" class="size-12 rounded-inner"/>
                                         <div>
-                                            <p class="font-semibold text-slate-900 dark:text-slate-100">{{ post.authorName }}</p>
-                                            <p class="text-sm text-slate-600 dark:text-slate-400">{{ post.authorUsername }} · {{ post.timestamp }}</p>
+                                            <p class="font-semibold text-content">{{ post.authorName }}</p>
+                                            <p class="text-sm text-content-soft">{{ post.authorUsername }} · {{ post.timestamp }}</p>
                                         </div>
                                     </div>
-                                    <button class="text-slate-500 dark:text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 p-2 rounded-xl transition" title="Unfavorite Post">
+                                    <button class="text-content-faint hover:text-amber-500 dark:hover:text-amber-400 p-2 rounded-control transition" title="Unfavorite Post">
                                         <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20"><path d="M5.13 1.002a1 1 0 011.09.847l.11.88a7.5 7.5 0 0110.138 9.538 1 1 0 01-1.597.433l-1.02-1.02a.75.75 0 00-1.06 0l-.164.164a.75.75 0 01-1.06 0l-2.22-2.22a.75.75 0 00-1.06 0l-.164.164a.75.75 0 01-1.06 0l-2.22-2.22a.75.75 0 00-1.06 0l-.82.82a1 1 0 01-1.597-1.192A7.5 7.5 0 015.13 1.002zM10.5 5.5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1h2a1 1 0 001-1v-2z"></path><path d="M5.13 1.002a1 1 0 011.09.847l.11.88a7.5 7.5 0 0110.138 9.538 1 1 0 01-1.597.433l-1.02-1.02a.75.75 0 00-1.06 0l-.164.164a.75.75 0 01-1.06 0l-2.22-2.22a.75.75 0 00-1.06 0l-.164.164a.75.75 0 01-1.06 0l-2.22-2.22a.75.75 0 00-1.06 0l-.82.82a1 1 0 01-1.597-1.192A7.5 7.5 0 015.13 1.002zM10.5 5.5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1h2a1 1 0 001-1v-2z"></path></svg>
                                     </button>
                                 </div>
-                                <p class="mt-4 text-slate-700 dark:text-slate-300 leading-relaxed">{{ post.content }}</p>
+                                <p class="mt-4 text-content leading-relaxed">{{ post.content }}</p>
                             </div>
                             <!-- Empty State for Posts -->
-                            <div v-else class="text-center py-12 px-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                                <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">No Favorited Posts Yet</h3>
-                                <p class="mt-1 text-slate-600 dark:text-slate-400">When you favorite a post, it will appear here.</p>
+                            <div v-else class="text-center py-12 px-6 bg-surface-card rounded-inner border border-edge shadow-sm">
+                                <h3 class="text-lg font-semibold text-content">No Favorited Posts Yet</h3>
+                                <p class="mt-1 text-content-soft">When you favorite a post, it will appear here.</p>
                             </div>
                         </div>
 
                         <!-- Favorited Identities Tab -->
                         <div v-if="activeTab === 'identities'" class="space-y-4">
-                            <div v-if="favoritedIdentities.length > 0" v-for="identity in favoritedIdentities" :key="identity.id" class="bg-white dark:bg-slate-800 p-4 rounded-2xl flex items-center justify-between border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <div v-if="favoritedIdentities.length > 0" v-for="identity in favoritedIdentities" :key="identity.id" class="bg-surface-card p-4 rounded-inner flex items-center justify-between border border-edge shadow-sm">
                                 <div class="flex items-center gap-4">
-                                    <img :src="identity.avatarUrl" :alt="identity.displayName" class="size-16 rounded-2xl"/>
+                                    <img :src="identity.avatarUrl" :alt="identity.displayName" class="size-16 rounded-inner"/>
                                     <div>
-                                        <h3 class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ identity.displayName }}</h3>
-                                        <p class="text-sm text-slate-600 dark:text-slate-400">{{ identity.username }}</p>
-                                        <p class="text-sm text-slate-700 dark:text-slate-300 mt-1 truncate max-w-md">{{ identity.bio }}</p>
+                                        <h3 class="text-lg font-bold text-content">{{ identity.displayName }}</h3>
+                                        <p class="text-sm text-content-soft">{{ identity.username }}</p>
+                                        <p class="text-sm text-content mt-1 truncate max-w-md">{{ identity.bio }}</p>
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-3">
-                                    <button class="bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-900 dark:text-slate-100 font-semibold px-4 py-2 rounded-xl text-sm transition shadow-sm border border-slate-200 dark:border-slate-600">View Profile</button>
-                                    <button class="text-slate-500 dark:text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 p-2 rounded-xl transition" title="Unfavorite Identity">
+                                    <button class="bg-surface-raise hover:bg-surface-raise dark:hover:bg-surface-raise text-content font-semibold px-4 py-2 rounded-control text-sm transition shadow-sm border border-edge ">View Profile</button>
+                                    <button class="text-content-faint hover:text-amber-500 dark:hover:text-amber-400 p-2 rounded-control transition" title="Unfavorite Identity">
                                         <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20"><path d="M5.13 1.002a1 1 0 011.09.847l.11.88a7.5 7.5 0 0110.138 9.538 1 1 0 01-1.597.433l-1.02-1.02a.75.75 0 00-1.06 0l-.164.164a.75.75 0 01-1.06 0l-2.22-2.22a.75.75 0 00-1.06 0l-.164.164a.75.75 0 01-1.06 0l-2.22-2.22a.75.75 0 00-1.06 0l-.82.82a1 1 0 01-1.597-1.192A7.5 7.5 0 015.13 1.002zM10.5 5.5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1h2a1 1 0 001-1v-2z"></path><path d="M5.13 1.002a1 1 0 011.09.847l.11.88a7.5 7.5 0 0110.138 9.538 1 1 0 01-1.597.433l-1.02-1.02a.75.75 0 00-1.06 0l-.164.164a.75.75 0 01-1.06 0l-2.22-2.22a.75.75 0 00-1.06 0l-.164.164a.75.75 0 01-1.06 0l-2.22-2.22a.75.75 0 00-1.06 0l-.82.82a1 1 0 01-1.597-1.192A7.5 7.5 0 015.13 1.002zM10.5 5.5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1h2a1 1 0 001-1v-2z"></path></svg>
                                     </button>
                                 </div>
                             </div>
                             <!-- Empty State for Identities -->
-                            <div v-else class="text-center py-12 px-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                                <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">No Favorited Identities</h3>
-                                <p class="mt-1 text-slate-600 dark:text-slate-400">Save your favorite creators to find them easily.</p>
+                            <div v-else class="text-center py-12 px-6 bg-surface-card rounded-inner border border-edge shadow-sm">
+                                <h3 class="text-lg font-semibold text-content">No Favorited Identities</h3>
+                                <p class="mt-1 text-content-soft">Save your favorite creators to find them easily.</p>
                             </div>
                         </div>
 
                         <!-- Favorited Topics Tab -->
                         <div v-if="activeTab === 'topics'" class="space-y-3">
-                            <div v-if="favoritedTopics.length > 0" v-for="topic in favoritedTopics" :key="topic" class="bg-white dark:bg-slate-800 p-4 rounded-2xl flex items-center justify-between border border-slate-200 dark:border-slate-700 shadow-sm">
+                            <div v-if="favoritedTopics.length > 0" v-for="topic in favoritedTopics" :key="topic" class="bg-surface-card p-4 rounded-inner flex items-center justify-between border border-edge shadow-sm">
                                 <span class="font-semibold text-lg text-sky-500 dark:text-sky-400">{{ topic }}</span>
-                                <button class="text-slate-500 dark:text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 p-2 rounded-xl transition" title="Unfavorite Topic">
+                                <button class="text-content-faint hover:text-amber-500 dark:hover:text-amber-400 p-2 rounded-control transition" title="Unfavorite Topic">
                                     <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20"><path d="M5.13 1.002a1 1 0 011.09.847l.11.88a7.5 7.5 0 0110.138 9.538 1 1 0 01-1.597.433l-1.02-1.02a.75.75 0 00-1.06 0l-.164.164a.75.75 0 01-1.06 0l-2.22-2.22a.75.75 0 00-1.06 0l-.164.164a.75.75 0 01-1.06 0l-2.22-2.22a.75.75 0 00-1.06 0l-.82.82a1 1 0 01-1.597-1.192A7.5 7.5 0 015.13 1.002zM10.5 5.5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1h2a1 1 0 001-1v-2z"></path><path d="M5.13 1.002a1 1 0 011.09.847l.11.88a7.5 7.5 0 0110.138 9.538 1 1 0 01-1.597.433l-1.02-1.02a.75.75 0 00-1.06 0l-.164.164a.75.75 0 01-1.06 0l-2.22-2.22a.75.75 0 00-1.06 0l-.164.164a.75.75 0 01-1.06 0l-2.22-2.22a.75.75 0 00-1.06 0l-.82.82a1 1 0 01-1.597-1.192A7.5 7.5 0 015.13 1.002zM10.5 5.5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1h2a1 1 0 001-1v-2z"></path></svg>
                                 </button>
                             </div>
                             <!-- Empty State for Topics -->
-                            <div v-else class="text-center py-12 px-6 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                                <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100">No Favorited Topics</h3>
-                                <p class="mt-1 text-slate-600 dark:text-slate-400">Following a #topic will make it appear here.</p>
+                            <div v-else class="text-center py-12 px-6 bg-surface-card rounded-inner border border-edge shadow-sm">
+                                <h3 class="text-lg font-semibold text-content">No Favorited Topics</h3>
+                                <p class="mt-1 text-content-soft">Following a #topic will make it appear here.</p>
                             </div>
                         </div>
 

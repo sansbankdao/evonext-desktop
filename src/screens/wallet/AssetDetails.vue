@@ -1,8 +1,8 @@
 <template>
-    <main class="min-h-screen w-full flex flex-col items-center bg-slate-50 dark:bg-slate-950 pb-24">
+    <main class="min-h-screen w-full flex flex-col items-center bg-surface-raise bg-surface-base pb-24">
         <!-- Header -->
         <header class="w-full max-w-5xl flex items-center justify-between px-6 py-6">
-            <button @click="router.push('/wallet/overview')" class="flex items-center gap-2 px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors font-medium">
+            <button @click="router.push('/wallet/overview')" class="flex items-center gap-2 px-4 py-2 rounded-control text-content-soft hover:text-content dark:hover:text-white hover:bg-surface-raise dark:hover:bg-surface-card transition-colors font-medium">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                 </svg>
@@ -21,12 +21,12 @@
         <!-- Main Content -->
         <div class="w-full max-w-5xl px-6 space-y-6">
             <!-- Asset Overview Card -->
-            <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg p-8">
+            <div class="bg-surface-card rounded-card border border-edge shadow-lg p-8">
                 <div v-if="selectedAsset" class="space-y-8">
                     <!-- Asset Header -->
-                    <div class="flex items-center justify-between pb-6 border-b border-slate-100 dark:border-slate-800">
+                    <div class="flex items-center justify-between pb-6 border-b border-edge ">
                         <div class="flex items-center gap-6">
-                            <div class="w-20 h-20 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center border-2 border-slate-200 dark:border-slate-700 shadow-md">
+                            <div class="w-20 h-20 rounded-inner bg-surface-raise flex items-center justify-center border border-edge shadow-md">
                                 <img
                                     :src="getIconSrc(selectedAsset.symbol)"
                                     :alt="selectedAsset.symbol"
@@ -34,7 +34,7 @@
                                 />
                             </div>
                             <div>
-                                <h1 class="text-4xl font-black text-slate-900 dark:text-white mb-1">
+                                <h1 class="text-4xl font-black text-content mb-1">
                                     {{ selectedAsset.name }}
                                 </h1>
                                 <p class="text-2xl font-bold text-indigo-600 dark:text-indigo-400 uppercase">
@@ -43,10 +43,10 @@
                             </div>
                         </div>
                         <div class="text-right">
-                            <p class="text-5xl font-black text-slate-900 dark:text-white mb-2">
+                            <p class="text-5xl font-black text-content mb-2">
                                 {{ displayBalance }}
                             </p>
-                            <p class="text-2xl font-bold text-slate-500 dark:text-slate-400 font-mono">
+                            <p class="text-2xl font-bold text-content-faint font-mono">
                                 ≈ {{ formatCurrency(usdValue) }}
                             </p>
                         </div>
@@ -55,14 +55,14 @@
                     <!-- Action Buttons -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto">
                         <button @click="goToSend(selectedAsset.symbol)"
-                                class="flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+                                class="flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-inner shadow-lg hover:shadow-xl transition-all duration-300">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                             </svg>
                             <span>Send {{ selectedAsset.symbol }}</span>
                         </button>
 
-                        <button class="flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+                        <button class="flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 px-8 rounded-inner shadow-lg hover:shadow-xl transition-all duration-300">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 01-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
@@ -72,7 +72,7 @@
                         <!-- SWAP BUTTON - Only for tokens (not CREDITS) -->
                         <button v-if="selectedAsset.symbol.toUpperCase() !== 'CREDITS' && selectedAsset.symbol.toUpperCase() !== 'DASH'"
                                 @click="goToSwap(selectedAsset.symbol)"
-                                class="flex items-center justify-center gap-3 bg-amber-600 hover:bg-amber-700 text-white font-bold py-4 px-8 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+                                class="flex items-center justify-center gap-3 bg-amber-600 hover:bg-amber-700 text-white font-bold py-4 px-8 rounded-inner shadow-lg hover:shadow-xl transition-all duration-300">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                             </svg>
@@ -88,12 +88,12 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3, 1.732 3z" />
                         </svg>
                     </div>
-                    <h2 class="text-3xl font-bold text-slate-900 dark:text-white mb-2">Asset Not Found</h2>
-                    <p class="text-lg text-slate-500 dark:text-slate-400 mb-8 px-4">
-                        Could not find <span class="font-mono font-bold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">{{ symbolParam.toUpperCase() }}</span> in your wallet
+                    <h2 class="text-3xl font-bold text-content mb-2">Asset Not Found</h2>
+                    <p class="text-lg text-content-faint mb-8 px-4">
+                        Could not find <span class="font-mono font-bold bg-surface-raise px-2 py-1 rounded-md">{{ symbolParam.toUpperCase() }}</span> in your wallet
                     </p>
                     <button @click="router.push('/wallet/overview')"
-                            class="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg hover:shadow-indigo-500/30 transition-all duration-300">
+                            class="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-control shadow-lg hover:shadow-indigo-500/30 transition-all duration-300">
                         Return to Portfolio
                     </button>
                 </div>
@@ -102,9 +102,9 @@
             <!-- Transactions & Asset Info -->
             <div v-if="selectedAsset" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Recent Transactions -->
-                <div class="lg:col-span-2 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg p-8">
+                <div class="lg:col-span-2 bg-surface-card rounded-card border border-edge shadow-lg p-8">
                     <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
+                        <h3 class="text-2xl font-bold text-content flex items-center gap-3">
                             <svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
@@ -116,7 +116,7 @@
                     <div v-if="hasTransactions && !isLoadingTransactions" class="space-y-4">
                         <div v-for="tx in filteredTransactions" :key="tx.id"
                              @click="viewTransaction(tx)"
-                             class="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-indigo-500/30 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-300 cursor-pointer group">
+                             class="flex items-center justify-between p-4 rounded-control border border-edge  hover:border-indigo-500/30 hover:bg-surface-raise dark:hover:bg-surface-card transition-all duration-300 cursor-pointer group">
                             <div class="flex items-center gap-4 flex-1 min-w-0">
                                 <div :class="[
                                     'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0',
@@ -124,7 +124,7 @@
                                         ? 'bg-emerald-100 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800'
                                         : tx.direction === 'OUTGOING'
                                         ? 'bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
-                                        : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                                        : 'bg-surface-raise border border-edge'
                                 ]">
                                     <svg v-if="tx.direction === 'INCOMING'" class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
@@ -132,18 +132,18 @@
                                     <svg v-else-if="tx.direction === 'OUTGOING'" class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
                                     </svg>
-                                    <svg v-else class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg v-else class="w-5 h-5 text-content-soft" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                                     </svg>
                                 </div>
                                 <div class="min-w-0">
-                                    <p class="font-bold text-slate-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                    <p class="font-bold text-content truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                                         {{ getTransactionLabel(tx) }}
                                     </p>
-                                    <p class="text-sm text-slate-500 dark:text-slate-400 font-mono truncate">
+                                    <p class="text-sm text-content-faint font-mono truncate">
                                         {{ getTransactionSubtitle(tx) }}
                                     </p>
-                                    <p class="text-xs text-slate-400 dark:text-slate-500">
+                                    <p class="text-xs text-content-faint dark:text-content-soft">
                                         {{ getTransactionTime(tx) }}
                                     </p>
                                 </div>
@@ -155,7 +155,7 @@
                                         ? 'text-emerald-600 dark:text-emerald-400'
                                         : tx.direction === 'OUTGOING'
                                         ? 'text-red-600 dark:text-red-400'
-                                        : 'text-slate-600 dark:text-slate-400'
+                                        : 'text-content-soft'
                                 ]">
                                     {{ getTransactionAmount(tx) }}
                                 </p>
@@ -168,7 +168,7 @@
                         <!-- View All Transactions Link -->
                         <div v-if="filteredTransactions.length > 5"
                              @click="router.push('/wallet/overview')"
-                             class="text-center pt-4 border-t border-slate-100 dark:border-slate-800 cursor-pointer group">
+                             class="text-center pt-4 border-t border-edge  cursor-pointer group">
                             <span class="text-sm font-bold text-indigo-600 dark:text-indigo-400 group-hover:text-indigo-700 dark:group-hover:text-indigo-300 transition-colors">
                                 View All {{ filteredTransactions.length }} Transactions →
                             </span>
@@ -176,67 +176,67 @@
                     </div>
 
                     <!-- No Transactions State -->
-                    <div v-else-if="!isLoadingTransactions" class="text-center py-12 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl">
-                        <svg class="w-16 h-16 mx-auto mb-4 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div v-else-if="!isLoadingTransactions" class="text-center py-12 border-2 border-dashed border-edge  rounded-inner">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-content-faint dark:text-content-soft" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        <p class="text-lg font-bold text-slate-500 dark:text-slate-400">No transactions found</p>
-                        <p class="text-sm text-slate-400 dark:text-slate-500 mt-1">for {{ selectedAsset.symbol }}</p>
+                        <p class="text-lg font-bold text-content-faint">No transactions found</p>
+                        <p class="text-sm text-content-faint dark:text-content-soft mt-1">for {{ selectedAsset.symbol }}</p>
                     </div>
 
                     <!-- Loading State -->
                     <div v-else class="text-center py-12">
                         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-                        <p class="mt-4 text-sm text-slate-500 dark:text-slate-400">Loading transactions...</p>
+                        <p class="mt-4 text-sm text-content-faint">Loading transactions...</p>
                     </div>
                 </div>
 
                 <!-- Asset Info Card -->
-                <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg p-8">
-                    <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
-                        <svg class="w-6 h-6 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="bg-surface-card rounded-card border border-edge shadow-lg p-8">
+                    <h3 class="text-2xl font-bold text-content mb-6 flex items-center gap-3">
+                        <svg class="w-6 h-6 text-content-soft" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         Asset Details
                     </h3>
                     <div class="space-y-4">
-                        <div class="flex justify-between items-center py-3 border-b border-slate-100 dark:border-slate-800">
-                            <span class="text-slate-600 dark:text-slate-400">Symbol</span>
-                            <span class="font-mono font-bold text-slate-900 dark:text-white">{{ selectedAsset.symbol }}</span>
+                        <div class="flex justify-between items-center py-3 border-b border-edge ">
+                            <span class="text-content-soft">Symbol</span>
+                            <span class="font-mono font-bold text-content">{{ selectedAsset.symbol }}</span>
                         </div>
-                        <div class="flex justify-between items-center py-3 border-b border-slate-100 dark:border-slate-800">
-                            <span class="text-slate-600 dark:text-slate-400">Type</span>
+                        <div class="flex justify-between items-center py-3 border-b border-edge ">
+                            <span class="text-content-soft">Type</span>
                             <span class="font-bold text-indigo-600 dark:text-indigo-400 uppercase">
                                 {{ getAssetType(selectedAsset) }}
                             </span>
                         </div>
-                        <div class="flex justify-between items-center py-3 border-b border-slate-100 dark:border-slate-800">
-                            <span class="text-slate-600 dark:text-slate-400">Raw Balance</span>
-                            <span class="font-mono text-slate-900 dark:text-white">
+                        <div class="flex justify-between items-center py-3 border-b border-edge ">
+                            <span class="text-content-soft">Raw Balance</span>
+                            <span class="font-mono text-content">
                                 {{ Number(selectedAsset.balance).toLocaleString() }}
                             </span>
                         </div>
-                        <div class="flex justify-between items-center py-3 border-b border-slate-100 dark:border-slate-800">
-                            <span class="text-slate-600 dark:text-slate-400">Network</span>
-                            <span class="font-bold uppercase text-slate-900 dark:text-white">
+                        <div class="flex justify-between items-center py-3 border-b border-edge ">
+                            <span class="text-content-soft">Network</span>
+                            <span class="font-bold uppercase text-content">
                                 {{ selectedAsset.network || WalletStore.network || 'testnet' }}
                             </span>
                         </div>
-                        <div v-if="selectedAsset.contractId" class="flex justify-between items-center py-3 border-b border-slate-100 dark:border-slate-800">
-                            <span class="text-slate-600 dark:text-slate-400">Contract ID</span>
-                            <span class="font-mono text-xs text-slate-500 truncate max-w-[150px]">
+                        <div v-if="selectedAsset.contractId" class="flex justify-between items-center py-3 border-b border-edge ">
+                            <span class="text-content-soft">Contract ID</span>
+                            <span class="font-mono text-xs text-content-soft truncate max-w-[150px]">
                                 {{ selectedAsset.contractId }}
                             </span>
                         </div>
-                        <div class="flex justify-between items-center py-3 border-b border-slate-100 dark:border-slate-800">
-                            <span class="text-slate-600 dark:text-slate-400">Decimals</span>
-                            <span class="font-mono text-slate-900 dark:text-white">
+                        <div class="flex justify-between items-center py-3 border-b border-edge ">
+                            <span class="text-content-soft">Decimals</span>
+                            <span class="font-mono text-content">
                                 {{ selectedAsset.decimals || 'N/A' }}
                             </span>
                         </div>
                         <!-- <div v-if="selectedAsset.lastUpdated" class="flex justify-between items-center py-3">
-                            <span class="text-slate-600 dark:text-slate-400">Updated</span>
-                            <span class="text-sm text-slate-500 dark:text-slate-400">
+                            <span class="text-content-soft">Updated</span>
+                            <span class="text-sm text-content-faint">
                                 {{ formatLastUpdated(selectedAsset.lastUpdated) }}
                             </span>
                         </div> -->
@@ -479,7 +479,7 @@ const formatCurrency = (value: number) => {
 }
 
 const getStatusClasses = (status?: string) => {
-    if (!status) return 'bg-slate-500/20 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+    if (!status) return 'bg-surface-raise/20 text-content border border-edge'
 
     const stat = status.toLowerCase()
     if (stat.includes('complete') || stat.includes('success') || stat.includes('confirmed')) {
@@ -491,7 +491,7 @@ const getStatusClasses = (status?: string) => {
     if (stat.includes('fail') || stat.includes('error') || stat.includes('rejected')) {
         return 'bg-red-500/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
     }
-    return 'bg-slate-500/20 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+    return 'bg-surface-raise/20 text-content border border-edge'
 }
 
 const getIconSrc = (symbol: string) => {

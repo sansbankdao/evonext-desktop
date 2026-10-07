@@ -29,18 +29,18 @@ const tabs = [
 </script>
 
 <template>
-    <main class="bg-gray-50 dark:bg-slate-900 h-screen flex flex-col rounded-3xl overflow-hidden">
+    <main class="bg-surface-base h-screen flex flex-col rounded-card overflow-hidden">
         <div class="flex flex-1 overflow-hidden">
             <!-- Left Side: Editor -->
             <section class="flex-1 flex flex-col min-w-0">
-                <div class="flex items-center bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+                <div class="flex items-center bg-surface-card border-b border-edge">
                     <button v-for="tab in tabs" :key="tab.key" @click="activeTab = tab.key"
-                        :class="['px-4 py-3 text-sm font-medium', activeTab === tab.key ? 'border-b-2 border-cyan-500 text-cyan-600' : 'text-slate-600']">
+                        :class="['px-4 py-3 text-sm font-medium', activeTab === tab.key ? 'border-b-2 border-cyan-500 text-cyan-600' : 'text-content-soft']">
                         {{ tab.name }}
                     </button>
                 </div>
 
-                <div class="relative flex-grow bg-white dark:bg-slate-800">
+                <div class="relative flex-grow bg-surface-card">
                     <div v-show="activeTab === 'readme'" class="p-4">README Content</div>
                     <Editor v-show="activeTab === 'html'" language="html" v-model="htmlCode" />
                     <Editor v-show="activeTab === 'js'" language="javascript" v-model="jsCode" />
@@ -49,7 +49,7 @@ const tabs = [
             </section>
 
             <!-- Right Side: Accordions -->
-            <section class="w-[450px] shrink-0 border-l border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex flex-col">
+            <section class="w-[450px] shrink-0 border-l border-edge bg-surface-card flex flex-col">
                 <VibeTerminal
                     :isOpen="activeAccordion === 'vibe'"
                     @toggle="activeAccordion = 'vibe'"

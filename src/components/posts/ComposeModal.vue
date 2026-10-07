@@ -1,12 +1,12 @@
 <!-- src/components/ComposeModal.vue -->
 <template>
-    <div class="bg-white dark:bg-slate-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+    <div class="bg-surface-card px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
         <div class="sm:flex sm:items-start">
             <div
                 class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-cyan-100 dark:bg-cyan-900/30 sm:mx-0 sm:h-10 sm:w-10"
             >
                 <!-- Pen Icon for New Post -->
-                <svg v-if="!postToEdit" class="h-6 w-6 text-cyan-600 dark:text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg v-if="!postToEdit" class="h-6 w-6 text-brand-deep dark:text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
 
@@ -17,7 +17,7 @@
             </div>
 
             <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                <h3 class="text-lg leading-6 font-medium text-slate-900 dark:text-slate-100" id="modal-title">
+                <h3 class="text-lg leading-6 font-medium text-content" id="modal-title">
                     {{ postToEdit ? 'Update Post' : 'Create new post' }}
                 </h3>
 
@@ -55,13 +55,13 @@
                             v-model="content"
                             @keydown="preventEnterSubmit"
                             rows="5"
-                            class="shadow-sm focus:ring-cyan-500 focus:border-cyan-500 block w-full sm:text-sm border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-900/50 text-slate-900 dark:text-slate-100 placeholder-slate-400 p-3 transition-colors resize-none"
+                            class="shadow-sm focus:ring-cyan-500 focus:border-cyan-500 block w-full sm:text-sm border border-edge rounded-md bg-surface-raise/60 text-content placeholder-content-faint p-3 transition-colors resize-none"
                             :placeholder="postToEdit ? 'Edit your post...' : 'What is happening?!'"
                         ></textarea>
 
                         <!-- Media Preview Area -->
                         <div v-if="mediaUrls.length > 0" class="mt-3 grid grid-cols-2 gap-2">
-                            <div v-for="(url, index) in mediaUrls" :key="index" class="relative group aspect-video bg-black rounded-md overflow-hidden border border-slate-700">
+                            <div v-for="(url, index) in mediaUrls" :key="index" class="relative group aspect-video bg-black rounded-md overflow-hidden border border-edge">
                                 <img :src="url" class="w-full h-full object-cover" alt="Upload preview">
 
                                 <button
@@ -86,11 +86,11 @@
 
                     <!-- Action Bar -->
                     <div class="flex flex-col gap-4">
-                        <div class="flex items-center justify-between border-t border-slate-100 dark:border-slate-700 pt-3">
+                        <div class="flex items-center justify-between border-t border-edge  pt-3">
                             <div class="flex items-center gap-2">
                                 <button
                                     @click="triggerFileUpload"
-                                    class="p-2 text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 rounded-lg transition-colors relative"
+                                    class="p-2 text-content-soft hover:text-cyan-600 dark:hover:text-brand hover:bg-cyan-50 dark:hover:bg-cyan-900/20 rounded-lg transition-colors relative"
                                     title="Add Media"
                                 >
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,7 +101,7 @@
 
                             <div class="flex items-center gap-3">
                                 <!-- Language Selector -->
-                                <select v-model="selectedLanguage" class="text-xs border-slate-200 dark:border-slate-700 rounded-md shadow-sm focus:border-cyan-500 focus:ring focus:ring-cyan-500 focus:ring-opacity-50 bg-transparent text-slate-600 dark:text-slate-400 py-1">
+                                <select v-model="selectedLanguage" class="text-xs border-edge rounded-md shadow-sm focus:border-cyan-500 focus:ring focus:ring-cyan-500 focus:ring-opacity-50 bg-transparent text-content-soft py-1">
                                     <option value="en">en</option>
                                     <option value="es">es</option>
                                     <option value="fr">fr</option>
@@ -116,10 +116,10 @@
                                         'text-xs px-3 py-1.5 rounded-md border transition-colors flex items-center gap-1.5',
                                         isSensitive
                                             ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-800/50 dark:bg-red-900/20 dark:text-red-400'
-                                            : 'border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800'
+                                            : 'border-edge text-content-soft hover:bg-surface-raise   dark:hover:bg-surface-card'
                                     ]"
                                 >
-                                    <span class="w-2 h-2 rounded-full" :class="isSensitive ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'"></span>
+                                    <span class="w-2 h-2 rounded-full" :class="isSensitive ? 'bg-red-500' : 'bg-surface-raise dark:bg-surface-raise'"></span>
                                     {{ isSensitive ? 'Sensitive' : 'Safe' }}
                                 </button>
                             </div>
@@ -146,7 +146,7 @@
                                 type="button"
                                 @click="close"
                                 :disabled="isSubmitting"
-                                class="mt-3 w-full inline-flex justify-center rounded-lg border border-slate-300 dark:border-slate-600 shadow-sm px-4 py-2 bg-white dark:bg-slate-800 text-base font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none sm:mt-0 sm:text-sm transition-colors disabled:opacity-50"
+                                class="mt-3 w-full inline-flex justify-center rounded-lg border border-edge shadow-sm px-4 py-2 bg-surface-card text-base font-medium text-content hover:bg-surface-raise dark:hover:bg-surface-raise focus:outline-none sm:mt-0 sm:text-sm transition-colors disabled:opacity-50"
                             >
                                 Cancel
                             </button>

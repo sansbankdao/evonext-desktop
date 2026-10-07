@@ -3,28 +3,28 @@
     <main>
         <Header title="App Settings" />
 
-        <section class="bg-gray-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl">
+        <section class="bg-surface-base font-sans text-content min-h-screen border border-edge rounded-inner shadow-2xl">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
                 <div class="space-y-12">
 
                     <!-- Page Header -->
                     <div class="space-y-2">
-                        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
+                        <h1 class="text-3xl font-extrabold tracking-tight text-content sm:text-4xl">
                             Settings
                         </h1>
 
-                        <p class="text-lg text-slate-600 dark:text-slate-400">
+                        <p class="text-lg text-content-soft">
                             Manage your application preferences and profile.
                         </p>
                     </div>
 
                     <!-- Network Section -->
-                    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-xl">
-                        <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">
+                    <div class="bg-surface-card p-4 rounded-control border border-edge shadow-xl">
+                        <h2 class="text-xl font-semibold text-content">
                             Network
                         </h2>
 
-                        <p class="mt-1 text-slate-600 dark:text-slate-400">
+                        <p class="mt-1 text-content-soft">
                             Choose which network to connect to.
                         </p>
 
@@ -33,14 +33,14 @@
                                 <legend class="sr-only">Network</legend>
                                 <div class="flex items-center gap-4">
                                     <!-- Testnet Option -->
-                                    <button @click="Settings.setNetwork('testnet')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', currentNetwork === 'testnet' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">
+                                    <button @click="Settings.setNetwork('testnet')" :class="['flex-1 text-center p-4 rounded-control border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', currentNetwork === 'testnet' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-edge hover:border-edge dark:hover:border-edge bg-surface-card/50 bg-surface-card/50 backdrop-blur-sm']">
                                         <span class="font-semibold">
                                             Testnet
                                         </span>
                                     </button>
 
                                     <!-- Mainnet Option -->
-                                    <button @click="Settings.setNetwork('mainnet')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', currentNetwork === 'mainnet' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">
+                                    <button @click="Settings.setNetwork('mainnet')" :class="['flex-1 text-center p-4 rounded-control border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', currentNetwork === 'mainnet' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-edge hover:border-edge dark:hover:border-edge bg-surface-card/50 bg-surface-card/50 backdrop-blur-sm']">
                                         <span class="font-semibold">
                                             Mainnet
                                         </span>
@@ -51,12 +51,12 @@
                     </div>
 
                     <!-- Appearance Section -->
-                    <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-xl">
-                        <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">
+                    <div class="bg-surface-card p-4 rounded-control border border-edge shadow-xl">
+                        <h2 class="text-xl font-semibold text-content">
                             Appearance
                         </h2>
 
-                        <p class="mt-1 text-slate-600 dark:text-slate-400">
+                        <p class="mt-1 text-content-soft">
                             Customize the look and feel of the app.
                         </p>
 
@@ -65,17 +65,17 @@
                                 <legend class="sr-only">Theme</legend>
                                 <div class="flex items-center gap-4">
                                     <!-- System Theme Option -->
-                                    <button @click="Settings.setTheme('system')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', theme === 'system' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">
+                                    <button @click="Settings.setTheme('system')" :class="['flex-1 text-center p-4 rounded-control border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', theme === 'system' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-edge hover:border-edge dark:hover:border-edge bg-surface-card/50 bg-surface-card/50 backdrop-blur-sm']">
                                         <span class="font-semibold">System</span>
                                     </button>
 
                                     <!-- Light Theme Option -->
-                                    <button @click="Settings.setTheme('light')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', theme === 'light' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">
+                                    <button @click="Settings.setTheme('light')" :class="['flex-1 text-center p-4 rounded-control border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', theme === 'light' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-edge hover:border-edge dark:hover:border-edge bg-surface-card/50 bg-surface-card/50 backdrop-blur-sm']">
                                         <span class="font-semibold">Light</span>
                                     </button>
 
                                     <!-- Dark Theme Option -->
-                                    <button @click="Settings.setTheme('dark')" :class="['flex-1 text-center p-4 rounded-xl border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', theme === 'dark' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-slate-300 dark:border-slate-600 hover:border-slate-200 dark:hover:border-slate-500 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm']">
+                                    <button @click="Settings.setTheme('dark')" :class="['flex-1 text-center p-4 rounded-control border-2 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5', theme === 'dark' ? 'border-cyan-400 bg-gradient-to-br from-cyan-500/10 to-cyan-600/10 text-cyan-900 dark:text-cyan-100 shadow-cyan-500/25 dark:shadow-cyan-500/30' : 'border-edge hover:border-edge dark:hover:border-edge bg-surface-card/50 bg-surface-card/50 backdrop-blur-sm']">
                                         <span class="font-semibold">Dark</span>
                                     </button>
                                 </div>
@@ -87,18 +87,18 @@
                     <form @submit.prevent="handleSaveChanges">
                         <div class="flex flex-col gap-8">
                             <!-- Profile Section -->
-                            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-xl">
-                                <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">
+                            <div class="bg-surface-card p-4 rounded-control border border-edge shadow-xl">
+                                <h2 class="text-xl font-semibold text-content">
                                     Profile
                                 </h2>
 
-                                <p class="mt-1 text-slate-600 dark:text-slate-400">
+                                <p class="mt-1 text-content-soft">
                                     This information will be displayed publicly.
                                 </p>
 
                                 <div class="mt-6 grid grid-cols-1 gap-y-6">
                                     <div>
-                                        <label for="displayName" class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                        <label for="displayName" class="block text-sm font-medium text-content">
                                             Display Name
                                         </label>
 
@@ -107,12 +107,12 @@
                                             type="text"
                                             name="displayName"
                                             id="displayName"
-                                            class="mt-1 block w-full bg-white dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 rounded-xl p-4 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-500 focus:ring-4 ring-cyan-400/20 focus:border-cyan-400 transition-all duration-200 shadow-lg hover:shadow-xl"
+                                            class="mt-1 block w-full bg-surface-card bg-surface-raise border-2 border-edge rounded-control p-4 text-content placeholder-content-faint dark:placeholder-content-faint focus:ring-4 ring-cyan-400/20 focus:border-cyan-400 transition-all duration-200 shadow-lg hover:shadow-xl"
                                         >
                                     </div>
 
                                     <div>
-                                        <label for="username" class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                        <label for="username" class="block text-sm font-medium text-content">
                                             Username
                                         </label>
 
@@ -121,12 +121,12 @@
                                             type="text"
                                             name="username"
                                             id="username"
-                                            disabled class="mt-1 block w-full bg-slate-100/50 dark:bg-slate-900/50 border-2 border-slate-400 dark:border-slate-700 rounded-xl p-4 text-slate-600 dark:text-slate-400 cursor-not-allowed shadow-lg"
+                                            disabled class="mt-1 block w-full bg-surface-raise/50 bg-surface-card/50 border-2 border-edge  rounded-control p-4 text-content-soft cursor-not-allowed shadow-lg"
                                         >
                                     </div>
 
                                     <div>
-                                        <label for="bio" class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                        <label for="bio" class="block text-sm font-medium text-content">
                                             Bio
                                         </label>
 
@@ -135,51 +135,51 @@
                                             name="bio"
                                             id="bio"
                                             rows="3"
-                                            class="mt-1 block w-full bg-white dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 rounded-xl p-4 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-500 focus:ring-4 ring-cyan-400/20 focus:border-cyan-400 transition-all duration-200 shadow-lg hover:shadow-xl resize-vertical">
+                                            class="mt-1 block w-full bg-surface-card bg-surface-raise border-2 border-edge rounded-control p-4 text-content placeholder-content-faint dark:placeholder-content-faint focus:ring-4 ring-cyan-400/20 focus:border-cyan-400 transition-all duration-200 shadow-lg hover:shadow-xl resize-vertical">
                                         </textarea>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Notifications Section -->
-                            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-xl">
-                                <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">
+                            <div class="bg-surface-card p-4 rounded-control border border-edge shadow-xl">
+                                <h2 class="text-xl font-semibold text-content">
                                     Notifications
                                 </h2>
 
-                                <p class="mt-1 text-slate-600 dark:text-slate-400">
+                                <p class="mt-1 text-content-soft">
                                     Choose how you want to be notified.
                                 </p>
 
                                 <div class="mt-6 space-y-4">
-                                    <div v-for="(enabled, key) in localNotifications" :key="key" class="flex items-center justify-between p-4 rounded-lg bg-slate-100/50 dark:bg-slate-700/50 backdrop-blur-sm border border-slate-300 dark:border-slate-600">
-                                        <span class="font-medium text-slate-700 dark:text-slate-300 capitalize">{{ key.replace(/([A-Z])/g, ' $1') }}</span>
+                                    <div v-for="(enabled, key) in localNotifications" :key="key" class="flex items-center justify-between p-4 rounded-lg bg-surface-raise/50 bg-surface-raise/50 backdrop-blur-sm border border-edge">
+                                        <span class="font-medium text-content capitalize">{{ key.replace(/([A-Z])/g, ' $1') }}</span>
 
-                                        <button @click="localNotifications[key] = !localNotifications[key]" type="button" :class="[enabled ? 'bg-cyan-500 shadow-cyan-300' : 'bg-slate-300 dark:bg-slate-600', 'relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-slate-400 dark:border-slate-500 transition-all duration-200 ease-in-out focus:outline-none focus:ring-4 focus:ring-cyan-400/20 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900 shadow-lg hover:shadow-xl']">
-                                            <span :class="[enabled ? 'translate-x-6 bg-white shadow-lg' : 'translate-x-1 bg-slate-600 dark:bg-slate-200', 'pointer-events-none inline-block h-6 w-6 transform rounded-full ring-0 transition-all duration-200 ease-in-out shadow-md']"></span>
+                                        <button @click="localNotifications[key] = !localNotifications[key]" type="button" :class="[enabled ? 'bg-cyan-500 shadow-cyan-300' : 'bg-surface-raise dark:bg-surface-raise', 'relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-edge dark:border-edge transition-all duration-200 ease-in-out focus:outline-none focus:ring-4 focus:ring-cyan-400/20 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900 shadow-lg hover:shadow-xl']">
+                                            <span :class="[enabled ? 'translate-x-6 bg-surface-card shadow-lg' : 'translate-x-1 bg-surface-raise dark:bg-surface-raise', 'pointer-events-none inline-block h-6 w-6 transform rounded-full ring-0 transition-all duration-200 ease-in-out shadow-md']"></span>
                                         </button>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-xl">
-                                <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">
+                            <div class="bg-surface-card p-4 rounded-control border border-edge shadow-xl">
+                                <h2 class="text-xl font-semibold text-content">
                                     Security
                                 </h2>
 
-                                <p class="mt-1 text-slate-600 dark:text-slate-400">
+                                <p class="mt-1 text-content-soft">
                                     Protect your sensitive data with an encryption password.
                                 </p>
 
                                 <div class="mt-6 grid grid-cols-1 gap-y-6">
                                     <div>
-                                        <label for="new-password" class="block text-sm font-medium text-slate-700 dark:text-slate-300">New Password</label>
-                                        <input v-model="localPassword.new" type="password" name="new-password" id="new-password" placeholder="Enter a strong password" class="mt-1 block w-full bg-white dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 rounded-xl p-4 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-500 focus:ring-4 ring-cyan-400/20 focus:border-cyan-400 transition-all duration-200 shadow-lg hover:shadow-xl">
+                                        <label for="new-password" class="block text-sm font-medium text-content">New Password</label>
+                                        <input v-model="localPassword.new" type="password" name="new-password" id="new-password" placeholder="Enter a strong password" class="mt-1 block w-full bg-surface-card bg-surface-raise border-2 border-edge rounded-control p-4 text-content placeholder-content-faint dark:placeholder-content-faint focus:ring-4 ring-cyan-400/20 focus:border-cyan-400 transition-all duration-200 shadow-lg hover:shadow-xl">
                                     </div>
 
                                     <div>
-                                        <label for="confirm-password" class="block text-sm font-medium text-slate-700 dark:text-slate-300">Confirm Password</label>
-                                        <input v-model="localPassword.confirm" type="password" name="confirm-password" id="confirm-password" placeholder="Confirm your new password" class="mt-1 block w-full bg-white dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 rounded-xl p-4 text-slate-900 dark:text-slate-100 placeholder-slate-500 dark:placeholder-slate-500 focus:ring-4 ring-cyan-400/20 focus:border-cyan-400 transition-all duration-200 shadow-lg hover:shadow-xl">
+                                        <label for="confirm-password" class="block text-sm font-medium text-content">Confirm Password</label>
+                                        <input v-model="localPassword.confirm" type="password" name="confirm-password" id="confirm-password" placeholder="Confirm your new password" class="mt-1 block w-full bg-surface-card bg-surface-raise border-2 border-edge rounded-control p-4 text-content placeholder-content-faint dark:placeholder-content-faint focus:ring-4 ring-cyan-400/20 focus:border-cyan-400 transition-all duration-200 shadow-lg hover:shadow-xl">
                                     </div>
 
                                     <p v-if="localPassword.new && localPassword.new !== localPassword.confirm" class="text-sm text-red-500 dark:text-red-400 mt-2 p-3 bg-red-500/10 dark:bg-red-500/20 border border-red-400 dark:border-red-500 rounded-lg">
@@ -188,12 +188,12 @@
                                 </div>
                             </div>
                             <!-- Software Update Section -->
-                            <div class="bg-white dark:bg-slate-800 p-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 shadow-xl">
-                                <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">
+                            <div class="bg-surface-card p-4 rounded-control border border-edge shadow-xl">
+                                <h2 class="text-xl font-semibold text-content">
                                     Software Update
                                 </h2>
 
-                                <p class="mt-1 text-slate-600 dark:text-slate-400">
+                                <p class="mt-1 text-content-soft">
                                     Check for and install the latest EvoNext Desktop release.
                                 </p>
 
@@ -201,19 +201,19 @@
                                     <!-- Version rows -->
                                     <div class="flex flex-col gap-1 sm:flex-row sm:justify-between sm:gap-4">
                                         <div>
-                                            <span class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                            <span class="block text-sm font-medium text-content">
                                                 Installed version
                                             </span>
-                                            <span class="text-lg font-bold text-slate-900 dark:text-slate-100">
+                                            <span class="text-lg font-bold text-content">
                                                 {{ updater.state.currentVersion ?? 'unknown' }}
                                             </span>
                                         </div>
 
                                         <div>
-                                            <span class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                                            <span class="block text-sm font-medium text-content">
                                                 Latest available
                                             </span>
-                                            <span class="text-lg font-bold" :class="updater.state.isUpdateAvailable ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-900 dark:text-slate-100'">
+                                            <span class="text-lg font-bold" :class="updater.state.isUpdateAvailable ? 'text-brand-deep dark:text-brand' : 'text-content'">
                                                 {{ updater.state.latestVersion ?? '—' }}
                                             </span>
                                         </div>
@@ -236,13 +236,13 @@
 
                                     <!-- Download progress -->
                                     <div v-if="updater.state.status === 'downloading' || updater.state.status === 'installing'" class="space-y-2">
-                                        <div class="flex justify-between text-sm text-slate-600 dark:text-slate-400">
+                                        <div class="flex justify-between text-sm text-content-soft">
                                             <span>{{ updater.state.status === 'installing' ? 'Installing…' : 'Downloading…' }}</span>
                                             <span v-if="updater.state.contentLength > 0">
                                                 {{ formatBytes(updater.state.downloadedBytes) }} / {{ formatBytes(updater.state.contentLength) }}
                                             </span>
                                         </div>
-                                        <div class="h-2 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                                        <div class="h-2 w-full rounded-full bg-surface-raise overflow-hidden">
                                             <div
                                                 class="h-full bg-gradient-to-r from-cyan-500 to-cyan-600 transition-all duration-200"
                                                 :style="{ width: progressPercent + '%' }"
@@ -256,7 +256,7 @@
                                             type="button"
                                             @click="handleCheckForUpdate"
                                             :disabled="updater.state.status === 'checking' || updater.state.status === 'downloading' || updater.state.status === 'installing'"
-                                            class="inline-flex justify-center items-center gap-2 rounded-xl border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 py-2 px-5 text-sm font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            class="inline-flex justify-center items-center gap-2 rounded-control border-2 border-edge bg-surface-card bg-surface-raise text-content py-2 px-5 text-sm font-semibold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             <span v-if="updater.state.status === 'checking'">
                                                 Checking…
@@ -271,7 +271,7 @@
                                             type="button"
                                             @click="handleInstallUpdate"
                                             :disabled="updater.state.status === 'downloading' || updater.state.status === 'installing' || updater.state.status === 'installed'"
-                                            class="group inline-flex justify-center items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white py-2 px-6 text-sm font-bold shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-lg"
+                                            class="group inline-flex justify-center items-center gap-2 rounded-control bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white py-2 px-6 text-sm font-bold shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-lg"
                                         >
                                             <span v-if="updater.state.status === 'downloading' || updater.state.status === 'installing'">
                                                 {{ updater.state.status === 'installing' ? 'Installing…' : 'Downloading…' }}
@@ -290,7 +290,7 @@
                                     </div>
 
                                     <!-- Last checked timestamp -->
-                                    <p v-if="updater.state.lastCheckedAt" class="text-xs text-slate-500 dark:text-slate-500">
+                                    <p v-if="updater.state.lastCheckedAt" class="text-xs text-content-soft dark:text-content-soft">
                                         Last checked: {{ new Date(updater.state.lastCheckedAt).toLocaleString() }}
                                     </p>
                                 </div>
@@ -299,7 +299,7 @@
                         </div>
 
                         <!-- Action Bar -->
-                        <div class="mt-8 pt-6 border-t-2 border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl p-4">
+                        <div class="mt-8 pt-6 border-t-2 border-edge bg-surface-card/50 bg-surface-card/50 backdrop-blur-sm rounded-control p-4">
                             <div class="flex justify-end items-center gap-4">
                                 <p v-if="showSuccessMessage" class="text-sm text-green-600 dark:text-green-400 bg-green-500/10 dark:bg-green-500/20 px-4 py-2 rounded-lg border border-green-400 dark:border-green-500 transition-all duration-300 shadow-lg">
                                     Changes saved successfully!
@@ -309,7 +309,7 @@
                                     {{ storeError }}
                                 </p>
 
-                                <button type="submit" :disabled="isLoading" class="group inline-flex justify-center items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white py-3 px-8 text-sm font-bold shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 focus:ring-4 focus:ring-cyan-400/30 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-lg">
+                                <button type="submit" :disabled="isLoading" class="group inline-flex justify-center items-center gap-2 rounded-control bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white py-3 px-8 text-sm font-bold shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 focus:ring-4 focus:ring-cyan-400/30 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-lg">
                                     <span v-if="!isLoading">
                                         Save Changes
                                     </span>

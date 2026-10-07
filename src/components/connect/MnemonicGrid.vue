@@ -4,7 +4,7 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 relative">
             <div v-for="(_word, index) in seedWords" :key="index" class="relative group">
                 <!-- Tooltip -->
-                <span class="absolute -top-8 left-1/2 -translate-x-1/2 text-xs text-slate-500 dark:text-slate-400 font-mono bg-slate-900/95 dark:bg-slate-800/95 px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap shadow-md z-10 pointer-events-none border border-slate-700 dark:border-slate-600 hidden sm:inline-block">
+                <span class="absolute -top-8 left-1/2 -translate-x-1/2 text-xs text-content-faint font-mono bg-surface-card/95 bg-surface-card/95 px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap shadow-md z-10 pointer-events-none border border-edge  hidden sm:inline-block">
                     Word {{ index + 1 }}
                 </span>
 
@@ -22,7 +22,7 @@
                         spellcheck="false"
                         :disabled="disabled"
                         :placeholder="showWords ? '' : (index + 1).toString()"
-                        class="w-full bg-white dark:bg-slate-800 border-2 rounded-xl pt-10 pb-3 px-4 text-center text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none transition-all duration-200 font-mono text-sm tracking-wide shadow-sm peer z-10 relative disabled:opacity-60 disabled:cursor-not-allowed"
+                        class="w-full bg-surface-card border-2 rounded-control pt-10 pb-3 px-4 text-center text-content placeholder-content-faint dark:placeholder-content-faint focus:outline-none transition-all duration-200 font-mono text-sm tracking-wide shadow-sm peer z-10 relative disabled:opacity-60 disabled:cursor-not-allowed"
                         :class="[
                             getInputBorderClass(index),
                             'focus:ring-4 focus:ring-opacity-50 focus:shadow-md',
@@ -48,7 +48,7 @@
                     <!-- Suggestions Dropdown -->
                     <Transition name="slide-up">
                         <ul v-if="activeIndex === index && suggestions.length > 0"
-                            class="absolute bottom-full left-0 w-full mb-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl shadow-2xl z-50 max-h-48 overflow-auto focus-within:ring-2 focus-within:ring-cyan-500 transition-all"
+                            class="absolute bottom-full left-0 w-full mb-1 bg-surface-card border border-edge  rounded-control shadow-2xl z-50 max-h-48 overflow-auto focus-within:ring-2 focus-within:ring-cyan-500 transition-all"
                             role="listbox">
                             <li v-for="(suggestion, sIndex) in suggestions" :key="suggestion"
                                 class="px-3 py-2 text-sm font-mono cursor-pointer hover:bg-cyan-50 dark:hover:bg-cyan-900/50 transition-colors flex items-center justify-between"
@@ -63,7 +63,7 @@
             </div>
         </div>
 
-        <div class="text-xs text-slate-500 dark:text-slate-400 text-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <div class="text-xs text-content-faint text-center p-4 bg-surface-raise bg-surface-card/50 rounded-control shadow-sm border border-edge">
             You can paste your entire seed phrase into any field.
         </div>
     </div>
@@ -131,7 +131,7 @@ const getInputBorderClass = (index: number) => {
         if (isValidWord(word)) return 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/30'
         if (word && word.trim().length > 0) return 'border-red-500 bg-red-50/50 dark:bg-red-900/30'
     }
-    return 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500'
+    return 'border-edge  hover:border-edge dark:hover:border-edge'
 }
 
 // Interactions

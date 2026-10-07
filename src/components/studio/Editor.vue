@@ -3,7 +3,7 @@
     <div v-if="loading" class="w-full h-full flex items-center justify-center">
         <div class="text-center">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-            <p class="mt-2 text-sm text-gray-400">Loading editor...</p>
+            <p class="mt-2 text-sm text-content-faint">Loading editor...</p>
         </div>
     </div>
     <div v-else-if="error" class="w-full h-full flex items-center justify-center">

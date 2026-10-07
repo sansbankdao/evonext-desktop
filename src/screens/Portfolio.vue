@@ -1,17 +1,17 @@
 <!-- src/screens/Portfolio.vue -->
 <template>
-    <main class="min-h-screen bg-slate-50 dark:bg-slate-950 pb-12">
+    <main class="min-h-screen bg-surface-raise bg-surface-base pb-12">
         <Header title="Portfolio Manager" />
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
             <!-- Summary Stats -->
             <section class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="md:col-span-2 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+                <div class="md:col-span-2 bg-surface-card p-8 rounded-card border border-edge shadow-sm">
+                    <p class="text-xs font-bold text-content-soft uppercase tracking-widest mb-2">
                         Estimated Net Worth
                     </p>
                     <div class="flex items-baseline gap-3">
-                        <h2 class="text-5xl font-black text-slate-900 dark:text-white">
+                        <h2 class="text-5xl font-black text-content">
                             {{ formatCurrency(totalBalance.usd) }}
                         </h2>
                     </div>
@@ -19,22 +19,22 @@
                         <span class="px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-500 text-xs font-bold">
                             +2.4% (24h)
                         </span>
-                        <span class="text-xs font-medium text-slate-400 uppercase tracking-tight">
+                        <span class="text-xs font-medium text-content-faint uppercase tracking-tight">
                             Market Performance
                         </span>
                     </div>
                 </div>
 
-                <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-center">
-                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">DASH Balance</p>
-                    <p class="text-xl font-black text-slate-900 dark:text-white">
+                <div class="bg-surface-card p-6 rounded-card border border-edge shadow-sm flex flex-col justify-center">
+                    <p class="text-xs font-bold text-content-soft uppercase tracking-widest mb-1">DASH Balance</p>
+                    <p class="text-xl font-black text-content">
                         {{ totalBalance.dash.toLocaleString(undefined, { maximumFractionDigits: 4 }) }}
                     </p>
                 </div>
 
-                <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-center">
-                    <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Identity Credits</p>
-                    <p class="text-xl font-black text-slate-900 dark:text-white">
+                <div class="bg-surface-card p-6 rounded-card border border-edge shadow-sm flex flex-col justify-center">
+                    <p class="text-xs font-bold text-content-soft uppercase tracking-widest mb-1">Identity Credits</p>
+                    <p class="text-xl font-black text-content">
                         {{ totalBalance.credits.toLocaleString() }}
                     </p>
                 </div>
@@ -43,10 +43,10 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <!-- Assets Table -->
                 <div class="lg:col-span-2 space-y-6">
-                    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                            <h3 class="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Your Assets</h3>
-                            <button @click="refreshData" class="text-xs font-bold text-cyan-600 uppercase tracking-widest hover:text-cyan-500 transition-colors">
+                    <div class="bg-surface-card rounded-card border border-edge shadow-sm overflow-hidden">
+                        <div class="px-6 py-5 border-b border-edge  flex justify-between items-center">
+                            <h3 class="text-sm font-black text-content uppercase tracking-tight">Your Assets</h3>
+                            <button @click="refreshData" class="text-xs font-bold text-cyan-600 uppercase tracking-widest hover:text-brand transition-colors">
                                 Refresh Table
                             </button>
                         </div>
@@ -54,39 +54,39 @@
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse">
                                 <thead>
-                                    <tr class="bg-slate-50/50 dark:bg-slate-800/50">
-                                        <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Asset</th>
-                                        <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">Price</th>
-                                        <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Balance</th>
-                                        <th class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Value (USD)</th>
+                                    <tr class="bg-surface-raise/50 bg-surface-card/50">
+                                        <th class="px-6 py-4 text-[10px] font-black text-content-faint uppercase tracking-widest">Asset</th>
+                                        <th class="px-6 py-4 text-[10px] font-black text-content-faint uppercase tracking-widest whitespace-nowrap">Price</th>
+                                        <th class="px-6 py-4 text-[10px] font-black text-content-faint uppercase tracking-widest">Balance</th>
+                                        <th class="px-6 py-4 text-[10px] font-black text-content-faint uppercase tracking-widest text-right">Value (USD)</th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                                    <tr v-for="asset in walletStore.assets" :key="asset.symbol" class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
+                                <tbody class="divide-y divide-edge dark:divide-edge">
+                                    <tr v-for="asset in walletStore.assets" :key="asset.symbol" class="hover:bg-surface-raise dark:hover:bg-surface-card/30 transition-colors group">
                                         <td class="px-6 py-4">
                                             <div class="flex items-center gap-3">
-                                                <div class="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200/50 dark:border-slate-700">
+                                                <div class="w-10 h-10 rounded-inner bg-surface-raise flex items-center justify-center border border-edge/50 ">
                                                     <img v-if="getIconSrc(asset.symbol)" :src="getIconSrc(asset.symbol) as string" class="w-6 h-6" />
                                                     <span v-else class="text-xs font-black">{{ asset.symbol[0] }}</span>
                                                 </div>
                                                 <div>
-                                                    <p class="text-sm font-black text-slate-900 dark:text-white uppercase">{{ asset.symbol }}</p>
-                                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Mainnet Cluster</p>
+                                                    <p class="text-sm font-black text-content uppercase">{{ asset.symbol }}</p>
+                                                    <p class="text-[10px] font-bold text-content-faint uppercase tracking-tighter">Mainnet Cluster</p>
                                                 </div>
                                             </div>
                                         </td>
                                         <td class="px-6 py-4">
-                                            <p class="text-sm font-medium text-slate-600 dark:text-slate-300">
+                                            <p class="text-sm font-medium text-content-soft">
                                                 {{ (asset.symbol === 'DASH' || asset.symbol === 'tDASH') ? formatCurrency(systemStore.currentDashPrice) : '---' }}
                                             </p>
                                         </td>
                                         <td class="px-6 py-4">
-                                            <p class="text-sm font-black text-slate-900 dark:text-white">
+                                            <p class="text-sm font-black text-content">
                                                 {{ getNormalizedBalance(asset) }}
                                             </p>
                                         </td>
                                         <td class="px-6 py-4 text-right">
-                                            <p class="text-sm font-black text-slate-900 dark:text-white">
+                                            <p class="text-sm font-black text-content">
                                                 {{ calculateAssetValue(asset) }}
                                             </p>
                                         </td>
@@ -99,16 +99,16 @@
 
                 <!-- Portfolio Actions Sidebar -->
                 <div class="space-y-6">
-                    <div class="bg-slate-900 rounded-3xl p-6 text-white border border-slate-800 shadow-xl relative overflow-hidden group">
+                    <div class="bg-surface-card rounded-card p-6 text-white border border-edge shadow-xl relative overflow-hidden group">
                         <div class="relative z-10">
                             <h3 class="text-lg font-black mb-1">Quick Transfer</h3>
-                            <p class="text-xs text-slate-400 font-bold uppercase tracking-widest mb-6">Move funds between identities</p>
+                            <p class="text-xs text-content-faint font-bold uppercase tracking-widest mb-6">Move funds between identities</p>
 
                             <div class="space-y-4">
-                                <button class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">
+                                <button class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 rounded-inner font-black text-xs uppercase tracking-widest transition-all">
                                     Send Assets
                                 </button>
-                                <button class="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl font-black text-xs uppercase tracking-widest transition-all">
+                                <button class="w-full py-3 bg-surface-card/5 hover:bg-surface-card/10 border border-white/10 rounded-inner font-black text-xs uppercase tracking-widest transition-all">
                                     Receive
                                 </button>
                             </div>
@@ -116,15 +116,15 @@
                         <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-cyan-600/10 rounded-full blur-2xl group-hover:bg-cyan-600/20 transition-all"></div>
                     </div>
 
-                    <div class="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                        <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Allocation</h3>
+                    <div class="bg-surface-card p-6 rounded-card border border-edge shadow-sm">
+                        <h3 class="text-xs font-black text-content-faint uppercase tracking-widest mb-4">Allocation</h3>
                         <div class="space-y-4">
                             <div v-for="asset in walletStore.assets.slice(0, 3)" :key="asset.symbol + '-bar'">
                                 <div class="flex justify-between text-[10px] font-black uppercase mb-1">
-                                    <span class="text-slate-500">{{ asset.symbol }}</span>
-                                    <span class="text-slate-900 dark:text-white">85%</span>
+                                    <span class="text-content-soft">{{ asset.symbol }}</span>
+                                    <span class="text-content">85%</span>
                                 </div>
-                                <div class="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div class="h-1.5 w-full bg-surface-raise rounded-full overflow-hidden">
                                     <div class="h-full bg-cyan-500 rounded-full" style="width: 85%"></div>
                                 </div>
                             </div>

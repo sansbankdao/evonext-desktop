@@ -142,13 +142,13 @@ onMounted(async () => {
 </script>
 
 <template>
-    <main class="min-h-screen w-full flex flex-col items-center bg-slate-50 dark:bg-slate-950">
+    <main class="min-h-screen w-full flex flex-col items-center bg-surface-raise bg-surface-base">
 
         <!-- Navigation Header -->
         <header class="w-full max-w-5xl flex items-center justify-between px-6 py-6">
             <button
                 @click="router.back()"
-                class="flex items-center gap-2 px-4 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors font-medium"
+                class="flex items-center gap-2 px-4 py-2 rounded-control text-content-soft hover:text-content dark:hover:text-white hover:bg-surface-raise dark:hover:bg-surface-card transition-colors font-medium"
             >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -157,9 +157,9 @@ onMounted(async () => {
             </button>
 
             <div class="flex items-center gap-4">
-                <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-raise bg-surface-card border border-edge">
                     <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                    <span class="text-xs font-bold text-slate-700 dark:text-slate-400 uppercase tracking-wide">
+                    <span class="text-xs font-bold text-content  uppercase tracking-wide">
                         Active
                     </span>
                 </div>
@@ -169,13 +169,13 @@ onMounted(async () => {
         <!-- Main Content -->
         <div class="w-full max-w-5xl px-6 pb-12">
 
-            <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div class="bg-surface-card rounded-card border border-edge shadow-sm overflow-hidden">
 
-                <div class="p-8 pb-6 border-b border-slate-200 dark:border-slate-800">
-                    <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+                <div class="p-8 pb-6 border-b border-edge">
+                    <h1 class="text-2xl font-bold text-content mb-1">
                         Swap Assets
                     </h1>
-                    <p class="text-slate-500 dark:text-slate-400 text-sm">
+                    <p class="text-content-faint text-sm">
                         Exchange Dash Platform assets instantly.
                     </p>
                 </div>
@@ -186,12 +186,12 @@ onMounted(async () => {
                     <div class="lg:col-span-7 flex flex-col space-y-4">
 
                         <!-- From Asset Card -->
-                        <div class="relative p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+                        <div class="relative p-5 rounded-inner bg-surface-raise bg-surface-base border border-edge hover:border-edge dark:hover:border-edge transition-colors">
                             <div class="flex justify-between items-start mb-4">
-                                <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                <label class="text-xs font-semibold text-content-faint uppercase tracking-wider">
                                     You Pay
                                 </label>
-                                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                <span class="text-xs font-medium text-content-faint">
                                     Bal: {{ fromAsset ? Number(fromAsset.balance).toLocaleString(undefined, {maximumFractionDigits: 6}) : '0' }}
                                 </span>
                             </div>
@@ -201,12 +201,12 @@ onMounted(async () => {
                                     v-model="fromAmount"
                                     @input="calculateToAmount"
                                     placeholder="0.00"
-                                    class="w-full bg-transparent text-3xl font-bold text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-slate-700 focus:outline-none"
+                                    class="w-full bg-transparent text-3xl font-bold text-content placeholder-content-faint dark:placeholder-content-faint focus:outline-none"
                                 />
                                 <div class="relative group">
                                     <select
                                         v-model="fromAssetTicker"
-                                        class="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-xl pl-3 pr-8 py-2 font-bold text-slate-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                        class="appearance-none bg-surface-card border border-edge hover:border-edge dark:hover:border-edge rounded-control pl-3 pr-8 py-2 font-bold text-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                                     >
                                         <option value="BCH">BCH</option>
                                         <option v-for="asset in Wallet.assets" :key="asset.symbol" :value="asset.symbol">
@@ -214,7 +214,7 @@ onMounted(async () => {
                                         </option>
                                     </select>
                                     <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                        <svg class="w-4 h-4 text-content-soft" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
                                 </div>
                             </div>
@@ -222,10 +222,10 @@ onMounted(async () => {
 
                         <!-- Swap Switcher -->
                         <div class="relative flex items-center justify-center -my-2">
-                            <div class="absolute w-full h-px bg-slate-200 dark:bg-slate-800 z-0"></div>
+                            <div class="absolute w-full h-px bg-surface-raise bg-surface-card z-0"></div>
                             <button
                                 @click="flipAssets"
-                                class="relative z-10 p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full shadow-sm hover:shadow-md hover:scale-110 active:scale-95 transition-all duration-200 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+                                class="relative z-10 p-2 bg-surface-card border border-edge rounded-full shadow-sm hover:shadow-md hover:scale-110 active:scale-95 transition-all duration-200 text-content-soft hover:text-indigo-600 dark:hover:text-indigo-400"
                             >
                                 <svg class="w-5 h-5 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 12l-4-4m4 4l4-4m6 8v-12m0 12l-4-4m4 4l4-4" />
@@ -234,12 +234,12 @@ onMounted(async () => {
                         </div>
 
                         <!-- To Asset Card -->
-                        <div class="relative p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+                        <div class="relative p-5 rounded-inner bg-surface-raise bg-surface-base border border-edge hover:border-edge dark:hover:border-edge transition-colors">
                             <div class="flex justify-between items-start mb-4">
-                                <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                <label class="text-xs font-semibold text-content-faint uppercase tracking-wider">
                                     You Receive
                                 </label>
-                                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">
+                                <span class="text-xs font-medium text-content-faint">
                                     Bal: {{ toAsset ? Number(toAsset.balance).toLocaleString(undefined, {maximumFractionDigits: 6}) : '0' }}
                                 </span>
                             </div>
@@ -249,12 +249,12 @@ onMounted(async () => {
                                     v-model="toAmount"
                                     @input="calculateFromAmount"
                                     placeholder="0.00"
-                                    class="w-full bg-transparent text-3xl font-bold text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-slate-700 focus:outline-none"
+                                    class="w-full bg-transparent text-3xl font-bold text-content placeholder-content-faint dark:placeholder-content-faint focus:outline-none"
                                 />
                                 <div class="relative group">
                                     <select
                                         v-model="toAssetTicker"
-                                        class="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-xl pl-3 pr-8 py-2 font-bold text-slate-900 dark:text-white cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                        class="appearance-none bg-surface-card border border-edge hover:border-edge dark:hover:border-edge rounded-control pl-3 pr-8 py-2 font-bold text-content cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                                     >
                                         <option value="BCH" :disabled="fromAssetTicker === 'BCH'">BCH</option>
                                         <option v-for="asset in availableToAssets" :key="asset.symbol" :value="asset.symbol">
@@ -262,14 +262,14 @@ onMounted(async () => {
                                         </option>
                                     </select>
                                     <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
-                                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                        <svg class="w-4 h-4 text-content-soft" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Error Message -->
-                        <div v-if="error" class="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 text-sm p-3 rounded-xl flex items-center gap-3">
+                        <div v-if="error" class="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 text-sm p-3 rounded-control flex items-center gap-3">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
@@ -282,11 +282,11 @@ onMounted(async () => {
                     <div class="lg:col-span-5 flex flex-col space-y-6">
 
                         <!-- Exchange Rate Display -->
-                        <div class="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
-                            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                        <div class="p-5 rounded-inner bg-surface-raise bg-surface-base border border-edge">
+                            <p class="text-xs font-semibold text-content-faint uppercase tracking-wider mb-3">
                                 Exchange Rate
                             </p>
-                            <div class="text-sm font-medium text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                            <div class="text-sm font-medium text-content-soft flex items-center gap-2">
                                 <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
                                 </svg>
@@ -295,27 +295,27 @@ onMounted(async () => {
                         </div>
 
                         <!-- Transaction Summary -->
-                        <div class="p-5 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-800 space-y-3">
-                            <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200">
+                        <div class="p-5 rounded-inner bg-surface-card border border-edge space-y-3">
+                            <h3 class="text-sm font-bold text-content ">
                                 Transaction Summary
                             </h3>
                             <div class="space-y-2 text-sm">
                                 <div class="flex justify-between">
-                                    <span class="text-slate-500 dark:text-slate-400">Network Fee</span>
-                                    <span class="font-medium text-slate-900 dark:text-white">
+                                    <span class="text-content-faint">Network Fee</span>
+                                    <span class="font-medium text-content">
                                         ~0.00001 DASH
                                     </span>
                                 </div>
                                 <div class="flex justify-between">
-                                    <span class="text-slate-500 dark:text-slate-400">Slippage</span>
-                                    <span class="font-medium text-slate-900 dark:text-white">
+                                    <span class="text-content-faint">Slippage</span>
+                                    <span class="font-medium text-content">
                                         &lt; 0.01%
                                     </span>
                                 </div>
-                                <div class="h-px bg-slate-200 dark:bg-slate-700 my-2"></div>
+                                <div class="h-px bg-surface-raise my-2"></div>
                                 <div class="flex justify-between items-center">
-                                    <span class="text-slate-500 dark:text-slate-400">Est. Time</span>
-                                    <span class="font-medium text-slate-900 dark:text-white">
+                                    <span class="text-content-faint">Est. Time</span>
+                                    <span class="font-medium text-content">
                                         &lt; 2 min
                                     </span>
                                 </div>
@@ -329,7 +329,7 @@ onMounted(async () => {
                         <button
                             @click="handleSwap"
                             :disabled="isSubmitting || !isFormValid"
-                            class="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold py-4 px-4 rounded-xl hover:bg-slate-800 dark:hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
+                            class="w-full bg-surface-card dark:bg-surface-card text-white dark:text-content font-bold py-4 px-4 rounded-control hover:bg-surface-card dark:hover:bg-surface-raise transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
                         >
                             <svg v-if="isSubmitting" class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

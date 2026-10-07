@@ -1,16 +1,16 @@
 <!-- src/components/addKey/IdentityList.vue -->
 <template>
     <div class="space-y-4">
-        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">
+        <label class="block text-sm font-medium text-content">
             Select Identity
         </label>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div v-for="identity in identities" :key="identity.identityId"
                 @click="$emit('select-identity', identity)"
-                class="relative rounded-xl border-2 p-5 cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
+                class="relative rounded-control border-2 p-5 cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1"
                 :class="selectedIdentity?.identityId === identity.identityId
                     ? 'border-cyan-500 bg-gradient-to-br from-cyan-500/5 to-cyan-600/5 ring-2 ring-cyan-500/20'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'"
+                    : 'border-edge hover:border-edge dark:hover:border-edge'"
             >
                 <div class="flex items-start gap-4">
                     <div class="flex-shrink-0">
@@ -19,10 +19,10 @@
                         </div>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <h3 class="font-semibold text-slate-900 dark:text-slate-100 truncate">
+                        <h3 class="font-semibold text-content truncate">
                             {{ getIdentityDisplayName(identity) }}
                         </h3>
-                        <p class="text-sm text-slate-600 dark:text-slate-400 truncate">
+                        <p class="text-sm text-content-soft truncate">
                             {{ identity.username || identity.identityId?.slice(0, 16) + '...' }}
                         </p>
                         <div class="mt-2 flex flex-wrap gap-1">
@@ -31,7 +31,7 @@
                                 {{ getKeyTypeShort(key) }}
                             </span>
                             <span v-if="hasMoreKeys(identity.publicKeys)"
-                                  class="text-xs text-slate-500 dark:text-slate-400">
+                                  class="text-xs text-content-faint">
                                 +{{ getAdditionalKeysCount(identity.publicKeys) }} more
                             </span>
                         </div>

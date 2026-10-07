@@ -3,18 +3,18 @@
     <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
         <!-- Phrase Length -->
         <div class="flex-1">
-            <label class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3 flex items-center gap-2">
-                <svg class="w-5 h-5 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <label class="text-sm font-bold text-content mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2h10a2 2 0 012 2v2m0 0V9a2 2 0 00-2-2M5 11a2 2 0 012-2h10a2 2 0 012 2" />
                 </svg>
                 Phrase Length
             </label>
             <fieldset class="grid grid-cols-2 gap-3">
                 <label v-for="count in ['12', '24']" :key="count"
-                    class="flex items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 group relative overflow-hidden"
+                    class="flex items-center justify-center p-3 rounded-control border-2 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 group relative overflow-hidden"
                     :class="modelValue === count
                         ? 'bg-gradient-to-r from-cyan-500 to-cyan-600 border-cyan-400 text-white shadow-cyan-500/25 ring-2 ring-cyan-400/30'
-                        : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 hover:text-slate-900 dark:hover:text-slate-100 bg-white dark:bg-slate-800'">
+                        : 'border-edge  text-content-soft hover:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 hover:text-content dark:hover:text-content bg-surface-card'">
                     <input
                         type="radio"
                         :value="count"
@@ -37,7 +37,7 @@
                 :class="[
                     isValid ? 'bg-emerald-100 dark:bg-emerald-800/40 border-emerald-400 text-emerald-800 dark:text-emerald-200' :
                     error ? 'bg-red-100 dark:bg-red-800/40 border-red-400 text-red-800 dark:text-red-200' :
-                    'bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300',
+                    'bg-surface-raise border-edge text-content',
                     error ? 'animate-[shake_0.5s_ease-in-out]' : ''
                 ]"
                 role="status">
@@ -57,7 +57,7 @@
                 type="button"
                 @click="$emit('update:showWords', !showWords)"
                 :disabled="disabled"
-                class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 transition-colors shadow-sm h-[46px] sm:h-[52px] disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex items-center justify-center gap-2 px-4 py-3 rounded-control border border-edge hover:border-edge dark:hover:border-edge bg-surface-card text-content-soft hover:text-content dark:hover:text-content transition-colors shadow-sm h-[46px] sm:h-[52px] disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 <svg v-if="!showWords" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

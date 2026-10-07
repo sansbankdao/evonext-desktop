@@ -3,12 +3,12 @@
     <main>
         <Header title="Add Identity Key" />
 
-        <section class="bg-gray-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-200 min-h-screen border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl">
+        <section class="bg-surface-base font-sans text-content min-h-screen border border-edge rounded-inner shadow-2xl">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
                 <div class="space-y-8">
                     <!-- Back Navigation -->
                     <div class="flex items-center gap-4">
-                        <RouterLink :to="`/identity/${route.params.id}/keys`" class="inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors duration-200">
+                        <RouterLink :to="`/identity/${route.params.id}/keys`" class="inline-flex items-center gap-2 text-content-soft hover:text-cyan-600 dark:hover:text-brand transition-colors duration-200">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                             </svg>
@@ -18,10 +18,10 @@
 
                     <!-- Page Header -->
                     <div class="space-y-4">
-                        <h1 class="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 sm:text-4xl">
+                        <h1 class="text-3xl font-extrabold tracking-tight text-content sm:text-4xl">
                             Add New Key
                         </h1>
-                        <p class="text-lg text-slate-600 dark:text-slate-400">
+                        <p class="text-lg text-content-soft">
                             Add a new public key to your identity for specific purposes or security levels.
                         </p>
                     </div>
@@ -29,17 +29,17 @@
                     <!-- Loading State -->
                     <div v-if="loading" class="text-center py-12">
                         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
-                        <p class="mt-4 text-slate-600 dark:text-slate-400">
+                        <p class="mt-4 text-content-soft">
                             Loading identity details...
                         </p>
                     </div>
 
                     <!-- No Identities Fallback -->
-                    <div v-else-if="!currentIdentity" class="rounded-xl bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-2 border-amber-400/30 p-8 text-center">
+                    <div v-else-if="!currentIdentity" class="rounded-control bg-gradient-to-r from-amber-500/10 to-amber-600/10 border-2 border-amber-400/30 p-8 text-center">
                         <h3 class="text-xl font-semibold text-amber-800 dark:text-amber-300 mb-2">
                             Identity Not Found
                         </h3>
-                        <RouterLink to="/identity" class="text-cyan-600 dark:text-cyan-400 underline">
+                        <RouterLink to="/identity" class="text-brand-deep dark:text-brand underline">
                             Return to Identity List
                         </RouterLink>
                     </div>
@@ -47,7 +47,7 @@
                     <!-- Identity & Key Configuration -->
                     <template v-else>
                         <!-- Selected Identity Details -->
-                        <div class="bg-white dark:bg-slate-800 rounded-xl border-2 border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+                        <div class="bg-surface-card rounded-control border border-edge p-6 shadow-sm">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-4">
                                     <div class="size-16 rounded-full bg-gradient-to-r from-slate-400 to-slate-500 flex items-center justify-center text-white text-xl font-bold">
@@ -55,67 +55,67 @@
                                     </div>
 
                                     <div>
-                                        <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">
+                                        <h2 class="text-xl font-bold text-content">
                                             {{ currentIdentity.username || 'Unnamed Identity' }}
                                         </h2>
 
-                                        <p class="text-sm text-slate-500 dark:text-slate-400 font-mono">
+                                        <p class="text-sm text-content-faint font-mono">
                                             {{ currentIdentity.identityId.slice(0, 8) }}...{{ currentIdentity.identityId.slice(-8) }}
                                         </p>
                                     </div>
                                 </div>
 
                                 <div class="text-right">
-                                    <div class="text-sm font-medium text-slate-500 dark:text-slate-400">Revision</div>
+                                    <div class="text-sm font-medium text-content-faint">Revision</div>
 
-                                    <div class="text-lg font-bold text-slate-900 dark:text-slate-100">{{ currentIdentity.revision }}</div>
+                                    <div class="text-lg font-bold text-content">{{ currentIdentity.revision }}</div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Key Configuration Form -->
-                        <div class="bg-white dark:bg-slate-800 rounded-xl border-2 border-slate-200 dark:border-slate-700 p-8 shadow-lg">
-                            <h3 class="text-xl font-bold text-slate-900 dark:text-slate-100 mb-6 border-b border-slate-200 dark:border-slate-700 pb-4">
+                        <div class="bg-surface-card rounded-control border border-edge p-8 shadow-lg">
+                            <h3 class="text-xl font-bold text-content mb-6 border-b border-edge pb-4">
                                 Key Configuration
                             </h3>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                 <!-- Purpose Selection -->
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                                    <label class="block text-sm font-bold text-content">
                                         Purpose
                                     </label>
 
                                     <select
                                         v-model="selectedPurpose"
-                                        class="w-full rounded-lg bg-slate-50 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-600 px-4 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
+                                        class="w-full rounded-lg bg-surface-raise bg-surface-card border-2 border-edge px-4 py-3 text-content focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
                                     >
                                         <option v-for="p in PURPOSES" :key="p.value" :value="p.value">
                                             {{ p.label }}
                                         </option>
                                     </select>
 
-                                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    <p class="text-xs text-content-faint">
                                         {{ getPurposeDescription(selectedPurpose) }}
                                     </p>
                                 </div>
 
                                 <!-- Security Level Selection -->
                                 <div class="space-y-2">
-                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                                    <label class="block text-sm font-bold text-content">
                                         Security Level
                                     </label>
 
                                     <select
                                         v-model="selectedSecurityLevel"
-                                        class="w-full rounded-lg bg-slate-50 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-600 px-4 py-3 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
+                                        class="w-full rounded-lg bg-surface-raise bg-surface-card border-2 border-edge px-4 py-3 text-content focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
                                     >
                                         <option v-for="l in SECURITY_LEVELS" :key="l.value" :value="l.value">
                                             {{ l.label }}
                                         </option>
                                     </select>
 
-                                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    <p class="text-xs text-content-faint">
                                         {{ getSecurityLevelDescription(selectedSecurityLevel) }}
                                     </p>
                                 </div>
@@ -123,7 +123,7 @@
 
                             <!-- Key Type Selection -->
                             <div class="mb-8 space-y-2">
-                                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                                <label class="block text-sm font-bold text-content">
                                     Key Type
                                 </label>
 
@@ -132,31 +132,31 @@
                                         type="button"
                                         @click="keyType = 'ECDSA_HASH160'"
                                         :class="[
-                                            'p-4 rounded-xl border-2 text-left transition-all',
+                                            'p-4 rounded-control border-2 text-left transition-all',
                                             keyType === 'ECDSA_HASH160'
                                                 ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 ring-1 ring-cyan-500'
-                                                : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                                                : 'border-edge hover:border-edge dark:hover:border-edge'
                                         ]"
                                     >
-                                        <div class="font-bold text-slate-900 dark:text-slate-100">ECDSA HASH160</div>
-                                        <div class="text-xs text-slate-500 dark:text-slate-400">Standard for Dash identities</div>
+                                        <div class="font-bold text-content">ECDSA HASH160</div>
+                                        <div class="text-xs text-content-faint">Standard for Dash identities</div>
                                     </button>
 
                                     <button
                                         type="button"
                                         @click="keyType = 'ECDSA_SECP256K1'"
                                         :class="[
-                                            'p-4 rounded-xl border-2 text-left transition-all',
+                                            'p-4 rounded-control border-2 text-left transition-all',
                                             keyType === 'ECDSA_SECP256K1'
                                                 ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 ring-1 ring-cyan-500'
-                                                : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                                                : 'border-edge hover:border-edge dark:hover:border-edge'
                                         ]"
                                     >
-                                        <div class="font-bold text-slate-900 dark:text-slate-100">
+                                        <div class="font-bold text-content">
                                             ECDSA SECP256K1
                                         </div>
 
-                                        <div class="text-xs text-slate-500 dark:text-slate-400">
+                                        <div class="text-xs text-content-faint">
                                             Used for Encryption
                                         </div>
                                     </button>
@@ -164,7 +164,7 @@
                             </div>
 
                             <!-- Validation Status -->
-                            <div v-if="keyExists" class="mb-6 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 p-4 flex items-start gap-3">
+                            <div v-if="keyExists" class="mb-6 rounded-control bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 p-4 flex items-start gap-3">
                                 <svg class="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
@@ -182,7 +182,7 @@
                                 <button
                                     @click="addKey"
                                     :disabled="isAdding || keyExists || !isValidSelection"
-                                    class="flex-1 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white py-3 px-6 text-sm font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    class="flex-1 rounded-control bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-600 hover:to-cyan-700 text-white py-3 px-6 text-sm font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     <svg v-if="isAdding" class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -196,12 +196,12 @@
                         </div>
 
                         <!-- Info Section -->
-                        <div class="rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6">
-                            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100 mb-2 uppercase tracking-wider">
+                        <div class="rounded-control bg-surface-raise border border-edge p-6">
+                            <h3 class="text-sm font-bold text-content mb-2 uppercase tracking-wider">
                                 About Adding Keys
                             </h3>
 
-                            <ul class="space-y-2 text-sm text-slate-600 dark:text-slate-400 list-disc list-inside">
+                            <ul class="space-y-2 text-sm text-content-soft list-disc list-inside">
                                 <li>Adding a key requires a small fee in credits.</li>
 
                                 <li>You cannot add a MASTER key if one already exists.</li>

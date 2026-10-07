@@ -1,6 +1,6 @@
 <!-- scr/screens/wallet/Overview.vuew -->
 <template>
-    <main class="min-h-screen w-full flex flex-col items-center bg-slate-50 dark:bg-slate-950 pb-12">
+    <main class="min-h-screen w-full flex flex-col items-center bg-surface-raise bg-surface-base pb-12">
         <Header title="Wallet" />
 
         <!-- 1. Header -->
@@ -19,20 +19,20 @@
             />
 
             <!-- 3. Collectibles Row -->
-            <div class="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-black rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 flex flex-col sm:flex-row items-center justify-between gap-4 relative overflow-hidden group">
+            <div class="bg-gradient-to-r from-slate-900 to-slate-800 dark:from-slate-800 dark:to-black rounded-card border border-edge shadow-sm p-6 flex flex-col sm:flex-row items-center justify-between gap-4 relative overflow-hidden group">
                 <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5"></div>
                 <div class="flex items-center gap-4 relative z-10">
-                    <div class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 border border-white/20 shadow-lg">
+                    <div class="w-12 h-12 bg-surface-card/10 backdrop-blur-md rounded-inner flex items-center justify-center group-hover:scale-110 transition-transform duration-300 border border-white/20 shadow-lg">
                         <svg class="w-6 h-6 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                         </svg>
                     </div>
                     <div class="text-left">
                         <h3 class="text-lg font-bold text-white">Collectibles</h3>
-                        <p class="text-sm text-slate-400 font-medium">Unique digital assets</p>
+                        <p class="text-sm text-content-faint font-medium">Unique digital assets</p>
                     </div>
                 </div>
-                <button class="relative z-10 px-6 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold rounded-xl transition-all backdrop-blur-md text-sm">
+                <button class="relative z-10 px-6 py-2 bg-surface-card/10 hover:bg-surface-card/20 border border-white/20 text-white font-bold rounded-control transition-all backdrop-blur-md text-sm">
                     Coming Soon
                 </button>
             </div>

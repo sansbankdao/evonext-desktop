@@ -157,11 +157,11 @@
             </section>
 
             <!-- VERBOSE DIAGNOSTIC CONSOLE -->
-            <section v-if="showDebug" class="mt-4 bg-slate-900 border-2 border-brand/50 rounded-card p-4 font-mono text-caption text-brand overflow-hidden shadow-2xl">
+            <section v-if="showDebug" class="mt-4 bg-surface-card border-2 border-brand/50 rounded-card p-4 font-mono text-caption text-brand overflow-hidden shadow-2xl">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-body font-bold uppercase tracking-tighter text-white">Diagnostic Console</h3>
                     <div class="flex gap-2">
-                        <button @click="debugLogs = []" class="text-[10px] bg-white/10 px-2 py-1 rounded border border-white/20 text-white">Clear Logs</button>
+                        <button @click="debugLogs = []" class="text-[10px] bg-surface-card/10 px-2 py-1 rounded border border-white/20 text-white">Clear Logs</button>
                         <button @click="showDebug = false" class="text-[10px] bg-down/20 px-2 py-1 rounded border border-down/50 text-down">Close</button>
                     </div>
                 </div>

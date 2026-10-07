@@ -15,7 +15,7 @@
 
             <code
                 v-else-if="part.type === 'code'"
-                class="font-mono text-sm bg-gray-100 dark:bg-gray-700 text-pink-600 dark:text-pink-400 rounded px-1"
+                class="font-mono text-sm bg-surface-raise dark:bg-gray-700 text-pink-600 dark:text-pink-400 rounded px-1"
             >{{ part.value }}</code>
 
             <a

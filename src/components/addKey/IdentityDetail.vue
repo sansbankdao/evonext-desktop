@@ -1,31 +1,31 @@
 <!-- src/components/addKey/IdentityDetail.vue -->
 <template>
     <div v-if="identity" class="space-y-6">
-        <div class="rounded-xl bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 border border-slate-300 dark:border-slate-700 p-4">
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
+        <div class="rounded-control bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 border border-edge  p-4">
+            <h3 class="text-lg font-semibold text-content mb-4">
                 Selected Identity Details
             </h3>
             <div class="space-y-4">
                 <!-- Identifier -->
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    <label class="block text-sm font-medium text-content mb-1">
                         Identifier
                     </label>
-                    <div class="font-mono text-sm bg-slate-200 dark:bg-slate-800 px-3 py-2 rounded-lg truncate">
+                    <div class="font-mono text-sm bg-surface-raise bg-surface-card px-3 py-2 rounded-lg truncate">
                         {{ identity.identityId }}
                     </div>
                 </div>
                 <!-- Current Keys -->
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                    <label class="block text-sm font-medium text-content mb-1">
                         Current Keys
                     </label>
                     <div class="space-y-2">
                         <div v-for="key in identity.publicKeys || []"
-                             class="flex items-center justify-between p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                             class="flex items-center justify-between p-3 bg-surface-card rounded-lg border border-edge">
                             <div class="space-y-1">
                                 <div class="flex items-center gap-2">
-                                    <span class="font-medium text-slate-900 dark:text-slate-100">
+                                    <span class="font-medium text-content">
                                         {{ getPurposeLabel(key.purpose) }}
                                     </span>
                                     <span :class="getSecurityLevelClass(key.securityLevel)"
@@ -33,7 +33,7 @@
                                         {{ getSecurityLevelLabel(key.securityLevel) }}
                                     </span>
                                 </div>
-                                <div class="text-xs text-slate-500 dark:text-slate-400">
+                                <div class="text-xs text-content-faint">
                                     {{ key.type || key.keyType }}
                                 </div>
                             </div>
@@ -121,7 +121,7 @@ const getSecurityLevelClass = (level: number | string): string => {
         case 2: return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300'
         case 3: return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'
         case 4: return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-        default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
+        default: return 'bg-surface-raise text-content dark:bg-gray-900 dark:text-content-faint'
     }
 }
 </script>

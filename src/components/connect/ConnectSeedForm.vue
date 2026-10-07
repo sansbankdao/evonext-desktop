@@ -28,7 +28,7 @@
                 type="button"
                 @click="handleDiscovery"
                 :disabled="isSearching"
-                class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-medium rounded-xl transition-all duration-200 hover:from-cyan-600 hover:to-cyan-700 hover:shadow-lg disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed"
+                class="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-medium rounded-control transition-all duration-200 hover:from-cyan-600 hover:to-cyan-700 hover:shadow-lg disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed"
             >
                 <svg v-if="isSearching" class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -57,7 +57,7 @@
         <div v-else-if="!isSearching" class="text-center">
             <button
                 @click="showManualIdentity = true"
-                class="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 underline"
+                class="text-sm text-content-faint hover:text-content dark:hover:text-content-faint underline"
             >
                 Can't discover identity? Enter Identity ID manually
             </button>

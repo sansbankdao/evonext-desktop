@@ -4,16 +4,16 @@
         <Header title="Disconnect Identity" />
 
         <section class="flex items-center justify-center min-h-[calc(100vh-140px)] px-4">
-            <div class="max-w-2xl w-full mx-auto space-y-8 border-2 border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl p-8 bg-white dark:bg-slate-900">
+            <div class="max-w-2xl w-full mx-auto space-y-8 border border-edge rounded-inner shadow-2xl p-8 bg-surface-card">
                 <!-- Page Header -->
                 <div class="text-center space-y-3">
-                    <p class="text-slate-600 dark:text-slate-400 text-xl leading-relaxed">
+                    <p class="text-content-soft text-xl leading-relaxed">
                         Current Identity details on {{ currentNetwork }}. Review and wipe data if desired. Data is stored locally.
                     </p>
                 </div>
 
                 <!-- Identity Details (if loaded) -->
-                <div v-if="identityData" class="space-y-4 p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-2 border-emerald-200/50 dark:border-emerald-800/50 rounded-2xl">
+                <div v-if="identityData" class="space-y-4 p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-2 border-emerald-200/50 dark:border-emerald-800/50 rounded-inner">
                     <h3 class="font-bold text-lg text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
                         <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" />
@@ -23,17 +23,17 @@
                     <div class="space-y-2">
                         <div class="grid grid-cols-2 gap-2">
                             <div class="text-sm">
-                                <span class="font-medium text-slate-700 dark:text-slate-300">Identity ID:</span>
-                                <pre class="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded mt-1 font-mono overflow-auto">{{ identityData.identityId || 'N/A' }}</pre>
+                                <span class="font-medium text-content">Identity ID:</span>
+                                <pre class="text-xs bg-surface-raise p-2 rounded mt-1 font-mono overflow-auto">{{ identityData.identityId || 'N/A' }}</pre>
                             </div>
                             <div class="text-sm">
-                                <span class="font-medium text-slate-700 dark:text-slate-300">Balance:</span>
+                                <span class="font-medium text-content">Balance:</span>
                                 <div class="text-sm font-mono mt-1">{{ formattedBalance }}</div>
                             </div>
                         </div>
                         <div v-if="publicKeysCount > 0" class="text-sm mt-4">
-                            <span class="font-medium text-slate-700 dark:text-slate-300">Public Keys:</span>
-                            <div class="text-xs text-slate-600 dark:text-slate-400 mt-1">{{ publicKeysCount }} key(s) loaded</div>
+                            <span class="font-medium text-content">Public Keys:</span>
+                            <div class="text-xs text-content-soft mt-1">{{ publicKeysCount }} key(s) loaded</div>
                         </div>
                         <div v-if="identityData.revision" class="text-sm text-emerald-700 dark:text-emerald-300">
                             Revision: {{ identityData.revision }}
@@ -44,14 +44,14 @@
 
                 <!-- No Data -->
                 <div v-else class="text-center py-12 space-y-4">
-                    <svg class="w-16 h-16 text-slate-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-16 h-16 text-content-faint mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2M4 13h2m13-6a1 1 0 11-2 0 1 1 0 012 0z" />
                     </svg>
-                    <p class="text-slate-500 dark:text-slate-400 font-medium">No identity data found for {{ currentNetwork }}.</p>
+                    <p class="text-content-faint font-medium">No identity data found for {{ currentNetwork }}.</p>
                 </div>
 
                 <!-- Security Warning -->
-                <div class="bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-200 dark:border-amber-800/50 text-amber-800 dark:text-amber-300 p-4 rounded-2xl shadow-lg flex items-start gap-3">
+                <div class="bg-amber-50 dark:bg-amber-950/20 border-2 border-amber-200 dark:border-amber-800/50 text-amber-800 dark:text-amber-300 p-4 rounded-inner shadow-lg flex items-start gap-3">
                     <svg class="w-6 h-6 text-amber-500 dark:text-amber-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -62,7 +62,7 @@
                 </div>
 
                 <!-- Error Message -->
-                <div v-if="error" class="bg-red-50 dark:bg-red-950/20 border-2 border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 p-4 rounded-2xl text-sm font-bold text-center shadow-lg flex items-start gap-3">
+                <div v-if="error" class="bg-red-50 dark:bg-red-950/20 border-2 border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-300 p-4 rounded-inner text-sm font-bold text-center shadow-lg flex items-start gap-3">
                     <svg class="w-6 h-6 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
@@ -73,7 +73,7 @@
                 <div class="grid grid-cols-2 gap-4 pt-6">
                     <button
                         @click="goToConnect"
-                        class="flex items-center justify-center gap-2 bg-gradient-to-r from-slate-500 to-slate-600 text-white font-bold py-5 px-8 rounded-2xl transition-all duration-200 shadow-2xl hover:from-slate-600 hover:to-slate-700 hover:shadow-3xl hover:-translate-y-1 focus:ring-4 focus:ring-slate-400/40 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900"
+                        class="flex items-center justify-center gap-2 bg-gradient-to-r from-slate-500 to-slate-600 text-white font-bold py-5 px-8 rounded-inner transition-all duration-200 shadow-2xl hover:from-slate-600 hover:to-slate-700 hover:shadow-3xl hover:-translate-y-1 focus:ring-4 focus:ring-edge/40 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900"
                     >
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -83,7 +83,7 @@
                     <button
                         @click="wipeAllData"
                         :disabled="!identityData || isWiping"
-                        class="flex items-center justify-center gap-2 bg-gradient-to-r from-red-500 to-red-600 text-white font-bold py-5 px-8 rounded-2xl transition-all duration-200 shadow-2xl hover:from-red-600 hover:to-red-700 hover:shadow-3xl hover:-translate-y-1 disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed disabled:shadow-lg focus:ring-4 focus:ring-red-400/40 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900"
+                        class="flex items-center justify-center gap-2 bg-gradient-to-r from-red-500 to-red-600 text-white font-bold py-5 px-8 rounded-inner transition-all duration-200 shadow-2xl hover:from-red-600 hover:to-red-700 hover:shadow-3xl hover:-translate-y-1 disabled:from-slate-400 disabled:to-slate-500 disabled:cursor-not-allowed disabled:shadow-lg focus:ring-4 focus:ring-red-400/40 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900"
                     >
                         <svg v-if="isWiping" class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

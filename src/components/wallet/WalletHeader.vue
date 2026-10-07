@@ -2,19 +2,19 @@
  <template>
     <header class="w-full max-w-5xl flex items-center justify-between px-6 pt-3 pb-5">
         <div class="flex items-center gap-3">
-            <div class="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400">
+            <div class="p-2 rounded-control bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                 </svg>
             </div>
-            <h1 class="text-2xl font-bold text-slate-900 dark:text-white">
+            <h1 class="text-2xl font-bold text-content">
                 Wallet Dashboard
             </h1>
         </div>
         <div class="flex items-center gap-4">
             <button
                 @click="$emit('refresh')"
-                class="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors"
+                class="p-2 rounded-control text-content-faint hover:text-content-soft dark:hover:text-white hover:bg-surface-raise dark:hover:bg-surface-card transition-colors"
                 title="Refresh"
             >
                 <svg class="w-5 h-5" :class="{'animate-spin': isRefreshing}" fill="none" stroke="currentColor" viewBox="0 0 24 24">

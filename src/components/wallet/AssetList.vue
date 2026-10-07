@@ -1,8 +1,8 @@
 <!-- src/components/wallet/AssetList.vue -->
 <template>
-    <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm p-8 flex flex-col h-full">
+    <div class="bg-surface-card rounded-card border border-edge shadow-sm p-8 flex flex-col h-full">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <h2 class="text-xl font-bold text-content flex items-center gap-2">
                 <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                 </svg>
@@ -20,10 +20,10 @@
                 :key="asset.id"
                 role="button"
                 @click="router.push(`/wallet/asset/${asset.symbol}`)"
-                class="flex items-center justify-between p-4 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-indigo-500/30 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer group"
+                class="flex items-center justify-between p-4 rounded-control border border-edge  hover:border-indigo-500/30 hover:bg-surface-raise dark:hover:bg-surface-card transition-all cursor-pointer group"
             >
                 <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+                    <div class="w-12 h-12 rounded-full bg-surface-card border border-edge flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
                         <img
                             v-if="assetIconExists(asset.symbol)"
                             :src="getIconSrc(asset.symbol)"
@@ -31,34 +31,34 @@
                             class="w-8 h-8"
                         />
 
-                        <svg v-else class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg v-else class="w-6 h-6 text-content-faint" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
 
                     <div>
-                        <p class="font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                        <p class="font-bold text-content group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                             {{ asset.name }}
                         </p>
 
-                        <p class="text-xs font-mono text-slate-500 dark:text-slate-400">
+                        <p class="text-xs font-mono text-content-faint">
                             {{ asset.symbol }}
                         </p>
                     </div>
                 </div>
 
                 <div class="text-right">
-                    <p class="font-bold text-slate-900 dark:text-white">
+                    <p class="font-bold text-content">
                         {{ getNormalizedBalance(asset) }}
                     </p>
 
-                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                    <p class="text-xs text-content-faint">
                         {{ formatCurrency(getAssetUsdValue(asset)) }}
                     </p>
                 </div>
             </div>
 
-            <div v-if="filteredAssets.length === 0 && !isLoading" class="flex flex-col items-center justify-center py-12 text-slate-400">
+            <div v-if="filteredAssets.length === 0 && !isLoading" class="flex flex-col items-center justify-center py-12 text-content-faint">
                 <p class="text-sm font-medium">No assets found</p>
             </div>
         </div>
