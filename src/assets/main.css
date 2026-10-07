@@ -2,3 +2,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Semantic surface tokens as CSS variables (rgb triplets for <alpha-value>).
+ * Components use bg-surface-card / border-edge / text-content etc. so the
+ * whole app re-themes from this one block.
+ */
+:root {
+    --surface-base: 244 245 250;  /* cool light page */
+    --surface-card: 255 255 255;  /* white */
+    --surface-raise: 241 244 249; /* raised rows / chips */
+    --edge: 226 230 238;          /* hairline borders */
+    --content: 15 23 42;          /* slate-900 */
+    --content-soft: 71 85 105;    /* slate-600 */
+    --content-faint: 148 163 184; /* slate-400 */
+}
+
+.dark {
+    --surface-base: 4 7 17;       /* deep space */
+    --surface-card: 11 16 32;     /* card */
+    --surface-raise: 24 32 54;    /* raised rows / chips */
+    --edge: 30 41 66;             /* hairline borders */
+    --content: 240 244 255;       /* near-white */
+    --content-soft: 168 181 209;  /* soft */
+    --content-faint: 110 126 158; /* faint */
+}
