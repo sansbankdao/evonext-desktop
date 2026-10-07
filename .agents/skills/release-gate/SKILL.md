@@ -19,6 +19,33 @@ description: >
 > explicitly. Until then, treat this file as documentation to be read on
 > demand, not as an always-on gate.
 
+## 🛑 STOP — A RED GITHUB ACTIONS RUN IS *NOT* A RELEASE BLOCKER
+
+If you pushed a tag and the `Release EvoNext Desktop Edition` workflow run
+failed in 4-10 s (or the `CI Suite` is red), **that is EXPECTED and
+HARMLESS.** It is the billing hold killing GitHub-*hosted* runners — it has
+NOTHING to do with shipping.
+
+**Do NOT, under any circumstances, do any of the following in response to a
+red/failed Actions run:**
+- conclude the release is "blocked by billing" and stop to ask the user, or
+- propose / start rewiring `release.yml` `runs-on:` to move `create-release`
+  or `publish-release` onto `evorunner`, or
+- treat the Actions failure as the build failing.
+
+The build is `ssh evorunner '~/builds/evonext-desktop-release.sh vX.Y.Z
+--windows'` — full stop. It does not touch GitHub Actions. GitHub only
+provides two **free** services here: the git remote and `gh release
+upload`. Neither is billing-blocked. If you find yourself reasoning about
+the CI failure while trying to release, you have gone down the WRONG PATH —
+go to "HOW RELEASES ACTUALLY SHIP" below and run the script.
+
+> This rule was added after an agent (v26.10.7) pushed the tag, saw the
+> instantly-failed CI run, and wrongly reported the release as
+> "blocked by billing", offering to rewire the workflow — wasting a turn.
+> The tag push working + CI failing is the NORMAL state of every release
+> since v26.9.13.
+
 ## ⛔ READ THIS BEFORE ANY RELEASE ACTION
 
 A "release action" is any of:
@@ -70,9 +97,9 @@ If ANY answer is NO or "I inferred it": DO NOT RELEASE. State the gap and wait.
 ## 🔑 HOW RELEASES ACTUALLY SHIP — `~/builds/evonext-desktop-release.sh` on evorunner
 
 **This is the single most important fact in this document.** Releases have
-shipped continuously (v26.9.9 → v26.9.16) DESPITE every GitHub Actions run
-failing. **GitHub Actions is NOT the release mechanism. It never was, for
-any release since at least v26.9.11.**
+shipped continuously (v26.9.9 → v26.9.16, and v26.10.7) DESPITE every
+GitHub Actions run failing. **GitHub Actions is NOT the release mechanism.
+It never was, for any release since at least v26.9.11.**
 
 The real builder is a shell script on the evorunner host:
 
