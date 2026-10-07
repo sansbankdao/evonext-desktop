@@ -26,13 +26,6 @@
                             <div class="flex flex-col gap-2">
                                 <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                                     <div class="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center">
-                                        <svg class="w-5 h-5 text-slate-500 dark:text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.282M12 3a8.997 8.997 0 00-7.843 4.282m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.218m0 0A11.995 11.995 0 001.5 12c0 1.605.42 3.113 1.157 4.418" /></svg>
-                                    </div>
-                                    <p class="text-sm font-bold text-slate-700 dark:text-slate-200 flex-1">Core L1 Balance</p>
-                                    <p class="text-sm font-mono text-slate-500 dark:text-slate-400">—</p>
-                                </div>
-                                <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
-                                    <div class="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center">
                                         <svg class="w-5 h-5 text-slate-500 dark:text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m21 7.5-9-5.25L3 7.5m18 0-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" /></svg>
                                     </div>
                                     <p class="text-sm font-bold text-slate-700 dark:text-slate-200 flex-1">Platform Address Balance</p>
