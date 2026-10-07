@@ -48,17 +48,17 @@ export default {
                 },
             },
             borderRadius: {
-                // One radius scale, used everywhere.
-                card: '1.25rem',   // outer cards / panels (was rounded-3xl)
-                inner: '0.875rem', // nested rows / chips (was rounded-2xl)
-                control: '0.625rem', // buttons / inputs (was rounded-xl)
+                // One radius scale, used everywhere. Tight/modern.
+                card: '0.75rem',    // outer cards / panels
+                inner: '0.5rem',    // nested rows / chips
+                control: '0.375rem', // buttons / inputs
             },
             fontSize: {
-                // One type scale.
-                display: ['1.875rem', { lineHeight: '2.25rem', fontWeight: '800' }], // big numbers
-                title: ['0.875rem', { lineHeight: '1.25rem', fontWeight: '700', letterSpacing: '0.06em' }], // section headers (uppercase)
-                body: ['0.875rem', { lineHeight: '1.375rem', fontWeight: '500' }],
-                caption: ['0.75rem', { lineHeight: '1rem', fontWeight: '600' }],
+                // One type scale. Tight, dashboard-dense.
+                display: ['1.5rem', { lineHeight: '1.9rem', fontWeight: '700' }], // big numbers
+                title: ['0.6875rem', { lineHeight: '1rem', fontWeight: '600', letterSpacing: '0.05em' }], // section headers (uppercase)
+                body: ['0.8125rem', { lineHeight: '1.25rem', fontWeight: '500' }],
+                caption: ['0.6875rem', { lineHeight: '0.9rem', fontWeight: '500' }],
             },
             boxShadow: {
                 card: '0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.05)',

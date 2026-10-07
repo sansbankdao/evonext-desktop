@@ -4,7 +4,7 @@
         <div class="flex items-center gap-3 min-w-0">
             <div
                 v-if="$slots.icon"
-                class="p-2 rounded-inner bg-brand/10 text-brand-deep dark:text-brand"
+                class="p-1.5 rounded-inner bg-brand/10 text-brand-deep dark:text-brand"
             >
                 <slot name="icon" />
             </div>

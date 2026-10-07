@@ -1,14 +1,14 @@
 <!-- src/screens/Home.vue -->
 <template>
-    <main class="min-h-screen bg-surface-base pb-12">
+    <main class="min-h-screen bg-surface-base pb-8">
         <Header title="Maīson Ξvolution" />
 
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <div class="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 pt-3">
 
             <!-- Hero: Total Balance -->
-            <section class="mb-6">
-                <div class="rounded-card border border-edge bg-surface-card p-6 shadow-card">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <section class="mb-4">
+                <div class="rounded-card border border-edge bg-surface-card p-4 shadow-card">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div class="flex-1">
                             <p class="text-title uppercase text-content-faint mb-2">Total Balance</p>
                             <p class="text-display text-content tracking-tight">{{ formatCurrency(totalBalance.usd) }}</p>
@@ -49,11 +49,11 @@
             </section>
 
             <!-- Token Assets & Collectibles -->
-            <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                 <UiCard>
                     <UiSectionHeader title="Token Assets" class="mb-4" />
-                    <div v-if="walletStore.assets.length" class="flex flex-wrap gap-3">
-                        <div v-for="asset in walletStore.assets" :key="asset.symbol" class="flex items-center gap-2 p-2 rounded-inner bg-surface-raise/60 border border-edge min-w-[100px]">
+                    <div v-if="walletStore.assets.length" class="flex flex-wrap gap-2">
+                        <div v-for="asset in walletStore.assets" :key="asset.symbol" class="flex items-center gap-2 p-1.5 rounded-inner bg-surface-raise/60 border border-edge min-w-[92px]">
                             <div class="w-8 h-8 rounded-full bg-surface-card flex items-center justify-center">
                                 <img v-if="getIconSrc(asset.symbol)" :src="getIconSrc(asset.symbol) as string" class="w-5 h-5" />
                                 <span v-else class="text-caption font-bold uppercase text-content-soft">{{ asset.symbol[0] }}</span>
@@ -67,22 +67,22 @@
                     <p v-else class="text-body text-content-faint">No token assets yet.</p>
                 </UiCard>
 
-                <div class="rounded-card border border-edge bg-surface-card p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-card">
+                <div class="rounded-card border border-edge bg-surface-card p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-card">
                     <h3 class="text-title uppercase text-content">Collectibles</h3>
                     <UiButton variant="outline" size="sm" class="sm:w-auto w-full">Coming Soon</UiButton>
                 </div>
             </section>
 
             <!-- Feed + Sidebar -->
-            <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div v-if="isSocialAvailable" class="lg:col-span-2 flex flex-col gap-6">
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div v-if="isSocialAvailable" class="lg:col-span-2 flex flex-col gap-4">
 
                     <!-- Post composer -->
                     <UiCard>
-                        <div class="flex items-start gap-4">
-                            <img :src="identityStore.identity?.avatarUrl ?? getFallbackAvatar(identityStore.username as string)" class="size-12 rounded-inner object-cover bg-surface-raise" />
+                        <div class="flex items-start gap-3">
+                            <img :src="identityStore.identity?.avatarUrl ?? getFallbackAvatar(identityStore.username as string)" class="size-10 rounded-inner object-cover bg-surface-raise" />
                             <div class="flex-1">
-                                <textarea v-model="content" rows="3" class="w-full bg-surface-raise/60 border border-edge rounded-inner p-4 text-content placeholder-content-faint resize-none focus:ring-1 focus:ring-brand/50 focus:border-brand/40 outline-none" placeholder="What's on your mind?"></textarea>
+                                <textarea v-model="content" rows="3" class="w-full bg-surface-raise/60 border border-edge rounded-inner p-3 text-content placeholder-content-faint resize-none focus:ring-1 focus:ring-brand/50 focus:border-brand/40 outline-none" placeholder="What's on your mind?"></textarea>
 
                                 <div v-if="mediaUrls.length > 0" class="mt-3 grid grid-cols-2 gap-2">
                                     <div v-for="(url, index) in mediaUrls" :key="index" class="relative group aspect-video bg-black rounded-inner overflow-hidden border border-edge">
@@ -95,8 +95,8 @@
 
                                 <input type="file" ref="fileInputRef" @change="handleFileUpload" multiple accept="image/*" class="hidden" />
 
-                                <div class="flex flex-wrap justify-between items-center mt-4 gap-4">
-                                    <div class="flex items-center gap-3">
+                                <div class="flex flex-wrap justify-between items-center mt-3 gap-3">
+                                    <div class="flex items-center gap-2.5">
                                         <button @click="triggerFileUpload" class="p-2 text-content-faint hover:text-brand rounded-control transition-colors">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                         </button>
@@ -141,7 +141,7 @@
                         </UiSectionHeader>
                     </UiCard>
 
-                    <div v-if="posts.posts.value.length > 0" class="flex flex-col gap-6">
+                    <div v-if="posts.posts.value.length > 0" class="flex flex-col gap-4">
                         <PostItem v-for="post in posts.posts.value.slice(0, 5)" :key="post.id" :post="post" @like="handleLike" />
                     </div>
                 </div>
@@ -149,7 +149,7 @@
                 <SocialComingSoon v-else class="lg:col-span-2" />
 
                 <!-- Sidebar -->
-                <div class="flex flex-col gap-6">
+                <div class="flex flex-col gap-4">
                     <PendingMessages />
                     <ContactRequests />
                     <TrendingTopics />
@@ -157,7 +157,7 @@
             </section>
 
             <!-- VERBOSE DIAGNOSTIC CONSOLE -->
-            <section v-if="showDebug" class="mt-6 bg-slate-900 border-2 border-brand/50 rounded-card p-6 font-mono text-caption text-brand overflow-hidden shadow-2xl">
+            <section v-if="showDebug" class="mt-4 bg-slate-900 border-2 border-brand/50 rounded-card p-4 font-mono text-caption text-brand overflow-hidden shadow-2xl">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-body font-bold uppercase tracking-tighter text-white">Diagnostic Console</h3>
                     <div class="flex gap-2">
@@ -166,8 +166,8 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-1 bg-black/20 p-3 rounded-inner border border-white/5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-1 bg-black/20 p-2.5 rounded-inner border border-white/5">
                         <p class="text-[10px] text-content-faint uppercase mb-2 font-bold">Store States</p>
                         <p>Identity: <span class="text-white">{{ identityStore.identityId || 'Missing' }}</span></p>
                         <p>Platform Auth: <span :class="isAuthenticated ? 'text-up' : 'text-down'">{{ isAuthenticated }}</span></p>

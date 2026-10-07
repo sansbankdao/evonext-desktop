@@ -3,7 +3,7 @@
     <span
         :class="[
             'inline-flex items-center justify-center rounded-full font-bold',
-            size === 'sm' ? 'text-[10px] px-2 py-0.5' : 'text-caption px-2.5 py-1',
+            size === 'sm' ? 'text-[9px] px-1.5 py-0.5' : 'text-caption px-2 py-0.5',
             toneClass
         ]"
     >

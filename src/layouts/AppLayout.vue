@@ -1,9 +1,9 @@
 <!-- layouts/AppLayout.vue -->
 <template>
     <main class="w-screen h-screen overflow-x-hidden overflow-y-hidden flex bg-surface-base text-content font-sans">
-        <SidebarNav class="h-full overflow-y-scroll px-6 py-3" />
+        <SidebarNav class="h-full overflow-y-scroll px-3 py-3" />
 
-        <div ref="mainContent" class="flex-1 px-6 lg:px-8 overflow-y-auto">
+        <div ref="mainContent" class="flex-1 px-3 lg:px-5 overflow-y-auto">
             <RouterView />
         </div>
 

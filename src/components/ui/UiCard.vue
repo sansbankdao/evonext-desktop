@@ -2,7 +2,7 @@
 <template>
     <div
         :class="[
-            'relative overflow-hidden rounded-card border border-edge bg-surface-card p-5 shadow-card',
+            'relative overflow-hidden rounded-card border border-edge bg-surface-card p-4 shadow-card',
             padded ? '' : 'p-0'
         ]"
     >

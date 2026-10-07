@@ -29,9 +29,9 @@ const props = withDefaults(defineProps<{
 })
 
 const sizeClass = computed(() => ({
-    sm: 'text-caption px-3 py-1.5',
-    md: 'text-body px-5 py-2',
-    lg: 'text-body px-8 py-2.5',
+    sm: 'text-caption px-2.5 py-1',
+    md: 'text-body px-3.5 py-1.5',
+    lg: 'text-body px-5 py-2',
 }[props.size]))
 
 const variantClass = computed(() => ({

@@ -2,12 +2,12 @@
 <template>
     <article
         :class="[
-            'bg-surface-card p-5 rounded-card flex flex-col gap-4 border border-edge shadow-card hover:border-content-faint/40 transition-colors duration-200 group relative',
+            'bg-surface-card p-4 rounded-card flex flex-col gap-3 border border-edge shadow-card hover:border-content-faint/40 transition-colors duration-200 group relative',
             isSensitive ? 'border-warn/60' : ''
         ]"
     >
         <!-- REPLY CONTEXT (Parent Post) -->
-        <div v-if="post.quotedPost" class="mb-2 p-3 bg-surface-raise/60 rounded-inner border border-edge">
+        <div v-if="post.quotedPost" class="mb-1.5 p-2.5 bg-surface-raise/60 rounded-inner border border-edge">
             <div class="flex items-center gap-2 mb-1.5 text-caption text-content-faint font-medium">
                 <span class="text-content-faint">Replying to</span>
                 <div class="flex items-center gap-1.5 text-content">
@@ -27,12 +27,12 @@
         </div>
 
         <!-- Author Info -->
-        <div class="flex items-start gap-4">
+        <div class="flex items-start gap-3">
             <div class="relative group cursor-pointer">
                 <img
                     :src="post.author.avatar"
                     :alt="`${post.author.displayName}'s Avatar`"
-                    class="size-12 rounded-full ring-2 ring-edge shadow-md object-cover transition-transform duration-200 group-hover:scale-105"
+                    class="size-10 rounded-full ring-2 ring-edge shadow-md object-cover transition-transform duration-200 group-hover:scale-105"
                 />
                 <!-- Verification Badge (Absolute) -->
                 <div v-if="post.author.verified" class="absolute -bottom-0.5 -right-0.5 bg-brand text-white rounded-full p-0.5 border-2 border-surface-card shadow-sm">
@@ -83,7 +83,7 @@
                 <img
                     :src="getMediaUrl(mediaUrl)"
                     :alt="`Media ${index + 1}`"
-                    class="w-full h-64 object-cover rounded-inner shadow-md ring-1 ring-edge transition-transform duration-500 group-hover/media:scale-105"
+                    class="w-full h-56 object-cover rounded-inner shadow-md ring-1 ring-edge transition-transform duration-500 group-hover/media:scale-105"
                     @error="handleImageError"
                 />
                 <div
@@ -113,7 +113,7 @@
         </div>
 
         <!-- Post Actions -->
-        <div class="flex items-center justify-between text-content-faint pt-3 border-t border-edge">
+        <div class="flex items-center justify-between text-content-faint pt-2 border-t border-edge">
             <!-- Comment Button -->
             <button
                 @click="handleComment"

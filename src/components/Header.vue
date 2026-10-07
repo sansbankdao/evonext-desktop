@@ -1,22 +1,22 @@
 <!-- src/components/Header.vue -->
 <template>
-    <header class="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 bg-surface-card p-4 rounded-card shadow-card border border-edge">
-        <h1 class="text-2xl font-extrabold text-content tracking-tight mb-4 sm:mb-0">
+    <header class="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 bg-surface-card px-4 py-3 rounded-card shadow-card border border-edge">
+        <h1 class="text-xl font-extrabold text-content tracking-tight mb-3 sm:mb-0">
             {{ props.title }}
         </h1>
 
         <!-- Authenticated View -->
-        <div v-if="isConnected" class="flex items-center gap-0 bg-surface-raise/60 p-3 rounded-inner border border-edge">
+        <div v-if="isConnected" class="flex items-center gap-0 bg-surface-raise/60 px-2.5 py-1.5 rounded-inner border border-edge">
             <span class="w-[340px]">
-                <span class="block text-content text-lg font-bold font-mono px-2 tracking-wider truncate leading-tight">
+                <span class="block text-content text-base font-bold font-mono px-1.5 tracking-wider truncate leading-tight">
                     {{ username }}
                 </span>
-                <span class="block text-content-faint text-xs font-mono px-2 tracking-tighter leading-tight mt-1">
+                <span class="block text-content-faint text-xs font-mono px-1.5 tracking-tighter leading-tight mt-0.5">
                     {{ displayIdentityId }}
                 </span>
             </span>
             <button
-                class="p-2 rounded-control hover:bg-surface-raise transition-colors"
+                class="p-1.5 rounded-control hover:bg-surface-raise transition-colors"
                 @click="copyIdentityId"
                 type="button"
                 :title="isCopied ? 'Copied!' : 'Copy to clipboard'"
@@ -36,7 +36,7 @@
         <div v-else class="flex items-center">
             <router-link
                 to="/connect"
-                class="flex items-center gap-2 bg-brand-deep hover:bg-brand text-white px-6 py-3 rounded-control font-bold transition-all duration-200 shadow-glow"
+                class="flex items-center gap-2 bg-brand-deep hover:bg-brand text-white px-5 py-2 rounded-control font-bold transition-all duration-200 shadow-sm"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 00-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
