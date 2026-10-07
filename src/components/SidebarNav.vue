@@ -6,7 +6,7 @@
             <RouterLink to="/" class="flex items-center gap-3 mb-8 p-3 rounded-inner hover:bg-surface-raise transition-all duration-200 group">
                 <img src="/icon.svg" class="size-8 group-hover:scale-110 transition-transform duration-200" />
 
-                <span class="text-2xl font-extrabold tracking-widest bg-gradient-to-r from-brand-deep to-accent2 dark:from-brand dark:to-accent2 bg-clip-text text-transparent px-1">
+                <span class="text-2xl font-extrabold tracking-widest text-content px-1">
                     ΞvoNext
                 </span>
             </RouterLink>
@@ -17,11 +17,10 @@
                     v-for="link in navLinks"
                     :key="link.to"
                     :to="link.to"
-                    class="flex items-center gap-3 px-4 py-3 rounded-inner text-content-soft hover:bg-surface-raise hover:text-content transition-all duration-200 font-medium border-l-4 border-transparent hover:border-brand/50
-                            [&.router-link-exact-active]:bg-gradient-to-r [&.router-link-exact-active]:from-brand/10 [&.router-link-exact-active]:to-accent2/10
+                    class="flex items-center gap-3 px-4 py-3 rounded-inner text-content-soft hover:bg-surface-raise hover:text-content transition-all duration-200 font-medium border-l-4 border-transparent hover:border-brand/40
+                            [&.router-link-exact-active]:bg-brand/10
                             [&.router-link-exact-active]:text-brand-deep dark:[&.router-link-exact-active]:text-brand
-                            [&.router-link-exact-active]:border-brand
-                            [&.router-link-exact-active]:shadow-glow"
+                            [&.router-link-exact-active]:border-brand"
                 >
                     <component :is="link.icon" class="size-5 transition-transform duration-200 group-hover:scale-110 [&.router-link-exact-active]:scale-110" />
                     <span>{{ link.text }}</span>
@@ -34,7 +33,7 @@
             <button
                 @click="handleDisconnect"
                 class="w-full flex items-center gap-3 px-4 py-3 rounded-control transition-all duration-200 shadow-sm hover:shadow-md group border border-transparent text-white"
-                :class="isConnected ? 'bg-down/90 hover:bg-down' : 'bg-brand-deep hover:bg-brand shadow-glow'"
+                :class="isConnected ? 'bg-down/90 hover:bg-down' : 'bg-brand-deep hover:bg-brand'"
             >
                 <component
                     :is="isConnected ? ArrowLeftStartOnRectangleIcon : ArrowRightStartOnRectangleIcon"

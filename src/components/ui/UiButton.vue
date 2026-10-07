@@ -35,7 +35,7 @@ const sizeClass = computed(() => ({
 }[props.size]))
 
 const variantClass = computed(() => ({
-    primary: 'bg-brand-deep hover:bg-brand text-white shadow-glow',
+    primary: 'bg-brand-deep hover:bg-brand text-white shadow-sm',
     ghost: 'bg-surface-raise hover:bg-edge text-content',
     outline: 'border border-edge hover:border-brand/50 text-content-soft hover:text-content bg-transparent',
     danger: 'bg-down/90 hover:bg-down text-white',

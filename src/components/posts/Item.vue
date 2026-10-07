@@ -2,7 +2,7 @@
 <template>
     <article
         :class="[
-            'bg-surface-card p-5 rounded-card flex flex-col gap-4 border border-edge shadow-card hover:shadow-glow hover:-translate-y-0.5 transition-all duration-200 group relative',
+            'bg-surface-card p-5 rounded-card flex flex-col gap-4 border border-edge shadow-card hover:border-content-faint/40 transition-colors duration-200 group relative',
             isSensitive ? 'border-warn/60' : ''
         ]"
     >

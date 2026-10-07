@@ -20,19 +20,19 @@ export default {
              *    (semantic). Sidebar widget tiles may use accent2/up/warn.
              */
             colors: {
-                // Brand: electric cyan/violet on deep space slate.
+                // Brand: restrained indigo (clean/minimal dashboard).
                 brand: {
-                    DEFAULT: '#22d3ee', // cyan-400
-                    soft: '#67e8f9',    // cyan-300
-                    deep: '#0891b2',    // cyan-600
+                    DEFAULT: '#6366f1', // indigo-500
+                    soft: '#a5b4fc',    // indigo-300
+                    deep: '#4f46e5',    // indigo-600
                 },
                 accent2: {
-                    DEFAULT: '#818cf8', // indigo-400
-                    deep: '#6366f1',    // indigo-500
+                    DEFAULT: '#94a3b8', // slate-400 (cool neutral, sparing)
+                    deep: '#64748b',    // slate-500
                 },
-                up: '#34d399',   // emerald-400
-                down: '#fb7185', // rose-400
-                warn: '#fbbf24', // amber-400
+                up: '#10b981',   // emerald-500
+                down: '#f43f5e', // rose-500
+                warn: '#f59e0b', // amber-500
 
                 // Semantic surfaces (light / dark via CSS variables).
                 surface: {
@@ -61,8 +61,8 @@ export default {
                 caption: ['0.75rem', { lineHeight: '1rem', fontWeight: '600' }],
             },
             boxShadow: {
-                card: '0 1px 2px 0 rgb(0 0 0 / 0.04)',
-                glow: '0 0 24px -6px rgb(34 211 238 / 0.35)',
+                card: '0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.05)',
+                glow: '0 0 0 1px rgb(99 102 241 / 0.18), 0 8px 24px -12px rgb(99 102 241 / 0.30)',
             },
         },
     },

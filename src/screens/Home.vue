@@ -7,12 +7,8 @@
 
             <!-- Hero: Total Balance -->
             <section class="mb-6">
-                <div class="relative overflow-hidden rounded-card border border-edge bg-gradient-to-br from-surface-card via-surface-card to-surface-raise p-6 shadow-card">
-                    <!-- crypto glows -->
-                    <div class="absolute -top-24 -right-16 w-96 h-96 bg-brand/20 rounded-full blur-3xl pointer-events-none"></div>
-                    <div class="absolute -bottom-24 -left-16 w-80 h-80 bg-accent2/15 rounded-full blur-3xl pointer-events-none"></div>
-
-                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                <div class="rounded-card border border-edge bg-surface-card p-6 shadow-card">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div class="flex-1">
                             <p class="text-title uppercase text-content-faint mb-2">Total Balance</p>
                             <p class="text-display text-content tracking-tight">{{ formatCurrency(totalBalance.usd) }}</p>
@@ -71,10 +67,9 @@
                     <p v-else class="text-body text-content-faint">No token assets yet.</p>
                 </UiCard>
 
-                <div class="relative overflow-hidden rounded-card border border-edge bg-gradient-to-br from-accent2-deep/30 via-surface-card to-surface-card p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-card">
-                    <div class="absolute -top-16 -right-16 w-64 h-64 bg-accent2/25 rounded-full blur-3xl pointer-events-none"></div>
-                    <h3 class="text-title uppercase text-content relative z-10">Collectibles</h3>
-                    <UiButton variant="outline" size="sm" class="relative z-10 sm:w-auto w-full">Coming Soon</UiButton>
+                <div class="rounded-card border border-edge bg-surface-card p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-card">
+                    <h3 class="text-title uppercase text-content">Collectibles</h3>
+                    <UiButton variant="outline" size="sm" class="sm:w-auto w-full">Coming Soon</UiButton>
                 </div>
             </section>
 

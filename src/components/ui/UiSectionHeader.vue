@@ -8,7 +8,7 @@
             >
                 <slot name="icon" />
             </div>
-            <h2 class="text-title uppercase text-content-soft truncate">{{ title }}</h2>
+            <h2 class="text-title uppercase text-content-soft whitespace-nowrap">{{ title }}</h2>
         </div>
         <div class="flex items-center gap-2 shrink-0">
             <slot name="actions" />
