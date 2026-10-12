@@ -93,17 +93,28 @@ pub async fn run<R: Runtime>(app: AppHandle<R>, identity_id: String, wif: String
     let backoff = Backoff::default();
     let mut attempt: u32 = 0;
 
-    loop {
-        /* Check for a stop request. */
-        {
-            let state = app.state::<RealtimeState>();
-            let guard = state.handle.lock().await;
+    /* Take this loop's OWN stop flag before iterating. */
+    // REGRESSION — 2026-10 joint fan-out test: the loop previously re-read
+    //       the SHARED `state.handle` slot on every check. A second
+    //       `connect_realtime` replaces the slot with a fresh handle, and
+    //       `disconnect_realtime` clears it to `None` — in both cases the
+    //       running loop could no longer see the stop request meant for it,
+    //       so it retried forever and the hub observed ONE identity holding
+    //       THREE WebSockets. Cloning the handle installed at spawn time
+    //       binds this loop's lifetime to the stop signal targeted at it.
+    let stop_flag: Option<RealtimeHandle> = {
+        let state = app.state::<RealtimeState>();
+        let guard = state.handle.lock().await;
 
-            if let Some(handle) = guard.as_ref() {
-                if handle.is_stopped() {
-                    emit_status(&app, "disconnected");
-                    return;
-                }
+        guard.as_ref().cloned()
+    };
+
+    loop {
+        /* Check this loop's own stop flag (see `stop_flag` above). */
+        if let Some(handle) = stop_flag.as_ref() {
+            if handle.is_stopped() {
+                emit_status(&app, "disconnected");
+                return;
             }
         }
 
@@ -153,15 +164,10 @@ pub async fn run<R: Runtime>(app: AppHandle<R>, identity_id: String, wif: String
             }
         }
 
-        /* Check for a stop request before sleeping. */
-        {
-            let state = app.state::<RealtimeState>();
-            let guard = state.handle.lock().await;
-
-            if let Some(handle) = guard.as_ref() {
-                if handle.is_stopped() {
-                    return;
-                }
+        /* Check this loop's own stop flag before sleeping. */
+        if let Some(handle) = stop_flag.as_ref() {
+            if handle.is_stopped() {
+                return;
             }
         }
 

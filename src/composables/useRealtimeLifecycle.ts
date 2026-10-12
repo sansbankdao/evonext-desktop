@@ -41,6 +41,19 @@ export function useRealtimeLifecycle() {
     let connectedFor: string | null = null
 
     /**
+     * Serializes `sync` calls so they can never interleave.
+     *
+     * REGRESSION — 2026-10 joint fan-out test: concurrent `sync()` calls all
+     * passed the `connectedFor` guard before the first call settled (the
+     * awaits on key lookup and device registration are the interleaving
+     * gaps), and each spawned its own Rust connect loop. The hub observed
+     * ONE identity holding THREE WebSockets. Chaining makes every sync wait
+     * for the previous one, so the `connectedFor` guard always reads a
+     * settled state.
+     */
+    let syncChain: Promise<void> = Promise.resolve()
+
+    /**
      * Fetch the authentication key for an identity, on demand.
      *
      * Returns null for a write-only connection (no private keys stored) and
@@ -74,8 +87,25 @@ export function useRealtimeLifecycle() {
      *
      * Exported so the app can drive it explicitly (e.g. after a network
      * switch) without waiting for a store change.
+     *
+     * Calls are SERIALIZED through `syncChain`: each waits for the previous
+     * call to settle before starting, so the `connectedFor` guard in
+     * `syncNow` always reads a settled state and racing calls cannot each
+     * open a socket for the same identity.
      */
-    const sync = async (identityId: string | null): Promise<void> => {
+    const sync = (identityId: string | null): Promise<void> => {
+        const run = syncChain.then(() => syncNow(identityId))
+
+        /* The chain itself must survive a rejected call, or one failure
+         * would wedge every later sync behind it. The caller still observes
+         * the rejection through `run`. */
+        syncChain = run.catch(() => {})
+
+        return run
+    }
+
+    /** The body of `sync`; never call it directly — go through `sync`. */
+    const syncNow = async (identityId: string | null): Promise<void> => {
         /* No identity: ensure closed. */
         if (!identityId) {
             await close()
@@ -142,6 +172,12 @@ export function useRealtimeLifecycle() {
     const stop = async (): Promise<void> => {
         stopWatch?.()
         stopWatch = null
+
+        /* Let any in-flight sync settle before closing, or a connect that
+         * started before stop() could complete after close() and leak the
+         * socket past teardown. */
+        await syncChain
+
         await close()
     }
 

@@ -64,3 +64,67 @@ impl Default for RealtimeState {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_fresh_handle_is_not_stopped() {
+        assert!(!RealtimeHandle::new().is_stopped());
+    }
+
+    #[test]
+    fn stop_is_visible_through_every_clone() {
+        // The client loop clones the handle installed at spawn time, so the
+        // stop signal must reach the loop through that clone.
+        let handle = RealtimeHandle::new();
+        let loops_copy = handle.clone();
+
+        handle.stop();
+
+        assert!(handle.is_stopped());
+        assert!(loops_copy.is_stopped());
+    }
+
+    #[test]
+    fn replacing_the_state_handle_does_not_unstop_the_previous_one() {
+        // REGRESSION — 2026-10 joint fan-out test: the client loop used to
+        // read its stop flag from THIS shared slot, so installing a fresh
+        // handle (a second connect) or clearing it (disconnect) made the
+        // running loop's stop request unreachable, and it retried forever —
+        // the hub observed one identity holding three WebSockets. The loop
+        // now clones its handle at spawn; this pins the handle semantics
+        // that make an orphaned clone harmless: it keeps its own flag,
+        // unaffected by later mutations of the slot.
+        let state = RealtimeState::default();
+
+        let first = RealtimeHandle::new();
+        let orphaned = first.clone();
+
+        {
+            let mut guard = state.handle.blocking_lock();
+            *guard = Some(first);
+        }
+
+        /* A second connect installs a fresh handle... */
+        {
+            let mut guard = state.handle.blocking_lock();
+            *guard = Some(RealtimeHandle::new());
+        }
+
+        /* ...and a disconnect clears the slot. Neither may touch the
+         * orphaned clone's flag. */
+        {
+            let mut guard = state.handle.blocking_lock();
+            *guard = None;
+        }
+
+        assert!(!orphaned.is_stopped());
+
+        /* Stopping through the clone still works — that is the signal the
+         * loop relies on. */
+        orphaned.stop();
+        assert!(orphaned.is_stopped());
+    }
+}

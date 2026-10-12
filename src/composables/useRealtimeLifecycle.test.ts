@@ -266,4 +266,51 @@ describe('realtime lifecycle', () => {
         const calls = vi.mocked(invoke).mock.calls.map((c) => c[0])
         expect(calls).not.toContain('connect_realtime')
     })
+
+    it('opens only one socket when sync calls race for the same identity', async () => {
+        // REGRESSION — 2026-10 joint fan-out test with the API team
+        // ----------------------------------------------------------
+        // Concurrent `sync()` calls all passed the `connectedFor` guard
+        // before the first call settled (the awaits on key lookup and device
+        // registration are the interleaving gaps), and each spawned its own
+        // Rust connect loop. The hub observed ONE identity holding THREE
+        // WebSockets.
+        //
+        // Sync calls are now serialized, so the second and third calls see a
+        // settled `connectedFor` and return without connecting again.
+        const lifecycle = await load()
+
+        await Promise.all([
+            lifecycle.sync(IDENTITY),
+            lifecycle.sync(IDENTITY),
+            lifecycle.sync(IDENTITY),
+        ])
+
+        const connectCalls = vi
+            .mocked(invoke)
+            .mock.calls.filter((c) => c[0] === 'connect_realtime')
+
+        expect(connectCalls).toHaveLength(1)
+        expect(lifecycle.connectedFor()).toBe(IDENTITY)
+    })
+
+    it('serializes a rapid identity switch: the last identity wins', async () => {
+        // Companion to the race regression: queued syncs must run in order,
+        // so a rapid A->B flap deterministically ends connected to B, with
+        // the disconnect issued before the second connect.
+        const lifecycle = await load()
+
+        const OTHER = '9f3a1c7e2b444d109a887c5e1f2ab0d3'
+
+        await Promise.all([lifecycle.sync(IDENTITY), lifecycle.sync(OTHER)])
+
+        expect(lifecycle.connectedFor()).toBe(OTHER)
+
+        const calls = vi.mocked(invoke).mock.calls.map((c) => c[0])
+        const disconnectIndex = calls.indexOf('disconnect_realtime')
+        const lastConnectIndex = calls.lastIndexOf('connect_realtime')
+
+        expect(disconnectIndex).toBeGreaterThan(-1)
+        expect(disconnectIndex).toBeLessThan(lastConnectIndex)
+    })
 })
