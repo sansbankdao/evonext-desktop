@@ -200,6 +200,24 @@ src-tauri/
 - **SANS:** Sansnote token used for staking/premium features.
 - **DAPI:** Decentralized API for Dash Platform communication.
 
+## Dependency Versioning — EXACT PINS ONLY (HARD RULE)
+
+Every entry in `dependencies` / `devDependencies` / `optionalDependencies` /
+`peerDependencies` MUST be an exact semver version. Range operators (`^`, `~`,
+`>=`, `<=`, `>`, `<`), wildcards (`*`), tags (`latest`), and `file:`/`link:`/
+`workspace:`/URL specs are **FORBIDDEN**.
+
+Why: a non-exact spec can resolve to a different build than the one tested.
+This is exactly what broke the v26.10.7 release —
+`@tauri-apps/plugin-notification: "^2.4.0"` resolved to 2.5.1, mismatched the
+Rust crate 2.4.0, and the tauri CLI hard-failed the build.
+
+Enforcement (impossible to bypass): `scripts/check-exact-deps.mjs` runs on
+`preinstall` (every `pnpm/npm/yarn install` — locally, in CI, and on
+evorunner) and **aborts the install** if any spec is non-exact. Run it
+manually with `pnpm verify:deps`. When adding a dependency, pin the exact
+version (`pnpm add -E <pkg>`).
+
 ## Social Feed Conventions (established 2026-10)
 
 - **Single-contract policy:** the Yappr posts contract (`EWR695MsqPUuW8EnTbYzD4KybNQD5n7CUDWydJYNg63F`) is the ONLY posts contract, on read and write (testnet). The old EVONEXT posts contract (`465jdPpFCZefhb4g2k2FpCcrKpPYhJJkDqbGFsKu6wb`) is RETIRED. Mainnet has no posts contract (feed is testnet-only). Rust: `social::active_post_contracts`; TS: `getActivePostContracts` in `src/constants/index.ts`.

@@ -340,6 +340,16 @@ Verify (do NOT eyeball; run it):
     python3 -c "import json; json.load(open('package.json')); \
                 json.load(open('src-tauri/tauri.conf.json')); print('JSON valid')"
 
+### Dependency pins (HARD RULE)
+
+Every dependency in `package.json` MUST be an exact version — no `^`/`~`/`>=`/`*`/
+`latest`/`file:`/URL specs. The `preinstall` guard `scripts/check-exact-deps.mjs`
+(`pnpm verify:deps`) aborts any install on a non-exact spec, on every machine
+including evorunner. This exists because a `^2.4.0` resolving to 2.5.1 broke the
+v26.10.7 build (tauri "version mismatched packages"). If the build fails that way,
+the cause is a non-exact spec — pin it exactly. Rule lives in `AGENTS.md`; the
+guard is the enforcement.
+
 The repo convention (see commit `8fb7af8 "release: v26.9.14"`) is that
 feature/fix commits land FIRST, then a **separate** `release: vX.Y.Z`
 commit bumps only those four files. A release commit touching anything else
