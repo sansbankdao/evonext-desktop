@@ -156,7 +156,7 @@ export class KeyDiscovery extends BaseDiscovery {
     return 3
   }
 
-  private getPrivateKeyInstance(keyInput: string, network: string): any {
+  private getPrivateKeyInstance(keyInput: string, network: 'mainnet' | 'testnet'): any {
     try {
       const cleanKey = keyInput.trim()
       if (KeyDerivationService.detectKeyFormat(cleanKey).format === 'WIF') {

@@ -35,7 +35,7 @@ pub fn random_bytes<R: tauri::Runtime>(
 
 /// Pure logic version: No tauri types, no Runtime required.
 pub fn random_bytes_logic(len: u32) -> Result<Vec<u8>, String> {
-    use rand::RngCore;
+    use rand::Rng;
     let mut bytes = vec![0u8; len as usize];
     rand::rng().fill_bytes(&mut bytes);
     Ok(bytes)

@@ -180,9 +180,9 @@ fn test_dapi_response_clone_debug() {
 fn test_identity_public_key_type() {
     let key = IdentityPublicKey {
         id: 0,
-        key_type: json!(0),
-        purpose: json!("AUTHENTICATION"),
-        security_level: json!(0),
+        key_type: JsonValue(json!(0)),
+        purpose: JsonValue(json!("AUTHENTICATION")),
+        security_level: JsonValue(json!(0)),
         data: "abc".into(),
         read_only: false,
         disabled_at: None,
@@ -214,7 +214,7 @@ fn test_token_contract_info_with_metadata() {
         symbol: "TKN".into(),
         total_supply: "1000000".into(),
         decimals: 8,
-        metadata: Some(json!({"description": "A test token"})),
+        metadata: Some(JsonValue(json!({"description": "A test token"}))),
     };
     let json = serde_json::to_string(&info).unwrap();
     assert!(json.contains("\"metadata\""));

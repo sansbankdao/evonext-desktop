@@ -165,7 +165,7 @@ async fn resolves_full_chain_yappr_displayname_dpns_verified_dashpay_bio() {
     let author = resolve_author(&backend, &cache, Network::Testnet, OWNER).await;
 
     assert_eq!(author.display_name, "Alice Yappr"); // Yappr beats DashPay
-    // Secondary identifier = the full, unabbreviated IdentityId.
+                                                    // Secondary identifier = the full, unabbreviated IdentityId.
     assert_eq!(author.username, OWNER);
     assert!(author.verified);
     assert_eq!(author.bio, "hi there");

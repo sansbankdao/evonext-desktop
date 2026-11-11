@@ -9,9 +9,7 @@ use super::{post_doc, prime_empty_profile, MockBackend};
 use crate::dapi::types::Network;
 use crate::social::feed::fetch_feed;
 use crate::social::profile::ProfileCache;
-use crate::social::{
-    active_post_contracts, ContentPartType as T, YAPPR_POSTS_CONTRACT_TESTNET,
-};
+use crate::social::{active_post_contracts, ContentPartType as T, YAPPR_POSTS_CONTRACT_TESTNET};
 
 const OWNER_A: &str = "Aa1Aa1Aa1Aa1Aa1Aa1Aa1Aa1Aa1Aa1Aa1Aa1Aa1Aa1";
 const OWNER_B: &str = "Bb2Bb2Bb2Bb2Bb2Bb2Bb2Bb2Bb2Bb2Bb2Bb2Bb2Bb2";
@@ -146,7 +144,10 @@ async fn transport_failure_returns_error_not_blank_page() {
     let cache = ProfileCache::new();
     let result = fetch_feed(&backend, &cache, Network::Testnet, 20, None).await;
     let err = result.expect_err("failed fetch must return Err, not Ok(empty)");
-    assert!(err.contains("proxy unreachable"), "error carries cause: {err}");
+    assert!(
+        err.contains("proxy unreachable"),
+        "error carries cause: {err}"
+    );
 }
 
 #[tokio::test]

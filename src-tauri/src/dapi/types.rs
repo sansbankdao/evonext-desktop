@@ -1,5 +1,6 @@
 // src-tauri/src/dapi/types.rs
 
+use crate::models::JsonValue;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;
@@ -119,7 +120,7 @@ pub struct TokenContractInfo {
     pub total_supply: String,
     pub decimals: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<Value>,
+    pub metadata: Option<JsonValue>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Type)]
@@ -139,9 +140,11 @@ pub struct Identity {
 pub struct IdentityPublicKey {
     pub id: u32,
     #[serde(rename = "type")]
-    pub key_type: Value, // Changed to Value to handle String or Number
-    pub purpose: Value,
-    pub security_level: Value,
+    // JsonValue newtype (models.rs): handles String or Number on the wire;
+    // renders as the `JsonValue` union in bindings.ts.
+    pub key_type: JsonValue,
+    pub purpose: JsonValue,
+    pub security_level: JsonValue,
     pub data: String,
     pub read_only: bool,
     #[serde(skip_serializing_if = "Option::is_none")]

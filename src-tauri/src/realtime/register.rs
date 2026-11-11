@@ -336,11 +336,10 @@ mod tests {
     /// Derive the SEC1-compressed public key for a private key.
     fn public_key_for(_private_key: &[u8; 32]) -> Vec<u8> {
         use k256::ecdsa::SigningKey;
+        // k256 0.14 renamed `to_encoded_point` to `to_sec1_point`.
+        use k256::elliptic_curve::sec1::ToSec1Point;
         let sk = SigningKey::from_bytes(_private_key.into()).expect("valid key");
-        sk.verifying_key()
-            .to_encoded_point(true)
-            .as_bytes()
-            .to_vec()
+        sk.verifying_key().to_sec1_point(true).as_bytes().to_vec()
     }
 
     #[test]

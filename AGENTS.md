@@ -5,6 +5,7 @@ This file provides guidance to AI coding agents (Claude Code, Cursor, Copilot, D
 ## Critical Environment Notes
 
 - **Paths are case-sensitive:** the repository lives at `/Workspace/sansbank/evonext-desktop` — capital **W** in `/Workspace`. A lowercase `/workspace` does NOT exist: the file tools will fail (or attempt to create a new directory) if it is used. ALWAYS type `/Workspace` in file tool paths.
+- **NEVER build on the host (HARD RULE):** do NOT run `cargo build`/`cargo test`/`cargo run`, `./check.sh`, `pnpm tauri build`, or any other compilation on the dev box itself. Build wherever you want, just NOT on the host — use the evorunner (`ssh evorunner`), e.g. rsync the working tree (excluding `node_modules/`, `src-tauri/target/`, `dist/`) to a scratch dir there and run the gates remotely. Reading source files (including crate sources under `~/.cargo/registry/`) and lockfile-only operations (`cargo update`) are fine locally.
 
 ## Project Overview
 EvoNext Desktop is a cross-platform (Windows/macOS/Linux) Tauri v2 desktop application for a decentralized social platform. It is built on the Dash Platform, offering features such as censorship-resistant posting, decentralized identities (DPNS), integrated wallet functionality (assets/transactions), staking for premium access (Sansnote/SANS), app discovery, and secure key management. All cryptographic operations are handled client-side, communicating with the Dash network via DAPI gRPC without any central servers.

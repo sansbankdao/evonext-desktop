@@ -13,7 +13,7 @@
 /// Produce a UUID-v4-shaped random string from the OS RNG.
 pub fn uuid_like() -> String {
     let mut bytes = [0u8; 16];
-    rand::RngCore::fill_bytes(&mut rand::rng(), &mut bytes);
+    rand::Rng::fill_bytes(&mut rand::rng(), &mut bytes);
 
     // RFC 4122 v4 markers.
     bytes[6] = (bytes[6] & 0x0f) | 0x40;

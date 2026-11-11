@@ -172,7 +172,7 @@ pub async fn run<R: Runtime>(app: AppHandle<R>, identity_id: String, wif: String
         }
 
         /* Back off before retrying. */
-        let jitter_seed = rand::RngCore::next_u64(&mut rand::rng());
+        let jitter_seed = rand::Rng::next_u64(&mut rand::rng());
         let delay = backoff.delay_with_jitter(attempt, jitter_seed);
         attempt = attempt.saturating_add(1);
 

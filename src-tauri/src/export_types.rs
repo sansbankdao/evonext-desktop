@@ -67,6 +67,11 @@ fn main() {
 
     let builder = Builder::<tauri::Wry>::new()
         .commands(commands)
+        // rc.26 defaults to phase-aware serde export, which emits every type
+        // twice (X_Serialize / X_Deserialize) and leaves generic command
+        // returns as unbound `ICommandResult_Serialize<T>`. Unified mode
+        // reproduces the pre-rc.26 bindings the frontend is written against.
+        .disable_serde_phases()
         // Ensure hidden models are exported
         .typ::<IIdentityData>()
         .typ::<IAppSettings>()

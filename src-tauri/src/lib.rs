@@ -35,7 +35,7 @@ mod integration_tests;
 // thread. Linux-only path semantics; tests run on Linux hosts.
 // ---------------------------------------------------------------------
 #[cfg(test)]
-#[ctor::ctor]
+#[ctor::ctor(unsafe)]
 fn __isolate_test_data_dir() {
     let dir = tempfile::tempdir().expect("create isolated test data dir");
     std::env::set_var("XDG_DATA_HOME", dir.path());

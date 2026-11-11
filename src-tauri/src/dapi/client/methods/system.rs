@@ -146,17 +146,25 @@ impl DAPIClient {
 #[derive(Debug, Deserialize, Serialize, Type, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct EpochInfo {
+    // de_str_from_num_or_str only widens deserialization; the wire (and
+    // TypeScript-visible) type is String, which specta rc.26 needs declared.
     #[serde(deserialize_with = "de_str_from_num_or_str")]
+    #[specta(type = String)]
     pub index: String,
     #[serde(deserialize_with = "de_str_from_num_or_str")]
+    #[specta(type = String)]
     pub start_height: String,
     #[serde(deserialize_with = "de_str_from_num_or_str")]
+    #[specta(type = String)]
     pub end_height: String,
     #[serde(deserialize_with = "de_str_from_num_or_str")]
+    #[specta(type = String)]
     pub first_block_height: String,
     #[serde(deserialize_with = "de_str_from_num_or_str")]
+    #[specta(type = String)]
     pub first_core_block_height: String,
     #[serde(deserialize_with = "de_str_from_num_or_str")]
+    #[specta(type = String)]
     pub start_time: String,
 }
 

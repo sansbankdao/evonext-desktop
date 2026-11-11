@@ -154,7 +154,10 @@ async fn prefetched_backend_owner_scoped_feed_filters() {
         post_doc("p2", OWNER_B, 2_000, "not mine"),
     ];
     let bundle = bundle(vec![
-        (format!("{YAPPR_POSTS_CONTRACT_TESTNET}:post"), posts.clone()),
+        (
+            format!("{YAPPR_POSTS_CONTRACT_TESTNET}:post"),
+            posts.clone(),
+        ),
         (format!("{YAPPR_POSTS_CONTRACT_TESTNET}:post"), posts),
     ]);
     let backend = PrefetchedBackend::new(bundle);

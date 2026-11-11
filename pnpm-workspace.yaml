@@ -11,3 +11,6 @@ allowBuilds:
   esbuild: true
   geckodriver: false
   sharp: true
+
+minimumReleaseAgeExclude:
+  - dash-platform-sdk@1.6.1

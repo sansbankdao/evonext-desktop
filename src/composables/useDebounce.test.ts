@@ -3,11 +3,26 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref, nextTick } from 'vue'
 import { useDebounce } from './useDebounce'
+
+// vitest 5 requires vi.mock at the module top level. The unmount test below
+// needs onUnmounted to fire immediately; the flag keeps the override inert
+// for the timer tests (no active component instance -> no-op, same as real
+// vue in a bare test environment).
+const unmountImmediately = { current: false }
+vi.mock('vue', async () => {
+    const actual = await vi.importActual('vue') as any
+    return {
+        ...actual,
+        onUnmounted: (cb: any) => { if (unmountImmediately.current) cb() }
+    }
+})
+
 describe('useDebounce', () => {
     beforeEach(() => {
         vi.useFakeTimers()
     })
     afterEach(() => {
+        unmountImmediately.current = false
         vi.restoreAllMocks()
     })
     it('should initialize with the source value', () => {
@@ -45,13 +60,7 @@ describe('useDebounce', () => {
     it('should clean up timeout on unmount', async () => {
         const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
         // Mock onUnmounted to trigger immediately for test
-        vi.mock('vue', async () => {
-            const actual = await vi.importActual('vue') as any
-            return {
-                ...actual,
-                onUnmounted: (cb: any) => cb()
-            }
-        })
+        unmountImmediately.current = true
         const source = ref('test')
         useDebounce(source, 500)
         source.value = 'changed'

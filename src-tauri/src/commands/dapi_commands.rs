@@ -3,7 +3,7 @@
 use crate::cmd_res;
 use crate::dapi::client::{get_dapi_client, params_array_to_object, MethodParamInfo};
 use crate::dapi::types::Network;
-use crate::models::ICommandResult;
+use crate::models::{ICommandResult, JsonValue};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use specta::Type;
@@ -238,8 +238,12 @@ pub async fn get_identity_by_id(
     _app: tauri::AppHandle,
     identity_id: String,
     network: Option<String>,
-) -> ICommandResult<Value> {
-    cmd_res!(get_identity_by_id_inner(get_dapi_client(), identity_id, network).await)
+) -> ICommandResult<JsonValue> {
+    cmd_res!(
+        get_identity_by_id_inner(get_dapi_client(), identity_id, network)
+            .await
+            .map(JsonValue::from)
+    )
 }
 
 pub(crate) async fn get_identity_by_id_inner(
@@ -282,10 +286,17 @@ pub(crate) async fn get_dpns_username_inner(
 pub async fn dapi_request_array(
     _app: tauri::AppHandle,
     method: String,
-    params_array: Vec<Value>,
+    params_array: Vec<JsonValue>,
     network: Option<String>,
-) -> ICommandResult<Vec<Value>> {
-    cmd_res!(dapi_request_array_inner(get_dapi_client(), method, params_array, network).await)
+) -> ICommandResult<Vec<JsonValue>> {
+    cmd_res!(dapi_request_array_inner(
+        get_dapi_client(),
+        method,
+        params_array.into_iter().map(|j| j.0).collect(),
+        network
+    )
+    .await
+    .map(JsonValue::vec_from))
 }
 
 pub(crate) async fn dapi_request_array_inner(
@@ -310,8 +321,12 @@ pub async fn get_token_balances(
     identity_id: String,
     token_ids: Vec<String>,
     network: Option<String>,
-) -> ICommandResult<Vec<Value>> {
-    cmd_res!(get_token_balances_inner(get_dapi_client(), identity_id, token_ids, network).await)
+) -> ICommandResult<Vec<JsonValue>> {
+    cmd_res!(
+        get_token_balances_inner(get_dapi_client(), identity_id, token_ids, network)
+            .await
+            .map(JsonValue::vec_from)
+    )
 }
 
 pub(crate) async fn get_token_balances_inner(
@@ -333,8 +348,12 @@ pub async fn resolve_dpns_name(
     _app: tauri::AppHandle,
     username: String,
     network: Option<String>,
-) -> ICommandResult<Vec<Value>> {
-    cmd_res!(resolve_dpns_name_inner(get_dapi_client(), username, network).await)
+) -> ICommandResult<Vec<JsonValue>> {
+    cmd_res!(
+        resolve_dpns_name_inner(get_dapi_client(), username, network)
+            .await
+            .map(JsonValue::vec_from)
+    )
 }
 
 pub(crate) async fn resolve_dpns_name_inner(
@@ -354,8 +373,10 @@ pub(crate) async fn resolve_dpns_name_inner(
 pub async fn get_platform_status(
     _app: tauri::AppHandle,
     network: Option<String>,
-) -> ICommandResult<Vec<Value>> {
-    cmd_res!(get_platform_status_inner(get_dapi_client(), network).await)
+) -> ICommandResult<Vec<JsonValue>> {
+    cmd_res!(get_platform_status_inner(get_dapi_client(), network)
+        .await
+        .map(JsonValue::vec_from))
 }
 
 pub(crate) async fn get_platform_status_inner(
@@ -375,8 +396,12 @@ pub async fn get_identities_balances(
     _app: tauri::AppHandle,
     identity_ids: Vec<String>,
     network: Option<String>,
-) -> ICommandResult<Vec<Value>> {
-    cmd_res!(get_identities_balances_inner(get_dapi_client(), identity_ids, network).await)
+) -> ICommandResult<Vec<JsonValue>> {
+    cmd_res!(
+        get_identities_balances_inner(get_dapi_client(), identity_ids, network)
+            .await
+            .map(JsonValue::vec_from)
+    )
 }
 
 pub(crate) async fn get_identities_balances_inner(
@@ -401,8 +426,12 @@ pub async fn get_data_contract_info(
     _app: tauri::AppHandle,
     contract_id: String,
     network: Option<String>,
-) -> ICommandResult<Vec<Value>> {
-    cmd_res!(get_data_contract_info_inner(get_dapi_client(), contract_id, network).await)
+) -> ICommandResult<Vec<JsonValue>> {
+    cmd_res!(
+        get_data_contract_info_inner(get_dapi_client(), contract_id, network)
+            .await
+            .map(JsonValue::vec_from)
+    )
 }
 
 pub(crate) async fn get_data_contract_info_inner(
@@ -427,8 +456,12 @@ pub async fn get_token_contract_info(
     _app: tauri::AppHandle,
     contract_id: String,
     network: Option<String>,
-) -> ICommandResult<Vec<Value>> {
-    cmd_res!(get_token_contract_info_inner(get_dapi_client(), contract_id, network).await)
+) -> ICommandResult<Vec<JsonValue>> {
+    cmd_res!(
+        get_token_contract_info_inner(get_dapi_client(), contract_id, network)
+            .await
+            .map(JsonValue::vec_from)
+    )
 }
 
 pub(crate) async fn get_token_contract_info_inner(
@@ -453,8 +486,12 @@ pub async fn get_token_statuses(
     _app: tauri::AppHandle,
     token_ids: Vec<String>,
     network: Option<String>,
-) -> ICommandResult<Vec<Value>> {
-    cmd_res!(get_token_statuses_inner(get_dapi_client(), token_ids, network).await)
+) -> ICommandResult<Vec<JsonValue>> {
+    cmd_res!(
+        get_token_statuses_inner(get_dapi_client(), token_ids, network)
+            .await
+            .map(JsonValue::vec_from)
+    )
 }
 
 pub(crate) async fn get_token_statuses_inner(
@@ -475,8 +512,10 @@ pub async fn get_total_supply(
     _app: tauri::AppHandle,
     token_id: String,
     network: Option<String>,
-) -> ICommandResult<Vec<Value>> {
-    cmd_res!(get_total_supply_inner(get_dapi_client(), token_id, network).await)
+) -> ICommandResult<Vec<JsonValue>> {
+    cmd_res!(get_total_supply_inner(get_dapi_client(), token_id, network)
+        .await
+        .map(JsonValue::vec_from))
 }
 
 pub(crate) async fn get_total_supply_inner(
@@ -500,8 +539,10 @@ pub(crate) async fn get_total_supply_inner(
 pub async fn get_current_epoch(
     _app: tauri::AppHandle,
     network: Option<String>,
-) -> ICommandResult<Vec<Value>> {
-    cmd_res!(get_current_epoch_inner(get_dapi_client(), network).await)
+) -> ICommandResult<Vec<JsonValue>> {
+    cmd_res!(get_current_epoch_inner(get_dapi_client(), network)
+        .await
+        .map(JsonValue::vec_from))
 }
 
 pub(crate) async fn get_current_epoch_inner(
@@ -520,8 +561,12 @@ pub(crate) async fn get_current_epoch_inner(
 pub async fn get_total_credits_in_platform(
     _app: tauri::AppHandle,
     network: Option<String>,
-) -> ICommandResult<Vec<Value>> {
-    cmd_res!(get_total_credits_in_platform_inner(get_dapi_client(), network).await)
+) -> ICommandResult<Vec<JsonValue>> {
+    cmd_res!(
+        get_total_credits_in_platform_inner(get_dapi_client(), network)
+            .await
+            .map(JsonValue::vec_from)
+    )
 }
 
 pub(crate) async fn get_total_credits_in_platform_inner(
@@ -540,10 +585,16 @@ pub(crate) async fn get_total_credits_in_platform_inner(
 pub async fn dapi_request(
     _app: tauri::AppHandle,
     method: String,
-    params: HashMap<String, Value>,
+    params: HashMap<String, JsonValue>,
     network: Option<String>,
-) -> ICommandResult<Vec<Value>> {
-    cmd_res!(dapi_request_inner(method, params, network).await)
+) -> ICommandResult<Vec<JsonValue>> {
+    cmd_res!(dapi_request_inner(
+        method,
+        params.into_iter().map(|(k, j)| (k, j.0)).collect(),
+        network
+    )
+    .await
+    .map(JsonValue::vec_from))
 }
 
 pub async fn dapi_request_inner(
@@ -575,23 +626,22 @@ pub async fn get_posts(
     _app: tauri::AppHandle,
     data_contract_id: String,
     document_type: String,
-    where_clause: Option<Value>,
-    order_by: Option<Value>,
+    where_clause: Option<JsonValue>,
+    order_by: Option<JsonValue>,
     limit: Option<u32>,
     network: Option<String>,
-) -> ICommandResult<Vec<Value>> {
-    cmd_res!(
-        get_posts_inner(
-            get_dapi_client(),
-            data_contract_id,
-            document_type,
-            where_clause,
-            order_by,
-            limit,
-            network
-        )
-        .await
+) -> ICommandResult<Vec<JsonValue>> {
+    cmd_res!(get_posts_inner(
+        get_dapi_client(),
+        data_contract_id,
+        document_type,
+        where_clause.map(|j| j.0),
+        order_by.map(|j| j.0),
+        limit,
+        network
     )
+    .await
+    .map(JsonValue::vec_from))
 }
 
 pub(crate) async fn get_posts_inner(
@@ -625,8 +675,12 @@ pub async fn get_identity_balance(
     _app: tauri::AppHandle,
     identity_id: String,
     network: Option<String>,
-) -> ICommandResult<Vec<Value>> {
-    cmd_res!(get_identity_balance_inner(get_dapi_client(), identity_id, network).await)
+) -> ICommandResult<Vec<JsonValue>> {
+    cmd_res!(
+        get_identity_balance_inner(get_dapi_client(), identity_id, network)
+            .await
+            .map(JsonValue::vec_from)
+    )
 }
 
 pub(crate) async fn get_identity_balance_inner(
@@ -651,8 +705,12 @@ pub async fn get_dpns_usernames(
     _app: tauri::AppHandle,
     identity_id: String,
     network: Option<String>,
-) -> ICommandResult<Vec<Value>> {
-    cmd_res!(get_dpns_usernames_inner(get_dapi_client(), identity_id, network).await)
+) -> ICommandResult<Vec<JsonValue>> {
+    cmd_res!(
+        get_dpns_usernames_inner(get_dapi_client(), identity_id, network)
+            .await
+            .map(JsonValue::vec_from)
+    )
 }
 
 pub(crate) async fn get_dpns_usernames_inner(

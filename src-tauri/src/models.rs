@@ -47,12 +47,80 @@ macro_rules! cmd_res {
 #[derive(Serialize, Deserialize, Clone, Debug, Default, PartialEq)]
 pub struct IAnyValue(pub serde_json::Value);
 
+/// JSON value carried across the generic DAPI command surface.
+///
+/// WHY A NEWTYPE (specta rc.26): specta's built-in `serde_json::Value` impl
+/// is a named JSON union containing i64/u64 members, which specta-typescript
+/// refuses to export (rc.26 also removed `skip_bigint_checks`), and the
+/// derive's `remote` mechanism now emits a literal impl on the remote type,
+/// which the orphan rule forbids outside specta itself.
+/// `#[serde(transparent)]` keeps the wire format identical to a bare
+/// `serde_json::Value`; the manual `Type` impl below reproduces the pre-rc.26
+/// `JsonValue` bindings exactly:
+///
+///   export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
+///
+/// JSON numbers map to `number` (f64): the DAPI values carried by these
+/// commands are identifiers, counts and timestamps, never exact integers
+/// beyond 2^53.
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(transparent)]
+pub struct JsonValue(pub serde_json::Value);
+
+impl ::specta::Type for JsonValue {
+    fn definition(types: &mut ::specta::Types) -> ::specta::datatype::DataType {
+        use ::specta::datatype::{DataType, NamedDataType};
+
+        // Memoize: the generic DAPI commands reference JsonValue many times;
+        // register the named type only once.
+        let mut existing = None;
+        types.iter_mut(|ndt| {
+            if existing.is_none() && ndt.name == "JsonValue" {
+                existing = Some(DataType::Reference(ndt.reference(vec![])));
+            }
+        });
+        if let Some(reference) = existing {
+            return reference;
+        }
+
+        let ndt = NamedDataType::new("JsonValue", types, |_types, ndt| {
+            // An opaque TypeScript reference renders verbatim wherever the
+            // named type's body is emitted, giving exactly:
+            //   export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
+            // The self-references inside the text resolve against this very
+            // export. (Enum/union DataTypes cannot be constructed from
+            // outside specta: `Enum` is #[non_exhaustive] with no public
+            // constructor, and specta-typescript's untagged-union shape is
+            // what the pre-rc.26 bindings were generated with.)
+            ndt.ty = Some(DataType::Reference(::specta_typescript::define(
+                "null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>",
+            )));
+        });
+        DataType::Reference(ndt.reference(vec![]))
+    }
+}
+
+impl From<serde_json::Value> for JsonValue {
+    fn from(value: serde_json::Value) -> Self {
+        JsonValue(value)
+    }
+}
+
+impl JsonValue {
+    /// Adapter used by the generic DAPI commands to convert the
+    /// `Result<Vec<serde_json::Value>, _>` results returned by the DAPI
+    /// client into the exported shape.
+    pub fn vec_from(values: Vec<serde_json::Value>) -> Vec<JsonValue> {
+        values.into_iter().map(JsonValue::from).collect()
+    }
+}
+
 impl ::specta::Type for IAnyValue {
-    fn inline(
-        _types: &mut ::specta::TypeMap,
-        _generics: ::specta::Generics,
-    ) -> ::specta::datatype::DataType {
-        ::specta::datatype::DataType::Any
+    // specta rc.26 removed `DataType::Any` (and `TypeMap`/`Generics`); the
+    // sanctioned way to keep emitting TS `any` byte-for-byte is an opaque
+    // reference whose TypeScript rendering is defined verbatim as "any".
+    fn definition(_types: &mut ::specta::Types) -> ::specta::datatype::DataType {
+        ::specta::datatype::DataType::Reference(::specta_typescript::define("any"))
     }
 }
 
@@ -185,7 +253,11 @@ pub struct IIdentityData {
     pub identity_id: String,
     pub username: String,
     pub balance: String,
+    // deserialize_with accepts a string OR number on the wire, but the
+    // serialized (and TypeScript-visible) type is a plain number; specta
+    // rc.26 requires the wire type to be declared explicitly.
     #[serde(default, deserialize_with = "de_u32_from_str_or_num")]
+    #[specta(type = u32)]
     pub revision: u32,
     pub public_keys: Vec<IIdentityPublicKey>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

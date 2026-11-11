@@ -116,7 +116,7 @@ fn key_from_keyring() -> Option<[u8; 32]> {
         }
         Err(_) => {
             let mut key = [0u8; 32];
-            rand::RngCore::fill_bytes(&mut rand::rng(), &mut key);
+            rand::Rng::fill_bytes(&mut rand::rng(), &mut key);
             let b64 = base64::engine::general_purpose::STANDARD.encode(key);
             match entry.set_password(&b64) {
                 Ok(()) => Some(key),
@@ -142,7 +142,7 @@ fn key_from_file(path: &Path) -> Result<[u8; 32], String> {
         fs::create_dir_all(parent).map_err(|e| format!("failed to create vault dir: {e}"))?;
     }
     let mut key = [0u8; 32];
-    rand::RngCore::fill_bytes(&mut rand::rng(), &mut key);
+    rand::Rng::fill_bytes(&mut rand::rng(), &mut key);
     {
         use std::io::Write;
         let mut opts = fs::OpenOptions::new();
@@ -362,7 +362,7 @@ pub fn shred_file(path: &Path) -> Result<(), String> {
     {
         use std::io::Write;
         let mut buf = vec![0u8; len.max(1)];
-        rand::RngCore::fill_bytes(&mut rand::rng(), &mut buf);
+        rand::Rng::fill_bytes(&mut rand::rng(), &mut buf);
         let mut f = fs::OpenOptions::new()
             .write(true)
             .open(path)
