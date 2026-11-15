@@ -138,6 +138,7 @@ pub fn create_app() -> tauri::App {
             commands::history_commands::history_clear_network,
             commands::social_commands::fetch_social_feed,
             commands::social_commands::fetch_social_feed_prefetched,
+            commands::shielded_commands::shielded_prove_pczt,
             realtime::register::register_realtime_device,
             realtime::commands::connect_realtime,
             realtime::commands::disconnect_realtime,

@@ -8,6 +8,31 @@
 **verified LIVE against `https://dapi.sansbank.dev/v1/dapi` on 2026-09-09**
 (not copied from docs or headers — docs lie; the network does not).
 
+> **⚠️ AMENDMENT 2026-11-11 (evonext-desktop, verified live): THE
+> CONTRACT REGISTRY HAS FLIPPED.** The ecosystem has consolidated on
+> **`EWR695MsqPUuW8EnTbYzD4KybNQD5n7CUDWydJYNg63F`** as the single Yappr
+> posts contract (testnet); **`AyWK6nD…` is RETIRED**. EWR695 now carries
+> the full upstream v9/v10 schema — **byte-identical to upstream master
+> `contracts/yappr-social-contract-actual.json`** (15 doc types, 30
+> indices, incl. the `languageTimeline` timeline index) — and a live
+> timeline query against it returns current posts (newest 2026-10-15).
+> What remains fully valid below: §5 transport rules, the
+> `in`/range-needs-`orderBy` DAPI rule, profile-tier ordering, avatar
+> parsing. What is **historical only — do not code against it**: every
+> `AyWK6nD…` reference (§3 table & trap, §4.1, §4.3, §5.1) and the §3
+> claim that EWR695 cannot serve timeline queries (its index set has
+> since been replaced; `orderBy: [["$createdAt","desc"]]` alone now
+> matches the `ownerAndTime`-era shape — the feed query uses
+> `languageTimeline`, see AGENTS.md "Social Feed Conventions").
+> Desktop source of truth: `src/constants/index.ts` +
+> `src-tauri/src/social/mod.rs` (`YAPPR_POST_CONTRACT_ID_TESTNET`).
+> Related 2026-11-11 infra note: testnet `get_documents` through the
+> proxy failed UNIMPLEMENTED on v5.0.2/5.0.3 fleet nodes (~29% of queries)
+> until `dev-dapi-proxy` commit `d859208` (evo-sdk 5.0.3 + retry/ban
+> failover + canary) was deployed 15:43Z the same day — verified 10/10
+> green post-deploy. (Proxy handoff docs purged 2026-11-11 under the
+> ACTIVE-only policy — incident history in git.)
+
 ---
 
 ## 1. What "enable Yappr" means
@@ -50,7 +75,7 @@ What is missing/broken (details + fixes in §6):
 
 | Contract | Testnet | Mainnet |
 |---|---|---|
-| Yappr posts | `AyWK6nDVfb8d1ZmkM5MmZZrThbUyWyso1aMeGuuVSfxf` | **NONE** |
+| Yappr posts | ~~`AyWK6nDVfb8d1ZmkM5MmZZrThbUyWyso1aMeGuuVSfxf`~~ **RETIRED** — current: `EWR695MsqPUuW8EnTbYzD4KybNQD5n7CUDWydJYNg63F` (amendment ↑) | **NONE** |
 | Yappr unified profile | `FZSnZdKsLAuWxE7iZJq12eEz6xfGTgKPxK7uZJapTQxe` | **NONE** |
 | DPNS | `GWRSAVFMjXx8HpQFaNJMqBV7MBgMK4br5UESsB4S31Ec` | same id |
 | DashPay | `Bwr4WHCPz5rFVAD87RqTs3izo4zpzwsEdKPWUT1NS1C7` | same id |
@@ -60,7 +85,9 @@ Sources: `evonext.app/lib/constants.ts:44-45`
 `evonext.app/lib/constants.ts:23` (DPNS both networks),
 `evonext-mobile/src/stores/PostsStore.ts:16-40`.
 
-**⚠️ THE EWR695 TRAP**: the upstream yap.pr repo HEAD defaults to
+**⚠️ THE EWR695 TRAP** — *(historical record, SUPERSEDED 2026-11-11:
+EWR695 is now the standard; see the amendment at the top of this file)*:
+the upstream yap.pr repo HEAD defaults to
 `EWR695MsqPUuW8EnTbYzD4KybNQD5n7CUDWydJYNg63F` ("Testnet - v10",
 upstream `lib/constants.ts:6`). It is LIVE but STALE and UNUSABLE for
 a feed client:
@@ -160,6 +187,12 @@ Canonical `get_documents` params (object form):
 - `startAfter` (document-ID cursor) is honored by the proxy.
 
 ### 5.1 Timeline feed (THE query that works)
+
+*(2026-11-11: the shape below is still right, but the contract ID is stale
+— use `EWR695MsqPUuW8EnTbYzD4KybNQD5n7CUDWydJYNg63F`, and the production
+feed query additionally filters `language == "en"` with
+`orderBy: [["language","asc"],["$createdAt","desc"]]` to match the
+`languageTimeline` index — see AGENTS.md.)*
 
     {
       "method": "get_documents",
@@ -533,7 +566,7 @@ chain and appears after refresh.
 - Sansbank Yappr deployment (authoritative IDs):
   `/Workspace/sansbank/evonext.app/lib/constants.ts`.
 - Push watcher: `/Workspace/sansbank/evonext-manager/src/manageYapprPosts.js`.
-- Proxy contract details: `/Workspace/sansbank/dev-dapi-proxy/docs/HANDOFF-mobile-app-integration.md`.
+- Proxy contract details: `/Workspace/sansbank/dev-dapi-proxy/docs/HANDOFF.md`.
 
 *Handoff written 2026-09-09. All "verified" claims were executed
 against dapi.sansbank.dev on that date; re-run §10 probes if the

@@ -144,13 +144,17 @@ const routes: RouteRecordRaw[] = [
                 component: () => import('@/screens/wallet/Send.vue')
             },
             {
-                path: 'wallet/swap',
-                component: () => import('@/screens/wallet/Swap.vue'),
-                meta: { requiresPremium: true }
+                path: 'wallet/shielded',
+                component: () => import('@/screens/wallet/Shielded.vue')
             },
             {
                 path: 'wallet/asset/:symbol',
                 component: () => import('@/screens/wallet/AssetDetails.vue')
+            },
+            {
+                path: 'wallet/swap',
+                component: () => import('@/screens/wallet/Swap.vue'),
+                meta: { requiresPremium: true }
             },
             {
                 path: 'wallet/transaction/:id',

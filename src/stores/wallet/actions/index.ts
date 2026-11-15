@@ -15,6 +15,45 @@ import type { IAsset } from '@/types'
 import type { IAssetMinimal } from '@/types/assets'
 import type { Network } from '@/composables/useNetwork'
 
+/* Shielded catch-up (F40–F55 parity): the Transparent row is the DIP-17
+ * Platform-address pool (evonext.app F46), the Shielded row is ALWAYS
+ * rendered (F45) and instant-seeds from the persisted engine sync state.
+ * The identity balance is NOT a wallet row — it lives under the username
+ * on the dashboard and in the TOTAL (the owner's 4-row model: Transparent,
+ * Shielded, SANS, DUSD; the mobile balance-model handoff). */
+import { fetchPlatformAddressBalance } from '@/lib/platform-address'
+import { persistedShieldedBalance } from '@/lib/shielded/engine-client'
+import { getWasmSdk } from '@/lib/services/wasm-sdk-service'
+
+/** Bounded + retried Transparent balance (the F50a semantics: 3 attempts,
+ *  90s each — the wasm request-timeout can leave a query pending forever,
+ *  the F30 gotcha). */
+async function fetchTransparentBalanceBounded(network: Network): Promise<bigint | null> {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+            const sdk = await getWasmSdk()
+            return await Promise.race([
+                fetchPlatformAddressBalance(sdk, network, 20),
+                new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error(`transparent balance timed out (attempt ${attempt})`)), 90000)),
+            ])
+        } catch (error) {
+            console.warn(`[Wallet] Transparent balance attempt ${attempt} failed:`, error)
+            if (attempt === 3) return null
+            await new Promise(resolve => setTimeout(resolve, 8000))
+        }
+    }
+    return null
+}
+
+/** The 4-decimal trimmed row format (the F43 row contract:
+ *  131,100,000 credits -> '0.0013'). */
+function formatCreditsRow(credits: bigint | null): string {
+    if (credits === null || credits === 0n) return '0'
+    const dash = Number(credits) / 100_000_000_000
+    return dash.toFixed(4).replace(/\.?0+$/, '')
+}
+
 /**
  * Orchestrates fetching all balances (Native + Tokens)
  */
@@ -55,49 +94,63 @@ export async function refreshBalances(
         if (!isNaN(parsed)) creditBalance = parsed
     }
 
+    const currentDashPrice = systemStore.currentDashPrice || 0
+
     const newAssets: IAsset[] = []
 
+    /* ROW 1 — Transparent: the DIP-17 Platform-address POOL balance (NOT
+     * the identity balance — F46). Bounded+retried; a total transport
+     * failure renders the row at 0 rather than removing it. */
+    const transparentCredits = await fetchTransparentBalanceBounded(this.network)
+    const transparentDash = transparentCredits === null ? 0 : Number(transparentCredits) / 100_000_000_000
     newAssets.push({
-        id: 'credits',
-        name: 'Dash',
-        symbol: 'CREDITS',
-        decimals: 2,
-        type: 'native',
-        category: 'currency',
-        network: this.network,
-        balance: creditBalance,
-        balanceFormatted: creditBalance.toLocaleString(),
-        verified: true,
-        blocked: false,
-        transferable: true,
-        divisible: true,
-        ownerIdentityId: identityId,
-        isOwned: true,
-        usdValue: 0
-    })
-
-    const dashAmount = creditBalance / 100_000_000_000
-    const currentDashPrice = systemStore.currentDashPrice || 0
-    const dashUsdValue = dashAmount * currentDashPrice
-
-    newAssets.push({
-        id: 'dash',
-        name: 'Dash Coins',
+        id: 'transparent',
+        name: 'Transparent',
         symbol: 'DASH',
-        decimals: 8,
+        decimals: 11,
         type: 'native',
         category: 'currency',
         network: this.network,
-        balance: dashAmount,
-        balanceFormatted: formatDashAmount(dashAmount, true),
+        balance: transparentCredits === null ? '0' : transparentCredits.toString(),
+        balanceFormatted: formatCreditsRow(transparentCredits),
         verified: true,
         blocked: false,
         transferable: true,
         divisible: true,
         ownerIdentityId: identityId,
         isOwned: true,
-        usdValue: dashUsdValue
+        usdValue: transparentDash * currentDashPrice
     })
+
+    /* ROW 2 — Shielded: ALWAYS rendered, right after Transparent, even at
+     * ZERO and before the engine scan lands (F45). Instant-seeded from the
+     * persisted sync state; the live scan refines it via the engine's
+     * onScanStatus (the composable overlays it in the UI). */
+    const shieldedCredits = persistedShieldedBalance(this.network === 'mainnet' ? 'mainnet' : 'testnet') ?? 0n
+    const shieldedDash = Number(shieldedCredits) / 100_000_000_000
+    newAssets.push({
+        id: 'shielded',
+        name: 'Shielded',
+        symbol: 'DASH',
+        decimals: 11,
+        type: 'native',
+        category: 'currency',
+        network: this.network,
+        balance: shieldedCredits.toString(),
+        balanceFormatted: formatCreditsRow(shieldedCredits),
+        verified: true,
+        blocked: false,
+        transferable: true,
+        divisible: true,
+        ownerIdentityId: identityId,
+        isOwned: true,
+        usdValue: shieldedDash * currentDashPrice
+    })
+
+    /* The identity balance is intentionally NOT a row here — the dashboard
+     * header shows it (Overview) and the TOTAL sums all three pools.
+     * (formatDashAmount stays imported for the dashboard formatter.) */
+    void formatDashAmount
 
     try {
         const storedAssets = await invoke<IAssetMinimal[]>('fetch_identity_tokens', {
@@ -159,14 +212,15 @@ export async function refreshBalances(
         console.error('[Wallet] Failed to fetch token assets:', err)
     }
 
-    newAssets.sort((a, b) => (b.usdValue || 0) - (a.usdValue || 0))
+    /* Row order is FIXED (Transparent, Shielded, then tokens) — the
+     * F43/F45 parity contract; the old usdValue sort is gone. */
     this.assets = newAssets
 
     await this.fetchRealTransactions()
 
     this.isLoading = false
     window.dispatchEvent(new CustomEvent('wallet:balances-refreshed', {
-        detail: { creditBalance }
+        detail: { creditBalance, transparentCredits: transparentCredits?.toString() ?? null, shieldedCredits: shieldedCredits.toString() }
     }))
 }
 

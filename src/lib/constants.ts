@@ -1,0 +1,82 @@
+// @ts-nocheck
+/* Ported 1:1 from evonext.app (KAT-verified upstream). Compile-only directive:
+   the upstream file is type-checked under the web tsconfig (no
+   exactOptionalPropertyTypes/noUncheckedIndexedAccess); the 17 ported
+   KAT suites in tests/shielded/ verify runtime behavior here. */
+/**
+ * Application Constants
+ *
+ * A single source for ALL applications constants.
+ */
+
+/* DASH Asset Details */
+export const DASH_DECIMALS = 11
+export const DEFAULT_ASSET = {
+    id: '0',
+    name: 'Dash Credit',
+    ticker: 'DASH',
+    token_id_hex: '0',
+    iconUrl: '/icons/dash.svg',
+    duffs: BigInt(0),
+    decimal_places: 11,
+    fiat: {
+        USD: 0,
+    }
+}
+
+/* DPNS Contract ID */
+export const DPNS_CONTRACT_ID = 'GWRSAVFMjXx8HpQFaNJMqBV7MBgMK4br5UESsB4S31Ec' // Mainnet + Testnet
+
+/* DUSD Contract IDs */
+// NOTE: Platform official stablecoin
+export const DUSD_CONTRACT_ID_MAINNET = 'DYqxCsuDgYsEAJ2ADnimkwNdL7C4xbe4No4so19X9mmd' // DUSD token id on Mainnet
+/* NOTE (2026-11-14): these are PLATFORM v5 TOKEN ids, not contract ids —
+ * the tDUSD token id resolves via getTokenContractInfo to contract
+ * GWghYQoDFEb3osEfigrF7CKdZLWauxC7TwM4jsJyqa23 (position 0, 6 decimals);
+ * mainnet DUSD DYqxCsuD… resolves to contract 8CkcAPokwFdxEu2tUu2VdLTjgK3eeR1wUGJcxhjsWaDz. */
+export const DUSD_CONTRACT_ID_TESTNET = '3oTHkj8nqn82QkZRHkmUmNBX696nzE1rg1fwPRpemEdz' // tDUSD token id on Testnet
+export const DUSD_DECIMALS = 6
+export const DUSD_USD_VALUE = 1.00
+
+/* SANS Contract IDs */
+// NOTE: Platform official staking token
+export const SANS_CONTRACT_ID_MAINNET = 'AxAYWyXV6mrm8Sq7vc7wEM18wtL8a8rgj64SM3SDmzsB' // SANS on Mainnet
+export const SANS_CONTRACT_ID_TESTNET = 'A36eJF2kyYXwxCtJGsgbR3CTAscUFaNxZN19UqUfM1kw' // tSANS token id on Testnet
+export const SANS_DECIMALS = 8
+export const SANS_USD_VALUE = 0.01
+
+/* Contract IDs — we use ONE contract everywhere: the official Yappr social
+ * contract (https://yap.pr/about). The old EvoNext contracts (testnet 465jd...,
+ * mainnet 6fBk...) are RETIRED. Mainnet has no Yappr contract yet, so social
+ * features are unavailable there until one is deployed. */
+export const EVONEXT_CONTRACT_ID_MAINNET = '' // Mainnet — no Yappr contract exists yet
+export const EVONEXT_CONTRACT_ID_TESTNET = 'EWR695MsqPUuW8EnTbYzD4KybNQD5n7CUDWydJYNg63F' // Testnet — official Yappr contract
+
+/* YAPPR Contract IDs */
+export const YAPPR_CONTRACT_ID_MAINNET = '' // Mainnet
+export const YAPPR_CONTRACT_ID_TESTNET = EVONEXT_CONTRACT_ID_TESTNET // same single contract
+
+// Network configuration
+export const DEFAULT_NETWORK = 'testnet'
+
+// Document types
+export const DOCUMENT_TYPES = {
+    APP: 'app',
+    AVATAR: 'avatar',
+    BLOCK: 'block',
+    BOOKMARK: 'bookmark',
+    DIRECT_MESSAGE: 'directMessage',
+    FOLLOW: 'follow',
+    LIKE: 'like',
+    LIST: 'list',
+    LIST_MEMBER: 'listMember',
+    MUTE: 'mute',
+    NOTIFICATION: 'notification',
+    POST: 'post',
+    PROFILE: 'profile',
+    REMIX: 'remix',
+    SOCIAL: 'social',
+} as const
+
+// DPNS
+export const DPNS_DOCUMENT_TYPE = 'domain'

@@ -344,8 +344,11 @@
                         </div>
                     </div>
                 </div>
-                <!-- Explorer Link -->
-                <a :href="txDetails.explorerUrl" target="_blank" rel="noopener noreferrer"
+                <!-- Explorer Link — rendered ONLY with a real transition hash.
+                     The high-level ops expose no hash surface, and a link to
+                     'UNKNOWN TXID' is the F53d bug (explorer.nexa.org was a
+                     NEXA relic on the web; here the guard is the point). -->
+                <a v-if="isRealTxid(txDetails.txid)" :href="txDetails.explorerUrl" target="_blank" rel="noopener noreferrer"
                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-6 rounded-inner text-center transition-all flex items-center justify-center gap-2 shadow-lg"
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -353,6 +356,9 @@
                     </svg>
                     View on Explorer
                 </a>
+                <div v-else class="w-full bg-surface-raise border border-edge text-content-faint font-medium py-4 px-6 rounded-inner text-center text-sm">
+                    Transaction sent — no explorer hash is available for this operation.
+                </div>
                 <button @click="showTxModal = false; amount = null; recipient = ''; selectedCurrency = 'dash-coins'"
                         class="w-full mt-4 bg-surface-card dark:bg-surface-card text-white dark:text-content font-bold py-3 px-4 rounded-control hover:bg-surface-card dark:hover:bg-surface-raise transition-colors"
                 >
@@ -434,6 +440,10 @@ const explorerBase = computed(() => {
         ? 'https://platform-explorer.com'
         : 'https://testnet.platform-explorer.com'
 })
+
+/* A REAL transition hash is 64 hex chars — everything else ('UNKNOWN',
+ * empty) renders the honest no-hash message instead of a bogus link. */
+const isRealTxid = (txid: string): boolean => /^[0-9a-fA-F]{64}$/.test(txid || '')
 
 // Helper to determine search symbols based on network/currency
 const getSearchSymbols = (currency: string): string[] => {

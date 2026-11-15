@@ -23,6 +23,11 @@ dist-ssr
 *.sln
 *.sw?
 
+# Rust build artifacts (spikes/stronghold carries its own cargo target
+# tree — 869MB of untracked artifacts; src-tauri/target is excluded at
+# the same level)
+**/target/
+
 # Old .dat files
 *.dat
 !.gitkeep
