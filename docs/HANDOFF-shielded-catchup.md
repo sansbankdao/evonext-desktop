@@ -160,7 +160,56 @@ package.json (vite@7.1.9/vitest@4.0.18 in the lock vs the committed pins
     # ON EVORUNNER ONLY (never the host):
     pnpm build                # frontend bundle incl. the 26.5MB wasm asset
     cargo test                # Rust suite incl. shielded_commands
-    ssh evorunner '~/builds/evonext-desktop-release.sh v26.11.14 --windows'
+    ssh evorunner '~/builds/evonext-desktop-release.sh vX.Y.Z --windows'
+
+## 4b. RELEASE RECORD — v26.11.15 (SHIPPED 2026-11-15)
+
+**Live: https://github.com/sansbankdao/evonext-desktop/releases/tag/v26.11.15**
+(8 assets, public; updater manifest live at https://manifest.evonext.app/desktop
+— `manifest: v26.11.15` commit `20b9b09` in evonext-manifest; both platform
+signatures byte-verified against the uploaded assets).
+
+- **v26.11.14 is BURNED**: the tag was pushed and its release-script build
+  failed because `src/composables/useShieldedEngine.ts` was omitted from the
+  feature commit. Per the release-gate NEVER-REUSE rule the name is retired;
+  the fix commit + v26.11.15 carry it. Do not delete the tag.
+- **Build host discipline held**: every compile ran on evorunner (frontend
+  build, cargo test in the evobuild container, the release script). The host
+  ran only tsc / vitest / installs / git+rsync. CAUTION: the repo's own
+  `postinstall` hook runs `pnpm type:gen` (cargo) on ANY install — always
+  install with `CI=true` when you do not intend a cargo invocation.
+- **evobuild:22.04 was REBUILT this session** (the image had been deleted;
+  only the Dockerfile remained) and gained `gvfs` (the appimage-gio-fix
+  needs `/usr/lib/x86_64-linux-gnu/gio/modules/libgvfsdbus.so` — the old
+  image had it ad hoc). Dockerfile unchanged; the package was added to the
+  committed image via `docker commit`. A future `docker build` from the
+  Dockerfile ALONE will NOT have gvfs — either re-add it to the Dockerfile
+  or re-commit after install.
+- **evorunner disk hit 100% mid-session** (the ~9GB stale verify scratch +
+  docker build layers); a 100GB volume was added afterward by the owner.
+  Stale scratch trees (`~/builds/evonext-desktop-check/-verify`) are the
+  usual culprit — they accumulate `node_modules` and type:gen debug targets.
+- **libsodium.lib for the Windows cross-build had VANISHED** from
+  `~/builds/libsodium-msvc/libsodium/x64/Release/v143/static/` (the
+  `sodium.lib` symlink was dangling — present in the Nov-11 v26.11.11
+  build, gone since). Restored from the OFFICIAL
+  `libsodium-1.0.21-stable-msvc.zip` (download.libsodium.org) with the
+  minisig VERIFIED against the pubkey embedded in
+  libsodium-sys-stable's build.rs (`RWQf6LRCGA9i53ml…`). The verified zip
+  + minisig are now archived at `~/builds/libsodium-msvc/dist/` — the
+  crate can also consume them via `SODIUM_DIST_DIR` if the .lib ever
+  disappears again.
+- **Asset upload path used**: the dev-box→evorunner link collapsed
+  (~30-90KB/s); the 8 artifacts were uploaded DIRECTLY FROM EVORUNNER via
+  the GitHub upload API (the dev box's `gh auth token` piped to a 0600
+  temp file on evorunner, `curl -X POST uploads.github.com/…/releases/<id>/
+  assets?name=… --data-binary @file`, then the token shredded both sides).
+  The release object was created + published from the dev box (`gh release
+  create --draft` then `gh release edit --draft=false`). Local partial
+  copies under `~/builds/v26.11.15/` were removed; the authoritative
+  binaries live on GitHub + evorunner.
+- The full Linux build (AppImage/deb/rpm + sigs, gio-fix completed) and
+  the Windows NSIS cross-build + `.sig` both completed for v26.11.15.
 
 ## 5. Sources (the records this session builds on)
 
