@@ -41,9 +41,8 @@
 
 ### Notes
 
-- macOS artifacts remain unavailable (GitHub-hosted runners are
-  billing-blocked); this release ships Linux + Windows, built on the
-  evorunner pipeline.
+- macOS artifacts are not offered in this release; Linux + Windows
+  ships, built on the evorunner pipeline.
 
 ---
 

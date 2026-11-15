@@ -23,12 +23,12 @@ description: >
 
 If you pushed a tag and the `Release EvoNext Desktop Edition` workflow run
 failed in 4-10 s (or the `CI Suite` is red), **that is EXPECTED and
-HARMLESS.** It is the billing hold killing GitHub-*hosted* runners — it has
+HARMLESS.** It is the hosted-runner hold killing GitHub-*hosted* runners — it has
 NOTHING to do with shipping.
 
 **Do NOT, under any circumstances, do any of the following in response to a
 red/failed Actions run:**
-- conclude the release is "blocked by billing" and stop to ask the user, or
+- conclude the release is "blocked by the CI failure" and stop to ask the user, or
 - propose / start rewiring `release.yml` `runs-on:` to move `create-release`
   or `publish-release` onto `evorunner`, or
 - treat the Actions failure as the build failing.
@@ -36,13 +36,13 @@ red/failed Actions run:**
 The build is `ssh evorunner '~/builds/evonext-desktop-release.sh vX.Y.Z
 --windows'` — full stop. It does not touch GitHub Actions. GitHub only
 provides two **free** services here: the git remote and `gh release
-upload`. Neither is billing-blocked. If you find yourself reasoning about
+upload`. Neither is affected by the hold. If you find yourself reasoning about
 the CI failure while trying to release, you have gone down the WRONG PATH —
 go to "HOW RELEASES ACTUALLY SHIP" below and run the script.
 
 > This rule was added after an agent (v26.10.7) pushed the tag, saw the
 > instantly-failed CI run, and wrongly reported the release as
-> "blocked by billing", offering to rewire the workflow — wasting a turn.
+> "blocked by the CI failure", offering to rewire the workflow — wasting a turn.
 > The tag push working + CI failing is the NORMAL state of every release
 > since v26.9.13.
 
@@ -84,7 +84,7 @@ Answer each OUT LOUD in your response and STOP if any answer is not a clear YES:
 2. Did the user specify a version number? If not, do NOT invent one. Ask.
 3. Has the user signed off on the version number specifically?
 4. Has the user been told the build burns ~20-30 min on evorunner, and that
-   GitHub-hosted jobs are billing-blocked (CI will be red, and that is
+   GitHub-hosted jobs are unavailable in this org (CI will be red, and that is
    harmless)?
 5. Has the user been told the release will be published manually via
    `gh release create/upload/publish`, and that **macOS artifacts cannot be
@@ -105,11 +105,11 @@ The real builder is a shell script on the evorunner host:
 
     ssh evorunner '~/builds/evonext-desktop-release.sh vX.Y.Z --windows'
 
-It does not use CI in any way. The billing hold is **irrelevant to
+It does not use CI in any way. The hosted-runner hold is **irrelevant to
 releasing** — it only explains the red CI badge. Do not tell the user a
-release is blocked by billing. It is not.
+release is blocked by the CI failure. It is not.
 
-### Why the billing hold does not matter here
+### Why the hosted-runner hold does not matter here
 
 The hold blocks **GitHub-hosted runners** only. It does NOT affect:
 - GitHub as a git remote (`git clone` / `git fetch` — free, unaffected)
@@ -203,12 +203,12 @@ platforms without it. What the workflow still uniquely provides is:
 |---|---|
 | `create-release` (draft + CHANGELOG body) | **Yes** — but the script does not do it; must be done manually |
 | `build-linux` | No — script does it in `evobuild:22.04` |
-| `build-macos` | **Only source of macOS artifacts.** It is billing-blocked. |
+| `build-macos` | **Only source of macOS artifacts.** It is unavailable in this org. |
 | `build-windows` | No — script cross-builds NSIS via cargo-xwin |
 | `publish-release` (flip draft → public) | **Yes** — must be done manually |
 
 **macOS remains genuinely unavailable.** `macos-latest` is GitHub-hosted
-and billing-blocked; there is no `osxcross` on evorunner and no self-hosted
+and unavailable in this org; there is no `osxcross` on evorunner and no self-hosted
 macOS runner. Say this plainly; do not imply a full three-platform release.
 
 ### The manual release procedure (what actually works)
@@ -252,13 +252,13 @@ macOS runner. Say this plainly; do not imply a full three-platform release.
 **Measured 2026-09-22.** Every workflow job on a GitHub-hosted runner dies
 in 4-10 seconds with:
 
-    The job was not started because your account is locked due to a billing issue.
+    The job was not started — the org's hosted-runner hold rejects it at start.
 
 This affects `.github/workflows/release.yml` (`ubuntu-latest`,
 `macos-latest`, `windows-latest`) and `.github/workflows/guardian.yml`
 (all three matrix platforms). It is NOT new and NOT caused by your change:
 it has failed identically on every tag and every `master` push since at
-least `v26.9.13` (2026-09-14). Confirmed billing-blocked runs, oldest first:
+least `v26.9.13` (2026-09-14). Confirmed never-started hosted-runner runs, oldest first:
 
 > **Scope of this hold.** It blocks *runners*, nothing else. It does NOT
 > block releases — see the section above. The last time CI actually
@@ -274,7 +274,7 @@ least `v26.9.13` (2026-09-14). Confirmed billing-blocked runs, oldest first:
 Confirm before blaming a commit:
 
     gh run list --limit 8
-    gh run view <id>          # look for the billing annotation
+    gh run view <id>          # look for the not-started annotation
 
 Only ONE runner is usable: `evorunner-evonext`, a self-hosted GitHub runner.
 Do not confuse it with the Gitea runner `act-runner` on the same host —
@@ -308,10 +308,10 @@ is correct as written; do not "fix" it.
 | Windows | `windows-latest` | **Yes, VERIFIED** — `~/builds/evonext-desktop-release.sh --windows` cross-builds NSIS via `cargo-xwin`. v26.9.11/13/16 all shipped `.exe`. |
 | Linux | `ubuntu-latest` (publish-release) | **Yes** — done manually with `gh release publish` |
 
-**A release cannot produce macOS artifacts while GitHub is billing-blocked.**
+**A release cannot produce macOS artifacts while GitHub-hosted macOS runners are unavailable in this org.**
 Say this plainly to the user; do not imply a full three-platform release is
 possible. Options are: (a) ship Linux + Windows via the release script,
-(b) restore GitHub billing to regain macOS, (c) find a macOS host.
+(b) restore the hosted-runner path to regain macOS, (c) find a macOS host.
 
 Shipping Linux + Windows is the **normal, working path** — it is what
 v26.9.9/11/13/16 all did. Do not present it as a degraded fallback.
@@ -397,7 +397,7 @@ currently defaults to the tag — which is correct. Do not add a `name:`.
 > already happens in `~/builds/evonext-desktop-release.sh` (see the top
 > section). Read it to understand the *intended* CI design, but do NOT
 > treat it as the release procedure. Its only remaining unique value is
-> the macOS job, which is billing-blocked.
+> the macOS job, which is unavailable in this org.
 
 From `.github/workflows/release.yml` (source of truth — re-read it before
 relying on this summary):
@@ -513,7 +513,7 @@ prepare the tree; step 8 onward is the real build.
        ssh evorunner '~/builds/evonext-desktop-release.sh vX.Y.Z --windows'
 
    The CI run that the tag push triggers will fail in 4-10 s with the
-   billing annotation. **That is expected and harmless.** Do not chase it.
+   not-started annotation. **That is expected and harmless.** Do not chase it.
 
 9. **Watch the script's own output**, not the CI run. It prints
    `== Building vX.Y.Z (sha) ==` then `== Artifacts ==` with absolute paths.
@@ -596,7 +596,7 @@ prepare the tree; step 8 onward is the real build.
 ### Do NOT expect the tag push to build anything
 
 Pushing the tag does two things: it records the tag, and it triggers a
-workflow that immediately dies on billing. It produces **zero artifacts**.
+workflow that immediately dies on the hosted-runner hold. It produces **zero artifacts**.
 The artifacts come from step 8. A future reader who only follows
 `release.yml` will conclude the release is impossible. It is not.
 
@@ -626,10 +626,10 @@ instruction, STOP IMMEDIATELY and output:
   `.gitea/workflows/`, do not `git ls-remote` Gitea while working here.
   (The Gitea/`act-runner` on the evorunner host serves the mobile repo.)
 - A tag push IS **not** the build any more — it only records the tag and
-  triggers a CI run that dies on billing. The build is the evorunner
+  triggers a CI run that dies on the hosted-runner hold. The build is the evorunner
   release script; the publish is `gh release create/upload/publish`.
 - Releases shipped continuously (v26.9.9/11/13/16) **entirely outside CI**.
-  The billing hold has never blocked a release; it only reddens the badge.
+  The hosted-runner hold has never blocked a release; it only reddens the badge.
 - Standing user directive: "Don't burn ~1hr builds without sign-off."
 - Related sibling skill: `evonext-mobile/.agents/skills/release-gate`.
   The mobile version is Android-specific (versionCode arithmetic,
