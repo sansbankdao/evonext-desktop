@@ -1,5 +1,52 @@
 # Changelog
 
+## v26.11.14
+
+### New Features
+
+- __Shielded wallet (the full pool):__ The Orchard-style shielded pool is now
+  a first-class part of the wallet — balance with a resumable note-tree scan,
+  receive (bech32m `dash1z`/`tdash1z` addresses with QR + copy), send with an
+  optional memo, and transaction history that classifies sent / self /
+  received activity with spent badges. The engine (wasm SDK + pure-TS crypto
+  + Halo2 proving via the sansbank prover) runs in a Web Worker so the UI
+  never blocks; proofs ride a Rust command because the prover answers no
+  CORS preflight.
+- __Wallet balance model:__ The assets list now carries the Transparent row
+  (the DIP-17 Platform-address pool) and the Shielded row — ALWAYS rendered,
+  even at zero — plus tokens with balances. The identity balance lives under
+  the dashboard and in the new TOTAL balance (identity + Transparent +
+  Shielded, DASH + USD) with a three-tile breakdown.
+- __Deposit, rebuilt:__ One address at a time behind a segmented selector —
+  Transparent (Platform), Shielded (private pool), or Identity — each with
+  its QR and copy button, plus the internal Move card for the four
+  live-verified lanes: Transparent→Identity, Transparent→Shielded,
+  Shielded→Identity, Shielded→Transparent.
+- __Swap, rebuilt:__ A Uniswap-style exchange for the DashSwap bootstrap
+  phase (one-way DASH→SANS / DASH→DUSD): pair chips, two-panel form, the
+  funding balance line, deposit QR, a 10-second status poller, and a local
+  swap history. Swaps ride the deployed key-holding proxy on evonext.app —
+  the API key never reaches the client.
+- __Honest confirmations:__ The Send confirmation links to the block
+  explorer only when a real transition hash exists; otherwise it says so.
+
+### Improvements
+
+- __Shielded KAT suite:__ 17 ported known-answer suites (158 tests) pin the
+  crypto, sync, wire-format and asset-row behavior; the full suite is
+  836/836 green.
+- __Session resilience:__ Private-key-only sessions (no seed phrase) degrade
+  gracefully — seed-derived pool features explain themselves instead of
+  failing.
+
+### Notes
+
+- macOS artifacts remain unavailable (GitHub-hosted runners are
+  billing-blocked); this release ships Linux + Windows, built on the
+  evorunner pipeline.
+
+---
+
 ## v26.10.1
 
 ### New Features
