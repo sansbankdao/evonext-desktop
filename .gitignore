@@ -42,3 +42,4 @@ coverage/
 
 # cargo-llvm-cov LCOV output produced by ci-mirror.sh
 src-tauri/lcov-rust.info
+scratch/
