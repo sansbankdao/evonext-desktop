@@ -133,12 +133,20 @@ package.json (vite@7.1.9/vitest@4.0.18 in the lock vs the committed pins
 
 ## 3. Not yet wired (open items, in priority order)
 
-1. `identity-manager.getIdentities` — the desktop boundary stub throws;
-   wire it to src/services/identity/discovery (SeedDiscovery) so the
-   ported wallet-manager getAuthKey/getTransferKey work end-to-end. Until
-   then the desktop's OWN transaction paths (useTransactions, raw
-   transitions with REAL hashes) keep serving sends — the ported
-   wallet-manager is in place for parity but not on the hot path.
+1. ~~`identity-manager.getIdentities` — the desktop boundary stub~~
+   **DONE (2026-11-15, post-release):** ported 1:1 from evonext.app
+   lib/identity-manager.ts (deps @nexajs/crypto@24.9.5 +
+   @nexajs/utils@24.7.15 added, exact pins). Desktop adaptation: the two
+   search functions initialize the MAIN-thread sdk via the NEW
+   `ensureWasmSdkService(network)` (src/lib/desktop-wasm.ts — the F37
+   network-aware initialize the desktop lacked); the same helper now
+   guards the Transparent pool-balance fetch (wallet store), the Move
+   card's balance reads, and Deposit's per-network address derivation.
+   Tests: tests/shielded/identity-manager.test.mts (6, hermetic — no live
+   prefetch). The ported wallet-manager getAuthKey/getTransferKey are now
+   functional end-to-end; the desktop's OWN transaction paths
+   (useTransactions, raw transitions with REAL hashes) still serve sends
+   on the hot path.
 2. Real-funds testnet verification pass (the F-gate standard: scan →
    receive parity → send → shield → unshield → top-up). Requires a testnet
    session with seed + funds; run from a dev build.

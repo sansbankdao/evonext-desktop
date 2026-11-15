@@ -139,6 +139,7 @@ import { useWalletStore } from '@/stores/wallet'
 import { useIdentityStore } from '@/stores/identity'
 import { useNetwork } from '@/composables/useNetwork'
 import { useShieldedEngine } from '@/composables/useShieldedEngine'
+import { ensureWasmSdkService } from '@/lib/desktop-wasm'
 import { derivePlatformReceiveAddress } from '@/lib/platform-address'
 import { mnemonicManager } from '@/composables/useMnemonic'
 import MoveCard from '@/components/wallet/MoveCard.vue'
@@ -211,6 +212,10 @@ const copyActive = async () => {
 
 const deriveAddresses = async () => {
     const network = await ensure()
+    /* The MAIN-thread sdk is initialized per network here so the Move
+     * card's balance reads (moves-service) and any later main-thread
+     * calls hit the F37-guarded service. */
+    await ensureWasmSdkService(network).catch(() => { /* offline — the Move card degrades */ })
     /* Transparent: LOCAL derivation — no network I/O (the F49b path). */
     try {
         const mnemonic = await mnemonicManager.getMnemonic(network === 'mainnet' ? 'mainnet' : 'testnet')

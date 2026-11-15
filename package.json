@@ -31,6 +31,8 @@
     "@evonext/platform": "25.11.23",
     "@evonext/utils": "25.11.25",
     "@heroicons/vue": "2.2.0",
+    "@nexajs/crypto": "24.9.5",
+    "@nexajs/utils": "24.7.15",
     "@noble/ciphers": "2.4.0",
     "@noble/curves": "2.4.0",
     "@noble/hashes": "2.4.0",

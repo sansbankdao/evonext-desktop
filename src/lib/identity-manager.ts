@@ -1,38 +1,270 @@
+// @ts-nocheck
+/* Ported 1:1 from evonext.app (live-verified upstream). Compile-only
+   directive: see the ported-stack note in lib/constants.ts (the upstream
+   file is type-checked under the web tsconfig; the unused dpns_* and
+   getPublicKeys imports are the web's own dead imports, carried for
+   1:1 parity). Runtime behavior covered by
+   tests/shielded/identity-manager.test.mts. */
 // src/lib/identity-manager.ts
 //
-// Desktop port boundary (evonext-desktop). The web identity-manager
-// implements seed-index discovery on top of its nexajs crypto helpers and
-// the full service barrel. The desktop already ships discovery:
-//   src/services/identity/discovery/SeedDiscovery.ts  (HD path scan)
-//   src/services/identity/discovery/KeyDiscovery.ts   (WIF/public-key-hash)
-// so this module exposes ONLY the member the ported wallet layer consumes
-// (lib/wallet-manager.ts getAuthKey/getTransferKey -> getIdentities) and
-// fails LOUDLY if reached unmocked — the wiring to the desktop discovery
-// happens in the wallet UI integration phase. The token-send/token-facts
-// KAT suites mock this module (importOriginal keeps this stub's shape).
+// Ported 1:1 from evonext.app lib/identity-manager.ts (the seed-index
+// identity discovery the ported wallet-manager's getAuthKey/getTransferKey
+// consume). Desktop adaptations, both documented inline:
+//   1. `wasmSdkService.getSdk()` → `ensureWasmSdkService(_network)`
+//      (src/lib/desktop-wasm.ts) — the desktop has no app-wide
+//      wasm-sdk bootstrap, and the F37 rule requires a network-aware
+//      initialize on the MAIN thread before any getSdk().
+//   2. `import { getPrivateKeys, getPublicKeys } from './wallet-manager'`
+//      resolves to the ported wallet-manager (its getPrivateKeys reads
+//      the session mnemonic via secure-storage — primed by
+//      useShieldedEngine.ensureStarted()).
+//
+// The seed scan (MIN_INDEX_SEARCH indices, both signature schemes) is
+// byte-for-byte the web's — get_identity_by_public_key_hash (unique) and
+// get_identity_by_non_unique_public_key_hash (non-unique) over the
+// m/9'/coin'/5'/0'/0'/idx'/keyIdx master key's hash160.
 
-export interface IIdentityLike {
-    id: string
-    idx: number
-    publicKeys: Array<{
-        id: number
-        type?: string
-        keyType?: string
-        purpose: string | number
-        securityLevel: string | number
-        contractBounds?: unknown
-        data: string
-        dataBytes?: string
-        readOnly?: boolean
-        disabledAt?: boolean | number | null
-    }>
+import { getPrivateKeys, getPublicKeys } from './wallet-manager'
+import { ensureWasmSdkService } from './desktop-wasm'
+import {
+    dpns_is_contested_username,
+    dpns_register_name,
+    get_identity_by_public_key_hash,
+    get_identity_by_non_unique_public_key_hash,
+} from '@/lib/dash-wasm/compat'
+import { IIdentity, IPublicKey } from '@/lib/types'
+// @ts-ignore
+import { hash160 } from '@nexajs/crypto'
+// @ts-ignore
+import { binToHex, hexToBin } from '@nexajs/utils'
+
+/* Initialize constants. */
+const MIN_INDEX_SEARCH = 3
+
+/**
+ * Get Key Type
+ *
+ * Maps the DPP numeric key type to its name (KeyType enum —
+ * lib/dash-wasm/wasm_sdk.d.ts:11310: ECDSA_SECP256K1 = 0, BLS12_381 = 1,
+ * ECDSA_HASH160 = 2, BIP13_SCRIPT_HASH = 3, EDDSA_25519_HASH160 = 4).
+ */
+const getKeyType = (_type: number | undefined) => {
+    switch (_type) {
+    case 0: return 'ECDSA_SECP256K1'
+    case 1: return 'BLS12_381'
+    case 2: return 'ECDSA_HASH160'
+    case 3: return 'BIP13_SCRIPT_HASH'
+    case 4: return 'EDDSA_25519_HASH160'
+    default: return 'UNKNOWN'
+    }
 }
 
-/** Seed-index scan — NOT WIRED on desktop yet (see header). */
-export const getIdentities = async (_network: string): Promise<IIdentityLike[] | null> => {
-    throw new Error(
-        'identity-manager.getIdentities is not wired on desktop: use the desktop discovery '
-        + '(src/services/identity/discovery) or mock this module in tests (web parity: '
-        + 'evonext.app lib/identity-manager.ts).',
-    )
+const decodeBase64ToHex = (_base64String: string) => {
+  try {
+    // 1. Decode the Base64 string into a binary string
+    const byteString = atob(_base64String);
+
+    // 2. Create an array to hold the byte values
+    const bytes = [];
+    for (let i = 0; i < byteString.length; i++) {
+      const hex = byteString.charCodeAt(i).toString(16).padStart(2, '0');
+      bytes.push(hex);
+    }
+
+    // 3. Join the array elements to form the final hex string
+    return bytes.join('');
+  } catch (e) {
+    console.error('Failed to decode Base64 string:', e);
+    return null;
+  }
+}
+
+/**
+ * Get Identities
+ *
+ * Will search ALL keys and signature schemes for an Identity's
+ * registered public keys.
+ */
+export const getIdentities = async (
+    _network: string
+): Promise<IIdentity[] | null> => {
+    /* Initialize Identities handler. */
+    const identities: IIdentity[] = []
+
+    for (let i = 0; i < MIN_INDEX_SEARCH; i++) {
+        /* Request query by Hash160. */
+        const hash160Result = await searchByHash160(_network, i)
+
+        /* Validate result. */
+        if (typeof hash160Result !== 'undefined' && hash160Result !== null) {
+            identities.push({
+                id: hash160Result.identityId,
+                idx: i,
+                publicKeys: hash160Result.regPubKeys.map((_key: IPublicKey) => {
+                    return {
+                        id: _key.id,
+                        type: _key.type,
+                        keyType: getKeyType(_key.type),
+                        purpose: _key.purpose,
+                        securityLevel: _key.securityLevel,
+                        contractBounds: _key.contractBounds,
+                        data: _key.data,
+                        dataBytes: decodeBase64ToHex(_key.data),
+                        readOnly: _key.readOnly,
+                        disabledAt: _key.disabledAt,
+                    }
+                }),
+            })
+        }
+
+        /* Request query by Secp256k1. */
+        const secp256k1Result = await searchBySecp256k1(_network, i)
+
+        /* Validate result. */
+        if (typeof secp256k1Result !== 'undefined' && secp256k1Result !== null) {
+            identities.push({
+                id: secp256k1Result.identityId,
+                idx: i,
+                publicKeys: secp256k1Result.regPubKeys.map((_key: IPublicKey) => {
+                    return {
+                        id: _key.id,
+                        type: _key.type,
+                        keyType: getKeyType(_key.type),
+                        purpose: _key.purpose,
+                        securityLevel: _key.securityLevel,
+                        contractBounds: _key.contractBounds,
+                        data: _key.data,
+                        dataBytes: decodeBase64ToHex(_key.data),
+                        readOnly: _key.readOnly,
+                        disabledAt: _key.disabledAt,
+                    }
+                }),
+            })
+        }
+    }
+
+    /* Validate Identities. */
+    if (identities.length === 0) {
+        return null
+    } else {
+        return identities
+    }
+}
+
+/**
+ * Search By Hash160
+ *
+ * Will search the blockchain for ECDSA_HASH160 public keys, matching
+ * the primary public key.
+ */
+export const searchByHash160 = async (_network: string, _identityIdx: number) => {
+    /* Initialize locals. */
+    let identityId
+    let regPubKeys
+
+    /* Initialize SDK. */
+    const sdk = await ensureWasmSdkService(_network)
+
+    /* Request private keys. */
+    const privateKeys = getPrivateKeys(_network, _identityIdx)
+
+    /* Set public key. */
+    const publicKey = privateKeys.masterKey.public_key
+
+    /* Calculate public key hash. */
+    const publicKeyHash = binToHex(hash160(hexToBin(publicKey)))
+
+    /* Request (HASH160) Identity. */
+    const result = await get_identity_by_non_unique_public_key_hash(
+        sdk,
+        publicKeyHash,
+        undefined
+    ).catch(err => console.error(err))
+
+    /* Handle ECDSA_HASH160 signature scheme. */
+    if (result && result.length > 0 && typeof result === 'object') {
+        // The 4.1.1 API returns class instances here (Identifier id object,
+        // IdentityPublicKey items whose getters yield enum STRINGS such as
+        // "AUTHENTICATION"/"MASTER"); consumers expect the old plain shape
+        // (string id, numeric purpose/securityLevel). toJSON() restores it —
+        // same normalization searchBySecp256k1 already applies.
+        const identityJson = result[0].toJSON()
+
+        /* Set Identity ID. */
+        identityId = identityJson.id
+
+        /* Set registered public keys. */
+        regPubKeys = identityJson.publicKeys
+    }
+
+    /* Validate Identity. */
+    if (typeof identityId === 'undefined' || identityId === null) {
+        return null
+    }
+
+    /* Validate registered keys. */
+    if (typeof regPubKeys === 'undefined' || regPubKeys === null) {
+        return null
+    }
+
+    /* Return (registered) Identity + public keys. */
+    return {
+        identityId,
+        regPubKeys,
+    }
+}
+
+/**
+ * Search By Secp256k1
+ *
+ * Will search the blockchain for ECDSA_SECP256k1 public keys, matching
+ * the primary public key.
+ */
+export const searchBySecp256k1 = async (_network: string, _identityIdx: number) => {
+    /* Initialize locals. */
+    let identityId
+    let regPubKeys
+
+    /* Initialize SDK. */
+    const sdk = await ensureWasmSdkService(_network)
+
+    /* Request private keys. */
+    const privateKeys = getPrivateKeys(_network, _identityIdx)
+
+    /* Set public key. */
+    const publicKey = privateKeys.masterKey.public_key
+
+    /* Calculate public key hash. */
+    const publicKeyHash = binToHex(hash160(hexToBin(publicKey)))
+
+    /* Request (SECP256k1) Identity. */
+    const result = await get_identity_by_public_key_hash(
+        sdk,
+        publicKeyHash
+    ).catch(err => console.error(err))
+
+    /* Handle ECDSA_SECP256k1 signature scheme. */
+    if (result && result.toJSON()) {
+        /* Set Identity ID. */
+        identityId = result.toJSON().id
+
+        /* Set registered public keys. */
+        regPubKeys = result.toJSON().publicKeys
+    }
+
+    /* Validate Identity. */
+    if (typeof identityId === 'undefined' || identityId === null) {
+        return null
+    }
+
+    /* Validate registered keys. */
+    if (typeof regPubKeys === 'undefined' || regPubKeys === null) {
+        return null
+    }
+
+    /* Return (registered) Identity + public keys. */
+    return {
+        identityId,
+        regPubKeys,
+    }
 }

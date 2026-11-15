@@ -89,6 +89,7 @@ import { useIdentityStore } from '@/stores/identity'
 import { useNetwork } from '@/composables/useNetwork'
 import { useShieldedEngine, CREDITS_PER_DASH } from '@/composables/useShieldedEngine'
 import { getMnemonic } from '@/lib/secure-storage'
+import { ensureWasmSdkService } from '@/lib/desktop-wasm'
 import { moveTransparentToIdentity, moveTransparentToShielded, readTransparentAddress } from '@/lib/moves-service'
 
 type Lane = 'transparent' | 'shielded' | 'identity'
@@ -138,6 +139,9 @@ const refreshBalances = async () => {
     const engineUp = await engine.ensureStarted()
     try {
         const network = await ensure()
+        /* The MAIN-thread sdk must be initialized for THIS network before
+         * readTransparentAddress's getAddressesInfos (the F37 rule). */
+        await ensureWasmSdkService(network)
         const addr = await readTransparentAddress(network === 'mainnet' ? 'mainnet' : 'testnet', 0)
         transparentBalance.value = addr.balance
     } catch { transparentBalance.value = null }

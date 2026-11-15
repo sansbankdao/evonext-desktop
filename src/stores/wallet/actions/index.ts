@@ -23,7 +23,7 @@ import type { Network } from '@/composables/useNetwork'
  * Shielded, SANS, DUSD; the mobile balance-model handoff). */
 import { fetchPlatformAddressBalance } from '@/lib/platform-address'
 import { persistedShieldedBalance } from '@/lib/shielded/engine-client'
-import { getWasmSdk } from '@/lib/services/wasm-sdk-service'
+import { ensureWasmSdkService } from '@/lib/desktop-wasm'
 
 /** Bounded + retried Transparent balance (the F50a semantics: 3 attempts,
  *  90s each — the wasm request-timeout can leave a query pending forever,
@@ -31,7 +31,10 @@ import { getWasmSdk } from '@/lib/services/wasm-sdk-service'
 async function fetchTransparentBalanceBounded(network: Network): Promise<bigint | null> {
     for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-            const sdk = await getWasmSdk()
+            /* ensureWasmSdkService initializes (or re-initializes per the
+             * F37 rule) the MAIN-thread sdk for THIS network before the
+             * getAddressesInfos call. */
+            const sdk = await ensureWasmSdkService(network)
             return await Promise.race([
                 fetchPlatformAddressBalance(sdk, network, 20),
                 new Promise<never>((_, reject) =>
